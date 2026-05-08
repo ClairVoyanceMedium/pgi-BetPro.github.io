@@ -817,79 +817,110 @@ function filterScanBySport(sportType){
   },10);
 }
 
-// Leagues par sport pour le scan ciblé via /api/analyze
+// Toutes les ligues à scanner par sport
 const SPORT_LEAGUES = {
-  soccer:    ['soccer_epl','soccer_france_ligue1','soccer_ucl','soccer_spain_la_liga','soccer_germany_bundesliga','soccer_italy_serie_a','soccer_uel','soccer_netherlands','soccer_portugal'],
+  soccer:    ['soccer_epl','soccer_france_ligue1','soccer_ucl','soccer_spain_la_liga','soccer_germany_bundesliga','soccer_italy_serie_a','soccer_uel','soccer_netherlands','soccer_portugal','soccer_turkey','soccer_belgium','soccer_brasil','soccer_mls'],
   basketball:['basketball_nba','basketball_euroleague','basketball_ncaab','basketball_wnba'],
   tennis:    ['tennis_atp','tennis_wta','tennis_atp_french_open','tennis_wta_french_open'],
-  rugby:     ['rugbyunion_top14','rugbyunion_premiership','rugbyunion_super_rugby'],
-  icehockey: ['icehockey_nhl','icehockey_khl'],
+  rugby:     ['rugbyunion_top14','rugbyunion_premiership','rugbyunion_super_rugby','rugbyleague_nrl'],
+  icehockey: ['icehockey_nhl','icehockey_khl','icehockey_shl'],
   baseball:  ['baseball_mlb','baseball_npb'],
   mma:       ['mma_mixed_martial_arts','boxing_boxing'],
 };
 const SPORT_MARKETS = {
   soccer:    ['h2h','totals','btts'],
-  basketball:['h2h','totals','spreads'],
+  basketball:['h2h','totals'],
   tennis:    ['h2h'],
   rugby:     ['h2h','totals'],
   icehockey: ['h2h','totals'],
   baseball:  ['h2h','totals'],
   mma:       ['h2h'],
 };
+// Toutes les ligues pour le scan global "Tout"
+const ALL_LEAGUES_SCAN = [
+  // Football
+  {sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue1',market:'h2h'},
+  {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_spain_la_liga',market:'h2h'},
+  {sport:'soccer_germany_bundesliga',market:'h2h'},{sport:'soccer_italy_serie_a',market:'h2h'},
+  {sport:'soccer_epl',market:'totals'},{sport:'soccer_france_ligue1',market:'btts'},
+  // Basketball
+  {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'totals'},
+  {sport:'basketball_euroleague',market:'h2h'},
+  // Tennis
+  {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
+  {sport:'tennis_atp_french_open',market:'h2h'},
+  // Rugby
+  {sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'},
+  // Hockey
+  {sport:'icehockey_nhl',market:'h2h'},{sport:'icehockey_nhl',market:'totals'},
+  // Baseball
+  {sport:'baseball_mlb',market:'h2h'},
+  // MMA
+  {sport:'mma_mixed_martial_arts',market:'h2h'},
+];
+
+async function scanLeagues(leagueList) {
+  // Lance toutes les requêtes en parallèle, ignore les erreurs individuelles
+  const promises = leagueList.map(({sport,market}) =>
+    api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick')
+      .then(d => d.opportunities || [])
+      .catch(() => [])
+  );
+  const results = await Promise.all(promises);
+  let all = [];
+  results.forEach(r => { all = [...all, ...r]; });
+  // Dédoublonner
+  const seen = new Set();
+  all = all.filter(o => {
+    const key = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'')+'|'+(o.selection||'');
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+  // Trier par score décroissant
+  all.sort((a,b) => (b.score?.total||0) - (a.score?.total||0));
+  return all;
+}
 
 async function doLiveScan() {
   const btn=document.getElementById('scan-btn'),ico=document.getElementById('scan-btn-ico'),txt=document.getElementById('scan-btn-txt'),res=document.getElementById('scan-res');
   const sportType=document.querySelector('.ssb.on')?.dataset.sport||'all';
-  btn.disabled=true;btn.className='scan-main-btn scanning';ico.innerHTML='<div class="scan-radar"></div>';txt.textContent='SCAN EN COURS…';
+  btn.disabled=true; btn.className='scan-main-btn scanning'; ico.innerHTML='<div class="scan-radar"></div>';
 
-  const sportLabel = {all:'tous sports',soccer:'Football',basketball:'Basketball',tennis:'Tennis',rugby:'Rugby',icehockey:'Hockey',baseball:'Baseball',mma:'MMA/Boxe'}[sportType]||sportType;
-  res.innerHTML=`<div class="ls" style="padding:40px 20px"><div class="sp" style="width:36px;height:36px;border-width:3px;border-color:rgba(239,68,68,.2);border-top-color:var(--re)"></div><p style="margin-top:14px;font-size:14px">Scan ${sportLabel} en cours…</p><p style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Analyse des meilleures opportunités…</p></div>`;
+  const sportLabel={all:'tous sports',soccer:'Football ⚽',basketball:'Basketball 🏀',tennis:'Tennis 🎾',rugby:'Rugby 🏉',icehockey:'Hockey 🏒',baseball:'Baseball ⚾',mma:'MMA/Boxe 🥊'}[sportType]||sportType;
+  txt.textContent='SCAN '+sportLabel.toUpperCase()+' EN COURS…';
+  res.innerHTML=`<div class="ls" style="padding:40px 20px">
+    <div class="sp" style="width:36px;height:36px;border-width:3px;border-color:rgba(239,68,68,.2);border-top-color:var(--re)"></div>
+    <p style="margin-top:14px;font-size:14px">Scan ${sportLabel} en cours…</p>
+    <p style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Interrogation de ${sportType==='all'?ALL_LEAGUES_SCAN.length:((SPORT_LEAGUES[sportType]||[]).length * (SPORT_MARKETS[sportType]||['h2h']).length)} sources en parallèle…</p>
+  </div>`;
 
   try {
     let allOpps = [];
 
     if(sportType === 'all') {
-      // Tout : appel live-scan général du Worker
-      const d = await api('/api/live-scan');
-      allOpps = d.upcoming || [];
-      // On complète avec quelques sports via analyze si live-scan retourne peu de variété
-      const sports = allOpps.map(o=>o.sport||'').filter((v,i,a)=>a.indexOf(v)===i);
-      const hasSoccer = sports.some(s=>s.includes('soccer'));
-      if(!hasSoccer) {
-        // Essayer de récupérer du foot en complément
-        try {
-          const dSoc = await api('/api/analyze?sport=soccer_epl&market=h2h&mode=quick');
-          if(dSoc.opportunities?.length) allOpps = [...allOpps, ...dSoc.opportunities];
-        } catch(_) {}
-      }
+      // Scan global : toutes les ligues de tous les sports en parallèle
+      allOpps = await scanLeagues(ALL_LEAGUES_SCAN);
     } else {
-      // Sport spécifique : appels /api/analyze pour chaque championnat du sport
+      // Sport spécifique : toutes les ligues + marchés de ce sport
       const leagues = SPORT_LEAGUES[sportType] || [];
       const markets = SPORT_MARKETS[sportType] || ['h2h'];
-      const promises = [];
-      for(const league of leagues.slice(0,4)) { // max 4 pour éviter trop de requêtes
-        for(const market of markets.slice(0,2)) {
-          promises.push(api('/api/analyze?sport='+enc(league)+'&market='+enc(market)+'&mode=quick').catch(()=>({opportunities:[]})));
-        }
-      }
-      const results = await Promise.all(promises);
-      results.forEach(r => { if(r.opportunities?.length) allOpps = [...allOpps, ...r.opportunities]; });
-      // Dédoublonner par home_team+away_team+market
-      const seen = new Set();
-      allOpps = allOpps.filter(o => {
-        const key = (o.home_team||'')+(o.away_team||'')+(o.market||'')+(o.selection||'');
-        if(seen.has(key)) return false;
-        seen.add(key); return true;
-      });
-      // Trier par score décroissant
-      allOpps.sort((a,b)=>(b.score?.total||0)-(a.score?.total||0));
+      const leagueList = [];
+      leagues.forEach(sport => markets.forEach(market => leagueList.push({sport, market})));
+      allOpps = await scanLeagues(leagueList);
     }
 
     if(!allOpps.length) {
-      res.innerHTML=`<div class="empty"><div class="empty-i">${{soccer:'⚽',basketball:'🏀',tennis:'🎾',rugby:'🏉',icehockey:'🏒',baseball:'⚾',mma:'🥊'}[sportType]||'🔍'}</div><div class="empty-t">Aucune opportunité pour ${sportLabel}</div><div class="empty-s">Aucun match disponible pour ce sport en ce moment.<br>Essayez "Tout" ou revenez plus tard.</div></div>`;
-      loadQuotas(); toast('Aucune opportunité — '+sportLabel,'');
+      const sportIco={soccer:'⚽',basketball:'🏀',tennis:'🎾',rugby:'🏉',icehockey:'🏒',baseball:'⚾',mma:'🥊',all:'🔍'}[sportType]||'🔍';
+      res.innerHTML=`<div class="empty">
+        <div class="empty-i">${sportIco}</div>
+        <div class="empty-t">Aucune opportunité — ${sportLabel}</div>
+        <div class="empty-s">Pas de matchs disponibles pour ce sport en ce moment.<br>
+        Essayez un autre sport ou revenez plus tard.<br>
+        <span style="color:var(--dm);font-family:var(--mo);font-size:10px">Les marchés peuvent être vides en dehors des saisons actives.</span>
+        </div>
+      </div>`;
+      loadQuotas(); toast('Aucune opportunité pour '+sportLabel,'');
     } else {
-      // Construire un objet compatible renderLiveScan
       const fakeD = { upcoming: allOpps, scan_at: new Date().toISOString(), total_opportunities: allOpps.length };
       res.innerHTML = renderLiveScan(fakeD);
       loadQuotas();
@@ -899,7 +930,7 @@ async function doLiveScan() {
     res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re);font-weight:700;margin-bottom:6px">❌ Erreur</div><div style="color:var(--mu);font-size:12px">${esc(e.message)}</div><div class="info" style="margin-top:10px">Vérifiez ODDS_API_KEY dans vos secrets Cloudflare.</div></div>`;
     toast('Erreur: '+e.message,'err');
   }
-  btn.disabled=false;btn.className='scan-main-btn ready';ico.textContent='🔴';txt.textContent='RELANCER LE SCAN';
+  btn.disabled=false; btn.className='scan-main-btn ready'; ico.textContent='🔴'; txt.textContent='RELANCER LE SCAN';
 }
 
 function renderLiveScan(d) {
