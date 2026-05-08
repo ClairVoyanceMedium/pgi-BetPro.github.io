@@ -817,20 +817,88 @@ function filterScanBySport(sportType){
   },10);
 }
 
+// Leagues par sport pour le scan ciblé via /api/analyze
+const SPORT_LEAGUES = {
+  soccer:    ['soccer_epl','soccer_france_ligue1','soccer_ucl','soccer_spain_la_liga','soccer_germany_bundesliga','soccer_italy_serie_a','soccer_uel','soccer_netherlands','soccer_portugal'],
+  basketball:['basketball_nba','basketball_euroleague','basketball_ncaab','basketball_wnba'],
+  tennis:    ['tennis_atp','tennis_wta','tennis_atp_french_open','tennis_wta_french_open'],
+  rugby:     ['rugbyunion_top14','rugbyunion_premiership','rugbyunion_super_rugby'],
+  icehockey: ['icehockey_nhl','icehockey_khl'],
+  baseball:  ['baseball_mlb','baseball_npb'],
+  mma:       ['mma_mixed_martial_arts','boxing_boxing'],
+};
+const SPORT_MARKETS = {
+  soccer:    ['h2h','totals','btts'],
+  basketball:['h2h','totals','spreads'],
+  tennis:    ['h2h'],
+  rugby:     ['h2h','totals'],
+  icehockey: ['h2h','totals'],
+  baseball:  ['h2h','totals'],
+  mma:       ['h2h'],
+};
+
 async function doLiveScan() {
   const btn=document.getElementById('scan-btn'),ico=document.getElementById('scan-btn-ico'),txt=document.getElementById('scan-btn-txt'),res=document.getElementById('scan-res');
   const sportType=document.querySelector('.ssb.on')?.dataset.sport||'all';
   btn.disabled=true;btn.className='scan-main-btn scanning';ico.innerHTML='<div class="scan-radar"></div>';txt.textContent='SCAN EN COURS…';
-  res.innerHTML=`<div class="ls" style="padding:40px 20px"><div class="sp" style="width:36px;height:36px;border-width:3px;border-color:rgba(239,68,68,.2);border-top-color:var(--re)"></div><p style="margin-top:14px;font-size:14px">Scan ${sportType==='all'?'tous sports':sportType} en cours…</p><p style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Détection des meilleures opportunités…</p></div>`;
-  try{
-    // On récupère TOUTES les opportunités sans filtre — le filtre sport s'applique visuellement
-    const d=await api('/api/live-scan');
-    res.innerHTML=renderLiveScan(d);
-    // Appliquer le filtre sport sélectionné VISUELLEMENT sur les cartes rendues
-    if(sportType!=='all') setTimeout(()=>filterScanBySport(sportType),30);
-    const total=d.upcoming?.length||0;
-    loadQuotas();toast(total+' opportunité(s) total — utilisez les boutons sport pour filtrer','ok');}
-  catch(e){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re);font-weight:700;margin-bottom:6px">❌ Erreur</div><div style="color:var(--mu);font-size:12px">${esc(e.message)}</div><div class="info" style="margin-top:10px">Vérifiez ODDS_API_KEY dans vos secrets Cloudflare.</div></div>`;toast('Erreur: '+e.message,'err');}
+
+  const sportLabel = {all:'tous sports',soccer:'Football',basketball:'Basketball',tennis:'Tennis',rugby:'Rugby',icehockey:'Hockey',baseball:'Baseball',mma:'MMA/Boxe'}[sportType]||sportType;
+  res.innerHTML=`<div class="ls" style="padding:40px 20px"><div class="sp" style="width:36px;height:36px;border-width:3px;border-color:rgba(239,68,68,.2);border-top-color:var(--re)"></div><p style="margin-top:14px;font-size:14px">Scan ${sportLabel} en cours…</p><p style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Analyse des meilleures opportunités…</p></div>`;
+
+  try {
+    let allOpps = [];
+
+    if(sportType === 'all') {
+      // Tout : appel live-scan général du Worker
+      const d = await api('/api/live-scan');
+      allOpps = d.upcoming || [];
+      // On complète avec quelques sports via analyze si live-scan retourne peu de variété
+      const sports = allOpps.map(o=>o.sport||'').filter((v,i,a)=>a.indexOf(v)===i);
+      const hasSoccer = sports.some(s=>s.includes('soccer'));
+      if(!hasSoccer) {
+        // Essayer de récupérer du foot en complément
+        try {
+          const dSoc = await api('/api/analyze?sport=soccer_epl&market=h2h&mode=quick');
+          if(dSoc.opportunities?.length) allOpps = [...allOpps, ...dSoc.opportunities];
+        } catch(_) {}
+      }
+    } else {
+      // Sport spécifique : appels /api/analyze pour chaque championnat du sport
+      const leagues = SPORT_LEAGUES[sportType] || [];
+      const markets = SPORT_MARKETS[sportType] || ['h2h'];
+      const promises = [];
+      for(const league of leagues.slice(0,4)) { // max 4 pour éviter trop de requêtes
+        for(const market of markets.slice(0,2)) {
+          promises.push(api('/api/analyze?sport='+enc(league)+'&market='+enc(market)+'&mode=quick').catch(()=>({opportunities:[]})));
+        }
+      }
+      const results = await Promise.all(promises);
+      results.forEach(r => { if(r.opportunities?.length) allOpps = [...allOpps, ...r.opportunities]; });
+      // Dédoublonner par home_team+away_team+market
+      const seen = new Set();
+      allOpps = allOpps.filter(o => {
+        const key = (o.home_team||'')+(o.away_team||'')+(o.market||'')+(o.selection||'');
+        if(seen.has(key)) return false;
+        seen.add(key); return true;
+      });
+      // Trier par score décroissant
+      allOpps.sort((a,b)=>(b.score?.total||0)-(a.score?.total||0));
+    }
+
+    if(!allOpps.length) {
+      res.innerHTML=`<div class="empty"><div class="empty-i">${{soccer:'⚽',basketball:'🏀',tennis:'🎾',rugby:'🏉',icehockey:'🏒',baseball:'⚾',mma:'🥊'}[sportType]||'🔍'}</div><div class="empty-t">Aucune opportunité pour ${sportLabel}</div><div class="empty-s">Aucun match disponible pour ce sport en ce moment.<br>Essayez "Tout" ou revenez plus tard.</div></div>`;
+      loadQuotas(); toast('Aucune opportunité — '+sportLabel,'');
+    } else {
+      // Construire un objet compatible renderLiveScan
+      const fakeD = { upcoming: allOpps, scan_at: new Date().toISOString(), total_opportunities: allOpps.length };
+      res.innerHTML = renderLiveScan(fakeD);
+      loadQuotas();
+      toast(allOpps.length+' opportunité(s) — '+sportLabel,'ok');
+    }
+  } catch(e) {
+    res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re);font-weight:700;margin-bottom:6px">❌ Erreur</div><div style="color:var(--mu);font-size:12px">${esc(e.message)}</div><div class="info" style="margin-top:10px">Vérifiez ODDS_API_KEY dans vos secrets Cloudflare.</div></div>`;
+    toast('Erreur: '+e.message,'err');
+  }
   btn.disabled=false;btn.className='scan-main-btn ready';ico.textContent='🔴';txt.textContent='RELANCER LE SCAN';
 }
 
