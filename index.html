@@ -784,7 +784,27 @@ async function doLiveScan() {
   const sportType=document.querySelector('.ssb.on')?.dataset.sport||'all';
   btn.disabled=true;btn.className='scan-main-btn scanning';ico.innerHTML='<div class="scan-radar"></div>';txt.textContent='SCAN EN COURS…';
   res.innerHTML=`<div class="ls" style="padding:40px 20px"><div class="sp" style="width:36px;height:36px;border-width:3px;border-color:rgba(239,68,68,.2);border-top-color:var(--re)"></div><p style="margin-top:14px;font-size:14px">Scan ${sportType==='all'?'tous sports':sportType} en cours…</p><p style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Détection des meilleures opportunités…</p></div>`;
-  try{const d=await api('/api/live-scan?sport_type='+enc(sportType));res.innerHTML=renderLiveScan(d);loadQuotas();toast((d.total_opportunities||0)+' opportunité(s)','ok');}
+  try{const d=await api('/api/live-scan?sport_type='+enc(sportType));
+    // Filtre côté client : le Worker ne filtre pas toujours par sport
+    // On filtre ici selon le champ o.sport de chaque opportunité
+    if(sportType!=='all' && d.upcoming){
+      const sportMap={
+        soccer:   ['soccer'],
+        basketball:['basketball','nba','wnba','ncaab','euroleague'],
+        tennis:   ['tennis'],
+        rugby:    ['rugby'],
+        icehockey:['icehockey','hockey'],
+        baseball: ['baseball'],
+        mma:      ['mma','boxing','combat'],
+      };
+      const keywords=sportMap[sportType]||[sportType];
+      d.upcoming=d.upcoming.filter(o=>{
+        const sp=(o.sport||'').toLowerCase();
+        return keywords.some(k=>sp.includes(k));
+      });
+      d.total_opportunities=d.upcoming.length;
+    }
+    res.innerHTML=renderLiveScan(d);loadQuotas();toast((d.total_opportunities||d.upcoming?.length||0)+' opportunité(s) — sport: '+(sportType==='all'?'tous':sportType),'ok');}
   catch(e){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re);font-weight:700;margin-bottom:6px">❌ Erreur</div><div style="color:var(--mu);font-size:12px">${esc(e.message)}</div><div class="info" style="margin-top:10px">Vérifiez ODDS_API_KEY dans vos secrets Cloudflare.</div></div>`;toast('Erreur: '+e.message,'err');}
   btn.disabled=false;btn.className='scan-main-btn ready';ico.textContent='🔴';txt.textContent='RELANCER LE SCAN';
 }
@@ -923,7 +943,13 @@ async function doMethodSearch() {
   res.innerHTML=`<div class="ls"><div class="sp"></div><p>Recherche de matchs avec cote ≈ ${targetOdds} et score ≥ ${minScore}…</p><p style="font-size:10px;color:var(--dm);margin-top:5px;font-family:var(--mo)">Méthode: ${s.name} · Prochaine mise: ${nextStake}€</p></div>`;
   try {
     const d=await api('/api/live-scan?sport_type='+enc(sportFilter)+'&target_odds='+targetOdds+'&odds_tolerance='+tolerance+'&min_score='+minScore);
-    const allOpps=d.upcoming||[];
+    let allOpps=d.upcoming||[];
+    // Filtre client-side par sport
+    if(sportFilter!=='all'){
+      const sportMap={soccer:['soccer'],basketball:['basketball','nba','wnba','ncaab'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing']};
+      const keywords=sportMap[sportFilter]||[sportFilter];
+      allOpps=allOpps.filter(o=>keywords.some(k=>(o.sport||'').toLowerCase().includes(k)));
+    }
     // Filtre par cote et score
     const matched=allOpps.filter(o=>{
       const odds=parseFloat(o.odds)||0;
@@ -1075,7 +1101,7 @@ function addTrackerEntry() {
   if(document.getElementById('t-stake')) document.getElementById('t-stake').value=nextStake;
 }
 
-function resetTracker(){if(!confirm('Réinitialiser tout le suivi ?')) return;trackerHistory=[];renderTracker();toast('Suivi réinitialisé','ok');}
+function resetTracker(){if(!confirm('Réinitialiser tout le suivi ? Cette action est irréversible.'))return;trackerHistory=[];renderTracker();toast('Suivi réinitialisé','ok');}
 
 // UTILS
 function fmtDT(iso){if(!iso)return'—';try{return new Date(iso).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch{return iso;}}
