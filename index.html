@@ -367,6 +367,129 @@ a{color:var(--neon);text-decoration:none}
 .di label{font-size:9px;font-weight:600;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:2px}
 .di value{font-family:var(--mo);font-size:12px;font-weight:600;color:var(--tx);display:block}
 .di value.hl{color:var(--neon)}.di value.odds{color:var(--am);font-size:15px}
+
+/* ═══ RESPONSIVE MOBILE COMPLET ═══ */
+@media(max-width:768px){
+  :root{--fw:0px}
+  .sb{transform:translateX(-100%);width:280px}
+  .sb.open{transform:translateX(0)}
+  .mb{display:flex}
+  .mn{margin-left:0!important;padding:12px!important;padding-top:62px!important;max-width:100vw}
+
+  /* Grilles */
+  .fg,.fg3,.m-params,.m-pro-con,.strat-summary,.score-grid,
+  .risk-grid,.tracker-add-form,.scan-stats,.model-grid,
+  .m-strat-grid,.ctx-grid,.dg{grid-template-columns:1fr!important}
+  .fg{gap:10px}
+  .strat-summary{grid-template-columns:1fr 1fr!important}
+  .score-grid{grid-template-columns:repeat(2,1fr)!important}
+  .scan-stats{grid-template-columns:repeat(2,1fr)!important}
+  .model-grid{grid-template-columns:repeat(2,1fr)!important}
+  .m-strat-grid{grid-template-columns:repeat(2,1fr)!important}
+  .risk-grid{grid-template-columns:repeat(3,1fr)!important}
+  .m-params{grid-template-columns:1fr 1fr!important}
+  .tracker-add-form{grid-template-columns:1fr 1fr!important}
+  .dg{grid-template-columns:repeat(2,1fr)!important}
+  .m-pro-con{grid-template-columns:1fr!important}
+  .ctx-grid{grid-template-columns:repeat(2,1fr)!important}
+
+  /* Textes */
+  .pt{font-size:16px!important}
+  .scan-title{font-size:14px!important}
+  .om-match,.lc-teams,.mrc-match,.br-match,.om{font-size:12px!important}
+  .nsd-amount{font-size:32px!important}
+  .la-score{font-size:36px!important}
+
+  /* Cartes */
+  .card{padding:14px!important}
+  .oc,.opp-mega,.live-card,.method-res-card,.bet-row,.tracker-section{margin-bottom:8px}
+  .m-detail-panel{padding:14px!important}
+
+  /* Scan sport buttons */
+  .scan-sport-btns{gap:5px}
+  .ssb{font-size:10px!important;padding:5px 9px!important}
+
+  /* Boutons mode scan */
+  #smode-eco,#smode-standard,#smode-complet{font-size:9px!important;padding:5px 8px!important}
+
+  /* Filtres */
+  .filter-bar,.fbtn{font-size:9px!important}
+  .fbtn{padding:4px 8px!important}
+
+  /* Badges */
+  .bdg{font-size:8px!important}
+
+  /* Connexion mobile */
+  #conn-panel{display:none!important} /* masqué dans sidebar sur mobile — visible via hamburger */
+
+  /* Chat */
+  .chat-wrap{max-height:50vh}
+  .msg-bub{max-width:88%!important;font-size:11px!important}
+
+  /* Quick questions */
+  #quick-q .btn{font-size:9px!important;padding:3px 7px!important}
+
+  /* Méthodes */
+  .m-strat-card{padding:10px 8px!important}
+  .msc-ico{font-size:22px!important;margin-bottom:5px}
+  .msc-name{font-size:10px!important}
+  .msc-sub{font-size:8px!important}
+
+  /* Tracker table scroll */
+  .tracker-table{font-size:10px}
+  .tracker-table th,.tracker-table td{padding:5px 6px!important}
+
+  /* Next stake display */
+  .next-stake-display{padding:14px!important}
+
+  /* Upcoming / live */
+  .la-score-display{gap:8px!important;padding:10px 0!important}
+  .la-team-name{font-size:11px!important}
+
+  /* Résultats */
+  .om-odds{font-size:16px!important}
+  .mrc-odds-big{font-size:18px!important}
+  .sc-num{font-size:18px!important}
+
+  /* Stratégie */
+  .stake-badge .sam{font-size:16px!important}
+  .ss-cell .sv{font-size:16px!important}
+
+  /* Headers h2h scan */
+  .scan-hero{padding:14px!important}
+
+  /* Score legend scroll */
+  .score-legend{overflow-x:auto;flex-wrap:nowrap}
+
+  /* Overflow tables */
+  .ts,.tracker-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* BM table */
+  .bmt{font-size:10px}
+
+  /* Boutons actions */
+  .bg{gap:6px}
+  .btn{font-size:10px!important;padding:7px 12px!important}
+  .scan-main-btn{padding:12px!important;font-size:13px!important}
+
+  /* Upload zone */
+  .upload-zone{padding:20px!important}
+  .upload-ico{font-size:28px!important}
+
+  /* Install pre */
+  pre{font-size:9px!important;padding:10px!important}
+
+  /* Quota bars */
+  .qbl{font-size:9px}
+}
+
+@media(max-width:400px){
+  .m-strat-grid{grid-template-columns:1fr!important}
+  .risk-grid{grid-template-columns:1fr 1fr!important}
+  .strat-summary{grid-template-columns:1fr!important}
+  .scan-sport-btns .ssb{font-size:9px!important;padding:4px 7px!important}
+  .tracker-add-form{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body>
@@ -1649,12 +1772,12 @@ function renderStrategyDetail() {
 
 async function doMethodSearch() {
   const s=selectedStrategy; if(!s){toast('Sélectionnez une stratégie','err');return;}
-  const targetOdds=parseFloat(document.getElementById('m-target-odds').value)||s.minOdds;
-  const tolerance=parseFloat(document.getElementById('m-odds-tol').value)||0.15;
-  const minScore=parseInt(document.getElementById('m-min-score').value)||75;
-  const sportFilter=document.getElementById('m-sport-filter').value;
-  const initStake=parseFloat(document.getElementById('m-init-stake').value)||10;
-  const nextStake=s.calcNext(trackerHistory,initStake);
+  const targetOdds = parseFloat(document.getElementById('m-target-odds')?.value)||s.minOdds;
+  const tolerance  = parseFloat(document.getElementById('m-odds-tol')?.value)||0.15;
+  const minScore   = parseInt(document.getElementById('m-min-score')?.value)||75;
+  const sportFilter= document.getElementById('m-sport-filter')?.value||'all';
+  const initStake  = parseFloat(document.getElementById('m-init-stake')?.value)||10;
+  const nextStake  = s.calcNext(trackerHistory, initStake);
   const btn=document.getElementById('m-search-btn');
   const res=document.getElementById('m-search-res');
   btn.disabled=true; btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Recherche en cours…';
@@ -1934,9 +2057,44 @@ Continuer le suivi ou réinitialiser ?`;
   trackerHistory.push(entry);
   toast(`${result==='win'?'✅ Victoire':'❌ Défaite'} — ${pl>0?'+':''}${pl.toFixed(2)}€`,'');
   renderTracker();
-  const initStake=parseFloat(document.getElementById('m-init-stake')?.value)||10;
-  const nextStake=s.calcNext(trackerHistory,initStake);
-  if(document.getElementById('t-stake')) document.getElementById('t-stake').value=nextStake;
+
+  // Mise à jour de la mise suggérée
+  const initStake = parseFloat(document.getElementById('m-init-stake')?.value)||10;
+  const nextStake = s.calcNext(trackerHistory, initStake);
+  if(document.getElementById('t-stake')) document.getElementById('t-stake').value = nextStake;
+
+  // AUTO-SEARCH après une défaite : cherche un match avec la cote optimale pour récupérer
+  if(result === 'loss') {
+    // Calculer la cote optimale pour cette stratégie après la perte
+    const targetOdds = s.minOdds;
+    // Mettre à jour les champs de recherche avec la prochaine mise et cote
+    if(document.getElementById('m-init-stake')) document.getElementById('m-init-stake').value = initStake;
+    if(document.getElementById('m-target-odds')) document.getElementById('m-target-odds').value = targetOdds;
+    if(document.getElementById('m-odds-tol'))    document.getElementById('m-odds-tol').value   = 0.15;
+    if(document.getElementById('m-min-score'))   document.getElementById('m-min-score').value  = 75;
+
+    // Afficher un message d'invite avant la recherche
+    const searchRes = document.getElementById('m-search-res');
+    if(searchRes) {
+      searchRes.innerHTML = `<div class="card" style="border-color:rgba(167,139,250,.4);margin-bottom:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="flex:1">
+            <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--pu);margin-bottom:4px">
+              🔄 Défaite enregistrée — Recherche automatique en cours…
+            </div>
+            <div style="font-size:11px;color:var(--mu);line-height:1.6">
+              Prochaine mise <strong style="color:var(--pu)">${nextStake}€</strong>
+              · Cote cible <strong style="color:var(--am)">≈ ${targetOdds}</strong>
+              · Score minimum <strong style="color:var(--neon)">75+</strong>
+            </div>
+          </div>
+          <div class="sp" style="width:18px;height:18px;border-width:2px;flex-shrink:0"></div>
+        </div>
+      </div>`;
+      // Lancer la recherche automatiquement après 800ms
+      setTimeout(() => doMethodSearch(), 800);
+    }
+  }
 }
 
 function resetTracker(){if(!confirm('Réinitialiser tout le suivi ? Cette action est irréversible.'))return;trackerHistory=[];renderTracker();toast('Suivi réinitialisé','ok');}
