@@ -372,25 +372,27 @@ a{color:var(--neon);text-decoration:none}
 <body>
 <div id="app">
 <div class="mb">
-  <div style="display:flex;align-items:center;gap:8px">
+  <div style="display:flex;align-items:center;gap:10px">
     <span class="ml">PGI<span style="color:var(--neon2);margin:0 2px">•</span>BetPro</span>
-    <div id="conn-dot-m" style="width:8px;height:8px;border-radius:2px;background:var(--dm);transition:background .4s"></div>
-    <span id="conn-label-m" style="font-size:9px;font-family:var(--mo);color:var(--dm)">…</span>
+    <div id="conn-badge-m" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:5px;border:1px solid var(--dm);background:rgba(44,64,96,.2);transition:all .4s">
+      <div id="conn-dot-m" style="width:6px;height:6px;border-radius:50%;background:var(--dm);transition:all .4s;flex-shrink:0"></div>
+      <span id="conn-label-m" style="font-size:9px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .4s">…</span>
+    </div>
   </div>
   <button class="hb" onclick="tSb()">☰</button>
 </div>
 <div class="ov" id="ov" onclick="tSb()"></div>
 <nav class="sb" id="sb">
   <div class="sbh">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <div class="logo">PGI<span class="ldot">•</span>BetPro</div>
-      <div id="conn-status" style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
-        <div id="conn-dot" style="width:10px;height:10px;border-radius:3px;background:var(--dm);transition:background .4s"></div>
-        <div id="conn-label" style="font-size:8px;font-family:var(--mo);color:var(--dm);letter-spacing:.04em">…</div>
+    <div class="logo">PGI<span class="ldot">•</span>BetPro</div>
+    <div class="lsub" style="margin-top:4px">Analyse · IA · Privé</div>
+    <div style="margin-top:10px">
+      <div id="conn-badge" style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:6px;border:1px solid var(--dm);background:rgba(44,64,96,.2);transition:all .4s">
+        <div id="conn-dot" style="width:8px;height:8px;border-radius:50%;background:var(--dm);box-shadow:none;transition:all .4s;flex-shrink:0"></div>
+        <div id="conn-label" style="font-size:10px;font-family:var(--mo);font-weight:700;color:var(--dm);letter-spacing:.05em;transition:color .4s">VÉRIF…</div>
       </div>
     </div>
-    <div class="lsub" style="margin-top:4px">Analyse · IA · Privé</div>
-    <div id="conn-info" style="font-size:9px;font-family:var(--mo);color:var(--dm);margin-top:4px;line-height:1.5;display:none"></div>
+    <div id="conn-info" style="font-size:9px;font-family:var(--mo);color:var(--dm);margin-top:6px;line-height:1.6;display:none"></div>
   </div>
   <div class="sbn">
     <div class="ni on" data-s="dash"     onclick="go('dash')"    ><span class="ni-i">⚡</span>Analyser</div>
@@ -420,14 +422,22 @@ a{color:var(--neon);text-decoration:none}
     <div class="scan-sport-wrap">
       <div class="scan-sport-label">Filtrer par sport</div>
       <div class="scan-sport-btns">
-        <button class="ssb on" data-sport="all"        onclick="setScanSport(this)">🌍 Tout</button>
-        <button class="ssb"    data-sport="soccer"     onclick="setScanSport(this)">⚽ Football</button>
-        <button class="ssb"    data-sport="basketball" onclick="setScanSport(this)">🏀 Basketball</button>
-        <button class="ssb"    data-sport="tennis"     onclick="setScanSport(this)">🎾 Tennis</button>
-        <button class="ssb"    data-sport="rugby"      onclick="setScanSport(this)">🏉 Rugby</button>
-        <button class="ssb"    data-sport="icehockey"  onclick="setScanSport(this)">🏒 Hockey</button>
-        <button class="ssb"    data-sport="baseball"   onclick="setScanSport(this)">⚾ Baseball</button>
-        <button class="ssb"    data-sport="mma"        onclick="setScanSport(this)">🥊 MMA/Boxe</button>
+        <button class="ssb on" data-sport="all"             onclick="setScanSport(this)">🌍 Tout</button>
+        <button class="ssb"    data-sport="soccer"          onclick="setScanSport(this)">⚽ Football</button>
+        <button class="ssb"    data-sport="basketball"      onclick="setScanSport(this)">🏀 Basketball</button>
+        <button class="ssb"    data-sport="tennis"          onclick="setScanSport(this)">🎾 Tennis</button>
+        <button class="ssb"    data-sport="rugby"           onclick="setScanSport(this)">🏉 Rugby</button>
+        <button class="ssb"    data-sport="icehockey"       onclick="setScanSport(this)">🏒 Hockey</button>
+        <button class="ssb"    data-sport="baseball"        onclick="setScanSport(this)">⚾ Baseball</button>
+        <button class="ssb"    data-sport="mma"             onclick="setScanSport(this)">🥊 MMA/Boxe</button>
+        <button class="ssb"    data-sport="americanfootball" onclick="setScanSport(this)">🏈 NFL/NCAA</button>
+        <button class="ssb"    data-sport="golf"            onclick="setScanSport(this)">⛳ Golf</button>
+        <button class="ssb"    data-sport="handball"        onclick="setScanSport(this)">🤾 Handball</button>
+        <button class="ssb"    data-sport="cricket"         onclick="setScanSport(this)">🏏 Cricket</button>
+        <button class="ssb"    data-sport="darts"           onclick="setScanSport(this)">🎯 Darts</button>
+        <button class="ssb"    data-sport="snooker"         onclick="setScanSport(this)">🎱 Snooker</button>
+        <button class="ssb"    data-sport="esports"         onclick="setScanSport(this)">🎮 eSports</button>
+        <button class="ssb"    data-sport="aussierules"     onclick="setScanSport(this)">🏐 AFL</button>
       </div>
     </div>
     <!-- MODE SCAN -->
@@ -888,38 +898,56 @@ function filterScanBySport(sportType){
 // Toutes les ligues à scanner par sport
 const SPORT_LEAGUES = {
   soccer:    [
-    // Compétitions actives EN MAI (saisons en cours)
-    'soccer_brasil','soccer_brasil_b',          // Brésil — pleine saison
-    'soccer_argentina','soccer_colombia',        // Amérique du Sud
-    'soccer_libertadores','soccer_sudamericana', // Coupes continentales
-    'soccer_mls','soccer_mexico',                // Amériques
-    'soccer_japan','soccer_korea',               // Asie — pleine saison
-    'soccer_china','soccer_saudi',               // Asie suite
-    'soccer_australia',                          // A-League
-    // Europe fin de saison (quelques matchs restants)
-    'soccer_ucl','soccer_uel','soccer_uecl',     // Coupes EU — demi-finales/finales
-    'soccer_epl','soccer_france_ligue1',
-    'soccer_spain_la_liga','soccer_germany_bundesliga','soccer_italy_serie_a',
+    'soccer_brasil','soccer_brasil_b','soccer_argentina','soccer_colombia',
+    'soccer_libertadores','soccer_sudamericana','soccer_mls','soccer_mexico',
+    'soccer_japan','soccer_korea','soccer_china','soccer_saudi','soccer_australia',
+    'soccer_ucl','soccer_uel','soccer_uecl',
+    'soccer_epl','soccer_france_ligue1','soccer_spain_la_liga',
+    'soccer_germany_bundesliga','soccer_italy_serie_a',
     'soccer_netherlands','soccer_portugal','soccer_turkey',
     'soccer_russia','soccer_greece','soccer_switzerland',
-    // Ligues encore actives
     'soccer_norway','soccer_sweden','soccer_denmark','soccer_poland',
+    'soccer_chile','soccer_ecuador','soccer_peru','soccer_uruguay',
+    'soccer_india','soccer_thailand','soccer_iran','soccer_uae','soccer_qatar',
+    'soccer_egypt','soccer_south_africa','soccer_morocco',
+    'soccer_championship','soccer_france_ligue2','soccer_spain_segunda',
+    'soccer_germany_bundesliga2','soccer_italy_serie_b',
+    'soccer_belgium','soccer_scotland','soccer_austria','soccer_croatia','soccer_serbia',
   ],
   basketball:['basketball_nba','basketball_euroleague','basketball_ncaab','basketball_wnba'],
   tennis:    ['tennis_atp','tennis_wta','tennis_atp_french_open','tennis_wta_french_open','tennis_atp_wimbledon','tennis_atp_us_open'],
-  rugby:     ['rugbyunion_top14','rugbyunion_premiership','rugbyunion_super_rugby','rugbyleague_nrl'],
+  rugby:     ['rugbyunion_top14','rugbyunion_premiership','rugbyunion_super_rugby','rugbyunion_six_nations','rugbyleague_nrl','rugbyleague_super_league'],
   icehockey: ['icehockey_nhl','icehockey_khl','icehockey_shl'],
   baseball:  ['baseball_mlb','baseball_npb'],
   mma:       ['mma_mixed_martial_arts','boxing_boxing'],
+  // NOUVEAUX SPORTS
+  americanfootball: ['americanfootball_nfl','americanfootball_ncaaf','americanfootball_cfl'],
+  golf:      ['golf_pga_tour','golf_masters','golf_european_tour'],
+  handball:  ['handball_champions_league','handball_bundesliga','handball_starligue'],
+  volleyball:['volleyball_world_champ'],
+  cricket:   ['cricket_ipl','cricket_big_bash','cricket_t20_blast','cricket_test_match'],
+  darts:     ['darts_pdc_world_championship','darts_premier_league'],
+  snooker:   ['snooker_world_championship','snooker_masters'],
+  esports:   ['esports_league_of_legends','esports_counter_strike','esports_dota2','esports_valorant'],
+  aussierules:['aussierules_afl'],
 };
 const SPORT_MARKETS = {
-  soccer:    ['h2h','totals','btts','double_chance'],
-  basketball:['h2h','totals'],
-  tennis:    ['h2h'],
-  rugby:     ['h2h','totals'],
-  icehockey: ['h2h','totals'],
-  baseball:  ['h2h','totals'],
-  mma:       ['h2h'],
+  soccer:         ['h2h','totals','btts','double_chance'],
+  basketball:     ['h2h','totals','spreads'],
+  tennis:         ['h2h'],
+  rugby:          ['h2h','totals'],
+  icehockey:      ['h2h','totals'],
+  baseball:       ['h2h','totals'],
+  mma:            ['h2h'],
+  americanfootball:['h2h','totals','spreads'],
+  golf:           ['h2h'],
+  handball:       ['h2h','totals'],
+  volleyball:     ['h2h'],
+  cricket:        ['h2h'],
+  darts:          ['h2h'],
+  snooker:        ['h2h'],
+  esports:        ['h2h'],
+  aussierules:    ['h2h','totals'],
 };
 // Toutes les ligues pour le scan global "Tout"
 // Scan global optimisé — couvre TOUS les sports actifs, 1 marché par ligue (économise les crédits)
@@ -1042,7 +1070,7 @@ async function doLiveScan() {
   const mode = SCAN_MODES[currentScanMode] || SCAN_MODES.standard;
   btn.disabled=true; btn.className='scan-main-btn scanning'; ico.innerHTML='<div class="scan-radar"></div>';
 
-  const sportLabel={all:'tous sports',soccer:'Football ⚽',basketball:'Basketball 🏀',tennis:'Tennis 🎾',rugby:'Rugby 🏉',icehockey:'Hockey 🏒',baseball:'Baseball ⚾',mma:'MMA/Boxe 🥊'}[sportType]||sportType;
+  const sportLabel={all:'tous sports',soccer:'Football ⚽',basketball:'Basketball 🏀',tennis:'Tennis 🎾',rugby:'Rugby 🏉',icehockey:'Hockey 🏒',baseball:'Baseball ⚾',mma:'MMA/Boxe 🥊',americanfootball:'NFL/NCAA 🏈',golf:'Golf ⛳',handball:'Handball 🤾',cricket:'Cricket 🏏',darts:'Darts 🎯',snooker:'Snooker 🎱',esports:'eSports 🎮',aussierules:'AFL 🏐'}[sportType]||sportType;
   txt.textContent='SCAN '+sportLabel.toUpperCase()+' EN COURS…';
   const totalCalls = sportType==='all' ? ALL_LEAGUES_SCAN.length : ((SPORT_LEAGUES[sportType]||[]).length * (SPORT_MARKETS[sportType]||['h2h']).length);
   res.innerHTML=`<div class="ls" style="padding:40px 20px">
@@ -1111,7 +1139,7 @@ async function doLiveScan() {
     }
 
     if(!allOpps.length) {
-      const sportIco={soccer:'⚽',basketball:'🏀',tennis:'🎾',rugby:'🏉',icehockey:'🏒',baseball:'⚾',mma:'🥊',all:'🔍'}[sportType]||'🔍';
+      const sportIco={soccer:'⚽',basketball:'🏀',tennis:'🎾',rugby:'🏉',icehockey:'🏒',baseball:'⚾',mma:'🥊',americanfootball:'🏈',golf:'⛳',handball:'🤾',cricket:'🏏',darts:'🎯',snooker:'🎱',esports:'🎮',aussierules:'🏐',all:'🔍'}[sportType]||'🔍';
       res.innerHTML=`<div class="empty">
         <div class="empty-i">${sportIco}</div>
         <div class="empty-t">Aucune opportunité — ${sportLabel}</div>
@@ -1258,7 +1286,24 @@ function renderStrategyDetail() {
           <select id="m-min-score"><option value="65">🟡 65+ (Correct)</option><option value="70">🟢 70+ (Bon)</option><option value="75" selected>🟢 75+ (Fort) ⭐</option><option value="80">💎 80+ (Très fort)</option><option value="85">💎 85+ (Exceptionnel)</option></select>
         </div>
         <div class="fgrp"><label>Sport</label>
-          <select id="m-sport-filter"><option value="all">🌍 Tous les sports</option><option value="soccer">⚽ Football uniquement</option><option value="basketball">🏀 Basketball uniquement</option><option value="tennis">🎾 Tennis uniquement</option></select>
+          <select id="m-sport-filter">
+            <option value="all">🌍 Tous les sports</option>
+            <option value="soccer">⚽ Football</option>
+            <option value="basketball">🏀 Basketball</option>
+            <option value="tennis">🎾 Tennis</option>
+            <option value="rugby">🏉 Rugby</option>
+            <option value="icehockey">🏒 Hockey</option>
+            <option value="baseball">⚾ Baseball</option>
+            <option value="mma">🥊 MMA / Boxe</option>
+            <option value="americanfootball">🏈 NFL / NCAA</option>
+            <option value="golf">⛳ Golf</option>
+            <option value="handball">🤾 Handball</option>
+            <option value="cricket">🏏 Cricket</option>
+            <option value="darts">🎯 Darts</option>
+            <option value="snooker">🎱 Snooker</option>
+            <option value="esports">🎮 eSports</option>
+            <option value="aussierules">🏐 AFL</option>
+          </select>
         </div>
       </div>
       <button class="btn bp" id="m-search-btn" onclick="doMethodSearch()" style="width:100%;padding:12px;font-size:13px;margin-top:4px">
@@ -1574,29 +1619,39 @@ let connPingInterval = null;
 let lastPingMs = null;
 
 async function checkConnection() {
-  const dot = document.getElementById('conn-dot');
-  const dotM = document.getElementById('conn-dot-m');
-  const label = document.getElementById('conn-label');
+  const dot    = document.getElementById('conn-dot');
+  const dotM   = document.getElementById('conn-dot-m');
+  const label  = document.getElementById('conn-label');
   const labelM = document.getElementById('conn-label-m');
-  const info = document.getElementById('conn-info');
-  const setStatus = (color, txt, infoTxt, showInfo) => {
-    [dot,dotM].forEach(d=>{ if(d) d.style.background=color; });
-    if(label) label.textContent=txt;
-    if(labelM) labelM.textContent=txt;
-    if(info){ info.textContent=infoTxt; info.style.display=showInfo?'block':'none'; }
+  const badge  = document.getElementById('conn-badge');
+  const badgeM = document.getElementById('conn-badge-m');
+  const info   = document.getElementById('conn-info');
+
+  const setStatus = (connected, txt, infoTxt, latency) => {
+    const color      = connected ? '#22d3a5' : '#ef4444';
+    const borderCol  = connected ? 'rgba(34,211,165,.4)' : 'rgba(239,68,68,.4)';
+    const bgCol      = connected ? 'rgba(34,211,165,.08)' : 'rgba(239,68,68,.08)';
+    const glowColor  = connected ? '0 0 6px rgba(34,211,165,.7)' : '0 0 6px rgba(239,68,68,.7)';
+    // Dot
+    [dot,dotM].forEach(d=>{ if(d){ d.style.background=color; d.style.boxShadow=glowColor; }});
+    // Label
+    [label,labelM].forEach(l=>{ if(l){ l.textContent=txt; l.style.color=color; }});
+    // Badge border + bg
+    [badge,badgeM].forEach(b=>{ if(b){ b.style.border=`1px solid ${borderCol}`; b.style.background=bgCol; }});
+    // Info details
+    if(info){ info.textContent=infoTxt; info.style.display=infoTxt?'block':'none'; info.style.color=connected?'var(--dm)':'#ef4444'; }
   };
+
   try {
     const t0 = Date.now();
     const d = await api('/api/quotas');
     lastPingMs = Date.now()-t0;
-    const latencyColor = lastPingMs<500?'var(--gr)':lastPingMs<1500?'var(--am)':'var(--re)';
-    setStatus('var(--gr)', 'CONNECTÉ',
-      `Latence: ${lastPingMs}ms · API-Football: ${d.api_football_today}/${d.api_football_daily_limit} · Odds API: ${d.odds_api_credits_remaining} crédits`,
-      true
+    const latLabel = lastPingMs<500 ? '⚡ Rapide' : lastPingMs<1500 ? '🟡 Moyen' : '🔴 Lent';
+    setStatus(true, 'CONNECTÉ',
+      `${latLabel} ${lastPingMs}ms · API-Football: ${d.api_football_today||0}/${d.api_football_daily_limit||100} · Odds: ${d.odds_api_credits_remaining||'?'} crédits`
     );
-    if(dot) dot.style.background=latencyColor;
   } catch(e) {
-    setStatus('var(--re)', 'HORS LIGNE', `Worker non joignable · Vérifiez l'URL et votre connexion`, true);
+    setStatus(false, 'DÉCONNECTÉ', `Worker non joignable · Vérifiez l'URL`);
   }
 }
 
