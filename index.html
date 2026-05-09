@@ -568,8 +568,74 @@ a{color:var(--neon);text-decoration:none}
 <!-- LIVE -->
 <section class="sec" id="s-live">
   <div class="ph"><div class="pt">🔴 Matchs en direct</div><div class="ps">Scores live via API-Football — actualisez manuellement.</div></div>
-  <div class="bg" style="margin-bottom:14px"><button class="btn bp" onclick="loadLive()">🔄 Actualiser</button></div>
+  <div class="bg" style="margin-bottom:14px">
+    <button class="btn bp" onclick="loadLive()">🔄 Actualiser live</button>
+  </div>
   <div id="live-cnt"><div class="ls"><div class="sp"></div><p>Chargement…</p></div></div>
+
+  <!-- ═══ MATCHS À VENIR ═══ -->
+  <div style="height:1px;background:var(--bd);margin:28px 0 22px"></div>
+  <div class="ph" style="margin-bottom:16px">
+    <div class="pt" style="font-size:17px">📅 Matchs à venir</div>
+    <div class="ps">Choisissez votre fenêtre temporelle — actualisez quand vous voulez.</div>
+  </div>
+
+  <!-- SÉLECTEUR TEMPOREL -->
+  <div class="card" style="padding:16px;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Fenêtre temporelle</div>
+
+    <!-- Mode tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="fbtn on" id="upc-tab-h" onclick="setUpcomingTab('h')">⏱ Par heures</button>
+      <button class="fbtn"    id="upc-tab-d" onclick="setUpcomingTab('d')">📆 Par jours</button>
+      <button class="fbtn"    id="upc-tab-date" onclick="setUpcomingTab('date')">🗓 Date précise</button>
+    </div>
+
+    <!-- HEURES -->
+    <div id="upc-panel-h">
+      <div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-bottom:8px">Matchs dans les X prochaines heures :</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="fbtn"     id="h-btn-1"  onclick="selectHours(1)">1h</button>
+        <button class="fbtn"     id="h-btn-2"  onclick="selectHours(2)">2h</button>
+        <button class="fbtn on"  id="h-btn-3"  onclick="selectHours(3)">3h</button>
+        <button class="fbtn"     id="h-btn-4"  onclick="selectHours(4)">4h</button>
+        <button class="fbtn"     id="h-btn-5"  onclick="selectHours(5)">5h</button>
+        <button class="fbtn"     id="h-btn-6"  onclick="selectHours(6)">6h</button>
+        <button class="fbtn"     id="h-btn-8"  onclick="selectHours(8)">8h</button>
+        <button class="fbtn"     id="h-btn-12" onclick="selectHours(12)">12h</button>
+        <button class="fbtn"     id="h-btn-18" onclick="selectHours(18)">18h</button>
+        <button class="fbtn"     id="h-btn-24" onclick="selectHours(24)">24h</button>
+      </div>
+    </div>
+
+    <!-- JOURS -->
+    <div id="upc-panel-d" style="display:none">
+      <div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-bottom:8px">Matchs dans les X prochains jours :</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="fbtn on" id="d-btn-1"  onclick="selectDays(1)">Demain</button>
+        <button class="fbtn"    id="d-btn-2"  onclick="selectDays(2)">2 jours</button>
+        <button class="fbtn"    id="d-btn-3"  onclick="selectDays(3)">3 jours</button>
+        <button class="fbtn"    id="d-btn-5"  onclick="selectDays(5)">5 jours</button>
+        <button class="fbtn"    id="d-btn-7"  onclick="selectDays(7)">7 jours</button>
+        <button class="fbtn"    id="d-btn-14" onclick="selectDays(14)">14 jours</button>
+      </div>
+    </div>
+
+    <!-- DATE PRÉCISE -->
+    <div id="upc-panel-date" style="display:none">
+      <div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-bottom:8px">Plage de dates :</div>
+      <div class="fg" style="margin-bottom:0">
+        <div class="fgrp"><label>Du</label><input type="date" id="upc-from" style="color:var(--tx)" onchange="selectDateRange()"></div>
+        <div class="fgrp"><label>Au</label><input type="date" id="upc-to" style="color:var(--tx)" onchange="selectDateRange()"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn bp" onclick="loadUpcoming()" id="upc-btn">📅 Voir les matchs à venir</button>
+    </div>
+  </div>
+
+  <div id="upcoming-cnt"></div>
 </section>
 
 <!-- RÉSULTATS -->
@@ -628,11 +694,17 @@ a{color:var(--neon);text-decoration:none}
     <div class="chat-wrap" id="chat-wrap">
       <div class="msg bot"><div class="msg-ico">🤖</div><div><div class="msg-bub">Bonjour ! Analyste expert senior. Remplissez le contexte ci-dessus pour des analyses précises — live ou pré-match.</div><div class="chat-meta">Expert IA · Prêt</div></div></div>
     </div>
+    <!-- Fichiers joints -->
+    <div id="chat-attach-wrap" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;padding:8px;background:var(--sf2);border:1px solid var(--bd);border-radius:8px"></div>
     <div class="chat-input-wrap">
-      <textarea id="chat-input" placeholder="Votre question…" onkeydown="chatKey(event)"></textarea>
+      <div style="position:relative;flex:1">
+        <textarea id="chat-input" placeholder="Votre question… (joignez une image, PDF ou texte avec 📎)" onkeydown="chatKey(event)" style="padding-right:40px"></textarea>
+        <label for="chat-file-input" title="Joindre un fichier (image, PDF)" style="position:absolute;right:8px;bottom:10px;cursor:pointer;font-size:18px;color:var(--mu);transition:color .2s;user-select:none" onmouseover="this.style.color='var(--neon)'" onmouseout="this.style.color='var(--mu)'">📎</label>
+        <input type="file" id="chat-file-input" accept="image/*,application/pdf,.txt,.csv" multiple style="display:none" onchange="handleChatFile(this)">
+      </div>
       <button class="btn bp" id="chat-btn" onclick="sendChat()" style="flex-shrink:0;align-self:flex-end;padding:10px 14px">▶</button>
     </div>
-    <div style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Entrée = envoyer · Maj+Entrée = saut de ligne</div>
+    <div style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Entrée = envoyer · Maj+Entrée = saut de ligne · 📎 = joindre image/PDF</div>
   </div>
 </section>
 
@@ -1770,7 +1842,250 @@ document.addEventListener('touchmove', e => {
   }
 }, {passive:false});
 
-document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);startConnectionMonitor();});
+// ═══ MATCHS À VENIR ═══
+let upcomingTab = 'h';
+let upcomingHours = 3;
+let upcomingDays = 1;
+
+function setUpcomingTab(tab) {
+  upcomingTab = tab;
+  ['h','d','date'].forEach(t => {
+    document.getElementById('upc-tab-'+t)?.classList.toggle('on', t===tab);
+    document.getElementById('upc-panel-'+t) && (document.getElementById('upc-panel-'+t).style.display = t===tab?'':'none');
+  });
+}
+
+function selectHours(h) {
+  upcomingHours = h;
+  document.querySelectorAll('[id^="h-btn-"]').forEach(b => b.classList.remove('on'));
+  document.getElementById('h-btn-'+h)?.classList.add('on');
+}
+
+function selectDays(d) {
+  upcomingDays = d;
+  document.querySelectorAll('[id^="d-btn-"]').forEach(b => b.classList.remove('on'));
+  document.getElementById('d-btn-'+d)?.classList.add('on');
+}
+
+function selectDateRange() {}
+
+function getUpcomingWindow() {
+  const now = new Date();
+  let from = now.toISOString();
+  let to;
+  if(upcomingTab === 'h') {
+    const end = new Date(now.getTime() + upcomingHours * 3600000);
+    to = end.toISOString();
+    return { from, to, label: `dans les ${upcomingHours}h` };
+  } else if(upcomingTab === 'd') {
+    const end = new Date(now.getTime() + upcomingDays * 86400000);
+    to = end.toISOString();
+    return { from, to, label: upcomingDays===1?'demain':`dans ${upcomingDays} jours` };
+  } else {
+    const f = document.getElementById('upc-from')?.value;
+    const t = document.getElementById('upc-to')?.value;
+    if(!f) { toast('Choisissez une date de début','err'); return null; }
+    from = new Date(f).toISOString();
+    to   = t ? new Date(t+'T23:59:59').toISOString() : new Date(f+'T23:59:59').toISOString();
+    return { from, to, label: t && t!==f ? `du ${f} au ${t}` : `le ${f}` };
+  }
+}
+
+async function loadUpcoming() {
+  const win = getUpcomingWindow();
+  if(!win) return;
+  const cnt = document.getElementById('upcoming-cnt');
+  const btn = document.getElementById('upc-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Chargement…';
+  cnt.innerHTML = `<div class="ls"><div class="sp"></div><p>Recherche des matchs à venir ${win.label}…</p></div>`;
+  try {
+    const params = new URLSearchParams({ from: win.from, to: win.to });
+    const d = await api('/api/upcoming?' + params.toString());
+    const matches = d.upcoming_matches || d.matches || [];
+
+    // Filtre par fenêtre si l'API retourne plus que demandé
+    const fromTs = new Date(win.from).getTime();
+    const toTs   = new Date(win.to).getTime();
+    const filtered = matches.filter(m => {
+      if(!m.start_time && !m.commence_time) return true;
+      const ts = new Date(m.start_time || m.commence_time).getTime();
+      return ts >= fromTs && ts <= toTs;
+    }).sort((a,b) => new Date(a.start_time||a.commence_time||0) - new Date(b.start_time||b.commence_time||0));
+
+    if(!filtered.length) {
+      cnt.innerHTML = `<div class="empty"><div class="empty-i">📅</div>
+        <div class="empty-t">Aucun match ${win.label}</div>
+        <div class="empty-s">Aucune rencontre programmée dans cette fenêtre.<br>
+        Essayez une plage plus large ou vérifiez API_FOOTBALL_KEY.</div></div>`;
+    } else {
+      cnt.innerHTML = `<div class="sbar"><div class="sdot" style="background:var(--am);box-shadow:0 0 5px var(--am)"></div>
+        <span>${filtered.length} match(s) à venir ${win.label}</span>
+        <span style="margin-left:auto;color:var(--dm);font-family:var(--mo);font-size:10px">${fmtDT(new Date().toISOString())}</span>
+      </div>` + filtered.map(m => renderUpcomingCard(m)).join('');
+    }
+  } catch(e) {
+    // Fallback: essayer avec /api/live qui peut inclure les prochains matchs
+    try {
+      const d2 = await api('/api/live');
+      const upcoming = (d2.upcoming_matches || d2.next_matches || []);
+      if(upcoming.length) {
+        cnt.innerHTML = `<div class="sbar"><div class="sdot" style="background:var(--am)"></div><span>${upcoming.length} match(s) trouvé(s)</span></div>`
+          + upcoming.map(m => renderUpcomingCard(m)).join('');
+      } else {
+        cnt.innerHTML = `<div class="card" style="border-color:var(--am)">
+          <div style="color:var(--am);font-size:12px;margin-bottom:6px">⚠ Endpoint /api/upcoming non disponible</div>
+          <div style="color:var(--dm);font-size:11px;line-height:1.65">Ajoutez un endpoint <code>/api/upcoming</code> dans votre Worker, ou utilisez l'onglet <strong>Analyser</strong> pour les matchs à venir par championnat.</div>
+        </div>`;
+      }
+    } catch(_) {
+      cnt.innerHTML = `<div class="card" style="border-color:var(--re)">
+        <div style="color:var(--re);font-weight:700;margin-bottom:6px">❌ Erreur</div>
+        <div style="color:var(--mu);font-size:12px">${esc(e.message)}</div>
+      </div>`;
+    }
+  }
+  btn.disabled = false;
+  btn.innerHTML = '📅 Voir les matchs à venir';
+}
+
+function renderUpcomingCard(m) {
+  const ico = (m.sport||m.sport_key||'').includes('soccer')?'⚽':
+              (m.sport||m.sport_key||'').includes('basket')?'🏀':
+              (m.sport||m.sport_key||'').includes('tennis')?'🎾':
+              (m.sport||m.sport_key||'').includes('hockey')?'🏒':
+              (m.sport||m.sport_key||'').includes('rugby')?'🏉':'🏆';
+  const startTime = m.start_time || m.commence_time;
+  const dt = startTime ? new Date(startTime) : null;
+  const now = new Date();
+  const diff = dt ? Math.round((dt-now)/60000) : null;
+  const timeLeft = diff !== null ? (diff<60 ? `dans ${diff}min` : `dans ${Math.floor(diff/60)}h${diff%60>0?String(diff%60).padStart(2,'0')+'min':''}`) : '';
+  const home = m.home_team || m.home || '?';
+  const away = m.away_team || m.away || '?';
+  const comp = m.competition || m.sport_title || m.sport || '';
+  return `<div class="live-card" style="border-color:rgba(245,158,11,.2)">
+    <div class="lc-head">
+      <div style="flex:1">
+        <div class="lc-teams">${ico} ${esc(home)} <span style="color:var(--dm)">vs</span> ${esc(away)}</div>
+        <div class="lc-meta">
+          <span class="bdg bsp">${esc(comp)}</span>
+          ${dt ? `<span class="bdg" style="background:rgba(245,158,11,.1);color:var(--am)">${fmtDT(startTime)}</span>` : ''}
+          ${timeLeft ? `<span class="bdg bca">⏰ ${timeLeft}</span>` : ''}
+        </div>
+      </div>
+      <div style="text-align:right">
+        ${dt ? `<div style="font-family:var(--mo);font-size:11px;color:var(--am);font-weight:700">${dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+        <div style="font-size:9px;color:var(--dm);font-family:var(--mo)">${dt ? dt.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'}) : ''}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══ CHAT — PIÈCES JOINTES ═══
+let chatAttachments = []; // [{name, type, b64, preview}]
+
+function handleChatFile(input) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  files.forEach(file => {
+    if(chatAttachments.length >= 4) { toast('Maximum 4 fichiers par message','err'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      const b64 = dataUrl.split(',')[1];
+      const isImg = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf';
+      chatAttachments.push({ name: file.name, type: file.type, b64, isImg, isPdf, preview: isImg ? dataUrl : null });
+      renderChatAttachments();
+      toast(`✅ ${file.name} ajouté`,'ok');
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderChatAttachments() {
+  let wrap = document.getElementById('chat-attach-wrap');
+  if(!wrap) return;
+  if(!chatAttachments.length) { wrap.innerHTML=''; wrap.style.display='none'; return; }
+  wrap.style.display='flex';
+  wrap.innerHTML = chatAttachments.map((a,i) => `
+    <div style="display:flex;align-items:center;gap:5px;padding:4px 8px;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;max-width:160px">
+      ${a.isImg ? `<img src="${a.preview}" style="width:22px;height:22px;border-radius:3px;object-fit:cover">` : `<span style="font-size:14px">${a.isPdf?'📄':'📎'}</span>`}
+      <span style="font-size:10px;color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(a.name)}</span>
+      <button onclick="removeChatAttach(${i})" style="background:none;border:none;color:var(--re);cursor:pointer;font-size:12px;padding:0;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
+function removeChatAttach(i) {
+  chatAttachments.splice(i, 1);
+  renderChatAttachments();
+}
+
+// Override sendChat to include attachments
+const _origSendChat = sendChat;
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const btn   = document.getElementById('chat-btn');
+  const q = input.value.trim();
+  if(!q && !chatAttachments.length) return;
+
+  const displayQ = q || `[${chatAttachments.length} fichier(s) joint(s)]`;
+  chatHistory.push({role:'user', content: q || 'Analyse ces fichiers joints.'});
+  appendMsg('user', displayQ);
+
+  // Show attachments in bubble if any
+  if(chatAttachments.length) {
+    const wrap = document.getElementById('chat-wrap');
+    const imgDiv = document.createElement('div');
+    imgDiv.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:0 0 0 38px;margin-top:-6px';
+    chatAttachments.filter(a=>a.isImg).forEach(a=>{
+      imgDiv.innerHTML += `<img src="${a.preview}" style="max-height:80px;border-radius:6px;border:1px solid var(--bd)">`;
+    });
+    chatAttachments.filter(a=>!a.isImg).forEach(a=>{
+      imgDiv.innerHTML += `<span style="font-size:10px;color:var(--mu);padding:3px 7px;background:var(--sf2);border:1px solid var(--bd);border-radius:5px">${esc(a.name)}</span>`;
+    });
+    if(imgDiv.innerHTML) wrap.appendChild(imgDiv);
+  }
+
+  input.value = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
+
+  const wrap = document.getElementById('chat-wrap');
+  const typing = document.createElement('div');
+  typing.className='msg bot'; typing.id='typing';
+  typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Analyse en cours…</div>';
+  wrap.appendChild(typing); wrap.scrollTop=wrap.scrollHeight;
+
+  try {
+    const payload = { messages: chatHistory.slice(-10), context: getCtx() };
+    // Attach files if any
+    if(chatAttachments.length) {
+      payload.attachments = chatAttachments.map(a=>({ name:a.name, type:a.type, b64:a.b64 }));
+    }
+    const d = await api('/api/chat','POST', payload);
+    typing.remove();
+    const resp = d.response || 'Pas de réponse.';
+    chatHistory.push({role:'assistant', content:resp});
+    appendMsg('bot', resp, d.provider&&d.model ? d.provider+' · '+d.model : null);
+  } catch(e) {
+    typing.remove();
+    appendMsg('bot', '❌ Erreur: '+e.message);
+  }
+
+  chatAttachments = [];
+  renderChatAttachments();
+  btn.disabled = false;
+  btn.innerHTML = '▶';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);startConnectionMonitor();
+  // Init date pickers with today
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now()+86400000).toISOString().split('T')[0];
+  if(document.getElementById('upc-from')) document.getElementById('upc-from').value = today;
+  if(document.getElementById('upc-to'))   document.getElementById('upc-to').value   = tomorrow;});
 </script>
 </body>
 </html>
