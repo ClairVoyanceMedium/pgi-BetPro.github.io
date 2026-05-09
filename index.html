@@ -984,39 +984,167 @@ function filterUpcomingCards() {
   if(bar) bar.textContent = visible + ' match(s) à venir' + (liveSportFilter!=='all' ? ' — '+liveSportFilter : '');
 }
 
-async function loadLive(){
-  const cnt=document.getElementById('live-cnt');
-  cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des matchs live…</p></div>';
-  try{
-    const d=await api('/api/live');
-    const matches=d.live_matches||[];
-    if(!matches.length){
-      cnt.innerHTML='<div class="empty"><div class="empty-i">🔴</div><div class="empty-t">Aucun match en direct</div><div class="empty-s">Aucun match live pour le moment. Revenez plus tard.</div></div>';
-      return;
-    }
-    cnt.innerHTML=`<div class="sbar"><div class="sdot ldot-r"></div><span>${matches.length} match(s) en direct</span><span style="margin-left:auto;color:var(--dm)">${fmtDT(d.fetched_at)}</span></div>`
-    + matches.map(m=>{
-      const sport = m.sport || m.sport_key || '';
-      const ico = sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':'🏆';
-      return `<div class="live-card" data-sport="${esc(sport)}">
-        <div class="lc-head">
-          <div>
-            <div class="lc-teams">${ico} ${esc(m.home||m.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(m.away||m.away_team||'?')}</div>
-            <div class="lc-meta">
-              <span class="bdg bsp">${esc(m.competition||m.sport_title||sport||'')}</span>
-              <span class="bdg blv">🔴 LIVE</span>
-              <span class="lc-min">${m.minute?m.minute+"'":(m.status||'')}</span>
-            </div>
-          </div>
-          <div class="lc-score">${m.score?.home??'-'} — ${m.score?.away??'-'}</div>
+// Toutes les ligues pour le live multi-sport (1 marché suffit pour voir si des matchs existent)
+const LIVE_ALL_LEAGUES = [
+  // ⚽ FOOTBALL — Europe Top 5 en PREMIER
+  {sport:'soccer_epl',market:'h2h'},
+  {sport:'soccer_france_ligue1',market:'h2h'},
+  {sport:'soccer_spain_la_liga',market:'h2h'},
+  {sport:'soccer_germany_bundesliga',market:'h2h'},
+  {sport:'soccer_italy_serie_a',market:'h2h'},
+  // Coupes EU
+  {sport:'soccer_ucl',market:'h2h'},
+  {sport:'soccer_uel',market:'h2h'},
+  {sport:'soccer_uecl',market:'h2h'},
+  // Europe autres
+  {sport:'soccer_netherlands',market:'h2h'},
+  {sport:'soccer_portugal',market:'h2h'},
+  {sport:'soccer_turkey',market:'h2h'},
+  {sport:'soccer_belgium',market:'h2h'},
+  {sport:'soccer_championship',market:'h2h'},
+  {sport:'soccer_france_ligue2',market:'h2h'},
+  {sport:'soccer_spain_segunda',market:'h2h'},
+  {sport:'soccer_norway',market:'h2h'},
+  {sport:'soccer_sweden',market:'h2h'},
+  {sport:'soccer_denmark',market:'h2h'},
+  {sport:'soccer_poland',market:'h2h'},
+  {sport:'soccer_scotland',market:'h2h'},
+  {sport:'soccer_greece',market:'h2h'},
+  {sport:'soccer_austria',market:'h2h'},
+  {sport:'soccer_switzerland',market:'h2h'},
+  {sport:'soccer_russia',market:'h2h'},
+  // Amériques
+  {sport:'soccer_brasil',market:'h2h'},
+  {sport:'soccer_libertadores',market:'h2h'},
+  {sport:'soccer_sudamericana',market:'h2h'},
+  {sport:'soccer_argentina',market:'h2h'},
+  {sport:'soccer_mexico',market:'h2h'},
+  {sport:'soccer_mls',market:'h2h'},
+  {sport:'soccer_colombia',market:'h2h'},
+  // Asie
+  {sport:'soccer_japan',market:'h2h'},
+  {sport:'soccer_korea',market:'h2h'},
+  {sport:'soccer_saudi',market:'h2h'},
+  {sport:'soccer_china',market:'h2h'},
+  // Basketball
+  {sport:'basketball_nba',market:'h2h'},{sport:'basketball_euroleague',market:'h2h'},
+  {sport:'basketball_ncaab',market:'h2h'},{sport:'basketball_wnba',market:'h2h'},
+  // Tennis
+  {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
+  {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
+  // Rugby
+  {sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'},
+  {sport:'rugbyunion_super_rugby',market:'h2h'},{sport:'rugbyleague_nrl',market:'h2h'},
+  // Hockey
+  {sport:'icehockey_nhl',market:'h2h'},{sport:'icehockey_khl',market:'h2h'},
+  // Baseball
+  {sport:'baseball_mlb',market:'h2h'},{sport:'baseball_npb',market:'h2h'},
+  // MMA / Boxe
+  {sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'boxing_boxing',market:'h2h'},
+  // NFL
+  {sport:'americanfootball_nfl',market:'h2h'},{sport:'americanfootball_ncaaf',market:'h2h'},
+  // Handball
+  {sport:'handball_champions_league',market:'h2h'},{sport:'handball_bundesliga',market:'h2h'},
+  {sport:'handball_starligue',market:'h2h'},
+  // Cricket
+  {sport:'cricket_ipl',market:'h2h'},{sport:'cricket_t20_blast',market:'h2h'},
+  // AFL
+  {sport:'aussierules_afl',market:'h2h'},
+  // Golf / Darts
+  {sport:'golf_pga_tour',market:'h2h'},{sport:'darts_premier_league',market:'h2h'},
+];
+
+function buildLiveCard(m, sport) {
+  const ico = sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':
+              sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':
+              sport.includes('rugby')?'🏉':sport.includes('mma')||sport.includes('boxing')?'🥊':
+              sport.includes('baseball')?'⚾':sport.includes('football')?'🏈':
+              sport.includes('golf')?'⛳':sport.includes('dart')?'🎯':
+              sport.includes('handball')?'🤾':sport.includes('cricket')?'🏏':'🏆';
+  const home = m.home||m.home_team||'?';
+  const away = m.away||m.away_team||'?';
+  const comp = m.competition||m.sport_title||sport||'';
+  const score = m.score;
+  const hasScore = score && (score.home!=null || score.away!=null);
+  return `<div class="live-card" data-sport="${esc(sport)}">
+    <div class="lc-head">
+      <div style="flex:1">
+        <div class="lc-teams">${ico} ${esc(home)} <span style="color:var(--dm)">vs</span> ${esc(away)}</div>
+        <div class="lc-meta">
+          <span class="bdg bsp">${esc(comp)}</span>
+          <span class="bdg blv">🔴 LIVE</span>
+          ${m.minute?`<span class="lc-min">${m.minute}'</span>`:''}
+          ${m.status?`<span class="bdg bsr">${esc(m.status)}</span>`:''}
         </div>
-        ${m.halftime?.home!=null?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:5px">MT1: ${m.halftime.home} — ${m.halftime.away}</div>`:''}
-      </div>`;
-    }).join('');
-    // Appliquer filtre sport actif
-    filterLiveCards();
-  }catch(e){
-    cnt.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;
+      </div>
+      ${hasScore?`<div class="lc-score">${score.home??'-'} — ${score.away??'-'}</div>`:
+        '<div style="font-family:var(--mo);font-size:16px;color:var(--dm)">Live</div>'}
+    </div>
+    ${m.halftime?.home!=null?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:5px">MT1: ${m.halftime.home} — ${m.halftime.away}</div>`:''}
+  </div>`;
+}
+
+async function loadLive() {
+  const cnt = document.getElementById('live-cnt');
+  cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Scan live multi-sport…</p><p style="font-size:10px;color:var(--dm);margin-top:5px;font-family:var(--mo)">Interrogation de toutes les ligues…</p></div>';
+
+  try {
+    // 1. Essayer /api/live d'abord (rapide, no credits)
+    let liveMatches = [];
+    try {
+      const d = await api('/api/live');
+      liveMatches = (d.live_matches||[]).map(m=>({...m, _sport: m.sport||m.sport_key||'soccer'}));
+    } catch(_) {}
+
+    // 2. Compléter avec /api/analyze pour tous les sports (détecte live via start_time récent)
+    const now = new Date();
+    const ligsToScan = liveSportFilter==='all'
+      ? LIVE_ALL_LEAGUES
+      : LIVE_ALL_LEAGUES.filter(l => matchesSportFilter(l.sport, liveSportFilter));
+
+    const promises = ligsToScan.map(({sport,market}) =>
+      api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick')
+        .then(d => (d.opportunities||[]).map(o=>({...o, _sport:sport, _fromAnalyze:true})))
+        .catch(()=>[])
+    );
+    const results = await Promise.all(promises);
+    let analyzeOpps = [];
+    results.forEach(r => analyzeOpps = [...analyzeOpps, ...r]);
+
+    // Dédoublonner les matchs
+    const seen = new Set();
+    const allMatches = [...liveMatches, ...analyzeOpps].filter(m => {
+      const key = (m.home||m.home_team||'')+'|'+(m.away||m.away_team||'');
+      if(seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+
+    // Séparer live (avec score) vs à venir très proche (< 3h)
+    const liveOnly = allMatches.filter(m => {
+      if(m._fromAnalyze) return false; // analyze = upcoming, pas live
+      return true;
+    });
+    const liveFromAnalyze = analyzeOpps.filter(o => {
+      const st = o.start_time || o.commence_time;
+      if(!st) return false;
+      const diff = (new Date(st) - now) / 60000;
+      return diff <= 0 && diff >= -180; // commencé il y a moins de 3h
+    });
+    const combinedLive = [...new Map([...liveOnly,...liveFromAnalyze].map(m=>[(m.home||m.home_team||'')+'|'+(m.away||m.away_team||''),m])).values()];
+
+    if(!combinedLive.length) {
+      cnt.innerHTML = `<div class="empty"><div class="empty-i">🔴</div><div class="empty-t">Aucun match en direct</div>
+        <div class="empty-s">Aucun match live détecté en ce moment.<br>
+        <span style="color:var(--dm);font-family:var(--mo);font-size:10px">Utilisez "Matchs à venir" pour voir les prochains.</span></div></div>`;
+    } else {
+      cnt.innerHTML = `<div class="sbar"><div class="sdot ldot-r"></div>
+        <span>${combinedLive.length} match(s) en direct</span>
+        <span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span>
+      </div>` + combinedLive.map(m => buildLiveCard(m, m._sport||m.sport||m.sport_key||'')).join('');
+      filterLiveCards();
+    }
+  } catch(e) {
+    cnt.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re);font-weight:700;margin-bottom:4px">❌ Erreur</div><div style="color:var(--mu);font-size:12px">${esc(e.message)}</div></div>`;
   }
 }
 
@@ -1987,55 +2115,75 @@ async function loadUpcoming() {
   const btn = document.getElementById('upc-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Chargement…';
-  cnt.innerHTML = `<div class="ls"><div class="sp"></div><p>Recherche des matchs à venir ${win.label}…</p></div>`;
-  try {
-    const params = new URLSearchParams({ from: win.from, to: win.to });
-    const d = await api('/api/upcoming?' + params.toString());
-    const matches = d.upcoming_matches || d.matches || [];
 
-    // Filtre par fenêtre si l'API retourne plus que demandé
-    const fromTs = new Date(win.from).getTime();
-    const toTs   = new Date(win.to).getTime();
-    const filtered = matches.filter(m => {
-      if(!m.start_time && !m.commence_time) return true;
-      const ts = new Date(m.start_time || m.commence_time).getTime();
-      return ts >= fromTs && ts <= toTs;
-    }).sort((a,b) => new Date(a.start_time||a.commence_time||0) - new Date(b.start_time||b.commence_time||0));
+  // Ligues à scanner selon le filtre sport actif
+  const ligsToScan = liveSportFilter==='all'
+    ? LIVE_ALL_LEAGUES
+    : LIVE_ALL_LEAGUES.filter(l => matchesSportFilter(l.sport, liveSportFilter));
 
-    if(!filtered.length) {
-      cnt.innerHTML = `<div class="empty"><div class="empty-i">📅</div>
-        <div class="empty-t">Aucun match ${win.label}</div>
-        <div class="empty-s">Aucune rencontre programmée dans cette fenêtre.<br>
-        Essayez une plage plus large ou vérifiez API_FOOTBALL_KEY.</div></div>`;
-    } else {
-      cnt.innerHTML = `<div class="sbar"><div class="sdot" style="background:var(--am);box-shadow:0 0 5px var(--am)"></div>
-        <span>${filtered.length} match(s) à venir ${win.label}</span>
-        <span style="margin-left:auto;color:var(--dm);font-family:var(--mo);font-size:10px">${fmtDT(new Date().toISOString())}</span>
-      </div>` + filtered.map(m => renderUpcomingCard(m)).join('');
-      // Appliquer filtre sport actif
-      setTimeout(()=>filterUpcomingCards(), 30);
-    }
-  } catch(e) {
-    // Fallback: essayer avec /api/live qui peut inclure les prochains matchs
-    try {
-      const d2 = await api('/api/live');
-      const upcoming = (d2.upcoming_matches || d2.next_matches || []);
-      if(upcoming.length) {
-        cnt.innerHTML = `<div class="sbar"><div class="sdot" style="background:var(--am)"></div><span>${upcoming.length} match(s) trouvé(s)</span></div>`
-          + upcoming.map(m => renderUpcomingCard(m)).join('');
-      } else {
-        cnt.innerHTML = `<div class="card" style="border-color:var(--am)">
-          <div style="color:var(--am);font-size:12px;margin-bottom:6px">⚠ Endpoint /api/upcoming non disponible</div>
-          <div style="color:var(--dm);font-size:11px;line-height:1.65">Ajoutez un endpoint <code>/api/upcoming</code> dans votre Worker, ou utilisez l'onglet <strong>Analyser</strong> pour les matchs à venir par championnat.</div>
-        </div>`;
-      }
-    } catch(_) {
-      cnt.innerHTML = `<div class="card" style="border-color:var(--re)">
-        <div style="color:var(--re);font-weight:700;margin-bottom:6px">❌ Erreur</div>
-        <div style="color:var(--mu);font-size:12px">${esc(e.message)}</div>
-      </div>`;
-    }
+  cnt.innerHTML = `<div class="ls"><div class="sp"></div><p>Recherche matchs à venir ${win.label}…</p>
+    <p style="font-size:10px;color:var(--dm);margin-top:5px;font-family:var(--mo)">${ligsToScan.length} ligues interrogées en parallèle</p></div>`;
+
+  // Appels /api/analyze en parallèle — chacun gère ses propres erreurs
+  const promises = ligsToScan.map(({sport,market}) =>
+    api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick')
+      .then(d => (d.opportunities||[]).map(o=>({
+        ...o,
+        sport: sport,
+        sport_key: sport,
+        home: o.home_team||o.home||'?',
+        away: o.away_team||o.away||'?',
+        start_time: o.start_time||o.commence_time,
+      })))
+      .catch(()=>[])
+  );
+
+  const results = await Promise.all(promises);
+  let allMatches = [];
+  results.forEach(r => allMatches = [...allMatches, ...r]);
+
+  // Dédoublonner par équipes + sport
+  const seen = new Set();
+  allMatches = allMatches.filter(m => {
+    const key = (m.home||'').toLowerCase()+'|'+(m.away||'').toLowerCase()+'|'+m.sport;
+    if(seen.has(key)) return false; seen.add(key); return true;
+  });
+
+  // Filtre fenêtre temporelle — avec tolérance large (±6h pour matches "en cours")
+  const fromTs = new Date(win.from).getTime() - 6*3600000;
+  const toTs   = new Date(win.to).getTime() + 6*3600000;
+  let filtered = allMatches.filter(m => {
+    if(!m.start_time) return true; // pas de date = on l'inclut quand même
+    const ts = new Date(m.start_time).getTime();
+    return ts >= fromTs && ts <= toTs;
+  });
+
+  // Si toujours vide avec filtre temporel, montrer tous les matchs trouvés
+  if(!filtered.length && allMatches.length) {
+    filtered = allMatches; // fenêtre trop restrictive, on affiche tout
   }
+
+  // Trier chronologiquement
+  filtered.sort((a,b) => {
+    const ta = a.start_time ? new Date(a.start_time).getTime() : Infinity;
+    const tb = b.start_time ? new Date(b.start_time).getTime() : Infinity;
+    return ta - tb;
+  });
+
+  if(!filtered.length) {
+    cnt.innerHTML = `<div class="empty"><div class="empty-i">📅</div>
+      <div class="empty-t">Aucun match trouvé</div>
+      <div class="empty-s">Aucune rencontre disponible.<br>
+      Élargissez la fenêtre ou vérifiez votre clé Odds API.</div></div>`;
+  } else {
+    cnt.innerHTML = `<div class="sbar">
+      <div class="sdot" style="background:var(--am);box-shadow:0 0 5px var(--am)"></div>
+      <span>${filtered.length} match(s) à venir ${win.label}</span>
+      <span style="margin-left:auto;color:var(--dm);font-family:var(--mo);font-size:10px">${fmtDT(new Date().toISOString())}</span>
+    </div>` + filtered.map(m => renderUpcomingCard(m)).join('');
+    setTimeout(()=>filterUpcomingCards(), 30);
+  }
+
   btn.disabled = false;
   btn.innerHTML = '📅 Voir les matchs à venir';
 }
