@@ -371,10 +371,27 @@ a{color:var(--neon);text-decoration:none}
 </head>
 <body>
 <div id="app">
-<div class="mb"><span class="ml">PGI<span style="color:var(--neon2);margin:0 2px">•</span>BetPro</span><button class="hb" onclick="tSb()">☰</button></div>
+<div class="mb">
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="ml">PGI<span style="color:var(--neon2);margin:0 2px">•</span>BetPro</span>
+    <div id="conn-dot-m" style="width:8px;height:8px;border-radius:2px;background:var(--dm);transition:background .4s"></div>
+    <span id="conn-label-m" style="font-size:9px;font-family:var(--mo);color:var(--dm)">…</span>
+  </div>
+  <button class="hb" onclick="tSb()">☰</button>
+</div>
 <div class="ov" id="ov" onclick="tSb()"></div>
 <nav class="sb" id="sb">
-  <div class="sbh"><div class="logo">PGI<span class="ldot">•</span>BetPro</div><div class="lsub">Analyse · IA · Privé</div></div>
+  <div class="sbh">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="logo">PGI<span class="ldot">•</span>BetPro</div>
+      <div id="conn-status" style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+        <div id="conn-dot" style="width:10px;height:10px;border-radius:3px;background:var(--dm);transition:background .4s"></div>
+        <div id="conn-label" style="font-size:8px;font-family:var(--mo);color:var(--dm);letter-spacing:.04em">…</div>
+      </div>
+    </div>
+    <div class="lsub" style="margin-top:4px">Analyse · IA · Privé</div>
+    <div id="conn-info" style="font-size:9px;font-family:var(--mo);color:var(--dm);margin-top:4px;line-height:1.5;display:none"></div>
+  </div>
   <div class="sbn">
     <div class="ni on" data-s="dash"     onclick="go('dash')"    ><span class="ni-i">⚡</span>Analyser</div>
     <div class="ni"    data-s="manual"   onclick="go('manual')"  ><span class="ni-i">🎯</span>Analyse manuelle</div>
@@ -1149,16 +1166,16 @@ async function runLiveModelUI(){const home=document.getElementById('ctx-home')?.
 //  MÉTHODES DE PARIS — DONNÉES
 // ═══════════════════════════════════════════════
 const STRATEGIES = [
-  {id:'martingale',name:'Martingale',icon:'🔄',tagline:'Doubler après chaque perte',risk:'Très élevé',riskClass:'mr-vhi',minOdds:2.00,idealOdds:'2.00 – 2.50',targetScore:70,description:"Chaque défaite est compensée en doublant la mise. Une seule victoire récupère toutes les pertes et génère un profit égal à la mise initiale. Exige des cotes ≥ 2.00 et une bankroll solide.",rules:[{i:'1️⃣',t:'Fixez une mise initiale (ex: 10€) — c\'est votre profit cible par cycle'},{i:'❌',t:'Défaite → doublez (10→20→40→80€…)'},{i:'✅',t:'Victoire → revenez à la mise initiale'},{i:'🛑',t:'Stoppez si vous atteignez la limite bankroll (prévoir ≥ 7× la mise initiale)'}],example:'10€ ❌ → 20€ ❌ → 40€ ❌ → 80€ ✅ = Gain net +10€ (toutes pertes récupérées)',pros:['Récupère toutes les pertes en une victoire','Profit constant (= mise initiale) sur chaque cycle','Psychologiquement simple'],cons:['Exposition exponentielle très rapide','Bankroll très élevée nécessaire sur longue série','Limits bookmakers peuvent bloquer'],calcNext:(h,init)=>{if(!h.length||h[h.length-1].result==='win')return init;return Math.round(h[h.length-1].stake*2*100)/100;}},
-  {id:'paroli',name:'Anti-Martingale (Paroli)',icon:'🚀',tagline:'Doubler sur les victoires',risk:'Modéré',riskClass:'mr-med',minOdds:1.80,idealOdds:'1.80 – 2.50',targetScore:72,description:"Inverse de la Martingale : doublez après chaque victoire, réinitialisez après une perte. L'objectif est de profiter des séries gagnantes tout en ne risquant que la mise initiale en cas de perte.",rules:[{i:'1️⃣',t:'Mise initiale fixe (ex: 10€)'},{i:'✅',t:'Victoire → doublez (10→20→40€)'},{i:'❌',t:'Défaite → retour à la mise initiale'},{i:'🎯',t:'Ciblez 3 victoires consécutives maximum puis réinitialisez'}],example:'10€ ✅ → 20€ ✅ → 40€ ✅ = +70€ brut · Une défaite à tout moment = retour à 10€',pros:['Pertes limitées à la mise initiale','Profits exponentiels sur séries','Capital protégé en permanence'],cons:['Nécessite des séries pour être rentable','Profits d\'une série perdus sur une défaite'],calcNext:(h,init)=>{if(!h.length)return init;let wins=0;for(let i=h.length-1;i>=0;i--){if(h[i].result==='win')wins++;else break;}const last=h[h.length-1];if(last.result==='win'&&wins<3)return Math.round(last.stake*2*100)/100;return init;}},
-  {id:'fibonacci',name:'Fibonacci',icon:'🌀',tagline:'Suite mathématique progressive',risk:'Élevé',riskClass:'mr-hi',minOdds:2.00,idealOdds:'2.00 – 2.20',targetScore:70,description:"Suit la suite de Fibonacci (1,1,2,3,5,8,13,21…). Après une perte avancez d'un cran, après une victoire reculez de 2 crans. Plus douce que la Martingale, elle récupère les pertes progressivement.",rules:[{i:'📋',t:'Suite: 1–1–2–3–5–8–13–21–34–55 unités (1 unité = mise de base)'},{i:'❌',t:'Défaite → avancer d\'1 cran dans la suite'},{i:'✅',t:'Victoire → reculer de 2 crans (minimum: début)'},{i:'🏁',t:'Cycle terminé en reculant au cran 0 avec profit'}],example:'u=10€ : 10❌→10❌→20❌→30✅(−2 crans)→10✅ → Reset',pros:['Moins agressive que Martingale','Progression mathématiquement élégante','Récupère progressivement'],cons:['Séries longues atteignent des crans élevés','Cotes ≥2.00 obligatoires'],calcNext:(h,init)=>{const fib=[1,1,2,3,5,8,13,21,34,55,89];let pos=0;h.forEach(bet=>{if(bet.result==='loss')pos=Math.min(pos+1,fib.length-1);else pos=Math.max(0,pos-2);});return Math.round(fib[pos]*init*100)/100;}},
-  {id:'dalembert',name:"D'Alembert",icon:'⚖️',tagline:'+1 unité après perte, −1 après victoire',risk:'Modéré',riskClass:'mr-med',minOdds:1.80,idealOdds:'1.80 – 2.20',targetScore:68,description:"Progression linéaire douce. Augmentez d'une unité après chaque perte, diminuez d'une unité après chaque victoire. L'équilibre gains/pertes se fait naturellement sur la durée.",rules:[{i:'1️⃣',t:'Fixez une unité de base (ex: 5€)'},{i:'❌',t:'Défaite → +1 unité (5→10→15€…)'},{i:'✅',t:'Victoire → −1 unité (15→10→5€…)'},{i:'🛡️',t:'Ne descendez jamais en dessous de 1 unité'}],example:'5€ ❌→10€ ❌→15€ ✅→10€ ✅→5€ ✅ = équilibre restauré',pros:['Progression douce et contrôlée','Simple à appliquer','Risque très maîtrisé'],cons:['Récupère lentement les pertes','Profits modestes sur court terme'],calcNext:(h,init)=>{let u=init;h.forEach(bet=>{if(bet.result==='loss')u+=init;else u=Math.max(init,u-init);});return Math.round(u*100)/100;}},
-  {id:'labouchere',name:'Labouchère',icon:'📝',tagline:'Séquence personnalisée à barrer',risk:'Élevé',riskClass:'mr-hi',minOdds:1.90,idealOdds:'1.90 – 2.10',targetScore:68,description:"Créez une séquence de chiffres (ex: 1-2-3-4). Votre mise = premier + dernier chiffre. En cas de victoire, barrez ces deux chiffres. En cas de perte, ajoutez la mise à la fin. Cycle terminé quand tous les chiffres sont barrés.",rules:[{i:'📋',t:'Choisissez une séquence (ex: 1-2-3 = profit cible 6 unités)'},{i:'➕',t:'Mise = 1er + dernier chiffre (ex: 1+3=4 unités)'},{i:'✅',t:'Victoire → barrez les deux chiffres utilisés'},{i:'❌',t:'Défaite → ajoutez la mise à la fin de la séquence'},{i:'🏁',t:'Séquence terminée = profit = somme des chiffres initiaux'}],example:'[1-2-3] : mise=4 ❌→[1-2-3-4] : mise=5 ✅→[2-3] : mise=5 ✅→[barré]',pros:['Profit cible défini à l\'avance','Flexible selon l\'ambition'],cons:['Séquence peut s\'allonger indéfiniment','Complexe à suivre'],calcNext:(h,init)=>{let seq=[1,2,3];h.forEach(bet=>{if(bet.result==='win'){seq.shift();seq.pop();}else{seq.push((seq[0]||0)+(seq[seq.length-1]||0));}if(seq.length<2)seq=[1,2,3];});return Math.round(((seq[0]||1)+(seq[seq.length-1]||1))*init*100)/100;}},
-  {id:'kelly',name:'Critère de Kelly',icon:'🧮',tagline:'Mise optimale selon la probabilité réelle',risk:'Variable',riskClass:'mr-med',minOdds:1.50,idealOdds:'Toutes cotes',targetScore:75,description:"Le Critère de Kelly est la seule formule mathématiquement optimale pour maximiser la croissance de la bankroll sur le long terme. La mise = (p×b − q) / b où p = probabilité estimée, q = 1-p, b = gain net.",rules:[{i:'📐',t:'Formule: f = (p×b − (1−p)) / b'},{i:'📊',t:'p = votre estimation de probabilité (ex: 0.60 = 60%)'},{i:'📈',t:'b = gain net (cote − 1) ex: cote 2.00 → b=1.00'},{i:'🛡️',t:'Utilisez Kelly Fractionnaire (25-50%) pour limiter le risque'},{i:'🚫',t:'Ne pariez jamais si Kelly < 0 (valeur négative)'}],example:'p=60%, cote=2.00 → Kelly=(0.60×1−0.40)/1=0.20 → misez 20% de la bankroll',pros:['Mathématiquement optimal','Protège automatiquement contre les mauvaises cotes','Croissance maximale long terme'],cons:['Nécessite estimation précise des probabilités','Mises variables difficiles à gérer'],calcNext:(h,init)=>{return init;}},
-  {id:'flatbet',name:'Mise Plate (Flat Betting)',icon:'📏',tagline:'Mise fixe à chaque pari',risk:'Faible',riskClass:'mr-low',minOdds:1.60,idealOdds:'1.60 – 3.00',targetScore:80,description:"La stratégie la plus disciplinée : vous misez toujours le même montant fixe, indépendamment des résultats. Le profit vient uniquement de votre avantage (edge) sur les cotes — pas de la gestion des mises.",rules:[{i:'1️⃣',t:'Fixez un % de bankroll fixe (recommandé: 1-3%)'},{i:'✅❌',t:'Misez ce montant TOUJOURS, victoire ou défaite'},{i:'📊',t:'Visez des cotes avec edge positif (valeur réelle > cote implicite)'},{i:'🎯',t:'Minimum 100 paris pour évaluer la performance réelle'}],example:'Bankroll: 500€, mise: 10€ (2%) sur chaque pari sélectionné',pros:['Risque de ruine quasi nul','Idéale pour Value Betting','Simple et disciplinée'],cons:['Progression très lente','Nécessite un edge réel sur les cotes','Peu excitant à court terme'],calcNext:(h,init)=>{return init;}},
-  {id:'value',name:'Value Betting',icon:'💎',tagline:'Parier uniquement quand la cote est avantageuse',risk:'Modéré',riskClass:'mr-med',minOdds:1.50,idealOdds:'Selon l\'edge',targetScore:80,description:"Le Value Betting consiste à parier uniquement quand la cote proposée est supérieure à la vraie probabilité de l'événement. Si votre probabilité estimée > probabilité implicite de la cote, vous avez un edge positif.",rules:[{i:'🔍',t:'Calculez la probabilité implicite: 1/cote (ex: cote 2.50 → 40%)'},{i:'📊',t:'Estimez la vraie probabilité (ex: 48%)'},{i:'✅',t:'Si prob. réelle > prob. implicite → pari avec VALUE'},{i:'📐',t:'Edge = prob. réelle − prob. implicite (ex: 48−40=+8%)'},{i:'💰',t:'Mise proportionnelle à l\'edge (Kelly recommandé)'}],example:'Cote 2.50 (prob. implicite 40%), prob. réelle 52% → Edge +12% → PARIER',pros:['Seule stratégie rentable sur le long terme','Profit mathématiquement garanti si edge réel'],cons:['Difficile d\'estimer la vraie probabilité','Bankroll fluctuations importantes court terme'],calcNext:(h,init)=>{return init;}},
-  {id:'oscar',name:'Oscar\'s Grind',icon:'🐢',tagline:'Progression lente vers +1 unité de profit',risk:'Faible',riskClass:'mr-low',minOdds:1.80,idealOdds:'1.80 – 2.20',targetScore:70,description:"Oscar's Grind vise à gagner exactement 1 unité par cycle. Vous augmentez d'une unité après chaque victoire (sans dépasser le profit cible), et gardez la même mise après chaque perte.",rules:[{i:'🎯',t:'Objectif: +1 unité de profit par cycle'},{i:'✅',t:'Victoire → augmentez la mise d\'1 unité SI profit < 1 unité'},{i:'❌',t:'Défaite → gardez la même mise'},{i:'🏁',t:'Cycle terminé dès que le profit atteint +1 unité'}],example:'1u ❌→1u ✅→2u ✅= +2u total (+1u de profit net) → Reset',pros:['Risque très contrôlé','Stable sur le long terme','Protection contre les mauvaises séries'],cons:['Progression très lente','Profits minimes par cycle'],calcNext:(h,init)=>{let totalProfit=0,currentStake=init;h.forEach(bet=>{if(bet.result==='win'){totalProfit+=currentStake;if(totalProfit>=init){totalProfit=0;currentStake=init;}else{currentStake=Math.min(currentStake+init,init-totalProfit+currentStake);}}else{totalProfit-=currentStake;}});return Math.round(Math.max(init,currentStake)*100)/100;}},
-  {id:'1326',name:'Système 1-3-2-6',icon:'🎰',tagline:'Séquence 1-3-2-6 unités sur victoires',risk:'Modéré',riskClass:'mr-med',minOdds:1.90,idealOdds:'1.90 – 2.20',targetScore:72,description:"Système de progression positive en 4 étapes: misez 1, puis 3, puis 2, puis 6 unités consécutivement sur des victoires. Une perte à tout moment réinitialise à 1 unité. Un cycle complet (4 victoires) génère +12 unités.",rules:[{i:'📋',t:'Séquence: 1u → 3u → 2u → 6u (en cas de 4 victoires consécutives)'},{i:'❌',t:'Défaite à n\'importe quelle étape → retour à 1u'},{i:'✅',t:'Victoire → étape suivante'},{i:'🏁',t:'Après 6u (étape 4): victoire ou défaite → retour à 1u'}],example:'1u ✅→3u ✅→2u ✅→6u ✅ = +12u brut (−1−3−2 mises = +6u net)',pros:['Profit max sur 4 victoires consécutives','Perte max limitée à 1u (sauf étape 2: -2u)','Séquence mémorisable'],cons:['4 victoires consécutives rares','Gestion des étapes peut être confuse'],calcNext:(h,init)=>{const seq=[1,3,2,6];let step=0;for(let i=h.length-1;i>=0;i--){if(h[i].result==='win'){step++;if(step>=seq.length){step=0;break;}}else{step=0;break;}}return Math.round(seq[step]*init*100)/100;}},
+  {id:'martingale',name:'Martingale',icon:'🔄',tagline:'Doubler après chaque perte',risk:'🔴 Très risqué — ruine possible',riskClass:'mr-vhi',minOdds:2.00,idealOdds:'2.00 – 2.50',targetScore:70,description:"Chaque défaite est compensée en doublant la mise. Une seule victoire récupère toutes les pertes et génère un profit égal à la mise initiale. Exige des cotes ≥ 2.00 et une bankroll solide.",rules:[{i:'1️⃣',t:'Fixez une mise initiale (ex: 10€) — c\'est votre profit cible par cycle'},{i:'❌',t:'Défaite → doublez (10→20→40→80€…)'},{i:'✅',t:'Victoire → revenez à la mise initiale'},{i:'🛑',t:'Stoppez si vous atteignez la limite bankroll (prévoir ≥ 7× la mise initiale)'}],example:'10€ ❌ → 20€ ❌ → 40€ ❌ → 80€ ✅ = Gain net +10€ (toutes pertes récupérées)',pros:['Récupère toutes les pertes en une victoire','Profit constant (= mise initiale) sur chaque cycle','Psychologiquement simple'],cons:['Exposition exponentielle très rapide','Bankroll très élevée nécessaire sur longue série','Limits bookmakers peuvent bloquer'],calcNext:(h,init)=>{if(!h.length||h[h.length-1].result==='win')return init;return Math.round(h[h.length-1].stake*2*100)/100;}},
+  {id:'paroli',name:'Anti-Martingale (Paroli)',icon:'🚀',tagline:'Doubler sur les victoires',risk:'🟡 Modéré — contrôlable',riskClass:'mr-med',minOdds:1.80,idealOdds:'1.80 – 2.50',targetScore:72,description:"Inverse de la Martingale : doublez après chaque victoire, réinitialisez après une perte. L'objectif est de profiter des séries gagnantes tout en ne risquant que la mise initiale en cas de perte.",rules:[{i:'1️⃣',t:'Mise initiale fixe (ex: 10€)'},{i:'✅',t:'Victoire → doublez (10→20→40€)'},{i:'❌',t:'Défaite → retour à la mise initiale'},{i:'🎯',t:'Ciblez 3 victoires consécutives maximum puis réinitialisez'}],example:'10€ ✅ → 20€ ✅ → 40€ ✅ = +70€ brut · Une défaite à tout moment = retour à 10€',pros:['Pertes limitées à la mise initiale','Profits exponentiels sur séries','Capital protégé en permanence'],cons:['Nécessite des séries pour être rentable','Profits d\'une série perdus sur une défaite'],calcNext:(h,init)=>{if(!h.length)return init;let wins=0;for(let i=h.length-1;i>=0;i--){if(h[i].result==='win')wins++;else break;}const last=h[h.length-1];if(last.result==='win'&&wins<3)return Math.round(last.stake*2*100)/100;return init;}},
+  {id:'fibonacci',name:'Fibonacci',icon:'🌀',tagline:'Suite mathématique progressive',risk:'🟠 Risqué — mises croissantes',riskClass:'mr-hi',minOdds:2.00,idealOdds:'2.00 – 2.20',targetScore:70,description:"Suit la suite de Fibonacci (1,1,2,3,5,8,13,21…). Après une perte avancez d'un cran, après une victoire reculez de 2 crans. Plus douce que la Martingale, elle récupère les pertes progressivement.",rules:[{i:'📋',t:'Suite: 1–1–2–3–5–8–13–21–34–55 unités (1 unité = mise de base)'},{i:'❌',t:'Défaite → avancer d\'1 cran dans la suite'},{i:'✅',t:'Victoire → reculer de 2 crans (minimum: début)'},{i:'🏁',t:'Cycle terminé en reculant au cran 0 avec profit'}],example:'u=10€ : 10❌→10❌→20❌→30✅(−2 crans)→10✅ → Reset',pros:['Moins agressive que Martingale','Progression mathématiquement élégante','Récupère progressivement'],cons:['Séries longues atteignent des crans élevés','Cotes ≥2.00 obligatoires'],calcNext:(h,init)=>{const fib=[1,1,2,3,5,8,13,21,34,55,89];let pos=0;h.forEach(bet=>{if(bet.result==='loss')pos=Math.min(pos+1,fib.length-1);else pos=Math.max(0,pos-2);});return Math.round(fib[pos]*init*100)/100;}},
+  {id:'dalembert',name:"D'Alembert",icon:'⚖️',tagline:'+1 unité après perte, −1 après victoire',risk:'🟡 Modéré — contrôlable',riskClass:'mr-med',minOdds:1.80,idealOdds:'1.80 – 2.20',targetScore:68,description:"Progression linéaire douce. Augmentez d'une unité après chaque perte, diminuez d'une unité après chaque victoire. L'équilibre gains/pertes se fait naturellement sur la durée.",rules:[{i:'1️⃣',t:'Fixez une unité de base (ex: 5€)'},{i:'❌',t:'Défaite → +1 unité (5→10→15€…)'},{i:'✅',t:'Victoire → −1 unité (15→10→5€…)'},{i:'🛡️',t:'Ne descendez jamais en dessous de 1 unité'}],example:'5€ ❌→10€ ❌→15€ ✅→10€ ✅→5€ ✅ = équilibre restauré',pros:['Progression douce et contrôlée','Simple à appliquer','Risque très maîtrisé'],cons:['Récupère lentement les pertes','Profits modestes sur court terme'],calcNext:(h,init)=>{let u=init;h.forEach(bet=>{if(bet.result==='loss')u+=init;else u=Math.max(init,u-init);});return Math.round(u*100)/100;}},
+  {id:'labouchere',name:'Labouchère',icon:'📝',tagline:'Séquence personnalisée à barrer',risk:'🟠 Risqué — mises croissantes',riskClass:'mr-hi',minOdds:1.90,idealOdds:'1.90 – 2.10',targetScore:68,description:"Créez une séquence de chiffres (ex: 1-2-3-4). Votre mise = premier + dernier chiffre. En cas de victoire, barrez ces deux chiffres. En cas de perte, ajoutez la mise à la fin. Cycle terminé quand tous les chiffres sont barrés.",rules:[{i:'📋',t:'Choisissez une séquence (ex: 1-2-3 = profit cible 6 unités)'},{i:'➕',t:'Mise = 1er + dernier chiffre (ex: 1+3=4 unités)'},{i:'✅',t:'Victoire → barrez les deux chiffres utilisés'},{i:'❌',t:'Défaite → ajoutez la mise à la fin de la séquence'},{i:'🏁',t:'Séquence terminée = profit = somme des chiffres initiaux'}],example:'[1-2-3] : mise=4 ❌→[1-2-3-4] : mise=5 ✅→[2-3] : mise=5 ✅→[barré]',pros:['Profit cible défini à l\'avance','Flexible selon l\'ambition'],cons:['Séquence peut s\'allonger indéfiniment','Complexe à suivre'],calcNext:(h,init)=>{let seq=[1,2,3];h.forEach(bet=>{if(bet.result==='win'){seq.shift();seq.pop();}else{seq.push((seq[0]||0)+(seq[seq.length-1]||0));}if(seq.length<2)seq=[1,2,3];});return Math.round(((seq[0]||1)+(seq[seq.length-1]||1))*init*100)/100;}},
+  {id:'kelly',name:'Critère de Kelly',icon:'🧮',tagline:'Mise optimale selon la probabilité réelle',risk:'🟡 Variable — selon votre edge',riskClass:'mr-med',minOdds:1.50,idealOdds:'Toutes cotes',targetScore:75,description:"Le Critère de Kelly est la seule formule mathématiquement optimale pour maximiser la croissance de la bankroll sur le long terme. La mise = (p×b − q) / b où p = probabilité estimée, q = 1-p, b = gain net.",rules:[{i:'📐',t:'Formule: f = (p×b − (1−p)) / b'},{i:'📊',t:'p = votre estimation de probabilité (ex: 0.60 = 60%)'},{i:'📈',t:'b = gain net (cote − 1) ex: cote 2.00 → b=1.00'},{i:'🛡️',t:'Utilisez Kelly Fractionnaire (25-50%) pour limiter le risque'},{i:'🚫',t:'Ne pariez jamais si Kelly < 0 (valeur négative)'}],example:'p=60%, cote=2.00 → Kelly=(0.60×1−0.40)/1=0.20 → misez 20% de la bankroll',pros:['Mathématiquement optimal','Protège automatiquement contre les mauvaises cotes','Croissance maximale long terme'],cons:['Nécessite estimation précise des probabilités','Mises variables difficiles à gérer'],calcNext:(h,init)=>{return init;}},
+  {id:'flatbet',name:'Mise Plate (Flat Betting)',icon:'📏',tagline:'Mise fixe à chaque pari',risk:'🟢 Faible — bankroll protégée',riskClass:'mr-low',minOdds:1.60,idealOdds:'1.60 – 3.00',targetScore:80,description:"La stratégie la plus disciplinée : vous misez toujours le même montant fixe, indépendamment des résultats. Le profit vient uniquement de votre avantage (edge) sur les cotes — pas de la gestion des mises.",rules:[{i:'1️⃣',t:'Fixez un % de bankroll fixe (recommandé: 1-3%)'},{i:'✅❌',t:'Misez ce montant TOUJOURS, victoire ou défaite'},{i:'📊',t:'Visez des cotes avec edge positif (valeur réelle > cote implicite)'},{i:'🎯',t:'Minimum 100 paris pour évaluer la performance réelle'}],example:'Bankroll: 500€, mise: 10€ (2%) sur chaque pari sélectionné',pros:['Risque de ruine quasi nul','Idéale pour Value Betting','Simple et disciplinée'],cons:['Progression très lente','Nécessite un edge réel sur les cotes','Peu excitant à court terme'],calcNext:(h,init)=>{return init;}},
+  {id:'value',name:'Value Betting',icon:'💎',tagline:'Parier uniquement quand la cote est avantageuse',risk:'🟡 Modéré — contrôlable',riskClass:'mr-med',minOdds:1.50,idealOdds:'Selon l\'edge',targetScore:80,description:"Le Value Betting consiste à parier uniquement quand la cote proposée est supérieure à la vraie probabilité de l'événement. Si votre probabilité estimée > probabilité implicite de la cote, vous avez un edge positif.",rules:[{i:'🔍',t:'Calculez la probabilité implicite: 1/cote (ex: cote 2.50 → 40%)'},{i:'📊',t:'Estimez la vraie probabilité (ex: 48%)'},{i:'✅',t:'Si prob. réelle > prob. implicite → pari avec VALUE'},{i:'📐',t:'Edge = prob. réelle − prob. implicite (ex: 48−40=+8%)'},{i:'💰',t:'Mise proportionnelle à l\'edge (Kelly recommandé)'}],example:'Cote 2.50 (prob. implicite 40%), prob. réelle 52% → Edge +12% → PARIER',pros:['Seule stratégie rentable sur le long terme','Profit mathématiquement garanti si edge réel'],cons:['Difficile d\'estimer la vraie probabilité','Bankroll fluctuations importantes court terme'],calcNext:(h,init)=>{return init;}},
+  {id:'oscar',name:'Oscar\'s Grind',icon:'🐢',tagline:'Progression lente vers +1 unité de profit',risk:'🟢 Faible — bankroll protégée',riskClass:'mr-low',minOdds:1.80,idealOdds:'1.80 – 2.20',targetScore:70,description:"Oscar's Grind vise à gagner exactement 1 unité par cycle. Vous augmentez d'une unité après chaque victoire (sans dépasser le profit cible), et gardez la même mise après chaque perte.",rules:[{i:'🎯',t:'Objectif: +1 unité de profit par cycle'},{i:'✅',t:'Victoire → augmentez la mise d\'1 unité SI profit < 1 unité'},{i:'❌',t:'Défaite → gardez la même mise'},{i:'🏁',t:'Cycle terminé dès que le profit atteint +1 unité'}],example:'1u ❌→1u ✅→2u ✅= +2u total (+1u de profit net) → Reset',pros:['Risque très contrôlé','Stable sur le long terme','Protection contre les mauvaises séries'],cons:['Progression très lente','Profits minimes par cycle'],calcNext:(h,init)=>{let totalProfit=0,currentStake=init;h.forEach(bet=>{if(bet.result==='win'){totalProfit+=currentStake;if(totalProfit>=init){totalProfit=0;currentStake=init;}else{currentStake=Math.min(currentStake+init,init-totalProfit+currentStake);}}else{totalProfit-=currentStake;}});return Math.round(Math.max(init,currentStake)*100)/100;}},
+  {id:'1326',name:'Système 1-3-2-6',icon:'🎰',tagline:'Séquence 1-3-2-6 unités sur victoires',risk:'🟡 Modéré — contrôlable',riskClass:'mr-med',minOdds:1.90,idealOdds:'1.90 – 2.20',targetScore:72,description:"Système de progression positive en 4 étapes: misez 1, puis 3, puis 2, puis 6 unités consécutivement sur des victoires. Une perte à tout moment réinitialise à 1 unité. Un cycle complet (4 victoires) génère +12 unités.",rules:[{i:'📋',t:'Séquence: 1u → 3u → 2u → 6u (en cas de 4 victoires consécutives)'},{i:'❌',t:'Défaite à n\'importe quelle étape → retour à 1u'},{i:'✅',t:'Victoire → étape suivante'},{i:'🏁',t:'Après 6u (étape 4): victoire ou défaite → retour à 1u'}],example:'1u ✅→3u ✅→2u ✅→6u ✅ = +12u brut (−1−3−2 mises = +6u net)',pros:['Profit max sur 4 victoires consécutives','Perte max limitée à 1u (sauf étape 2: -2u)','Séquence mémorisable'],cons:['4 victoires consécutives rares','Gestion des étapes peut être confuse'],calcNext:(h,init)=>{const seq=[1,3,2,6];let step=0;for(let i=h.length-1;i>=0;i--){if(h[i].result==='win'){step++;if(step>=seq.length){step=0;break;}}else{step=0;break;}}return Math.round(seq[step]*init*100)/100;}},
 ];
 
 let selectedStrategy=null, trackerHistory=[];
@@ -1195,7 +1212,10 @@ function renderStrategyDetail() {
         <div class="mdp-title">${s.name}</div>
         <div class="mdp-tagline">${s.tagline}</div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-          <span class="msc-risk ${s.riskClass}">${s.risk}</span>
+          <div style="margin-top:5px">
+            <span class="msc-risk ${s.riskClass}">${s.risk}</span>
+            ${ {'mr-vhi':'<span style="font-size:9px;color:var(--re);font-family:var(--mo);display:block;margin-top:3px">⚠ Peut vider la bankroll sur série perdante</span>','mr-hi':'<span style="font-size:9px;color:#fb923c;font-family:var(--mo);display:block;margin-top:3px">⚠ Mises qui augmentent rapidement</span>','mr-med':'<span style="font-size:9px;color:var(--am);font-family:var(--mo);display:block;margin-top:3px">✔ Progression maîtrisable avec discipline</span>','mr-low':'<span style="font-size:9px;color:var(--gr);font-family:var(--mo);display:block;margin-top:3px">✔ Risque de ruine quasi nul</span>'}[s.riskClass]||'' }
+          </div>
           <span class="bdg bsr">Cote min: ${s.minOdds}</span>
           <span class="bdg bsp">Cote idéale: ${s.idealOdds}</span>
           <span class="bdg bmk">Score cible: ${s.targetScore}+</span>
@@ -1219,9 +1239,19 @@ function renderStrategyDetail() {
     <div style="border-top:1px solid var(--bd);padding-top:16px;margin-top:4px">
       <div style="font-family:var(--hd);font-size:11px;font-weight:700;color:var(--pu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">🔍 Recherche de matchs</div>
       <div class="m-params">
-        <div class="fgrp"><label>Mise de base (€)</label><input type="number" id="m-init-stake" value="10" min="1" max="10000" step="1"></div>
-        <div class="fgrp"><label>Cote cible</label><input type="number" id="m-target-odds" value="${s.minOdds}" min="1.10" max="20.00" step="0.05"></div>
-        <div class="fgrp"><label>Tolérance cote (±)</label><input type="number" id="m-odds-tol" value="0.15" min="0.05" max="0.50" step="0.05"></div>
+        <div class="fgrp"><label>Mise de base (€)</label><input type="number" id="m-init-stake" value="10" min="1" max="10000" step="1">
+          <div class="fh-help">Point de départ de votre stratégie. Aussi votre profit cible par cycle (Martingale) ou unité de base (D'Alembert).</div>
+        </div>
+        <div class="fgrp">
+          <label>🎯 Cote cible</label>
+          <input type="number" id="m-target-odds" value="${s.minOdds}" min="1.10" max="20.00" step="0.05">
+          <div class="fh-help">La cote que vous cherchez pour parier. Ex: 2.00 = si vous misez 10€ et gagnez, vous récupérez 20€ (+10€ de profit). Pour la Martingale, cote ≥ 2.00 obligatoire pour récupérer les pertes.</div>
+        </div>
+        <div class="fgrp">
+          <label>↔ Tolérance (±)</label>
+          <input type="number" id="m-odds-tol" value="0.15" min="0.05" max="0.50" step="0.05">
+          <div class="fh-help">Marge acceptée autour de votre cote cible. Ex: cible 2.00 ± 0.15 → cherche les matchs entre 1.85 et 2.15. Plus grande = plus de résultats, moins grande = cote très précise.</div>
+        </div>
       </div>
       <div class="fg">
         <div class="fgrp"><label>Score minimum</label>
@@ -1335,6 +1365,107 @@ function renderMethodCard(o, i, isExact, nextStake, targetOdds) {
   </div>`;
 }
 
+function renderTrackerStats() {
+  if(!trackerHistory.length) return '';
+  const wins = trackerHistory.filter(h=>h.result==='win');
+  const losses = trackerHistory.filter(h=>h.result==='loss');
+  const totalPL = trackerHistory.reduce((a,h)=>a+(h.pl||0),0);
+  const totalInvested = trackerHistory.reduce((a,h)=>a+h.stake,0);
+  const roi = totalInvested>0 ? (totalPL/totalInvested*100).toFixed(1) : 0;
+  const winRate = trackerHistory.length>0 ? (wins.length/trackerHistory.length*100).toFixed(1) : 0;
+  const avgOddsWin = wins.length ? (wins.reduce((a,h)=>a+(h.odds||0),0)/wins.length).toFixed(2) : '-';
+  const avgOddsLoss = losses.length ? (losses.reduce((a,h)=>a+(h.odds||0),0)/losses.length).toFixed(2) : '-';
+  const avgStake = (totalInvested/trackerHistory.length).toFixed(2);
+  const maxWinSteak = (() => { let max=0,cur=0; trackerHistory.forEach(h=>{if(h.result==='win'){cur++;max=Math.max(max,cur);}else cur=0;}); return max; })();
+  const maxLossStreak = (() => { let max=0,cur=0; trackerHistory.forEach(h=>{if(h.result==='loss'){cur++;max=Math.max(max,cur);}else cur=0;}); return max; })();
+  // Fréquence par jour
+  const byDay = {};
+  trackerHistory.forEach(h=>{
+    const day = h.date?.split(' ')[0]||'?';
+    if(!byDay[day]) byDay[day]={w:0,l:0,pl:0};
+    if(h.result==='win') byDay[day].w++; else byDay[day].l++;
+    byDay[day].pl += (h.pl||0);
+  });
+  const days = Object.keys(byDay).sort();
+  // Courbe P&L cumulative
+  let cumul = 0;
+  const plPoints = trackerHistory.map(h=>{ cumul+=(h.pl||0); return cumul.toFixed(2); });
+  const plMin = Math.min(...plPoints);
+  const plMax = Math.max(...plPoints);
+  const plRange = plMax - plMin || 1;
+  const svgH = 60, svgW = 300;
+  const pts = plPoints.map((v,i)=>`${Math.round(i/(plPoints.length-1||1)*(svgW-20)+10)},${Math.round((plMax-v)/plRange*(svgH-10)+5)}`).join(' ');
+  const plColor = cumul>=0 ? 'var(--gr)' : 'var(--re)';
+
+  return `
+  <!-- STATS AVANCÉES -->
+  <div style="margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;color:var(--pu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📊 Statistiques complètes</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:7px;margin-bottom:12px">
+      <div class="tsm-cell"><div class="sv" style="color:var(--gr)">${wins.length}</div><label>Victoires</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--re)">${losses.length}</div><label>Défaites</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:${parseFloat(winRate)>=50?'var(--gr)':'var(--re)'}">${winRate}%</div><label>Win Rate</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:${totalPL>=0?'var(--gr)':'var(--re)'}">${totalPL>0?'+':''}${totalPL.toFixed(2)}€</div><label>P&L Total</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:${parseFloat(roi)>=0?'var(--gr)':'var(--re)'}">${roi>0?'+':''}${roi}%</div><label>ROI</label></div>
+      <div class="tsm-cell"><div class="sv">${totalInvested.toFixed(2)}€</div><label>Investi</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--gr)">${maxWinSteak}</div><label>Série max ✅</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--re)">${maxLossStreak}</div><label>Série max ❌</label></div>
+      <div class="tsm-cell"><div class="sv">${avgStake}€</div><label>Mise moy.</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--gr)">${avgOddsWin}</div><label>Cote moy. ✅</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--re)">${avgOddsLoss}</div><label>Cote moy. ❌</label></div>
+      <div class="tsm-cell"><div class="sv">${trackerHistory.length}</div><label>Paris total</label></div>
+    </div>
+
+    <!-- COURBE P&L -->
+    ${plPoints.length > 1 ? `<div style="margin-bottom:12px">
+      <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Courbe P&L cumulatif</div>
+      <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:8px;overflow:hidden">
+        <svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:${svgH}px">
+          <line x1="10" y1="${svgH-5}" x2="${svgW-10}" y2="${svgH-5}" stroke="var(--bd)" stroke-width="1"/>
+          <line x1="10" y1="5" x2="10" y2="${svgH-5}" stroke="var(--bd)" stroke-width="1"/>
+          <polyline points="${pts}" fill="none" stroke="${plColor}" stroke-width="2" stroke-linejoin="round"/>
+          ${plPoints.map((v,i)=>`<circle cx="${Math.round(i/(plPoints.length-1||1)*(svgW-20)+10)}" cy="${Math.round((plMax-v)/plRange*(svgH-10)+5)}" r="3" fill="${parseFloat(v)>=0?'var(--gr)':'var(--re)'}" />`).join('')}
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mo);color:var(--dm);margin-top:3px">
+          <span>Paris 1</span><span style="color:${plColor};font-weight:700">Actuel: ${cumul>0?'+':''}${cumul.toFixed(2)}€</span><span>Paris ${trackerHistory.length}</span>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <!-- FRÉQUENCE PAR JOUR -->
+    ${days.length > 0 ? `<div style="margin-bottom:12px">
+      <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Fréquence par session</div>
+      <div style="overflow-x:auto"><table class="tracker-table" style="min-width:320px"><thead>
+        <tr><th>Date</th><th>✅</th><th>❌</th><th>Win%</th><th>P&L</th></tr>
+      </thead><tbody>
+        ${days.map(d=>{const day=byDay[d],wr=((day.w/(day.w+day.l||1))*100).toFixed(0);return`<tr>
+          <td style="font-family:var(--mo);font-size:10px">${d}</td>
+          <td class="t-win">${day.w}</td><td class="t-loss">${day.l}</td>
+          <td style="font-family:var(--mo)" class="${parseInt(wr)>=50?'t-win':'t-loss'}">${wr}%</td>
+          <td class="${day.pl>=0?'t-win':'t-loss'}" style="font-family:var(--mo)">${day.pl>0?'+':''}${day.pl.toFixed(2)}€</td>
+        </tr>`;}).join('')}
+      </tbody></table></div>
+    </div>` : ''}
+
+    <!-- HISTORIQUE DÉTAILLÉ -->
+    <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Historique des paris</div>
+    <div style="overflow-x:auto"><table class="tracker-table"><thead>
+      <tr><th>#</th><th>Date</th><th>Match / Pari</th><th>Mise</th><th>Cote</th><th>Résultat</th><th>P&L</th><th>Cumulatif</th></tr>
+    </thead><tbody>
+      ${(() => { let cum=0; return trackerHistory.map((h,i)=>{ cum+=(h.pl||0); return `<tr>
+        <td style="color:var(--dm);font-family:var(--mo)">${i+1}</td>
+        <td style="font-size:9px;color:var(--dm);font-family:var(--mo)">${h.date||'?'}</td>
+        <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.match||'Paris')}</td>
+        <td style="font-family:var(--mo)">${h.stake}€</td>
+        <td style="font-family:var(--mo)">${h.odds||'?'}</td>
+        <td class="${h.result==='win'?'t-win':'t-loss'}">${h.result==='win'?'✅':'❌'}</td>
+        <td class="${(h.pl||0)>=0?'t-win':'t-loss'}" style="font-family:var(--mo)">${(h.pl||0)>0?'+':''}${(h.pl||0).toFixed(2)}€</td>
+        <td style="font-family:var(--mo);color:${cum>=0?'var(--gr)':'var(--re)'};font-weight:700">${cum>0?'+':''}${cum.toFixed(2)}€</td>
+      </tr>`; }).join(''); })()}
+    </tbody></table></div>
+  </div>`;
+}
+
 function renderTracker() {
   const s=selectedStrategy; if(!s) return;
   const section=document.getElementById('m-tracker-section');
@@ -1362,9 +1493,7 @@ function renderTracker() {
       <div class="nsd-odds-target">Cote cible ≥ ${s.minOdds} · ${s.idealOdds}</div>
       <div class="nsd-explanation">${getNextStakeExplanation(s,trackerHistory,initStake,nextStake)}</div>
     </div>
-    ${trackerHistory.length?`<div style="margin-bottom:12px;overflow-x:auto"><table class="tracker-table"><thead><tr><th>#</th><th>Match / Pari</th><th>Mise</th><th>Cote</th><th>Résultat</th><th>P&L</th></tr></thead><tbody>
-    ${trackerHistory.map((h,i)=>{const pl=h.result==='win'?+(h.stake*(h.odds||2)-h.stake).toFixed(2):-h.stake;return`<tr><td style="color:var(--dm);font-family:var(--mo)">${i+1}</td><td>${esc(h.match||'Paris')}</td><td style="font-family:var(--mo)">${h.stake}€</td><td style="font-family:var(--mo)">${h.odds||'?'}</td><td class="${h.result==='win'?'t-win':'t-loss'}">${h.result==='win'?'✅ GAGNÉ':'❌ PERDU'}</td><td class="${pl>=0?'t-win':'t-loss'}" style="font-family:var(--mo)">${pl>0?'+':''}${pl}€</td></tr>`;}).join('')}
-    </tbody></table></div>`:'<div style="text-align:center;padding:20px;color:var(--dm);font-size:12px">Aucun résultat enregistré — ajoutez vos paris ci-dessous</div>'}
+    ${trackerHistory.length ? renderTrackerStats() : '<div style="text-align:center;padding:20px;color:var(--dm);font-size:12px">Aucun résultat enregistré — ajoutez vos paris ci-dessous</div>'}
     <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Ajouter un résultat</div>
     <div class="tracker-add-form">
       <div class="fgrp"><label>Match / Pari</label><input type="text" id="t-match" placeholder="Arsenal vs Chelsea — 1X2"></div>
@@ -1400,11 +1529,32 @@ function addTrackerEntry() {
   const result=document.getElementById('t-result').value;
   if(!stake||stake<=0){toast('Mise invalide','err');return;}
   if(!odds||odds<1.10){toast('Cote invalide (min 1.10)','err');return;}
-  trackerHistory.push({match:match||'Paris',stake,odds,result,date:new Date().toLocaleString('fr-FR')});
-  const pl=result==='win'?+(stake*(odds-1)).toFixed(2):-stake;
-  toast(`${result==='win'?'✅ Victoire':'❌ Défaite'} — ${pl>0?'+':''}${pl}€`,'');
+
+  const pl = result==='win' ? +(stake*(odds-1)).toFixed(2) : -stake;
+  const entry = {match:match||'Paris', stake, odds, result, pl, date:new Date().toLocaleString('fr-FR'), ts:Date.now()};
+
+  if(result==='win') {
+    // Calculer le profit total du cycle
+    const totalPl = trackerHistory.reduce((acc,h)=>acc+(h.pl||0), 0) + pl;
+    const cycleWon = totalPl > 0;
+    const msg = cycleWon
+      ? `✅ Victoire ! Gain net du cycle : +${totalPl.toFixed(2)}€
+
+Réinitialiser le suivi pour un nouveau cycle ?`
+      : `✅ Victoire — mais cycle encore en négatif (${totalPl.toFixed(2)}€)
+
+Continuer le suivi ou réinitialiser ?`;
+    if(confirm(msg)) {
+      trackerHistory.push(entry);
+      renderTracker();
+      setTimeout(()=>{ if(confirm('Réinitialiser complètement le suivi pour un nouveau cycle ?')) { trackerHistory=[]; renderTracker(); toast('Nouveau cycle démarré 🔄','ok'); } }, 200);
+      return;
+    }
+  }
+
+  trackerHistory.push(entry);
+  toast(`${result==='win'?'✅ Victoire':'❌ Défaite'} — ${pl>0?'+':''}${pl.toFixed(2)}€`,'');
   renderTracker();
-  // Mettre à jour la mise suggérée
   const initStake=parseFloat(document.getElementById('m-init-stake')?.value)||10;
   const nextStake=s.calcNext(trackerHistory,initStake);
   if(document.getElementById('t-stake')) document.getElementById('t-stake').value=nextStake;
@@ -1419,7 +1569,57 @@ function enc(s){return encodeURIComponent(s);}
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function toast(msg,type=''){const c=document.getElementById('toasts');const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;c.appendChild(t);setTimeout(()=>{t.style.transition='opacity .3s,transform .3s';t.style.opacity='0';t.style.transform='translateX(30px)';setTimeout(()=>t.remove(),350);},4500);}
 
-document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);});
+// ═══ STATUT CONNEXION WORKER ═══
+let connPingInterval = null;
+let lastPingMs = null;
+
+async function checkConnection() {
+  const dot = document.getElementById('conn-dot');
+  const dotM = document.getElementById('conn-dot-m');
+  const label = document.getElementById('conn-label');
+  const labelM = document.getElementById('conn-label-m');
+  const info = document.getElementById('conn-info');
+  const setStatus = (color, txt, infoTxt, showInfo) => {
+    [dot,dotM].forEach(d=>{ if(d) d.style.background=color; });
+    if(label) label.textContent=txt;
+    if(labelM) labelM.textContent=txt;
+    if(info){ info.textContent=infoTxt; info.style.display=showInfo?'block':'none'; }
+  };
+  try {
+    const t0 = Date.now();
+    const d = await api('/api/quotas');
+    lastPingMs = Date.now()-t0;
+    const latencyColor = lastPingMs<500?'var(--gr)':lastPingMs<1500?'var(--am)':'var(--re)';
+    setStatus('var(--gr)', 'CONNECTÉ',
+      `Latence: ${lastPingMs}ms · API-Football: ${d.api_football_today}/${d.api_football_daily_limit} · Odds API: ${d.odds_api_credits_remaining} crédits`,
+      true
+    );
+    if(dot) dot.style.background=latencyColor;
+  } catch(e) {
+    setStatus('var(--re)', 'HORS LIGNE', `Worker non joignable · Vérifiez l'URL et votre connexion`, true);
+  }
+}
+
+function startConnectionMonitor() {
+  checkConnection();
+  if(connPingInterval) clearInterval(connPingInterval);
+  connPingInterval = setInterval(checkConnection, 60000); // ping toutes les 60s
+}
+
+// ═══ ANTI PULL-TO-REFRESH (mobile scroll) ═══
+// Empêche le rechargement de page au scroll vers le haut sur mobile
+let startY = 0;
+document.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchmove', e => {
+  const y = e.touches[0].clientY;
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  if(scrollTop === 0 && y > startY) {
+    // En haut de page et scroll vers le bas (pull-to-refresh) — bloquer
+    e.preventDefault();
+  }
+}, {passive:false});
+
+document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);startConnectionMonitor();});
 </script>
 </body>
 </html>
