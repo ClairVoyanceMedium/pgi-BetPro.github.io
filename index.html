@@ -413,6 +413,17 @@ a{color:var(--neon);text-decoration:none}
         <button class="ssb"    data-sport="mma"        onclick="setScanSport(this)">🥊 MMA/Boxe</button>
       </div>
     </div>
+    <!-- MODE SCAN -->
+    <div style="margin:10px 0 12px">
+      <div class="scan-sport-label">Mode scan (crédits Odds API)</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="ssb" id="smode-eco"      onclick="setScanMode('eco',this)"      style="font-size:10px;padding:6px 11px">🟢 Éco <span style="color:var(--dm)">~12 cr.</span></button>
+        <button class="ssb on" id="smode-standard" onclick="setScanMode('standard',this)" style="font-size:10px;padding:6px 11px">🟡 Standard <span style="color:var(--dm)">~30 cr.</span></button>
+        <button class="ssb" id="smode-complet"  onclick="setScanMode('complet',this)"  style="font-size:10px;padding:6px 11px">🔴 Complet <span style="color:var(--dm)">~74 cr.</span></button>
+        <button class="ssb" onclick="clearScanCache()" style="font-size:10px;padding:6px 11px;border-color:rgba(167,139,250,.3);color:var(--pu)">🗑 Vider cache</button>
+      </div>
+      <div id="smode-desc" style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:5px">🟡 Standard — Couverture large, 2 marchés par sport actif. Cache 45min.</div>
+    </div>
     <button class="scan-main-btn ready" id="scan-btn" onclick="doLiveScan()">
       <span id="scan-btn-ico">🔴</span><span id="scan-btn-txt">LANCER LE SCAN</span>
     </button>
@@ -691,6 +702,46 @@ function go(name) {
 }
 function tSb(){document.getElementById('sb').classList.toggle('open');document.getElementById('ov').classList.toggle('on');}
 function cSb(){document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('on');}
+// ═══ CACHE SCAN — économie crédits ═══
+const SCAN_CACHE_TTL = 45 * 60 * 1000; // 45 minutes
+
+function getScanCache(key) {
+  try {
+    const raw = localStorage.getItem('pgi_scan_'+key);
+    if(!raw) return null;
+    const {data, ts} = JSON.parse(raw);
+    if(Date.now() - ts > SCAN_CACHE_TTL) { localStorage.removeItem('pgi_scan_'+key); return null; }
+    return {data, age: Math.round((Date.now()-ts)/60000)};
+  } catch(_) { return null; }
+}
+function setScanCache(key, data) {
+  try { localStorage.setItem('pgi_scan_'+key, JSON.stringify({data, ts:Date.now()})); } catch(_) {}
+}
+function clearScanCache() {
+  try { Object.keys(localStorage).filter(k=>k.startsWith('pgi_scan_')).forEach(k=>localStorage.removeItem(k)); } catch(_) {}
+  toast('Cache vidé — prochain scan consommera des crédits','ok');
+}
+
+const SCAN_MODES = {
+  eco:      { label:'🟢 Éco ~12 cr.',    maxLeagues:12,  markets:1, cacheFirst:true  },
+  standard: { label:'🟡 Standard ~30 cr.', maxLeagues:25, markets:2, cacheFirst:true  },
+  complet:  { label:'🔴 Complet ~74 cr.',  maxLeagues:999, markets:3, cacheFirst:false },
+};
+let currentScanMode = 'standard';
+
+function setScanMode(mode, el) {
+  currentScanMode = mode;
+  ['eco','standard','complet'].forEach(m => document.getElementById('smode-'+m)?.classList.remove('on'));
+  el?.classList.add('on');
+  const desc = {
+    eco:      '🟢 Éco — Top 12 ligues actives, 1 marché. Résultat en cache 45min.',
+    standard: '🟡 Standard — Couverture large, 2 marchés par sport. Cache 45min.',
+    complet:  '🔴 Complet — Toutes ligues, tous marchés. Pas de cache — scan frais.',
+  }[mode]||'';
+  const el2 = document.getElementById('smode-desc');
+  if(el2) el2.textContent = desc;
+}
+
 function setScanSport(el){
   document.querySelectorAll('.ssb').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
@@ -819,16 +870,33 @@ function filterScanBySport(sportType){
 
 // Toutes les ligues à scanner par sport
 const SPORT_LEAGUES = {
-  soccer:    ['soccer_epl','soccer_france_ligue1','soccer_ucl','soccer_spain_la_liga','soccer_germany_bundesliga','soccer_italy_serie_a','soccer_uel','soccer_netherlands','soccer_portugal','soccer_turkey','soccer_belgium','soccer_brasil','soccer_mls'],
+  soccer:    [
+    // Compétitions actives EN MAI (saisons en cours)
+    'soccer_brasil','soccer_brasil_b',          // Brésil — pleine saison
+    'soccer_argentina','soccer_colombia',        // Amérique du Sud
+    'soccer_libertadores','soccer_sudamericana', // Coupes continentales
+    'soccer_mls','soccer_mexico',                // Amériques
+    'soccer_japan','soccer_korea',               // Asie — pleine saison
+    'soccer_china','soccer_saudi',               // Asie suite
+    'soccer_australia',                          // A-League
+    // Europe fin de saison (quelques matchs restants)
+    'soccer_ucl','soccer_uel','soccer_uecl',     // Coupes EU — demi-finales/finales
+    'soccer_epl','soccer_france_ligue1',
+    'soccer_spain_la_liga','soccer_germany_bundesliga','soccer_italy_serie_a',
+    'soccer_netherlands','soccer_portugal','soccer_turkey',
+    'soccer_russia','soccer_greece','soccer_switzerland',
+    // Ligues encore actives
+    'soccer_norway','soccer_sweden','soccer_denmark','soccer_poland',
+  ],
   basketball:['basketball_nba','basketball_euroleague','basketball_ncaab','basketball_wnba'],
-  tennis:    ['tennis_atp','tennis_wta','tennis_atp_french_open','tennis_wta_french_open'],
+  tennis:    ['tennis_atp','tennis_wta','tennis_atp_french_open','tennis_wta_french_open','tennis_atp_wimbledon','tennis_atp_us_open'],
   rugby:     ['rugbyunion_top14','rugbyunion_premiership','rugbyunion_super_rugby','rugbyleague_nrl'],
   icehockey: ['icehockey_nhl','icehockey_khl','icehockey_shl'],
   baseball:  ['baseball_mlb','baseball_npb'],
   mma:       ['mma_mixed_martial_arts','boxing_boxing'],
 };
 const SPORT_MARKETS = {
-  soccer:    ['h2h','totals','btts'],
+  soccer:    ['h2h','totals','btts','double_chance'],
   basketball:['h2h','totals'],
   tennis:    ['h2h'],
   rugby:     ['h2h','totals'],
@@ -837,26 +905,96 @@ const SPORT_MARKETS = {
   mma:       ['h2h'],
 };
 // Toutes les ligues pour le scan global "Tout"
+// Scan global optimisé — couvre TOUS les sports actifs, 1 marché par ligue (économise les crédits)
+// Coût estimé : ~1 crédit par entrée = voir compteur avant lancement
 const ALL_LEAGUES_SCAN = [
-  // Football
-  {sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue1',market:'h2h'},
-  {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_spain_la_liga',market:'h2h'},
-  {sport:'soccer_germany_bundesliga',market:'h2h'},{sport:'soccer_italy_serie_a',market:'h2h'},
-  {sport:'soccer_epl',market:'totals'},{sport:'soccer_france_ligue1',market:'btts'},
-  // Basketball
-  {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'totals'},
-  {sport:'basketball_euroleague',market:'h2h'},
-  // Tennis
-  {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
-  {sport:'tennis_atp_french_open',market:'h2h'},
-  // Rugby
-  {sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'},
-  // Hockey
-  {sport:'icehockey_nhl',market:'h2h'},{sport:'icehockey_nhl',market:'totals'},
-  // Baseball
-  {sport:'baseball_mlb',market:'h2h'},
-  // MMA
-  {sport:'mma_mixed_martial_arts',market:'h2h'},
+  // ⚽ FOOTBALL — Europe (fin de saison + coupes)
+  {sport:'soccer_ucl',        market:'h2h',    label:'⭐ Champions League'},
+  {sport:'soccer_uel',        market:'h2h',    label:'🟠 Europa League'},
+  {sport:'soccer_uecl',       market:'h2h',    label:'🔵 Conference League'},
+  {sport:'soccer_epl',        market:'h2h',    label:'🇬🇧 Premier League'},
+  {sport:'soccer_epl',        market:'totals', label:'🇬🇧 Premier League O/U'},
+  {sport:'soccer_france_ligue1',market:'h2h',  label:'🇫🇷 Ligue 1'},
+  {sport:'soccer_france_ligue1',market:'btts', label:'🇫🇷 Ligue 1 BTTS'},
+  {sport:'soccer_spain_la_liga',market:'h2h',  label:'🇪🇸 La Liga'},
+  {sport:'soccer_germany_bundesliga',market:'h2h',label:'🇩🇪 Bundesliga'},
+  {sport:'soccer_italy_serie_a',market:'h2h',  label:'🇮🇹 Serie A'},
+  {sport:'soccer_netherlands', market:'h2h',   label:'🇳🇱 Eredivisie'},
+  {sport:'soccer_portugal',    market:'h2h',   label:'🇵🇹 Primeira Liga'},
+  {sport:'soccer_turkey',      market:'h2h',   label:'🇹🇷 Süper Lig'},
+  {sport:'soccer_belgium',     market:'h2h',   label:'🇧🇪 Pro League'},
+  {sport:'soccer_russia',      market:'h2h',   label:'🇷🇺 RPL'},
+  {sport:'soccer_greece',      market:'h2h',   label:'🇬🇷 Super League'},
+  {sport:'soccer_switzerland', market:'h2h',   label:'🇨🇭 Super League CH'},
+  {sport:'soccer_denmark',     market:'h2h',   label:'🇩🇰 Superliga'},
+  {sport:'soccer_norway',      market:'h2h',   label:'🇳🇴 Eliteserien'},
+  {sport:'soccer_sweden',      market:'h2h',   label:'🇸🇪 Allsvenskan'},
+  {sport:'soccer_poland',      market:'h2h',   label:'🇵🇱 Ekstraklasa'},
+  {sport:'soccer_czech',       market:'h2h',   label:'🇨🇿 Czech Liga'},
+  {sport:'soccer_austria',     market:'h2h',   label:'🇦🇹 Bundesliga AT'},
+  {sport:'soccer_scotland',    market:'h2h',   label:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scottish Prem.'},
+  // ⚽ FOOTBALL — Amériques (pleine saison)
+  {sport:'soccer_libertadores', market:'h2h',  label:'🏆 Copa Libertadores'},
+  {sport:'soccer_sudamericana', market:'h2h',  label:'🏆 Copa Sudamericana'},
+  {sport:'soccer_brasil',       market:'h2h',  label:'🇧🇷 Brasileirão A'},
+  {sport:'soccer_brasil',       market:'btts', label:'🇧🇷 Brasileirão BTTS'},
+  {sport:'soccer_brasil_b',     market:'h2h',  label:'🇧🇷 Brasileirão B'},
+  {sport:'soccer_argentina',    market:'h2h',  label:'🇦🇷 Primera Div.'},
+  {sport:'soccer_colombia',     market:'h2h',  label:'🇨🇴 Liga Betplay'},
+  {sport:'soccer_chile',        market:'h2h',  label:'🇨🇱 Primera Div.'},
+  {sport:'soccer_ecuador',      market:'h2h',  label:'🇪🇨 LigaPro'},
+  {sport:'soccer_mexico',       market:'h2h',  label:'🇲🇽 Liga MX'},
+  {sport:'soccer_mls',          market:'h2h',  label:'🇺🇸 MLS'},
+  {sport:'soccer_mls',          market:'totals',label:'🇺🇸 MLS O/U'},
+  // ⚽ FOOTBALL — Asie (pleine saison)
+  {sport:'soccer_japan',        market:'h2h',  label:'🇯🇵 J-League'},
+  {sport:'soccer_korea',        market:'h2h',  label:'🇰🇷 K-League'},
+  {sport:'soccer_china',        market:'h2h',  label:'🇨🇳 CSL'},
+  {sport:'soccer_saudi',        market:'h2h',  label:'🇸🇦 Saudi Pro'},
+  {sport:'soccer_australia',    market:'h2h',  label:'🇦🇺 A-League'},
+  {sport:'soccer_india',        market:'h2h',  label:'🇮🇳 ISL'},
+  // 🏀 BASKETBALL
+  {sport:'basketball_nba',      market:'h2h',   label:'🏀 NBA'},
+  {sport:'basketball_nba',      market:'totals',label:'🏀 NBA O/U'},
+  {sport:'basketball_nba',      market:'spreads',label:'🏀 NBA Spreads'},
+  {sport:'basketball_euroleague',market:'h2h',  label:'🏀 EuroLeague'},
+  {sport:'basketball_ncaab',    market:'h2h',   label:'🏀 NCAA Basketball'},
+  {sport:'basketball_wnba',     market:'h2h',   label:'🏀 WNBA'},
+  // 🎾 TENNIS
+  {sport:'tennis_atp',          market:'h2h',   label:'🎾 ATP Tour'},
+  {sport:'tennis_wta',          market:'h2h',   label:'🎾 WTA Tour'},
+  {sport:'tennis_atp_french_open',market:'h2h', label:'🎾 Roland Garros ATP'},
+  {sport:'tennis_wta_french_open',market:'h2h', label:'🎾 Roland Garros WTA'},
+  {sport:'tennis_atp_wimbledon',market:'h2h',   label:'🎾 Wimbledon ATP'},
+  {sport:'tennis_atp_us_open',  market:'h2h',   label:'🎾 US Open ATP'},
+  // 🏉 RUGBY
+  {sport:'rugbyunion_top14',    market:'h2h',   label:'🏉 Top 14'},
+  {sport:'rugbyunion_premiership',market:'h2h', label:'🏉 Premiership'},
+  {sport:'rugbyunion_super_rugby',market:'h2h', label:'🏉 Super Rugby'},
+  {sport:'rugbyleague_nrl',     market:'h2h',   label:'🏉 NRL'},
+  {sport:'rugbyleague_super_league',market:'h2h',label:'🏉 Super League'},
+  // 🏒 HOCKEY
+  {sport:'icehockey_nhl',       market:'h2h',   label:'🏒 NHL'},
+  {sport:'icehockey_nhl',       market:'totals',label:'🏒 NHL O/U'},
+  {sport:'icehockey_khl',       market:'h2h',   label:'🏒 KHL'},
+  {sport:'icehockey_shl',       market:'h2h',   label:'🏒 SHL'},
+  // ⚾ BASEBALL
+  {sport:'baseball_mlb',        market:'h2h',   label:'⚾ MLB'},
+  {sport:'baseball_mlb',        market:'totals',label:'⚾ MLB O/U'},
+  {sport:'baseball_npb',        market:'h2h',   label:'⚾ NPB Japon'},
+  // 🏈 FOOTBALL AMÉRICAIN
+  {sport:'americanfootball_nfl',market:'h2h',   label:'🏈 NFL'},
+  {sport:'americanfootball_nfl',market:'totals',label:'🏈 NFL O/U'},
+  {sport:'americanfootball_ncaaf',market:'h2h', label:'🏈 NCAA Football'},
+  // 🥊 MMA / BOXE
+  {sport:'mma_mixed_martial_arts',market:'h2h', label:'🥊 MMA/UFC'},
+  {sport:'boxing_boxing',       market:'h2h',   label:'🥊 Boxe'},
+  // ⛳ GOLF
+  {sport:'golf_pga_tour',       market:'h2h',   label:'⛳ PGA Tour'},
+  // 🎯 DARTS
+  {sport:'darts_premier_league',market:'h2h',   label:'🎯 Premier League Darts'},
+  // 🏐 AUSSIE RULES
+  {sport:'aussierules_afl',     market:'h2h',   label:'🏐 AFL'},
 ];
 
 async function scanLeagues(leagueList) {
@@ -883,30 +1021,76 @@ async function scanLeagues(leagueList) {
 
 async function doLiveScan() {
   const btn=document.getElementById('scan-btn'),ico=document.getElementById('scan-btn-ico'),txt=document.getElementById('scan-btn-txt'),res=document.getElementById('scan-res');
-  const sportType=document.querySelector('.ssb.on')?.dataset.sport||'all';
+  const sportType=document.querySelector('.ssb[data-sport].on')?.dataset.sport||'all';
+  const mode = SCAN_MODES[currentScanMode] || SCAN_MODES.standard;
   btn.disabled=true; btn.className='scan-main-btn scanning'; ico.innerHTML='<div class="scan-radar"></div>';
 
   const sportLabel={all:'tous sports',soccer:'Football ⚽',basketball:'Basketball 🏀',tennis:'Tennis 🎾',rugby:'Rugby 🏉',icehockey:'Hockey 🏒',baseball:'Baseball ⚾',mma:'MMA/Boxe 🥊'}[sportType]||sportType;
   txt.textContent='SCAN '+sportLabel.toUpperCase()+' EN COURS…';
+  const totalCalls = sportType==='all' ? ALL_LEAGUES_SCAN.length : ((SPORT_LEAGUES[sportType]||[]).length * (SPORT_MARKETS[sportType]||['h2h']).length);
   res.innerHTML=`<div class="ls" style="padding:40px 20px">
     <div class="sp" style="width:36px;height:36px;border-width:3px;border-color:rgba(239,68,68,.2);border-top-color:var(--re)"></div>
     <p style="margin-top:14px;font-size:14px">Scan ${sportLabel} en cours…</p>
-    <p style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">Interrogation de ${sportType==='all'?ALL_LEAGUES_SCAN.length:((SPORT_LEAGUES[sportType]||[]).length * (SPORT_MARKETS[sportType]||['h2h']).length)} sources en parallèle…</p>
+    <p style="font-size:10px;color:var(--dm);margin-top:6px;font-family:var(--mo)">${totalCalls} sources interrogées en parallèle · ~${totalCalls} crédits Odds API</p>
+    <p style="font-size:9px;color:var(--dm);margin-top:3px;font-family:var(--mo)">Seuls les championnats avec matchs disponibles remontent des résultats</p>
   </div>`;
 
   try {
     let allOpps = [];
+    const cacheKey = sportType+'_'+currentScanMode;
 
+    // === VÉRIFICATION CACHE D'ABORD ===
+    if(mode.cacheFirst) {
+      const cached = getScanCache(cacheKey);
+      if(cached) {
+        btn.disabled=false; btn.className='scan-main-btn ready'; ico.textContent='🔴'; txt.textContent='RELANCER LE SCAN';
+        const fakeD = { ...cached.data, cached: true, cache_age: cached.age };
+        res.innerHTML = renderLiveScan(fakeD);
+        toast(`Cache utilisé (${cached.age} min) — 0 crédit consommé 🟢`,'ok');
+        loadQuotas(); return;
+      }
+    }
+
+    // === SCAN PHASE 1 : ligues prioritaires ===
+    let leagueList = [];
     if(sportType === 'all') {
-      // Scan global : toutes les ligues de tous les sports en parallèle
-      allOpps = await scanLeagues(ALL_LEAGUES_SCAN);
+      // Mode éco : 12 ligues top / Standard : 25 / Complet : tout
+      leagueList = ALL_LEAGUES_SCAN.slice(0, mode.maxLeagues);
     } else {
-      // Sport spécifique : toutes les ligues + marchés de ce sport
-      const leagues = SPORT_LEAGUES[sportType] || [];
-      const markets = SPORT_MARKETS[sportType] || ['h2h'];
-      const leagueList = [];
+      const leagues = (SPORT_LEAGUES[sportType] || []).slice(0, mode.maxLeagues);
+      const markets = (SPORT_MARKETS[sportType] || ['h2h']).slice(0, mode.markets);
       leagues.forEach(sport => markets.forEach(market => leagueList.push({sport, market})));
-      allOpps = await scanLeagues(leagueList);
+    }
+
+    txt.textContent = `PHASE 1 — ${leagueList.length} sources…`;
+    allOpps = await scanLeagues(leagueList);
+
+    // === SCAN PHASE 2 (Standard/Complet) : marchés supp sur ligues prometteuses ===
+    if(currentScanMode !== 'eco' && sportType === 'all' && allOpps.length > 0) {
+      // Identifier les sports qui ont déjà donné des résultats
+      const activeSports = [...new Set(allOpps.map(o=>o.sport).filter(Boolean))];
+      // Ajouter d'autres marchés uniquement pour ces sports actifs
+      const phase2 = ALL_LEAGUES_SCAN
+        .filter(l => activeSports.some(sp => l.sport.includes(sp.split('_')[0]+'_')) && !leagueList.find(x=>x.sport===l.sport&&x.market===l.market))
+        .slice(0, currentScanMode==='complet'?999:15);
+      if(phase2.length > 0) {
+        txt.textContent = `PHASE 2 — ${phase2.length} marchés supplémentaires…`;
+        const phase2Opps = await scanLeagues(phase2);
+        allOpps = [...allOpps, ...phase2Opps];
+        // Re-dédoublonner
+        const seen = new Set();
+        allOpps = allOpps.filter(o => {
+          const key = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'')+'|'+(o.selection||'');
+          if(seen.has(key)) return false; seen.add(key); return true;
+        });
+        allOpps.sort((a,b) => (b.score?.total||0)-(a.score?.total||0));
+      }
+    }
+
+    // Sauvegarder en cache si mode le permet
+    if(mode.cacheFirst && allOpps.length > 0) {
+      const fakeD = { upcoming: allOpps, scan_at: new Date().toISOString(), total_opportunities: allOpps.length };
+      setScanCache(cacheKey, fakeD);
     }
 
     if(!allOpps.length) {
@@ -924,7 +1108,8 @@ async function doLiveScan() {
       const fakeD = { upcoming: allOpps, scan_at: new Date().toISOString(), total_opportunities: allOpps.length };
       res.innerHTML = renderLiveScan(fakeD);
       loadQuotas();
-      toast(allOpps.length+' opportunité(s) — '+sportLabel,'ok');
+      const creditsUsed = leagueList.length + (currentScanMode!=='eco'?Math.round(leagueList.length*0.3):0);
+      toast(allOpps.length+' opportunité(s) — ~'+creditsUsed+' crédits utilisés','ok');
     }
   } catch(e) {
     res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re);font-weight:700;margin-bottom:6px">❌ Erreur</div><div style="color:var(--mu);font-size:12px">${esc(e.message)}</div><div class="info" style="margin-top:10px">Vérifiez ODDS_API_KEY dans vos secrets Cloudflare.</div></div>`;
