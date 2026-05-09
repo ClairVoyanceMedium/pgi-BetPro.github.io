@@ -399,7 +399,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="manual"   onclick="go('manual')"  ><span class="ni-i">🎯</span>Analyse manuelle</div>
     <div class="ni"    data-s="live"     onclick="go('live')"    ><span class="ni-i">🔴</span>Matchs en direct</div>
     <div class="ni"    data-s="results"  onclick="go('results')" ><span class="ni-i">📊</span>Résultats</div>
-    <div class="ni"    data-s="history"  onclick="go('history')" ><span class="ni-i">📋</span>Historique alertes</div>
+
     <div class="ni"    data-s="chat"     onclick="go('chat')"    ><span class="ni-i">💬</span>Chat Expert</div>
     <div class="ni"    data-s="strategy" onclick="go('strategy')"><span class="ni-i">🏆</span>Stratégie Gagnante</div>
     <div class="ni"    data-s="methods"  onclick="go('methods')" ><span class="ni-i">🎲</span>Méthodes de Paris</div>
@@ -444,9 +444,9 @@ a{color:var(--neon);text-decoration:none}
     <div style="margin:10px 0 12px">
       <div class="scan-sport-label">Mode scan (crédits Odds API)</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <button class="ssb" id="smode-eco"      onclick="setScanMode('eco',this)"      style="font-size:10px;padding:6px 11px">🟢 Éco <span style="color:var(--dm)">~12 cr.</span></button>
-        <button class="ssb on" id="smode-standard" onclick="setScanMode('standard',this)" style="font-size:10px;padding:6px 11px">🟡 Standard <span style="color:var(--dm)">~30 cr.</span></button>
-        <button class="ssb" id="smode-complet"  onclick="setScanMode('complet',this)"  style="font-size:10px;padding:6px 11px">🔴 Complet <span style="color:var(--dm)">~74 cr.</span></button>
+        <button class="ssb" id="smode-eco"      onclick="setScanMode('eco',this)"      style="font-size:10px;padding:6px 11px">🟢 Éco <span style="color:var(--dm)">~12 crédits API</span></button>
+        <button class="ssb on" id="smode-standard" onclick="setScanMode('standard',this)" style="font-size:10px;padding:6px 11px">🟡 Standard <span style="color:var(--dm)">~30 crédits API</span></button>
+        <button class="ssb" id="smode-complet"  onclick="setScanMode('complet',this)"  style="font-size:10px;padding:6px 11px">🔴 Complet <span style="color:var(--dm)">~74 crédits API</span></button>
         <button class="ssb" onclick="clearScanCache()" style="font-size:10px;padding:6px 11px;border-color:rgba(167,139,250,.3);color:var(--pu)">🗑 Vider cache</button>
       </div>
       <div id="smode-desc" style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:5px">🟡 Standard — Couverture large, 2 marchés par sport actif. Cache 45min.</div>
@@ -546,14 +546,14 @@ a{color:var(--neon);text-decoration:none}
 <!-- RÉSULTATS -->
 <section class="sec" id="s-results">
   <div class="ph"><div class="pt">📊 Résultats sauvegardés</div><div class="ps">Dernière analyse automatique enregistrée.</div></div>
+  <div class="bg" style="margin-bottom:14px">
+    <button class="btn bs" onclick="loadResults()">🔄 Actualiser</button>
+    <button class="btn bd-btn" onclick="clearResults()" style="background:var(--reb);color:var(--re);border:1px solid rgba(239,68,68,.25)">🗑 Vider les résultats</button>
+  </div>
   <div id="res-cnt"><div class="ls"><div class="sp"></div><p>Chargement…</p></div></div>
 </section>
 
-<!-- HISTORIQUE -->
-<section class="sec" id="s-history">
-  <div class="ph"><div class="pt">📋 Historique alertes</div><div class="ps">Alertes email envoyées par le Cron Trigger.</div></div>
-  <div class="card" id="hist-cnt"><div class="ls"><div class="sp"></div><p>Chargement…</p></div></div>
-</section>
+
 
 <!-- CHAT -->
 <section class="sec" id="s-chat">
@@ -826,6 +826,18 @@ function renderManualCard(r){const ai=r.ai_analysis;if(!ai||ai.error)return`<div
 
 async function loadLive(){const cnt=document.getElementById('live-cnt');cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';try{const d=await api('/api/live');const matches=d.live_matches||[];if(!matches.length){cnt.innerHTML='<div class="empty"><div class="empty-i">⚽</div><div class="empty-t">Aucun match en direct</div></div>';return;}cnt.innerHTML=`<div class="sbar"><div class="sdot ldot-r"></div><span>${matches.length} match(s)</span><span style="margin-left:auto;color:var(--dm)">${fmtDT(d.fetched_at)}</span></div>`+matches.map(m=>`<div class="live-card"><div class="lc-head"><div><div class="lc-teams">${esc(m.home)} vs ${esc(m.away)}</div><div class="lc-meta"><span class="bdg bsp">${esc(m.competition||'')}</span><span class="bdg blv">LIVE</span><span class="lc-min">${m.minute?m.minute+"'":m.status||''}</span></div></div><div class="lc-score">${m.score?.home??'-'} — ${m.score?.away??'-'}</div></div></div>`).join('');}catch(e){cnt.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;}}
 
+async function clearResults(){
+  if(!confirm('Vider tous les résultats sauvegardés ? Cette action est irréversible.')) return;
+  try {
+    await api('/api/results','DELETE');
+    document.getElementById('res-cnt').innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Résultats vidés</div><div class="empty-s">Lancez une nouvelle analyse depuis Analyser.</div></div>';
+    toast('Résultats vidés ✓','ok');
+  } catch(e) {
+    document.getElementById('res-cnt').innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Liste vidée</div><div class="empty-s">Lancez une nouvelle analyse pour voir de nouveaux résultats.</div></div>';
+    toast('Liste vidée localement','ok');
+  }
+}
+
 async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';try{const d=await api('/api/results');if(!d.opportunities?.length){cnt.innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Aucun résultat sauvegardé</div></div>';return;}cnt.innerHTML='<div class="lu">'+fmtDT(d.analyzed_at)+' · '+esc(d.sport||'')+' · '+esc(d.source||'')+'</div>'+renderOpps(d.opportunities);}catch(e){cnt.innerHTML=`<div class="card"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;}}
 
 function renderOpps(opps){if(!opps?.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité</div><div class="empty-s">Essayez un autre sport ou abaissez le score minimal.</div></div>';return opps.map((o,i)=>renderOppCard(o,i)).join('');}
@@ -860,7 +872,7 @@ function handleDrop(e){e.preventDefault();document.getElementById('upload-zone')
 function handleImgChange(e){const file=e.target.files[0];if(file)processImageFile(file);}
 function processImageFile(file){stratImgType=file.type||'image/jpeg';const reader=new FileReader();reader.onload=ev=>{const dataUrl=ev.target.result;stratImgB64=dataUrl.split(',')[1];const preview=document.getElementById('img-preview');if(file.type.startsWith('image/')){preview.src=dataUrl;preview.style.display='block';}document.querySelector('.upload-t').textContent='✅ '+file.name;toast('Image chargée','ok');};reader.readAsDataURL(file);}
 function resetStrategy(){stratImgB64=null;stratImgType=null;document.getElementById('strat-img').value='';document.getElementById('img-preview').style.display='none';document.getElementById('strat-text').value='';document.getElementById('strat-extra').value='';document.getElementById('strat-res').innerHTML='';document.querySelector('.upload-t').textContent='Glissez une capture ou cliquez';}
-async function doStrategy(){const bankroll=parseFloat(document.getElementById('strat-bankroll').value),betsText=document.getElementById('strat-text').value.trim(),extra=document.getElementById('strat-extra').value.trim(),btn=document.getElementById('strat-btn'),res=document.getElementById('strat-res');if(!bankroll||bankroll<1){toast('Bankroll invalide','err');return;}if(!stratImgB64&&!betsText){toast('Image ou texte requis','err');return;}btn.disabled=true;btn.innerHTML='<span class="sp" style="width:13px;height:13px;border-width:2px"></span> Analyse…';res.innerHTML='<div class="ls"><div class="sp"></div><p>Calcul en cours…</p></div>';try{const payload={bankroll,risk_profile:selectedRisk,extra:extra||null};if(stratImgB64){payload.image_b64=stratImgB64;payload.image_type=stratImgType;}if(betsText)payload.bets_text=betsText;const d=await api('/api/strategy','POST',payload);if(d.strategy){res.innerHTML=renderStrategy(d.strategy,bankroll,d.provider);}else if(d.raw){res.innerHTML=`<div class="card"><div class="ct">Réponse brute</div><pre style="white-space:pre-wrap">${esc(d.raw)}</pre></div>`;}else if(d.error){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">${esc(d.error)}</div></div>`;}toast('Stratégie calculée !','ok');}catch(e){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}btn.disabled=false;btn.innerHTML='🏆 Calculer la stratégie';}
+async function doStrategy(){const bankroll=parseFloat(document.getElementById('strat-bankroll').value),betsText=document.getElementById('strat-text').value.trim(),extra=document.getElementById('strat-extra').value.trim(),btn=document.getElementById('strat-btn'),res=document.getElementById('strat-res');if(!bankroll||bankroll<1){toast('Bankroll invalide','err');return;}if(!stratImgB64&&!betsText){toast('Image ou texte requis','err');return;}btn.disabled=true;btn.innerHTML='<span class="sp" style="width:13px;height:13px;border-width:2px"></span> Analyse…';res.innerHTML='<div class="ls"><div class="sp"></div><p>Calcul en cours…</p></div>';try{const payload={bankroll,risk_profile:selectedRisk,extra:extra||null,instruction:'Tu es un analyste expert senior en paris sportifs. Analyse chaque pari avec rigueur: calcule la probabilité réelle estimée, la valeur attendue (EV), le Critère de Kelly fractionnaire. Pour chaque pari donne une recommandation CLAIRE: JOUER (edge positif), ÉVITER (edge négatif), ou ATTENDRE (cote pas optimale). Classe les paris du meilleur au pire. Sois précis sur les montants à miser. Ne sois pas vague.'};if(stratImgB64){payload.image_b64=stratImgB64;payload.image_type=stratImgType;}if(betsText)payload.bets_text=betsText;const d=await api('/api/strategy','POST',payload);if(d.strategy){res.innerHTML=renderStrategy(d.strategy,bankroll,d.provider);}else if(d.raw){res.innerHTML=`<div class="card"><div class="ct">Réponse brute</div><pre style="white-space:pre-wrap">${esc(d.raw)}</pre></div>`;}else if(d.error){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">${esc(d.error)}</div></div>`;}toast('Stratégie calculée !','ok');}catch(e){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}btn.disabled=false;btn.innerHTML='🏆 Calculer la stratégie';}
 function renderStrategy(s,bankroll,provider){const bets=s.parsed_bets||[],strategy=s.strategy||[],rejected=s.bets_rejected||[],summary=s.bankroll_summary||{};const invested=summary.invested||strategy.reduce((a,b)=>a+(b.stake||0),0),reserve=summary.reserve!==undefined?summary.reserve:(bankroll-invested),gainMax=summary.potential_gain_max||0,ev=summary.expected_value||0,roi=summary.roi_espere||0;const colEV=ev>0?'var(--gr)':ev===0?'var(--am)':'var(--re)';let html=`<div class="card" style="border-color:rgba(0,212,255,.3)"><div style="font-family:var(--hd);font-size:15px;font-weight:900;color:var(--neon);margin-bottom:14px">🏆 Plan de mise optimal</div>${s.resume?`<div style="font-size:12px;color:var(--mu);line-height:1.7;margin-bottom:14px;padding:10px 13px;background:var(--sf2);border-radius:7px">${esc(s.resume)}</div>`:''}<div class="strat-summary"><div class="ss-cell"><div class="sv" style="color:var(--am)">${bankroll}€</div><label>Bankroll</label></div><div class="ss-cell"><div class="sv" style="color:var(--neon)">${invested}€</div><label>Investi</label></div><div class="ss-cell"><div class="sv" style="color:var(--mu)">${reserve}€</div><label>Réserve</label></div><div class="ss-cell"><div class="sv" style="color:var(--gr)">${gainMax>0?'+'+gainMax:gainMax}€</div><label>Gain max</label></div><div class="ss-cell"><div class="sv" style="color:${colEV}">${ev>0?'+':''}${ev}€</div><label>EV</label></div><div class="ss-cell"><div class="sv" style="color:${colEV}">${roi>0?'+':''}${roi}%</div><label>ROI</label></div></div></div>`;strategy.forEach((st,idx)=>{const pClass=idx===0?'top1':idx===1?'top2':idx===2?'top3':'';html+=`<div class="bet-row ${pClass}"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px"><div style="flex:1"><div style="font-family:var(--hd);font-size:13px;font-weight:700">${esc(st.match||'?')}</div><div style="color:var(--neon);font-family:var(--mo);font-size:12px;font-weight:700;margin-top:2px">${esc(st.selection||'?')}</div><div style="color:var(--am);font-family:var(--mo);font-size:18px;font-weight:700">@ ${st.odds||'?'}</div></div><div class="stake-badge"><div class="sam">${st.stake||0}€</div><div class="sal">${st.stake_pct||0}% bankroll</div></div></div>${st.raisonnement?`<div style="font-size:11px;color:var(--mu);line-height:1.65;padding:8px 11px;background:var(--sf2);border-radius:6px">${esc(st.raisonnement)}</div>`:''}</div>`;});if(rejected.length){rejected.forEach(r=>{html+=`<div class="bet-row rejected" style="border-color:rgba(239,68,68,.25)"><span style="color:var(--re)">✗</span> <span style="color:var(--mu)">${esc(r.match||'')} — ${esc(r.selection||'')} · <em>${esc(r.raison||'')}</em></span></div>`;});}if(s.verdict){html+=`<div class="verdict-final"><div class="vf-t">🎯 Verdict</div><div class="vf-c">${esc(s.verdict)}</div></div>`;}html+=`<p style="font-size:10px;color:var(--dm);margin-top:12px;padding:8px;background:var(--sf2);border-radius:6px">⚠️ Analyse probabiliste. Aucun gain garanti.</p>`;return html;}
 
 // SCAN
@@ -1627,31 +1639,56 @@ async function checkConnection() {
   const badgeM = document.getElementById('conn-badge-m');
   const info   = document.getElementById('conn-info');
 
-  const setStatus = (connected, txt, infoTxt, latency) => {
-    const color      = connected ? '#22d3a5' : '#ef4444';
-    const borderCol  = connected ? 'rgba(34,211,165,.4)' : 'rgba(239,68,68,.4)';
-    const bgCol      = connected ? 'rgba(34,211,165,.08)' : 'rgba(239,68,68,.08)';
-    const glowColor  = connected ? '0 0 6px rgba(34,211,165,.7)' : '0 0 6px rgba(239,68,68,.7)';
-    // Dot
-    [dot,dotM].forEach(d=>{ if(d){ d.style.background=color; d.style.boxShadow=glowColor; }});
-    // Label
+  const setStatus = (connected, txt, infoHTML) => {
+    const color     = connected ? '#22d3a5' : '#ef4444';
+    const borderCol = connected ? 'rgba(34,211,165,.4)' : 'rgba(239,68,68,.4)';
+    const bgCol     = connected ? 'rgba(34,211,165,.08)' : 'rgba(239,68,68,.08)';
+    const glow      = connected ? '0 0 8px rgba(34,211,165,.6)' : '0 0 8px rgba(239,68,68,.6)';
+    [dot,dotM].forEach(d=>{ if(d){ d.style.background=color; d.style.boxShadow=glow; }});
     [label,labelM].forEach(l=>{ if(l){ l.textContent=txt; l.style.color=color; }});
-    // Badge border + bg
     [badge,badgeM].forEach(b=>{ if(b){ b.style.border=`1px solid ${borderCol}`; b.style.background=bgCol; }});
-    // Info details
-    if(info){ info.textContent=infoTxt; info.style.display=infoTxt?'block':'none'; info.style.color=connected?'var(--dm)':'#ef4444'; }
+    if(info){ info.innerHTML=infoHTML||''; info.style.display=infoHTML?'block':'none'; }
   };
 
   try {
     const t0 = Date.now();
     const d = await api('/api/quotas');
     lastPingMs = Date.now()-t0;
-    const latLabel = lastPingMs<500 ? '⚡ Rapide' : lastPingMs<1500 ? '🟡 Moyen' : '🔴 Lent';
-    setStatus(true, 'CONNECTÉ',
-      `${latLabel} ${lastPingMs}ms · API-Football: ${d.api_football_today||0}/${d.api_football_daily_limit||100} · Odds: ${d.odds_api_credits_remaining||'?'} crédits`
+    const latColor = lastPingMs<500?'var(--gr)':lastPingMs<1500?'var(--am)':'var(--re)';
+    const latLabel = lastPingMs<500?'⚡ Rapide':lastPingMs<1500?'🟡 Moyen':'🔴 Lent';
+    const afUsed   = d.api_football_today||0;
+    const afLimit  = d.api_football_daily_limit||100;
+    const afPct    = Math.round(afUsed/afLimit*100);
+    const afColor  = afPct<70?'var(--gr)':afPct<90?'var(--am)':'var(--re)';
+    const oddsLeft = d.odds_api_credits_remaining??'?';
+    const oddsColor= oddsLeft>200?'var(--gr)':oddsLeft>50?'var(--am)':'var(--re)';
+
+    setStatus(true, 'CONNECTÉ', `
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:2px">
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px">
+          <span style="color:var(--gr);font-weight:700">●</span>
+          <span style="color:var(--mu)">Worker Cloudflare</span>
+          <span style="color:${latColor};font-family:var(--mo)">${latLabel} · ${lastPingMs}ms</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px">
+          <span style="color:${afColor};font-weight:700">●</span>
+          <span style="color:var(--mu)">API-Football</span>
+          <span style="color:${afColor};font-family:var(--mo)">${afUsed}/${afLimit} requêtes aujourd'hui</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px">
+          <span style="color:${oddsColor};font-weight:700">●</span>
+          <span style="color:var(--mu)">Odds API</span>
+          <span style="color:${oddsColor};font-family:var(--mo)">${oddsLeft} crédits API restants ce mois</span>
+        </div>
+      </div>`
     );
   } catch(e) {
-    setStatus(false, 'DÉCONNECTÉ', `Worker non joignable · Vérifiez l'URL`);
+    setStatus(false, 'DÉCONNECTÉ', `
+      <div style="font-size:9px;color:var(--re);margin-top:2px">
+        <div>● Worker Cloudflare — hors ligne</div>
+        <div style="color:var(--dm);margin-top:2px">Vérifiez WORKER_URL dans le fichier HTML</div>
+      </div>`
+    );
   }
 }
 
