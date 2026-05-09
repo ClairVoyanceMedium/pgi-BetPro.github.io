@@ -426,7 +426,7 @@ a{color:var(--neon);text-decoration:none}
   <div class="sbn">
     <div class="ni on" data-s="dash"     onclick="go('dash')"    ><span class="ni-i">⚡</span>Analyser</div>
     <div class="ni"    data-s="manual"   onclick="go('manual')"  ><span class="ni-i">🎯</span>Analyse manuelle</div>
-    <div class="ni"    data-s="live"     onclick="go('live')"    ><span class="ni-i">🔴</span>Matchs en direct</div>
+    <div class="ni"    data-s="live"     onclick="go('live')"    ><span class="ni-i">🔴</span>Matchs Live / À venir</div>
     <div class="ni"    data-s="results"  onclick="go('results')" ><span class="ni-i">📊</span>Résultats</div>
 
     <div class="ni"    data-s="chat"     onclick="go('chat')"    ><span class="ni-i">💬</span>Chat Expert</div>
@@ -567,9 +567,27 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- LIVE -->
 <section class="sec" id="s-live">
-  <div class="ph"><div class="pt">🔴 Matchs en direct</div><div class="ps">Scores live via API-Football — actualisez manuellement.</div></div>
+  <div class="ph"><div class="pt">🔴 Matchs Live / À venir</div><div class="ps">Live en cours et prochains matchs — filtrez par sport.</div></div>
+  <!-- FILTRE SPORT LIVE -->
+  <div class="card" style="padding:12px 14px;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Filtrer par sport</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap" id="live-sport-btns">
+      <button class="fbtn on" data-ls="all"             onclick="setLiveSport(this)">🌍 Tous</button>
+      <button class="fbtn"    data-ls="soccer"          onclick="setLiveSport(this)">⚽ Football</button>
+      <button class="fbtn"    data-ls="basketball"      onclick="setLiveSport(this)">🏀 Basketball</button>
+      <button class="fbtn"    data-ls="tennis"          onclick="setLiveSport(this)">🎾 Tennis</button>
+      <button class="fbtn"    data-ls="rugby"           onclick="setLiveSport(this)">🏉 Rugby</button>
+      <button class="fbtn"    data-ls="icehockey"       onclick="setLiveSport(this)">🏒 Hockey</button>
+      <button class="fbtn"    data-ls="baseball"        onclick="setLiveSport(this)">⚾ Baseball</button>
+      <button class="fbtn"    data-ls="mma"             onclick="setLiveSport(this)">🥊 MMA/Boxe</button>
+      <button class="fbtn"    data-ls="americanfootball" onclick="setLiveSport(this)">🏈 NFL</button>
+      <button class="fbtn"    data-ls="handball"        onclick="setLiveSport(this)">🤾 Handball</button>
+      <button class="fbtn"    data-ls="cricket"         onclick="setLiveSport(this)">🏏 Cricket</button>
+    </div>
+  </div>
   <div class="bg" style="margin-bottom:14px">
     <button class="btn bp" onclick="loadLive()">🔄 Actualiser live</button>
+    <button class="btn bs" onclick="loadUpcoming()">📅 Actualiser à venir</button>
   </div>
   <div id="live-cnt"><div class="ls"><div class="sp"></div><p>Chargement…</p></div></div>
 
@@ -929,7 +947,78 @@ async function doCSVAnalyze() {
 function renderManualResults(results){if(!results.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucun résultat</div></div>';return results.map(r=>renderManualCard(r)).join('');}
 function renderManualCard(r){const ai=r.ai_analysis;if(!ai||ai.error)return`<div class="card"><div class="ct">${esc(r.home||'?')} vs ${esc(r.away||'?')}</div><div style="color:var(--re)">${esc(ai?.error||'Analyse non disponible')}</div></div>`;const bets=ai.paris_recommandes||[];const confColor=c=>c>=70?'var(--neon)':c>=55?'var(--gr)':c>=40?'var(--am)':'var(--re)';return`<div class="ai-card"><div class="ai-head"><span style="font-size:18px">🤖</span><div><div class="ai-title">${esc(r.home)} vs ${esc(r.away)}</div><div class="ai-sub">${esc(r.competition||'')}${r.date?' · '+r.date:''}</div></div></div>${ai.resume_executif?`<div class="ai-sec"><div class="ai-sec-t">Résumé</div><div class="ai-sec-c">${esc(ai.resume_executif)}</div></div>`:''} ${bets.length?`<div class="ai-sec"><div class="ai-sec-t">Paris recommandés</div>${bets.map(b=>`<div class="ai-bet"><div class="ai-bet-h"><span class="ai-bet-sel">${esc(b.pari||'?')}</span><span style="font-family:var(--mo);font-size:11px;font-weight:700;color:${confColor(b.confiance||0)}">${b.confiance||'?'}%</span></div>${b.raisonnement?`<p class="ai-bet-txt">${esc(b.raisonnement)}</p>`:''}${b.moment_entrer?`<div class="ai-bet-when">⏱ ${esc(b.moment_entrer)}</div>`:''}</div>`).join('')}</div>`:''} ${ai.verdict_final?`<div style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dm);text-transform:uppercase;margin-bottom:5px">Verdict</div><div style="font-size:12px;color:var(--mu);line-height:1.7">${esc(ai.verdict_final)}</div></div>`:''}<p style="font-size:10px;color:var(--dm);margin-top:11px">⚠️ Aucun gain garanti. Jouez de manière responsable.</p></div>`;}
 
-async function loadLive(){const cnt=document.getElementById('live-cnt');cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';try{const d=await api('/api/live');const matches=d.live_matches||[];if(!matches.length){cnt.innerHTML='<div class="empty"><div class="empty-i">⚽</div><div class="empty-t">Aucun match en direct</div></div>';return;}cnt.innerHTML=`<div class="sbar"><div class="sdot ldot-r"></div><span>${matches.length} match(s)</span><span style="margin-left:auto;color:var(--dm)">${fmtDT(d.fetched_at)}</span></div>`+matches.map(m=>`<div class="live-card"><div class="lc-head"><div><div class="lc-teams">${esc(m.home)} vs ${esc(m.away)}</div><div class="lc-meta"><span class="bdg bsp">${esc(m.competition||'')}</span><span class="bdg blv">LIVE</span><span class="lc-min">${m.minute?m.minute+"'":m.status||''}</span></div></div><div class="lc-score">${m.score?.home??'-'} — ${m.score?.away??'-'}</div></div></div>`).join('');}catch(e){cnt.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;}}
+let liveSportFilter = 'all';
+const LIVE_SPORT_KEYS = {
+  soccer:['soccer'],basketball:['basketball','nba','wnba'],tennis:['tennis'],
+  rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball','mlb'],
+  mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],
+  handball:['handball'],cricket:['cricket'],
+};
+function setLiveSport(el) {
+  liveSportFilter = el.dataset.ls || 'all';
+  document.querySelectorAll('#live-sport-btns .fbtn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  // Filtrer visuellement les cartes déjà affichées
+  filterLiveCards();
+  filterUpcomingCards();
+}
+function matchesSportFilter(sport, filter) {
+  if(filter==='all') return true;
+  const keys = LIVE_SPORT_KEYS[filter] || [filter];
+  return keys.some(k => (sport||'').toLowerCase().includes(k));
+}
+function filterLiveCards() {
+  document.querySelectorAll('.live-card[data-sport]').forEach(c => {
+    c.style.display = matchesSportFilter(c.dataset.sport, liveSportFilter) ? '' : 'none';
+  });
+  const visible = document.querySelectorAll('.live-card[data-sport]:not([style*="none"])').length;
+  const bar = document.querySelector('#live-cnt .sbar span');
+  if(bar) bar.textContent = visible + ' match(s) en direct' + (liveSportFilter!=='all' ? ' — '+liveSportFilter : '');
+}
+function filterUpcomingCards() {
+  document.querySelectorAll('.upc-card[data-sport]').forEach(c => {
+    c.style.display = matchesSportFilter(c.dataset.sport, liveSportFilter) ? '' : 'none';
+  });
+  const visible = document.querySelectorAll('.upc-card[data-sport]:not([style*="none"])').length;
+  const bar = document.querySelector('#upcoming-cnt .sbar span');
+  if(bar) bar.textContent = visible + ' match(s) à venir' + (liveSportFilter!=='all' ? ' — '+liveSportFilter : '');
+}
+
+async function loadLive(){
+  const cnt=document.getElementById('live-cnt');
+  cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des matchs live…</p></div>';
+  try{
+    const d=await api('/api/live');
+    const matches=d.live_matches||[];
+    if(!matches.length){
+      cnt.innerHTML='<div class="empty"><div class="empty-i">🔴</div><div class="empty-t">Aucun match en direct</div><div class="empty-s">Aucun match live pour le moment. Revenez plus tard.</div></div>';
+      return;
+    }
+    cnt.innerHTML=`<div class="sbar"><div class="sdot ldot-r"></div><span>${matches.length} match(s) en direct</span><span style="margin-left:auto;color:var(--dm)">${fmtDT(d.fetched_at)}</span></div>`
+    + matches.map(m=>{
+      const sport = m.sport || m.sport_key || '';
+      const ico = sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':'🏆';
+      return `<div class="live-card" data-sport="${esc(sport)}">
+        <div class="lc-head">
+          <div>
+            <div class="lc-teams">${ico} ${esc(m.home||m.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(m.away||m.away_team||'?')}</div>
+            <div class="lc-meta">
+              <span class="bdg bsp">${esc(m.competition||m.sport_title||sport||'')}</span>
+              <span class="bdg blv">🔴 LIVE</span>
+              <span class="lc-min">${m.minute?m.minute+"'":(m.status||'')}</span>
+            </div>
+          </div>
+          <div class="lc-score">${m.score?.home??'-'} — ${m.score?.away??'-'}</div>
+        </div>
+        ${m.halftime?.home!=null?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:5px">MT1: ${m.halftime.home} — ${m.halftime.away}</div>`:''}
+      </div>`;
+    }).join('');
+    // Appliquer filtre sport actif
+    filterLiveCards();
+  }catch(e){
+    cnt.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;
+  }
+}
 
 async function clearResults(){
   if(!confirm('Vider tous les résultats sauvegardés ? Cette action est irréversible.')) return;
@@ -1923,6 +2012,8 @@ async function loadUpcoming() {
         <span>${filtered.length} match(s) à venir ${win.label}</span>
         <span style="margin-left:auto;color:var(--dm);font-family:var(--mo);font-size:10px">${fmtDT(new Date().toISOString())}</span>
       </div>` + filtered.map(m => renderUpcomingCard(m)).join('');
+      // Appliquer filtre sport actif
+      setTimeout(()=>filterUpcomingCards(), 30);
     }
   } catch(e) {
     // Fallback: essayer avec /api/live qui peut inclure les prochains matchs
@@ -1950,11 +2041,11 @@ async function loadUpcoming() {
 }
 
 function renderUpcomingCard(m) {
-  const ico = (m.sport||m.sport_key||'').includes('soccer')?'⚽':
-              (m.sport||m.sport_key||'').includes('basket')?'🏀':
-              (m.sport||m.sport_key||'').includes('tennis')?'🎾':
-              (m.sport||m.sport_key||'').includes('hockey')?'🏒':
-              (m.sport||m.sport_key||'').includes('rugby')?'🏉':'🏆';
+  const sport = m.sport || m.sport_key || '';
+  const ico = sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':
+              sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':
+              sport.includes('rugby')?'🏉':sport.includes('mma')||sport.includes('boxing')?'🥊':
+              sport.includes('baseball')?'⚾':sport.includes('football')?'🏈':'🏆';
   const startTime = m.start_time || m.commence_time;
   const dt = startTime ? new Date(startTime) : null;
   const now = new Date();
@@ -1962,8 +2053,8 @@ function renderUpcomingCard(m) {
   const timeLeft = diff !== null ? (diff<60 ? `dans ${diff}min` : `dans ${Math.floor(diff/60)}h${diff%60>0?String(diff%60).padStart(2,'0')+'min':''}`) : '';
   const home = m.home_team || m.home || '?';
   const away = m.away_team || m.away || '?';
-  const comp = m.competition || m.sport_title || m.sport || '';
-  return `<div class="live-card" style="border-color:rgba(245,158,11,.2)">
+  const comp = m.competition || m.sport_title || sport || '';
+  return `<div class="live-card upc-card" data-sport="${esc(sport)}" style="border-color:rgba(245,158,11,.2)">
     <div class="lc-head">
       <div style="flex:1">
         <div class="lc-teams">${ico} ${esc(home)} <span style="color:var(--dm)">vs</span> ${esc(away)}</div>
