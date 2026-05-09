@@ -372,11 +372,21 @@ a{color:var(--neon);text-decoration:none}
 <body>
 <div id="app">
 <div class="mb">
-  <div style="display:flex;align-items:center;gap:10px">
+  <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
     <span class="ml">PGI<span style="color:var(--neon2);margin:0 2px">•</span>BetPro</span>
-    <div id="conn-badge-m" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:5px;border:1px solid var(--dm);background:rgba(44,64,96,.2);transition:all .4s">
-      <div id="conn-dot-m" style="width:6px;height:6px;border-radius:50%;background:var(--dm);transition:all .4s;flex-shrink:0"></div>
-      <span id="conn-label-m" style="font-size:9px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .4s">…</span>
+    <div style="display:flex;gap:4px;align-items:center">
+      <div id="m-cf-badge"  title="Cloudflare Worker" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;border:1px solid rgba(44,64,96,.6);background:rgba(6,8,16,.6);transition:all .35s;cursor:default">
+        <div id="m-cf-dot"  style="width:5px;height:5px;border-radius:50%;background:var(--dm);transition:all .35s;flex-shrink:0"></div>
+        <span id="m-cf-lbl" style="font-size:8px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .35s;white-space:nowrap">CF</span>
+      </div>
+      <div id="m-af-badge"  title="API-Football" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;border:1px solid rgba(44,64,96,.6);background:rgba(6,8,16,.6);transition:all .35s;cursor:default">
+        <div id="m-af-dot"  style="width:5px;height:5px;border-radius:50%;background:var(--dm);transition:all .35s;flex-shrink:0"></div>
+        <span id="m-af-lbl" style="font-size:8px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .35s;white-space:nowrap">AF</span>
+      </div>
+      <div id="m-odds-badge" title="Odds API" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;border:1px solid rgba(44,64,96,.6);background:rgba(6,8,16,.6);transition:all .35s;cursor:default">
+        <div id="m-odds-dot"  style="width:5px;height:5px;border-radius:50%;background:var(--dm);transition:all .35s;flex-shrink:0"></div>
+        <span id="m-odds-lbl" style="font-size:8px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .35s;white-space:nowrap">OA</span>
+      </div>
     </div>
   </div>
   <button class="hb" onclick="tSb()">☰</button>
@@ -386,13 +396,32 @@ a{color:var(--neon);text-decoration:none}
   <div class="sbh">
     <div class="logo">PGI<span class="ldot">•</span>BetPro</div>
     <div class="lsub" style="margin-top:4px">Analyse · IA · Privé</div>
-    <div style="margin-top:10px">
-      <div id="conn-badge" style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:6px;border:1px solid var(--dm);background:rgba(44,64,96,.2);transition:all .4s">
-        <div id="conn-dot" style="width:8px;height:8px;border-radius:50%;background:var(--dm);box-shadow:none;transition:all .4s;flex-shrink:0"></div>
-        <div id="conn-label" style="font-size:10px;font-family:var(--mo);font-weight:700;color:var(--dm);letter-spacing:.05em;transition:color .4s">VÉRIF…</div>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px" id="conn-panel">
+      <!-- Cloudflare Worker -->
+      <div id="cf-badge" style="display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:6px;border:1px solid rgba(44,64,96,.5);background:rgba(6,8,16,.4);transition:all .35s">
+        <div id="cf-dot" style="width:7px;height:7px;border-radius:50%;background:var(--dm);box-shadow:none;transition:all .35s;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div id="cf-label" style="font-size:9px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .35s">CLOUDFLARE</div>
+          <div id="cf-info"  style="font-size:8px;font-family:var(--mo);color:var(--dm);margin-top:1px">Worker — vérification…</div>
+        </div>
+      </div>
+      <!-- API-Football -->
+      <div id="af-badge" style="display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:6px;border:1px solid rgba(44,64,96,.5);background:rgba(6,8,16,.4);transition:all .35s">
+        <div id="af-dot" style="width:7px;height:7px;border-radius:50%;background:var(--dm);box-shadow:none;transition:all .35s;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div id="af-label" style="font-size:9px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .35s">API-FOOTBALL</div>
+          <div id="af-info"  style="font-size:8px;font-family:var(--mo);color:var(--dm);margin-top:1px">—</div>
+        </div>
+      </div>
+      <!-- Odds API -->
+      <div id="odds-badge" style="display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:6px;border:1px solid rgba(44,64,96,.5);background:rgba(6,8,16,.4);transition:all .35s">
+        <div id="odds-dot" style="width:7px;height:7px;border-radius:50%;background:var(--dm);box-shadow:none;transition:all .35s;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div id="odds-label" style="font-size:9px;font-family:var(--mo);font-weight:700;color:var(--dm);transition:color .35s">ODDS API</div>
+          <div id="odds-info"  style="font-size:8px;font-family:var(--mo);color:var(--dm);margin-top:1px">—</div>
+        </div>
       </div>
     </div>
-    <div id="conn-info" style="font-size:9px;font-family:var(--mo);color:var(--dm);margin-top:6px;line-height:1.6;display:none"></div>
   </div>
   <div class="sbn">
     <div class="ni on" data-s="dash"     onclick="go('dash')"    ><span class="ni-i">⚡</span>Analyser</div>
@@ -578,13 +607,17 @@ a{color:var(--neon);text-decoration:none}
   <div id="live-model-res"></div>
   <div class="card" style="padding:12px 14px;margin-bottom:12px">
     <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Questions rapides</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Encore des buts possibles dans ce match ?')">Encore des buts ?</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Donne-moi les 3 meilleurs paris avec probabilités.')">Top 3 paris</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Pronostic score final ?')">Score final</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('BTTS probable ici ?')">BTTS ?</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('H2H et forme récente des deux équipes ?')">H2H & Forme</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Risques principaux sur ce match ?')">Risques ?</button>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Identifie le pari avec la probabilité de gain la plus élevée sur ce match, avec un raisonnement statistique précis. Donne-moi la cote minimale acceptable et le montant à miser pour une bankroll de 100€.')">🎯 Meilleur pari précis</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Analyse la valeur (value bet) de chaque côte disponible sur ce match. Pour chaque marché (1X2, Over/Under 2.5, BTTS), calcule si la cote bookmaker sous-estime ou surestime la probabilité réelle. Donne uniquement les paris avec edge positif.')">💎 Value bets uniquement</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('En appliquant le Critère de Kelly fractionnaire (25%), quelle mise optimale recommandes-tu sur quel pari ? Base-toi sur la forme des 5 derniers matchs, le H2H, et les statistiques xG si disponibles.')">🧮 Kelly + xG</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Ce match est-il joué sur un terrain neutre, ou est-ce que l'avantage domicile est significatif ? Analyse l'impact du facteur domicile sur les cotes et donne-moi le pari qui en bénéficie le plus.')">🏟️ Avantage domicile</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Donne-moi une analyse Over/Under précise : combien de buts sont attendus selon le modèle de Poisson ? Quelle est la probabilité exacte de Over 1.5, Over 2.5, Over 3.5 ? Quel seuil offre le meilleur value ?')">⚽ Analyse buts Poisson</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Analyse le momentum actuel du match : quelle équipe contrôle le jeu, qui est susceptible de marquer en premier et dans quelle tranche horaire ? Quel est le meilleur timing pour rentrer dans un pari live ?')">⏱️ Momentum & timing</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Simule 1000 issues possibles de ce match avec un modèle probabiliste. Donne-moi les 5 scores les plus probables avec leur pourcentage, et quel pari est le plus rentable en tenant compte des cotes bookmaker actuelles.')">🎲 Simulation Monte Carlo</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Identifie les scénarios dans lesquels je dois ÉVITER de parier sur ce match : facteurs de risque cachés, équipes en rotation, conditions météo, enjeux de fin de saison, fatigue, suspensions. Sois exhaustif.')">⚠️ Risques cachés</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Compare les cotes de Pinnacle (référence du marché) avec celles des autres bookmakers sur ce match. Où se situe le vrai edge ? Quelle cote est la plus mal calibrée par le marché et pourquoi ?')">📊 Comparaison Pinnacle</button>
+      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Si je dois choisir UN SEUL pari sur ce match avec une mise de 50€, lequel me recommandes-tu en priorité absolue ? Justifie avec : probabilité estimée, edge sur la cote, niveau de confiance 0-100, et timing optimal.')">🏆 UN seul pari, 50€</button>
     </div>
   </div>
   <div class="card" style="padding:14px">
@@ -1630,65 +1663,91 @@ function toast(msg,type=''){const c=document.getElementById('toasts');const t=do
 let connPingInterval = null;
 let lastPingMs = null;
 
-async function checkConnection() {
-  const dot    = document.getElementById('conn-dot');
-  const dotM   = document.getElementById('conn-dot-m');
-  const label  = document.getElementById('conn-label');
-  const labelM = document.getElementById('conn-label-m');
-  const badge  = document.getElementById('conn-badge');
-  const badgeM = document.getElementById('conn-badge-m');
-  const info   = document.getElementById('conn-info');
+function setBadge(id, dotId, labelId, infoId, ok, labelTxt, infoTxt, mDotId, mLabelId, mBadgeId) {
+  const col   = ok===null ? 'var(--dm)' : ok ? '#22d3a5' : '#ef4444';
+  const bord  = ok===null ? 'rgba(44,64,96,.5)' : ok ? 'rgba(34,211,165,.4)' : 'rgba(239,68,68,.4)';
+  const bg    = ok===null ? 'rgba(6,8,16,.4)'   : ok ? 'rgba(34,211,165,.07)' : 'rgba(239,68,68,.07)';
+  const glow  = ok ? '0 0 6px rgba(34,211,165,.6)' : ok===false ? '0 0 6px rgba(239,68,68,.6)' : 'none';
+  const badge = document.getElementById(id);
+  const dot   = document.getElementById(dotId);
+  const lbl   = document.getElementById(labelId);
+  const inf   = document.getElementById(infoId);
+  if(badge){ badge.style.border=`1px solid ${bord}`; badge.style.background=bg; }
+  if(dot)  { dot.style.background=col; dot.style.boxShadow=glow; }
+  if(lbl)  { lbl.textContent=labelTxt; lbl.style.color=col; }
+  if(inf)  { inf.textContent=infoTxt; inf.style.color=ok?'#4e6a8a':'var(--re)'; }
+  // Mobile mini-badge
+  const mDot = document.getElementById(mDotId);
+  const mLbl = document.getElementById(mLabelId);
+  const mBdg = document.getElementById(mBadgeId);
+  if(mDot){ mDot.style.background=col; mDot.style.boxShadow=glow; }
+  if(mLbl){ mLbl.style.color=col; }
+  if(mBdg){ mBdg.style.border=`1px solid ${bord}`; mBdg.style.background=bg; }
+}
 
-  const setStatus = (connected, txt, infoHTML) => {
-    const color     = connected ? '#22d3a5' : '#ef4444';
-    const borderCol = connected ? 'rgba(34,211,165,.4)' : 'rgba(239,68,68,.4)';
-    const bgCol     = connected ? 'rgba(34,211,165,.08)' : 'rgba(239,68,68,.08)';
-    const glow      = connected ? '0 0 8px rgba(34,211,165,.6)' : '0 0 8px rgba(239,68,68,.6)';
-    [dot,dotM].forEach(d=>{ if(d){ d.style.background=color; d.style.boxShadow=glow; }});
-    [label,labelM].forEach(l=>{ if(l){ l.textContent=txt; l.style.color=color; }});
-    [badge,badgeM].forEach(b=>{ if(b){ b.style.border=`1px solid ${borderCol}`; b.style.background=bgCol; }});
-    if(info){ info.innerHTML=infoHTML||''; info.style.display=infoHTML?'block':'none'; }
-  };
+function calcResetDates() {
+  const now = new Date();
+  // API-Football : reset quotidien à minuit UTC
+  const tomorrowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()+1, 0, 0, 0));
+  const msToReset = tomorrowUTC - now;
+  const hLeft = Math.floor(msToReset/3600000);
+  const mLeft = Math.floor((msToReset%3600000)/60000);
+  const afReset = `Reset dans ${hLeft}h${mLeft}m (minuit UTC)`;
+  // Odds API : reset le 1er de chaque mois
+  const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()+1, 1, 0, 0, 0));
+  const daysLeft = Math.ceil((nextMonth - now) / 86400000);
+  const months = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+  const oddsReset = `Reset le 1er ${months[nextMonth.getUTCMonth()]} (dans ${daysLeft}j)`;
+  return { afReset, oddsReset };
+}
+
+async function checkConnection() {
+  // Cloudflare — pending
+  setBadge('cf-badge','cf-dot','cf-label','cf-info', null,'CLOUDFLARE','Connexion en cours…','m-cf-dot','m-cf-lbl','m-cf-badge');
+  setBadge('af-badge','af-dot','af-label','af-info', null,'API-FOOTBALL','—','m-af-dot','m-af-lbl','m-af-badge');
+  setBadge('odds-badge','odds-dot','odds-label','odds-info', null,'ODDS API','—','m-odds-dot','m-odds-lbl','m-odds-badge');
+
+  const { afReset, oddsReset } = calcResetDates();
 
   try {
     const t0 = Date.now();
     const d = await api('/api/quotas');
     lastPingMs = Date.now()-t0;
-    const latColor = lastPingMs<500?'var(--gr)':lastPingMs<1500?'var(--am)':'var(--re)';
-    const latLabel = lastPingMs<500?'⚡ Rapide':lastPingMs<1500?'🟡 Moyen':'🔴 Lent';
-    const afUsed   = d.api_football_today||0;
-    const afLimit  = d.api_football_daily_limit||100;
-    const afPct    = Math.round(afUsed/afLimit*100);
-    const afColor  = afPct<70?'var(--gr)':afPct<90?'var(--am)':'var(--re)';
-    const oddsLeft = d.odds_api_credits_remaining??'?';
-    const oddsColor= oddsLeft>200?'var(--gr)':oddsLeft>50?'var(--am)':'var(--re)';
+    const latLabel = lastPingMs<400 ? `⚡ ${lastPingMs}ms` : lastPingMs<1200 ? `🟡 ${lastPingMs}ms` : `🔴 ${lastPingMs}ms`;
 
-    setStatus(true, 'CONNECTÉ', `
-      <div style="display:flex;flex-direction:column;gap:4px;margin-top:2px">
-        <div style="display:flex;align-items:center;gap:5px;font-size:9px">
-          <span style="color:var(--gr);font-weight:700">●</span>
-          <span style="color:var(--mu)">Worker Cloudflare</span>
-          <span style="color:${latColor};font-family:var(--mo)">${latLabel} · ${lastPingMs}ms</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:9px">
-          <span style="color:${afColor};font-weight:700">●</span>
-          <span style="color:var(--mu)">API-Football</span>
-          <span style="color:${afColor};font-family:var(--mo)">${afUsed}/${afLimit} requêtes aujourd'hui</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:9px">
-          <span style="color:${oddsColor};font-weight:700">●</span>
-          <span style="color:var(--mu)">Odds API</span>
-          <span style="color:${oddsColor};font-family:var(--mo)">${oddsLeft} crédits API restants ce mois</span>
-        </div>
-      </div>`
-    );
+    // Cloudflare ✅
+    setBadge('cf-badge','cf-dot','cf-label','cf-info', true,
+      'CLOUDFLARE', `Worker actif · ${latLabel}`,
+      'm-cf-dot','m-cf-lbl','m-cf-badge');
+    document.getElementById('m-cf-lbl').textContent = 'CF';
+
+    // API-Football
+    const afUsed  = typeof d.api_football_today === 'number' ? d.api_football_today : '?';
+    const afLimit = typeof d.api_football_daily_limit === 'number' ? d.api_football_daily_limit : 100;
+    const afOk    = typeof afUsed === 'number' ? afUsed < afLimit * 0.9 : null;
+    const afPct   = typeof afUsed === 'number' ? Math.round(afUsed/afLimit*100) : '?';
+    setBadge('af-badge','af-dot','af-label','af-info', afOk!==false,
+      'API-FOOTBALL', `${afUsed}/${afLimit} req. utilisées (${afPct}%) · ${afReset}`,
+      'm-af-dot','m-af-lbl','m-af-badge');
+    document.getElementById('m-af-lbl').textContent = `AF ${afUsed}/${afLimit}`;
+
+    // Odds API
+    const oddsLeft  = typeof d.odds_api_credits_remaining === 'number' ? d.odds_api_credits_remaining : '?';
+    const oddsTotal = typeof d.odds_api_monthly_limit === 'number' ? d.odds_api_monthly_limit : 500;
+    const oddsUsed  = typeof oddsLeft === 'number' ? oddsTotal - oddsLeft : '?';
+    const oddsPct   = typeof oddsLeft === 'number' ? Math.round(oddsUsed/oddsTotal*100) : '?';
+    const oddsOk    = typeof oddsLeft === 'number' ? oddsLeft > 50 : null;
+    setBadge('odds-badge','odds-dot','odds-label','odds-info', oddsOk!==false,
+      'ODDS API', `${oddsLeft}/${oddsTotal} crédits restants (${oddsPct}% utilisé) · ${oddsReset}`,
+      'm-odds-dot','m-odds-lbl','m-odds-badge');
+    document.getElementById('m-odds-lbl').textContent = `OA ${oddsLeft}cr`;
+
   } catch(e) {
-    setStatus(false, 'DÉCONNECTÉ', `
-      <div style="font-size:9px;color:var(--re);margin-top:2px">
-        <div>● Worker Cloudflare — hors ligne</div>
-        <div style="color:var(--dm);margin-top:2px">Vérifiez WORKER_URL dans le fichier HTML</div>
-      </div>`
-    );
+    setBadge('cf-badge','cf-dot','cf-label','cf-info', false,
+      'CLOUDFLARE', `Hors ligne · Vérifiez WORKER_URL`,
+      'm-cf-dot','m-cf-lbl','m-cf-badge');
+    setBadge('af-badge','af-dot','af-label','af-info', false,'API-FOOTBALL','Non joignable','m-af-dot','m-af-lbl','m-af-badge');
+    setBadge('odds-badge','odds-dot','odds-label','odds-info', false,'ODDS API','Non joignable','m-odds-dot','m-odds-lbl','m-odds-badge');
   }
 }
 
