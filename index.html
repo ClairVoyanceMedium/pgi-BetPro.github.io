@@ -1022,8 +1022,15 @@ wrangler deploy</pre></div>
       <div id="bj-decision-panel" style="display:none;margin-bottom:12px"></div>
 
       <!-- BOUTON PRINCIPAL -->
-      <button onclick="bjShowDecision()" style="width:100%;padding:14px;margin-bottom:12px;background:linear-gradient(135deg,rgba(34,211,165,.2),rgba(0,212,255,.15));border:2px solid rgba(34,211,165,.5);border-radius:10px;color:var(--gr);font-family:var(--hd);font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.02em">
-        🎯 DOIS-JE JOUER ? — Voir la décision
+      <button onclick="bjAskDecision()" id="bj-main-btn"
+        style="width:100%;padding:15px;margin-bottom:12px;
+        background:linear-gradient(135deg,rgba(34,211,165,.25),rgba(0,212,255,.18));
+        border:2px solid rgba(34,211,165,.6);border-radius:11px;color:#22d3a5;
+        font-family:var(--hd);font-size:15px;font-weight:800;cursor:pointer;
+        transition:all .2s;letter-spacing:.02em;
+        box-shadow:0 0 18px rgba(34,211,165,.2);
+        -webkit-tap-highlight-color:transparent;touch-action:manipulation">
+        🎯 DOIS-JE JOUER ?
       </button>
 
       <!-- CARTES MÉMORISÉES -->
@@ -3016,11 +3023,7 @@ function bjUpdateDecks() {
 }
 
 function bjUpdateDisplay() {
-  const rc  = bjState.runningCount;
-  const seen = bjState.cardsHistory.length;
-  const totalCards = bjState.totalDecks * 52;
-  const decksLeft = Math.max(0.5, (totalCards - seen) / 52);
-  const tc = decksLeft > 0 ? Math.round((rc / decksLeft) * 10) / 10 : 0;
+  const { rc, seen, totalCards, decksLeft, tc } = bjComputeTC();
   const pctPlayed = Math.round(seen / totalCards * 100);
 
   // Update displays
@@ -3064,46 +3067,30 @@ function bjUpdateDisplay() {
   }
 }
 
-function bjCalcBet(tcParam) {
-  const tc = tcParam !== undefined ? tcParam : bjComputeTC().tc;
-  const bankroll = parseFloat(document.getElementById('bj-bankroll')?.value)||200;
-  const minBet   = parseFloat(document.getElementById('bj-min-bet')?.value)||5;
-  const maxBet   = parseFloat(document.getElementById('bj-max-bet')?.value)||200;
-  const amountEl = document.getElementById('bj-bet-amount');
-  const reasonEl = document.getElementById('bj-bet-reason');
-  const recEl    = document.getElementById('bj-bet-rec');
-  if(!amountEl || !reasonEl || !recEl) return;
+function bjSyncTopBox(tc, rc) {
+  // Synchronise la boîte du haut avec la même logique que le panneau de décision
+  const minBet  = parseFloat(document.getElementById('bj-min-bet')?.value)||5;
+  const maxBet  = parseFloat(document.getElementById('bj-max-bet')?.value)||200;
+  const bankroll= parseFloat(document.getElementById('bj-bankroll')?.value)||200;
+  const amountEl= document.getElementById('bj-bet-amount');
+  const reasonEl= document.getElementById('bj-bet-reason');
+  const recEl   = document.getElementById('bj-bet-rec');
+  if(!amountEl||!reasonEl||!recEl) return;
 
-  let bet, reason, col, bg, border;
-  if(tc <= 0) {
-    bet = minBet; reason = `TC ${tc} — Comptage défavorable, misez le minimum.`;
-    col='var(--re)'; bg='rgba(239,68,68,.07)'; border='rgba(239,68,68,.25)';
-  } else if(tc === 1) {
-    bet = minBet; reason = `TC +1 — Légère amélioration, restez sur le minimum.`;
-    col='var(--am)'; bg='rgba(245,158,11,.07)'; border='rgba(245,158,11,.25)';
-  } else if(tc === 2) {
-    bet = Math.min(maxBet, minBet * 2); reason = `TC +2 — Avantage modéré, doublez la mise.`;
-    col='var(--am)'; bg='rgba(245,158,11,.08)'; border='rgba(245,158,11,.3)';
-  } else if(tc === 3) {
-    bet = Math.min(maxBet, minBet * 4); reason = `TC +3 — Bon avantage, misez 4× le minimum.`;
-    col='var(--neon)'; bg='rgba(0,212,255,.08)'; border='rgba(0,212,255,.3)';
-  } else if(tc === 4) {
-    bet = Math.min(maxBet, minBet * 6); reason = `TC +4 — Fort avantage, misez 6× le minimum.`;
-    col='var(--gr)'; bg='rgba(34,211,165,.08)'; border='rgba(34,211,165,.3)';
-  } else {
-    bet = Math.min(maxBet, minBet * 8); reason = `TC +${tc} — Avantage maximal ! Misez 8× ou le maximum autorisé.`;
-    col='var(--gr)'; bg='rgba(34,211,165,.12)'; border='rgba(34,211,165,.4)';
-  }
+  let bet, reason, col, bg;
+  if (tc >= 4)      { bet=Math.min(maxBet,bankroll*.05,minBet*8); col='#22d3a5'; bg='rgba(34,211,165,.15)'; reason='🚀 Avantage maximal — misez fort !'; }
+  else if (tc >= 2) { bet=Math.min(maxBet,bankroll*.04,minBet*4); col='#22d3a5'; bg='rgba(34,211,165,.1)';  reason='✅ Bon avantage — augmentez la mise'; }
+  else if (tc >= 1) { bet=Math.min(maxBet,minBet*2);              col='#f59e0b'; bg='rgba(245,158,11,.1)'; reason='🟡 Légèrement favorable — mise modérée'; }
+  else if (tc >= 0) { bet=minBet;                                  col='#4e6a8a'; bg='rgba(30,45,71,.5)';   reason='⚖️ Neutre — mise minimum uniquement'; }
+  else if (tc >=-2) { bet=minBet;                                  col='#fb923c'; bg='rgba(251,146,60,.1)'; reason='⏳ Casino favoris — mise minimum'; }
+  else              { bet=0;                                        col='#ef4444'; bg='rgba(239,68,68,.1)';  reason='🛑 Ne jouez pas — fort avantage casino'; }
 
-  // Ne jamais dépasser 5% de la bankroll sur une main
-  bet = Math.min(bet, bankroll * 0.05, maxBet);
-  bet = Math.round(bet / minBet) * minBet; // arrondir à l'unité de mise
-
-  amountEl.textContent = bet + '€';
+  bet = bet>0 ? Math.round(bet/minBet)*minBet : 0;
+  amountEl.textContent = bet>0 ? bet+'€' : 'MIN';
   amountEl.style.color = col;
   reasonEl.textContent = reason;
   recEl.style.background = bg;
-  recEl.style.borderColor = border;
+  recEl.style.borderColor = col;
 }
 
 // ─── STRATÉGIE DE BASE ───
@@ -3240,6 +3227,22 @@ function bjGetRemainingCards() {
     });
   });
   return remaining;
+}
+
+function bjAskDecision() {
+  const btn = document.getElementById('bj-main-btn');
+  // Flash animation
+  if(btn) {
+    btn.style.transform = 'scale(.96)';
+    btn.style.boxShadow = '0 0 32px rgba(34,211,165,.6)';
+    setTimeout(()=>{ btn.style.transform=''; btn.style.boxShadow=''; }, 200);
+  }
+  bjShowDecision();
+  // Scroll to decision panel
+  setTimeout(()=>{
+    const el = document.getElementById('bj-decision-panel');
+    if(el) el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }, 100);
 }
 
 function bjShowDecision() {
