@@ -1,0 +1,1932 @@
+// PGI BetPro — Cloudflare Worker v3 corrigé
+// Binding KV requis : BETTING_KV
+// Secrets minimum : AUTH_PASSWORD, API_FOOTBALL_KEY, ODDS_API_KEY, AI_PROVIDER, AI_API_KEY
+// Secrets optionnels : AI_MODEL, RESEND_API_KEY, EMAIL_TO, EMAIL_FROM, CORS_ORIGIN
+
+const DEFAULT_CORS_ORIGIN = '*';
+
+const AI_DEFAULTS = {
+  groq: {
+    url: 'https://api.groq.com/openai/v1/chat/completions',
+    model: 'llama-3.3-70b-versatile',
+    format: 'openai',
+  },
+  gemini: {
+    url: 'https://generativelanguage.googleapis.com/v1beta/models/',
+    model: 'gemini-1.5-flash',
+    format: 'gemini',
+  },
+  openrouter: {
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    format: 'openai',
+  },
+  anthropic: {
+    url: 'https://api.anthropic.com/v1/messages',
+    model: 'claude-sonnet-4-20250514',
+    format: 'anthropic',
+  },
+};
+
+const DEFAULT_SETTINGS = {
+  sports: ['soccer_epl', 'soccer_france_ligue1', 'soccer_ucl'],
+  markets: ['h2h', 'totals', 'btts'],
+  min_alert_score: 75,
+  max_alerts_per_day: 5,
+  scan_enabled: true,
+  alert_filter_sports: [],
+  alert_filter_markets: [],
+  alert_min_odds: 1.4,
+  alert_max_odds: 5,
+  scoring_weights: {
+    odds_value: 0.25,
+    recent_form: 0.2,
+    h2h_history: 0.1,
+    stat_consistency: 0.15,
+    market_consensus: 0.1,
+    contextual_factors: 0.1,
+    stability: 0.05,
+    data_freshness: 0.05,
+  },
+};
+
+const FOOTBALL_LEAGUES = {
+  soccer_epl: { id: 39, season: 2024, name: 'Premier League', region: 'Angleterre' },
+  soccer_championship: { id: 40, season: 2024, name: 'Championship', region: 'Angleterre' },
+  soccer_france_ligue1: { id: 61, season: 2024, name: 'Ligue 1', region: 'France' },
+  soccer_france_ligue2: { id: 62, season: 2024, name: 'Ligue 2', region: 'France' },
+  soccer_spain_la_liga: { id: 140, season: 2024, name: 'La Liga', region: 'Espagne' },
+  soccer_spain_segunda: { id: 141, season: 2024, name: 'La Liga 2', region: 'Espagne' },
+  soccer_germany_bundesliga: { id: 78, season: 2024, name: 'Bundesliga', region: 'Allemagne' },
+  soccer_germany_bundesliga2: { id: 79, season: 2024, name: '2. Bundesliga', region: 'Allemagne' },
+  soccer_italy_serie_a: { id: 135, season: 2024, name: 'Serie A', region: 'Italie' },
+  soccer_italy_serie_b: { id: 136, season: 2024, name: 'Serie B', region: 'Italie' },
+  soccer_netherlands: { id: 88, season: 2024, name: 'Eredivisie', region: 'Pays-Bas' },
+  soccer_portugal: { id: 94, season: 2024, name: 'Primeira Liga', region: 'Portugal' },
+  soccer_turkey: { id: 203, season: 2024, name: 'Süper Lig', region: 'Turquie' },
+  soccer_russia: { id: 235, season: 2024, name: 'Premier League Russe', region: 'Russie' },
+  soccer_belgium: { id: 144, season: 2024, name: 'Pro League', region: 'Belgique' },
+  soccer_scotland: { id: 179, season: 2024, name: 'Scottish Premiership', region: 'Ecosse' },
+  soccer_greece: { id: 197, season: 2024, name: 'Super League', region: 'Grece' },
+  soccer_austria: { id: 218, season: 2024, name: 'Bundesliga Autrichienne', region: 'Autriche' },
+  soccer_switzerland: { id: 207, season: 2024, name: 'Super League Suisse', region: 'Suisse' },
+  soccer_denmark: { id: 119, season: 2024, name: 'Superliga', region: 'Danemark' },
+  soccer_sweden: { id: 113, season: 2024, name: 'Allsvenskan', region: 'Suede' },
+  soccer_norway: { id: 103, season: 2024, name: 'Eliteserien', region: 'Norvege' },
+  soccer_poland: { id: 106, season: 2024, name: 'Ekstraklasa', region: 'Pologne' },
+  soccer_czech: { id: 345, season: 2024, name: 'Czech Liga', region: 'Tchequie' },
+  soccer_ukraine: { id: 333, season: 2024, name: 'Premier League Ukr.', region: 'Ukraine' },
+  soccer_romania: { id: 283, season: 2024, name: 'Liga 1', region: 'Roumanie' },
+  soccer_croatia: { id: 210, season: 2024, name: 'HNL', region: 'Croatie' },
+  soccer_serbia: { id: 286, season: 2024, name: 'SuperLiga', region: 'Serbie' },
+  soccer_ucl: { id: 2, season: 2024, name: 'Champions League', region: 'Europe' },
+  soccer_uel: { id: 3, season: 2024, name: 'Europa League', region: 'Europe' },
+  soccer_uecl: { id: 848, season: 2024, name: 'Conference League', region: 'Europe' },
+  soccer_japan: { id: 98, season: 2024, name: 'J-League', region: 'Japon' },
+  soccer_korea: { id: 292, season: 2024, name: 'K-League 1', region: 'Coree du Sud' },
+  soccer_china: { id: 169, season: 2024, name: 'Chinese Super League', region: 'Chine' },
+  soccer_australia: { id: 188, season: 2024, name: 'A-League', region: 'Australie' },
+  soccer_india: { id: 323, season: 2024, name: 'Indian Super League', region: 'Inde' },
+  soccer_thailand: { id: 296, season: 2024, name: 'Thai League 1', region: 'Thailande' },
+  soccer_saudi: { id: 307, season: 2024, name: 'Saudi Pro League', region: 'Arabie Saoudite' },
+  soccer_uae: { id: 435, season: 2024, name: 'UAE Arabian Gulf', region: 'EAU' },
+  soccer_qatar: { id: 298, season: 2024, name: 'Qatar Stars League', region: 'Qatar' },
+  soccer_iran: { id: 290, season: 2024, name: 'Persian Gulf Pro', region: 'Iran' },
+  soccer_brasil: { id: 71, season: 2025, name: 'Brasileirao Serie A', region: 'Bresil' },
+  soccer_brasil_b: { id: 72, season: 2025, name: 'Brasileirao Serie B', region: 'Bresil' },
+  soccer_argentina: { id: 128, season: 2025, name: 'Primera Division', region: 'Argentine' },
+  soccer_colombia: { id: 239, season: 2025, name: 'Liga Betplay', region: 'Colombie' },
+  soccer_chile: { id: 265, season: 2025, name: 'Primera Division', region: 'Chili' },
+  soccer_ecuador: { id: 254, season: 2025, name: 'LigaPro', region: 'Equateur' },
+  soccer_peru: { id: 281, season: 2025, name: 'Liga 1', region: 'Perou' },
+  soccer_uruguay: { id: 268, season: 2025, name: 'Primera Division', region: 'Uruguay' },
+  soccer_mexico: { id: 262, season: 2025, name: 'Liga MX', region: 'Mexique' },
+  soccer_mls: { id: 253, season: 2025, name: 'MLS', region: 'USA' },
+  soccer_libertadores: { id: 13, season: 2025, name: 'Copa Libertadores', region: 'Ameriques' },
+  soccer_sudamericana: { id: 11, season: 2025, name: 'Copa Sudamericana', region: 'Ameriques' },
+  soccer_egypt: { id: 233, season: 2024, name: 'Egyptian Premier', region: 'Egypte' },
+  soccer_south_africa: { id: 288, season: 2024, name: 'PSL Afrique du Sud', region: 'Afrique du Sud' },
+  soccer_morocco: { id: 200, season: 2024, name: 'Botola Pro', region: 'Maroc' },
+  soccer_algeria: { id: 186, season: 2024, name: 'Ligue Pro Algerie', region: 'Algerie' },
+  soccer_nigeria: { id: 320, season: 2024, name: 'NPFL', region: 'Nigeria' },
+};
+
+const API_SPORTS_ENDPOINTS = {
+  ...Object.fromEntries(Object.entries(FOOTBALL_LEAGUES).map(([key, v]) => [key, {
+    base: 'https://v3.football.api-sports.io',
+    sport: 'football',
+    league_id: v.id,
+    season: v.season,
+  }])),
+  basketball_nba: { base: 'https://v1.basketball.api-sports.io', sport: 'basketball', league_id: 12, season: '2024-2025' },
+  basketball_wnba: { base: 'https://v1.basketball.api-sports.io', sport: 'basketball', league_id: 13, season: '2025' },
+  basketball_euroleague: { base: 'https://v1.basketball.api-sports.io', sport: 'basketball', league_id: 120, season: '2024-2025' },
+  basketball_ncaab: { base: 'https://v1.basketball.api-sports.io', sport: 'basketball', league_id: 116, season: '2024-2025' },
+  icehockey_nhl: { base: 'https://v1.hockey.api-sports.io', sport: 'hockey', league_id: 57, season: '2024-2025' },
+  baseball_mlb: { base: 'https://v1.baseball.api-sports.io', sport: 'baseball', league_id: 1, season: 2025 },
+  rugbyunion_premiership: { base: 'https://v1.rugby.api-sports.io', sport: 'rugby', league_id: 43, season: 2024 },
+  rugbyunion_top14: { base: 'https://v1.rugby.api-sports.io', sport: 'rugby', league_id: 16, season: 2024 },
+  rugbyunion_super_rugby: { base: 'https://v1.rugby.api-sports.io', sport: 'rugby', league_id: 39, season: 2025 },
+  rugbyunion_six_nations: { base: 'https://v1.rugby.api-sports.io', sport: 'rugby', league_id: 8, season: 2025 },
+  rugbyleague_nrl: { base: 'https://v1.rugby.api-sports.io', sport: 'rugby', league_id: 34, season: 2025 },
+  handball_champions_league: { base: 'https://v1.handball.api-sports.io', sport: 'handball', league_id: 3, season: '2024-2025' },
+  handball_bundesliga: { base: 'https://v1.handball.api-sports.io', sport: 'handball', league_id: 6, season: '2024-2025' },
+  handball_starligue: { base: 'https://v1.handball.api-sports.io', sport: 'handball', league_id: 13, season: '2024-2025' },
+  americanfootball_nfl: { base: 'https://v1.american-football.api-sports.io', sport: 'nfl', league_id: 1, season: 2025 },
+  americanfootball_ncaaf: { base: 'https://v1.american-football.api-sports.io', sport: 'nfl', league_id: 2, season: 2025 },
+  mma_mixed_martial_arts: { base: 'https://v1.mma.api-sports.io', sport: 'mma', league_id: 1, season: 2025 },
+  volleyball_world_champ: { base: 'https://v1.volleyball.api-sports.io', sport: 'volleyball', league_id: 1, season: 2025 },
+};
+
+const ODDS_SPORT_MAP = {
+  soccer_epl: 'soccer_epl',
+  soccer_championship: 'soccer_england_championship',
+  soccer_france_ligue1: 'soccer_france_ligue_1',
+  soccer_france_ligue2: 'soccer_france_ligue_2',
+  soccer_spain_la_liga: 'soccer_spain_la_liga',
+  soccer_spain_segunda: 'soccer_spain_segunda_division',
+  soccer_germany_bundesliga: 'soccer_germany_bundesliga',
+  soccer_germany_bundesliga2: 'soccer_germany_bundesliga2',
+  soccer_italy_serie_a: 'soccer_italy_serie_a',
+  soccer_italy_serie_b: 'soccer_italy_serie_b',
+  soccer_netherlands: 'soccer_netherlands_eredivisie',
+  soccer_portugal: 'soccer_portugal_primeira_liga',
+  soccer_turkey: 'soccer_turkey_super_league',
+  soccer_belgium: 'soccer_belgium_first_div',
+  soccer_scotland: 'soccer_scotland_premiership',
+  soccer_greece: 'soccer_greece_super_league',
+  soccer_austria: 'soccer_austria_bundesliga',
+  soccer_switzerland: 'soccer_switzerland_superleague',
+  soccer_denmark: 'soccer_denmark_superliga',
+  soccer_sweden: 'soccer_sweden_allsvenskan',
+  soccer_norway: 'soccer_norway_eliteserien',
+  soccer_poland: 'soccer_poland_ekstraklasa',
+  soccer_czech: 'soccer_czech_republic_chance_liga',
+  soccer_ukraine: 'soccer_ukraine_premier_league',
+  soccer_croatia: 'soccer_croatia_hnl',
+  soccer_ucl: 'soccer_uefa_champs_league',
+  soccer_uel: 'soccer_uefa_europa_league',
+  soccer_uecl: 'soccer_uefa_conference_league',
+  soccer_japan: 'soccer_japan_j_league',
+  soccer_korea: 'soccer_korea_kleague1',
+  soccer_china: 'soccer_china_superleague',
+  soccer_australia: 'soccer_australia_aleague',
+  soccer_brasil: 'soccer_brazil_campeonato',
+  soccer_argentina: 'soccer_argentina_primera_division',
+  soccer_mexico: 'soccer_mexico_ligamx',
+  soccer_mls: 'soccer_usa_mls',
+  soccer_libertadores: 'soccer_conmebol_copa_libertadores',
+  soccer_sudamericana: 'soccer_conmebol_copa_sudamericana',
+  basketball_nba: 'basketball_nba',
+  basketball_ncaab: 'basketball_ncaab',
+  basketball_euroleague: 'basketball_euroleague',
+  baseball_mlb: 'baseball_mlb',
+  icehockey_nhl: 'icehockey_nhl',
+  americanfootball_nfl: 'americanfootball_nfl',
+  americanfootball_ncaaf: 'americanfootball_ncaaf',
+  tennis_atp: 'tennis_atp_french_open',
+  tennis_wta: 'tennis_wta_french_open',
+  cricket_ipl: 'cricket_ipl',
+};
+
+const MARKETS_DEF = {
+  h2h: { label: '1X2', odds_key: 'h2h', cat: 'result' },
+  double_chance: { label: 'Double chance', odds_key: 'h2h', cat: 'result' },
+  draw_no_bet: { label: 'Draw no bet', odds_key: 'h2h', cat: 'result' },
+  totals_15: { label: 'Over/Under 1.5', odds_key: 'totals', cat: 'goals', line: 1.5 },
+  totals: { label: 'Over/Under 2.5', odds_key: 'totals', cat: 'goals', line: 2.5 },
+  totals_35: { label: 'Over/Under 3.5', odds_key: 'totals', cat: 'goals', line: 3.5 },
+  totals_45: { label: 'Over/Under 4.5', odds_key: 'totals', cat: 'goals', line: 4.5 },
+  btts: { label: 'BTTS', odds_key: 'btts', cat: 'goals' },
+  spreads: { label: 'Handicap', odds_key: 'spreads', cat: 'handicap' },
+  h2h_1h: { label: 'MT1 1X2', odds_key: 'h2h_1h', cat: 'halftime' },
+  totals_1h: { label: 'MT1 O/U', odds_key: 'totals_1h', cat: 'halftime', line: 0.5 },
+  all: { label: 'Tous les marchés', odds_key: 'all', cat: 'all' },
+};
+
+export default {
+  async fetch(req, env, ctx) {
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(env) });
+
+    const url = new URL(req.url);
+    const p = url.pathname;
+
+    if (p === '/' || p === '/ping' || p === '/api/ping') {
+      return json(env, { ok: true, app: 'PGI BetPro Worker', version: '3.0', at: new Date().toISOString() });
+    }
+
+    if (p === '/api/auth' && req.method === 'POST') return handleAuthPublic(req, env);
+
+    if (!checkAuth(req, env)) return json(env, { error: 'Non autorisé' }, 401);
+
+    try {
+      assertKV(env);
+
+      if (p === '/api/analyze' && req.method === 'GET') return handleAnalyze(req, env, url);
+      if (p === '/api/analyze-match' && req.method === 'POST') return handleAnalyzeMatch(req, env);
+      if (p === '/api/live' && req.method === 'GET') return handleLive(env);
+      if (p === '/api/leagues' && req.method === 'GET') return json(env, { leagues: FOOTBALL_LEAGUES, markets: MARKETS_DEF });
+      if (p === '/api/results' && req.method === 'GET') return json(env, await kv(env).get('latest_results', 'json') || { opportunities: [] });
+      if (p === '/api/history' && req.method === 'GET') return handleHistory(env, url);
+      if (p === '/api/quotas' && req.method === 'GET') return json(env, await getQuotas(env));
+      if (p === '/api/settings' && req.method === 'GET') return json(env, await getSettings(env));
+      if (p === '/api/settings' && req.method === 'POST') return handleSaveSettings(req, env);
+      if (p === '/api/test-alert' && req.method === 'POST') return handleTestAlert(env);
+      if (p === '/api/ai-info' && req.method === 'GET') return json(env, aiInfo(env));
+      if (p === '/api/chat' && req.method === 'POST') return handleChat(req, env);
+      if (p === '/api/strategy' && req.method === 'POST') return handleStrategy(req, env);
+      if (p === '/api/live-scan' && req.method === 'GET') return handleLiveScan(req, env);
+      if (p === '/api/live-analysis' && req.method === 'POST') return handleLiveAnalysis(req, env);
+      if (p === '/api/live-analysis' && req.method === 'GET') return handleLiveMatchAnalysis(req, env, url);
+
+      return json(env, { error: 'Route introuvable', path: p }, 404);
+    } catch (err) {
+      console.error('Worker error:', err);
+      return json(env, { error: 'Erreur interne', detail: err.message }, 500);
+    }
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runScheduledScan(env));
+  },
+};
+
+function corsHeaders(env) {
+  return {
+    'Access-Control-Allow-Origin': env.CORS_ORIGIN || DEFAULT_CORS_ORIGIN,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+function json(env, data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders(env), 'Content-Type': 'application/json;charset=utf-8' },
+  });
+}
+
+function kv(env) {
+  return env.BETTING_KV;
+}
+
+function assertKV(env) {
+  if (!env.BETTING_KV) throw new Error('Binding KV manquant : créez un KV et liez-le avec le nom BETTING_KV');
+}
+
+async function handleAuthPublic(req, env) {
+  let body;
+  try { body = await req.json(); } catch { return json(env, { error: 'JSON invalide' }, 400); }
+  if (!env.AUTH_PASSWORD) return json(env, { error: 'AUTH_PASSWORD non configuré' }, 500);
+  if (body.password === env.AUTH_PASSWORD) return json(env, { ok: true, token: env.AUTH_PASSWORD });
+  return json(env, { error: 'Mot de passe incorrect' }, 401);
+}
+
+function checkAuth(req, env) {
+  if (!env.AUTH_PASSWORD) return false;
+  const h = req.headers.get('Authorization') || '';
+  return h.replace(/^Bearer\s+/i, '').trim() === env.AUTH_PASSWORD;
+}
+
+async function handleAnalyze(req, env, url) {
+  const sport = url.searchParams.get('sport') || 'soccer_epl';
+  const market = url.searchParams.get('market') || 'h2h';
+  const mode = url.searchParams.get('mode') || 'quick';
+  const settings = await getSettings(env);
+  const quotas = await getQuotas(env);
+
+  const cacheKey = `cache:v3:analyze:${sport}:${market}:${mode}:${dateStr()}`;
+  if (mode === 'quick') {
+    const cached = await kv(env).get(cacheKey, 'json');
+    if (cached) return json(env, { opportunities: cached, source: 'cache', cached: true, analyzed_at: new Date().toISOString() });
+  }
+
+  let opps = [];
+  let source = 'unknown';
+  let warning = null;
+
+  try {
+    const cfg = getApiSportsConfig(sport);
+    if (cfg && env.API_FOOTBALL_KEY && quotas.api_football_today < 95) {
+      if (cfg.sport === 'football') {
+        opps = await analyzeFootball(sport, market, mode, env, settings);
+        source = 'api_sports_football';
+      } else {
+        opps = await analyzeMultiSport(sport, market, mode, env, settings, cfg);
+        source = `api_sports_${cfg.sport}`;
+      }
+    } else {
+      opps = await analyzeOddsApi(sport, market, env);
+      source = 'odds_api';
+      if (cfg && quotas.api_football_today >= 95) warning = 'Quota API-Sports presque atteint : fallback Odds API.';
+    }
+  } catch (err) {
+    try {
+      opps = await analyzeOddsApi(sport, market, env);
+      source = 'odds_api_fallback';
+      warning = `Source primaire indisponible (${err.message}) : fallback Odds API.`;
+    } catch (err2) {
+      return json(env, { error: 'Toutes les sources ont échoué', detail: err2.message }, 502);
+    }
+  }
+
+  const scored = opps
+    .map(o => ({ ...o, score: calculateScore(o, settings) }))
+    .filter(o => (o.score?.total || 0) >= 25)
+    .sort((a, b) => (b.score?.total || 0) - (a.score?.total || 0))
+    .slice(0, 40);
+
+  await kv(env).put(cacheKey, JSON.stringify(scored), { expirationTtl: 3600 });
+  await kv(env).put('latest_results', JSON.stringify({ sport, market, mode, source, opportunities: scored, analyzed_at: new Date().toISOString() }), { expirationTtl: 86400 });
+
+  return json(env, { opportunities: scored, source, cached: false, warning, analyzed_at: new Date().toISOString() });
+}
+
+async function analyzeFootball(sport, market, mode, env, settings) {
+  const cfg = getApiSportsConfig(sport);
+  const league = FOOTBALL_LEAGUES[sport];
+
+  if (!cfg && !league) return analyzeOddsApi(sport, market, env);
+  if (!env.API_FOOTBALL_KEY) return analyzeOddsApi(sport, market, env);
+
+  const BASE = cfg ? cfg.base : 'https://v3.football.api-sports.io';
+  const leagueId = cfg ? cfg.league_id : league.id;
+  const leagueSeason = cfg ? cfg.season : league.season;
+  const leagueName = FOOTBALL_LEAGUES[sport]?.name || league?.name || sport;
+  const headers = { 'x-apisports-key': env.API_FOOTBALL_KEY };
+
+  const fixKey = `cache:v3:fixtures:${sport}:${dateStr()}`;
+  let fixtures = await kv(env).get(fixKey, 'json');
+
+  if (!fixtures) {
+    const endpoint = `${BASE}/fixtures?league=${encodeURIComponent(leagueId)}&season=${encodeURIComponent(leagueSeason)}&from=${dateStr()}&to=${dateStr(4)}&status=NS`;
+    const r = await fetch(endpoint, { headers });
+    await incQuota(env, 'api_football');
+    if (!r.ok) throw new Error(`API-Football fixtures HTTP ${r.status}`);
+    const d = await r.json();
+    fixtures = d.response || [];
+    await kv(env).put(fixKey, JSON.stringify(fixtures), { expirationTtl: 7200 });
+  }
+
+  if (!fixtures.length) return [];
+
+  let oddsMap = {};
+  try {
+    const oddsKey = ODDS_SPORT_MAP[sport] || sport;
+    const ev = await fetchOddsApiRaw(oddsKey, 'h2h,totals,spreads', env);
+    for (const e of ev) oddsMap[matchKey(e.home_team, e.away_team)] = e;
+  } catch (_) {}
+
+  const maxF = mode === 'deep' ? 10 : 6;
+  const opps = [];
+
+  for (const f of fixtures.slice(0, maxF)) {
+    const home = f.teams?.home;
+    const away = f.teams?.away;
+    if (!home?.name || !away?.name) continue;
+
+    let hStats = null, aStats = null, h2hData = null, homeForm = null, awayForm = null;
+
+    if (mode === 'deep' || mode === 'expert') {
+      [hStats, aStats, h2hData, homeForm, awayForm] = await Promise.all([
+        fetchTeamStats(env, home.id, leagueId, leagueSeason, BASE, headers),
+        fetchTeamStats(env, away.id, leagueId, leagueSeason, BASE, headers),
+        fetchH2H(env, home.id, away.id, BASE, headers),
+        fetchTeamForm(env, home.id, BASE, headers),
+        fetchTeamForm(env, away.id, BASE, headers),
+      ]);
+    } else {
+      [homeForm, awayForm] = await Promise.all([
+        fetchTeamForm(env, home.id, BASE, headers),
+        fetchTeamForm(env, away.id, BASE, headers),
+      ]);
+    }
+
+    const oddsEvent = findOddsEvent(oddsMap, home.name, away.name);
+    const meta = buildMeta(hStats, aStats, h2hData, homeForm, awayForm, home.name, away.name);
+    opps.push(...buildOpportunities(f, oddsEvent, meta, market, sport, leagueName));
+    await sleep(100);
+  }
+
+  return opps;
+}
+
+async function analyzeMultiSport(sport, market, mode, env, settings, cfg) {
+  if (!env.API_FOOTBALL_KEY) return analyzeOddsApi(sport, market, env);
+
+  const fixtures = await fetchApiSportsFixtures(env, sport, 4);
+  if (!fixtures.length) return analyzeOddsApi(sport, market, env);
+
+  let oddsMap = {};
+  try {
+    const oddsKey = ODDS_SPORT_MAP[sport] || sport;
+    const events = await fetchOddsApiRaw(oddsKey, 'h2h,totals,spreads', env);
+    for (const ev of events) oddsMap[matchKey(ev.home_team, ev.away_team)] = ev;
+  } catch (_) {}
+
+  const opps = [];
+  const maxF = mode === 'deep' ? 8 : 5;
+
+  for (const raw of fixtures.slice(0, maxF)) {
+    const nf = normalizeApiSportsFixture(raw, sport);
+    if (!nf) continue;
+    const oddsEvent = findOddsEvent(oddsMap, nf.home_team, nf.away_team);
+    const meta = buildMultiSportMeta(raw, cfg.sport);
+    opps.push(...buildMultiSportOpportunities({ ...nf, oddsEvent, meta, market, sp: cfg.sport }));
+    await sleep(100);
+  }
+
+  return opps;
+}
+
+async function handleAnalyzeMatch(req, env) {
+  let body;
+  try { body = await req.json(); } catch { return json(env, { error: 'JSON invalide' }, 400); }
+  const { matches, mode = 'deep' } = body;
+  if (!Array.isArray(matches) || !matches.length) return json(env, { error: 'Aucun match fourni' }, 400);
+
+  const results = [];
+  for (const matchInput of matches.slice(0, 10)) {
+    const home = String(matchInput.home || '').trim();
+    const away = String(matchInput.away || '').trim();
+    if (!home || !away) continue;
+
+    try {
+      const fixture = await searchFixture(env, home, away, matchInput.date);
+      const ai_analysis = await getAIAnalysis(env, {
+        home,
+        away,
+        competition: matchInput.competition || null,
+        date: matchInput.date || null,
+        fixture,
+        markets: matchInput.markets || ['h2h', 'totals', 'btts'],
+        mode,
+      });
+      results.push({ home, away, competition: matchInput.competition || null, date: matchInput.date || null, fixture, ai_analysis, markets_analyzed: matchInput.markets || [] });
+    } catch (err) {
+      results.push({ home, away, competition: matchInput.competition || null, date: matchInput.date || null, error: err.message, ai_analysis: null });
+    }
+    await sleep(250);
+  }
+
+  return json(env, { results, analyzed_at: new Date().toISOString() });
+}
+
+async function handleLive(env) {
+  if (!env.API_FOOTBALL_KEY) return json(env, { error: 'API_FOOTBALL_KEY non configurée', live_matches: [] }, 400);
+
+  const quotas = await getQuotas(env);
+  if (quotas.api_football_today >= 98) return json(env, { error: 'Quota API-Football atteint pour aujourd’hui', live_matches: [] }, 429);
+
+  const cacheKey = `cache:v3:live:${Math.floor(Date.now() / 60000)}`;
+  const cached = await kv(env).get(cacheKey, 'json');
+  if (cached) return json(env, { live_matches: cached, cached: true, fetched_at: new Date().toISOString() });
+
+  try {
+    const resp = await fetch('https://v3.football.api-sports.io/fixtures?live=all', {
+      headers: { 'x-apisports-key': env.API_FOOTBALL_KEY },
+    });
+    await incQuota(env, 'api_football');
+    if (!resp.ok) throw new Error(`API-Football live HTTP ${resp.status}`);
+    const data = await resp.json();
+    const fixtures = data.response || [];
+
+    const live = fixtures.map(f => ({
+      fixture_id: f.fixture?.id,
+      home: f.teams?.home?.name || '?',
+      away: f.teams?.away?.name || '?',
+      home_logo: f.teams?.home?.logo || null,
+      away_logo: f.teams?.away?.logo || null,
+      competition: f.league?.name || '',
+      country: f.league?.country || '',
+      minute: f.fixture?.status?.elapsed || null,
+      status: f.fixture?.status?.short || 'LIVE',
+      score: { home: f.goals?.home ?? 0, away: f.goals?.away ?? 0 },
+      halftime: f.score?.halftime || null,
+      stats_available: true,
+    }));
+
+    await kv(env).put(cacheKey, JSON.stringify(live), { expirationTtl: 60 });
+    return json(env, { live_matches: live, cached: false, fetched_at: new Date().toISOString() });
+  } catch (err) {
+    return json(env, { error: err.message, live_matches: [] }, 502);
+  }
+}
+
+async function handleLiveScan(req, env) {
+  const cacheKey = `cache:v3:live-scan:${Math.floor(Date.now() / 900000)}`;
+  const cached = await kv(env).get(cacheKey, 'json');
+  if (cached) return json(env, { ...cached, cached: true });
+
+  const settings = await getSettings(env);
+  const sports = unique([
+    ...(settings.sports || []),
+    'soccer_epl', 'soccer_france_ligue1', 'soccer_spain_la_liga', 'soccer_germany_bundesliga',
+    'soccer_italy_serie_a', 'soccer_ucl', 'basketball_nba',
+  ]).slice(0, 12);
+
+  const upcoming = [];
+  const live = [];
+  const warnings = [];
+
+  try {
+    const l = await getLiveMatchesSafe(env);
+    live.push(...l);
+  } catch (err) {
+    warnings.push('Live indisponible : ' + err.message);
+  }
+
+  for (const sport of sports) {
+    try {
+      const opps = await handleAnalyzeInternal(sport, 'all', 'quick', env, settings);
+      upcoming.push(...opps.slice(0, 8));
+    } catch (err) {
+      warnings.push(`${sport}: ${err.message}`);
+    }
+    await sleep(150);
+  }
+
+  const sorted = upcoming
+    .map(o => ({ ...o, score: o.score || calculateScore(o, settings) }))
+    .filter(o => (o.score?.total || 0) >= 50)
+    .sort((a, b) => (b.score?.total || 0) - (a.score?.total || 0))
+    .slice(0, 50);
+
+  const ai_commentary = await buildScanAICommentary(env, sorted);
+
+  const payload = {
+    total_opportunities: sorted.length,
+    upcoming: sorted,
+    live,
+    warnings,
+    piwi_pinnacle_note: 'Vérifiez toujours la cote finale sur Piwi 247 et Pinnacle avant toute décision.',
+    ai_commentary,
+    scan_at: new Date().toISOString(),
+  };
+
+  await kv(env).put(cacheKey, JSON.stringify(payload), { expirationTtl: 900 });
+  return json(env, payload);
+}
+
+async function handleAnalyzeInternal(sport, market, mode, env, settings) {
+  let opps;
+  const cfg = getApiSportsConfig(sport);
+  if (cfg && cfg.sport === 'football') opps = await analyzeFootball(sport, market, mode, env, settings);
+  else if (cfg) opps = await analyzeMultiSport(sport, market, mode, env, settings, cfg);
+  else opps = await analyzeOddsApi(sport, market, env);
+  return opps.map(o => ({ ...o, score: calculateScore(o, settings) }));
+}
+
+async function getLiveMatchesSafe(env) {
+  if (!env.API_FOOTBALL_KEY) return [];
+  const resp = await fetch('https://v3.football.api-sports.io/fixtures?live=all', {
+    headers: { 'x-apisports-key': env.API_FOOTBALL_KEY },
+  });
+  await incQuota(env, 'api_football');
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return (data.response || []).map(f => ({
+    fixture_id: f.fixture?.id,
+    home: f.teams?.home?.name || '?',
+    away: f.teams?.away?.name || '?',
+    competition: f.league?.name || '',
+    country: f.league?.country || '',
+    minute: f.fixture?.status?.elapsed || null,
+    status: f.fixture?.status?.short || 'LIVE',
+    score: { home: f.goals?.home ?? 0, away: f.goals?.away ?? 0 },
+    halftime: f.score?.halftime || null,
+  }));
+}
+
+async function buildScanAICommentary(env, opps) {
+  if (!opps.length) return null;
+  const top = opps[0];
+  const analyses = opps.slice(0, 6).map((o, i) => ({
+    id: i + 1,
+    verdict: `${o.selection} sur ${o.home_team} vs ${o.away_team} — score ${o.score?.total || 0}/100`,
+    conseil: o.score?.conseil || 'Vérifier la cote et la liquidité du marché avant décision.',
+  }));
+  return {
+    top_pick: `${top.selection} — ${top.home_team} vs ${top.away_team} @ ${top.odds || 'cote à vérifier'} — score ${top.score?.total || 0}/100`,
+    bookmaker_tip: 'Comparer Piwi 247, Pinnacle et le bookmaker où la cote est la plus haute.',
+    analyses,
+  };
+}
+
+async function handleLiveAnalysis(req, env) {
+  let body;
+  try { body = await req.json(); } catch { return json(env, { error: 'JSON invalide' }, 400); }
+
+  const model = runLiveModel({
+    minute: Number(body.minute || 45),
+    scoreHome: Number(body.score_home || 0),
+    scoreAway: Number(body.score_away || 0),
+    homeShots: Number(body.home_shots || 0),
+    awayShots: Number(body.away_shots || 0),
+    homeCorners: Number(body.home_corners || 0),
+    awayCorners: Number(body.away_corners || 0),
+    redCardHome: !!body.red_card_home,
+    redCardAway: !!body.red_card_away,
+    extraTime: !!body.extra_time,
+  });
+
+  const value_bets = detectLiveValue(model, body.live_odds || null);
+  const ai_analysis = await buildLiveAI(env, body, model, value_bets);
+
+  return json(env, {
+    match: {
+      home: body.home || 'Domicile',
+      away: body.away || 'Extérieur',
+      competition: body.competition || null,
+      minute: Number(body.minute || 45),
+      score: { home: Number(body.score_home || 0), away: Number(body.score_away || 0) },
+    },
+    model,
+    value_bets,
+    ai_analysis,
+    analyzed_at: new Date().toISOString(),
+  });
+}
+
+async function handleLiveMatchAnalysis(req, env, url) {
+  const body = {
+    home: url.searchParams.get('home_team') || 'Domicile',
+    away: url.searchParams.get('away_team') || 'Extérieur',
+    competition: url.searchParams.get('comp') || null,
+    minute: Number(url.searchParams.get('minute') || 45),
+    score_home: Number(url.searchParams.get('home') || 0),
+    score_away: Number(url.searchParams.get('away') || 0),
+  };
+
+  const fakeReq = new Request(req.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return handleLiveAnalysis(fakeReq, env);
+}
+
+async function buildLiveAI(env, body, model, value_bets) {
+  const fallback = {
+    resume: `Modèle live : ${model.outcomes.home_win}% domicile, ${model.outcomes.draw}% nul, ${model.outcomes.away_win}% extérieur. Over 2.5 : ${model.totals.over_25}%.`,
+    momentum_analyse: `Momentum : ${model.context.momentum}. Minutes restantes : ${model.minutes_left}.`,
+    paris_recommandes: value_bets.slice(0, 3).map(v => ({
+      pari: v.label,
+      confiance: Math.round(v.prob),
+      raisonnement: `Edge modèle détecté : +${v.edge}%.`,
+      risque: 'Marché live volatil, cote à vérifier immédiatement.',
+      quand: 'Maintenant si la cote est toujours disponible.',
+    })),
+    prochain_but: {
+      equipe_probable: model.next_goal.home_pct >= model.next_goal.away_pct ? body.home || 'Domicile' : body.away || 'Extérieur',
+      probabilite: Math.max(model.next_goal.home_pct, model.next_goal.away_pct),
+      signe_alerteur: 'Basé sur lambdas restantes et momentum.',
+    },
+    verdict_final: 'Attendre confirmation live si la cote a déjà fortement baissé. Analyse probabiliste, aucun gain garanti.',
+    ne_pas_jouer: 'Ne pas jouer si la cote chute sous la cote minimale logique ou si le rythme du match ralentit.',
+  };
+
+  if (!env.AI_API_KEY) return fallback;
+
+  try {
+    const prompt = `Match live : ${body.home || 'Domicile'} ${body.score_home || 0}-${body.score_away || 0} ${body.away || 'Extérieur'} à la ${body.minute || 45}e minute.
+Modèle : ${JSON.stringify(model)}
+Value bets : ${JSON.stringify(value_bets)}
+Réponds uniquement en JSON valide avec : resume, momentum_analyse, paris_recommandes[], prochain_but, verdict_final, ne_pas_jouer.`;
+    const raw = await callAI(env, [{ role: 'user', content: prompt }], 'Tu es un analyste live senior. Réponds uniquement en JSON valide.', { maxTokens: 1200 });
+    return parseJsonLoose(raw) || fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+async function analyzeOddsApi(sport, market, env) {
+  if (!env.ODDS_API_KEY) throw new Error('ODDS_API_KEY non configurée');
+  const sportKey = ODDS_SPORT_MAP[sport] || sport;
+  const mkts = market === 'all' ? 'h2h,totals,spreads' : (MARKETS_DEF[market]?.odds_key || 'h2h');
+  const events = await fetchOddsApiRaw(sportKey, mkts, env);
+  const opps = [];
+
+  for (const ev of events) {
+    for (const bm of ev.bookmakers || []) {
+      for (const m of bm.markets || []) {
+        for (const o of m.outcomes || []) {
+          const allBm = (ev.bookmakers || []).flatMap(b2 => {
+            const m2 = b2.markets?.find(mx => mx.key === m.key);
+            if (!m2) return [];
+            const o2 = m2.outcomes.find(ox => ox.name === o.name && (o.point === undefined || Math.abs((ox.point || 0) - (o.point || 0)) < 0.15));
+            return o2 ? [{ bookmaker: b2.title, odds: o2.price }] : [];
+          });
+          if (!allBm.length) continue;
+          const best = allBm.reduce((a, b) => b.odds > a.odds ? b : a, allBm[0]);
+          opps.push({
+            sport,
+            competition: fmtSport(sport),
+            event_id: ev.id,
+            home_team: ev.home_team,
+            away_team: ev.away_team,
+            start_time: ev.commence_time,
+            market: m.key,
+            selection: o.point !== undefined ? `${o.name} ${o.point}` : o.name,
+            line: o.point ?? null,
+            odds: best.odds,
+            bookmaker: best.bookmaker,
+            source: 'odds_api',
+            all_bookmakers: allBm,
+            metadata: { data_source: 'odds_api_only', est_goals: inferEstTotal(sport, m.key), est_btts_prob: 52 },
+          });
+        }
+      }
+    }
+  }
+
+  return dedupeOpps(opps);
+}
+
+async function fetchOddsApiRaw(sport, mkts, env) {
+  const cacheKey = `cache:v3:odds:${sport}:${mkts}:${dateStr()}`;
+  const cached = await kv(env).get(cacheKey, 'json');
+  if (cached) return cached;
+
+  const url = `https://api.the-odds-api.com/v4/sports/${encodeURIComponent(sport)}/odds/?apiKey=${encodeURIComponent(env.ODDS_API_KEY)}&regions=eu&markets=${encodeURIComponent(mkts)}&oddsFormat=decimal&dateFormat=iso`;
+  const r = await fetch(url);
+  await incQuota(env, 'odds_api');
+
+  const rem = r.headers.get('x-requests-remaining');
+  if (rem) await kv(env).put('quota:odds_remaining', rem, { expirationTtl: 86400 * 35 });
+
+  if (!r.ok) throw new Error(`Odds API HTTP ${r.status} — ${(await r.text()).slice(0, 200)}`);
+  const data = await r.json();
+  await kv(env).put(cacheKey, JSON.stringify(data), { expirationTtl: 3600 });
+  return data;
+}
+
+function buildOpportunities(fixture, oddsEvent, meta, market, sport, competition) {
+  const home = fixture.teams?.home?.name || '?';
+  const away = fixture.teams?.away?.name || '?';
+  const base = {
+    sport,
+    competition,
+    event_id: `af_${fixture.fixture?.id || crypto.randomUUID()}`,
+    home_team: home,
+    away_team: away,
+    start_time: fixture.fixture?.date || null,
+    venue: fixture.fixture?.venue?.name || null,
+    metadata: meta,
+    source: oddsEvent ? 'api_football+odds_api' : 'api_football',
+  };
+
+  const results = [];
+  const add = (mkt, sel, line, allBm = []) => {
+    const best = allBm.length ? allBm.reduce((a, b) => b.odds > a.odds ? b : a, allBm[0]) : null;
+    results.push({ ...base, market: mkt, selection: sel, line, odds: best?.odds || null, bookmaker: best?.bookmaker || (oddsEvent ? 'Odds API' : 'Cote à vérifier'), all_bookmakers: allBm });
+  };
+
+  const getOdds = (mktKey, name, point = null) => extractOdds(oddsEvent, mktKey, name, point);
+  const wanted = market === 'all' ? ['h2h', 'totals_15', 'totals', 'totals_35', 'btts', 'spreads'] : [market];
+
+  if (wanted.includes('h2h')) {
+    add('h2h', home, null, getOdds('h2h', home));
+    add('h2h', 'Nul', null, getOdds('h2h', 'Draw'));
+    add('h2h', away, null, getOdds('h2h', away));
+  }
+  if (wanted.includes('double_chance')) {
+    add('double_chance', `${home}/Nul`, null, []);
+    add('double_chance', `${away}/Nul`, null, []);
+    add('double_chance', `${home}/${away}`, null, []);
+  }
+  if (wanted.includes('draw_no_bet')) {
+    add('draw_no_bet', `DNB: ${home}`, null, []);
+    add('draw_no_bet', `DNB: ${away}`, null, []);
+  }
+  for (const item of wanted) {
+    if (['totals_15', 'totals', 'totals_35', 'totals_45'].includes(item)) {
+      const line = item === 'totals_15' ? 1.5 : item === 'totals_35' ? 3.5 : item === 'totals_45' ? 4.5 : 2.5;
+      add('totals', `Over ${line}`, line, getOdds('totals', 'Over', line));
+      add('totals', `Under ${line}`, line, getOdds('totals', 'Under', line));
+    }
+  }
+  if (wanted.includes('btts')) {
+    add('btts', 'Les deux équipes marquent — Oui', null, getOdds('btts', 'Yes'));
+    add('btts', 'Les deux équipes marquent — Non', null, getOdds('btts', 'No'));
+  }
+  if (wanted.includes('spreads')) {
+    const lines = collectSpreadLines(oddsEvent).slice(0, 3);
+    for (const l of lines) {
+      add('spreads', `HC ${home} ${l > 0 ? '+' + l : l}`, l, getOdds('spreads', home, l));
+      add('spreads', `HC ${away} ${l > 0 ? '+' + l : l}`, l, getOdds('spreads', away, l));
+    }
+  }
+
+  return dedupeOpps(results);
+}
+
+function buildMultiSportOpportunities({ sport, competition, event_id, home_team, away_team, start_time, oddsEvent, meta, market, sp }) {
+  const opps = [];
+  const add = (mkt, sel, line, allBm = []) => {
+    const best = allBm.length ? allBm.reduce((a, b) => b.odds > a.odds ? b : a, allBm[0]) : null;
+    opps.push({
+      sport,
+      competition,
+      event_id: event_id || `ms_${crypto.randomUUID()}`,
+      home_team,
+      away_team,
+      start_time,
+      market: mkt,
+      selection: sel,
+      line,
+      odds: best?.odds || null,
+      bookmaker: best?.bookmaker || (oddsEvent ? 'Odds API' : 'Cote à vérifier'),
+      all_bookmakers: allBm,
+      source: oddsEvent ? 'api_sports+odds_api' : 'api_sports',
+      metadata: meta,
+    });
+  };
+
+  const getOdds = (mktKey, name, point = null) => extractOdds(oddsEvent, mktKey, name, point);
+  const wanted = market === 'all' ? ['h2h', 'totals', 'spreads'] : [market];
+  const noDrawSports = ['basketball', 'baseball', 'hockey', 'nfl', 'afl', 'mma'];
+
+  if (wanted.includes('h2h')) {
+    add('h2h', home_team, null, getOdds('h2h', home_team));
+    if (!noDrawSports.includes(sp)) add('h2h', 'Nul', null, getOdds('h2h', 'Draw'));
+    add('h2h', away_team, null, getOdds('h2h', away_team));
+  }
+
+  if (wanted.includes('totals')) {
+    let lines = collectTotalLines(oddsEvent).slice(0, 4);
+    if (!lines.length && meta.est_total) lines = [meta.est_total - 2.5, meta.est_total - 0.5, meta.est_total + 1.5].map(v => Math.round(v * 2) / 2);
+    for (const line of lines.filter(Boolean)) {
+      add('totals', `Over ${line}`, line, getOdds('totals', 'Over', line));
+      add('totals', `Under ${line}`, line, getOdds('totals', 'Under', line));
+    }
+  }
+
+  if (wanted.includes('spreads')) {
+    for (const line of collectSpreadLines(oddsEvent).slice(0, 3)) {
+      add('spreads', `HC ${home_team} ${line > 0 ? '+' + line : line}`, line, getOdds('spreads', home_team, line));
+      add('spreads', `HC ${away_team} ${line > 0 ? '+' + line : line}`, line, getOdds('spreads', away_team, line));
+    }
+  }
+
+  return dedupeOpps(opps);
+}
+
+function extractOdds(oddsEvent, mktKey, name, point = null) {
+  if (!oddsEvent?.bookmakers) return [];
+  return oddsEvent.bookmakers.flatMap(bm => {
+    const m = bm.markets?.find(mx => mx.key === mktKey);
+    if (!m) return [];
+    const n1 = norm(name);
+    const o = m.outcomes.find(ox => {
+      const sameName = norm(ox.name) === n1 || norm(ox.name).includes(n1) || n1.includes(norm(ox.name));
+      const samePoint = point === null || Math.abs((ox.point || 0) - point) < 0.3;
+      return sameName && samePoint;
+    });
+    return o ? [{ bookmaker: bm.title, odds: o.price }] : [];
+  });
+}
+
+function collectTotalLines(oddsEvent) {
+  return unique((oddsEvent?.bookmakers || []).flatMap(bm => bm.markets?.find(m => m.key === 'totals')?.outcomes?.map(o => o.point).filter(v => v !== undefined) || [])).sort((a, b) => a - b);
+}
+
+function collectSpreadLines(oddsEvent) {
+  return unique((oddsEvent?.bookmakers || []).flatMap(bm => bm.markets?.find(m => m.key === 'spreads')?.outcomes?.map(o => o.point).filter(v => v !== undefined) || [])).sort((a, b) => Math.abs(a) - Math.abs(b));
+}
+
+async function fetchTeamStats(env, teamId, leagueId, season, BASE, headers) {
+  if (!teamId) return null;
+  const k = `cache:v3:stats:${teamId}:${leagueId}:${season}`;
+  const c = await kv(env).get(k, 'json');
+  if (c) return c;
+  try {
+    const r = await fetch(`${BASE}/teams/statistics?team=${teamId}&season=${season}&league=${leagueId}`, { headers });
+    await incQuota(env, 'api_football');
+    if (!r.ok) return null;
+    const d = await r.json();
+    const s = d.response || null;
+    if (s) await kv(env).put(k, JSON.stringify(s), { expirationTtl: 86400 });
+    return s;
+  } catch { return null; }
+}
+
+async function fetchH2H(env, team1Id, team2Id, BASE, headers) {
+  if (!team1Id || !team2Id) return null;
+  const k = `cache:v3:h2h:${Math.min(team1Id, team2Id)}:${Math.max(team1Id, team2Id)}`;
+  const c = await kv(env).get(k, 'json');
+  if (c) return c;
+  try {
+    const r = await fetch(`${BASE}/fixtures/headtohead?h2h=${team1Id}-${team2Id}&last=10`, { headers });
+    await incQuota(env, 'api_football');
+    if (!r.ok) return null;
+    const d = await r.json();
+    const h2h = d.response || [];
+    if (h2h.length) await kv(env).put(k, JSON.stringify(h2h), { expirationTtl: 86400 });
+    return h2h;
+  } catch { return null; }
+}
+
+async function fetchTeamForm(env, teamId, BASE, headers) {
+  if (!teamId) return null;
+  const k = `cache:v3:form:${teamId}:${dateStr()}`;
+  const c = await kv(env).get(k, 'json');
+  if (c) return c;
+  try {
+    const r = await fetch(`${BASE}/fixtures?team=${teamId}&last=8&status=FT`, { headers });
+    await incQuota(env, 'api_football');
+    if (!r.ok) return null;
+    const d = await r.json();
+    const form = d.response || [];
+    if (form.length) await kv(env).put(k, JSON.stringify(form), { expirationTtl: 43200 });
+    return form;
+  } catch { return null; }
+}
+
+async function searchFixture(env, home, away, date) {
+  if (!env.API_FOOTBALL_KEY) return null;
+  const d = date ? String(date).split('T')[0] : dateStr();
+  try {
+    const r = await fetch(`https://v3.football.api-sports.io/fixtures?date=${d}&search=${encodeURIComponent(home)}`, {
+      headers: { 'x-apisports-key': env.API_FOOTBALL_KEY },
+    });
+    await incQuota(env, 'api_football');
+    if (!r.ok) return null;
+    const data = await r.json();
+    const candidates = data.response || [];
+    return candidates.find(f => norm(f.teams?.home?.name).includes(norm(home).split(' ')[0]) && norm(f.teams?.away?.name).includes(norm(away).split(' ')[0])) || candidates[0] || null;
+  } catch { return null; }
+}
+
+async function fetchApiSportsFixtures(env, sportKey, daysAhead = 4) {
+  const cfg = getApiSportsConfig(sportKey);
+  if (!cfg || !env.API_FOOTBALL_KEY) return [];
+
+  const cacheKey = `cache:v3:apisports:${sportKey}:${dateStr()}`;
+  const cached = await kv(env).get(cacheKey, 'json');
+  if (cached) return cached;
+
+  const endpoint = cfg.sport === 'football' ? 'fixtures' : cfg.sport === 'mma' ? 'events' : 'games';
+  const params = new URLSearchParams({ league: cfg.league_id, season: cfg.season, from: dateStr(), to: dateStr(daysAhead) }).toString();
+
+  try {
+    const r = await fetch(`${cfg.base}/${endpoint}?${params}`, { headers: { 'x-apisports-key': env.API_FOOTBALL_KEY } });
+    await incQuota(env, 'api_football');
+    if (!r.ok) return [];
+    const d = await r.json();
+    const data = d.response || [];
+    if (data.length) await kv(env).put(cacheKey, JSON.stringify(data), { expirationTtl: 7200 });
+    return data;
+  } catch { return []; }
+}
+
+function normalizeApiSportsFixture(raw, sportKey) {
+  const cfg = getApiSportsConfig(sportKey);
+  if (!cfg) return null;
+
+  if (cfg.sport === 'football') {
+    return {
+      event_id: `afs_${raw.fixture?.id}`,
+      home_team: raw.teams?.home?.name || '?',
+      away_team: raw.teams?.away?.name || '?',
+      competition: raw.league?.name || '',
+      start_time: raw.fixture?.date || null,
+      sport: sportKey,
+      raw_sport: cfg.sport,
+    };
+  }
+
+  return {
+    event_id: `afs_${raw.id || raw.game?.id || crypto.randomUUID()}`,
+    home_team: raw.teams?.home?.name || raw.home?.name || '?',
+    away_team: raw.teams?.away?.name || raw.away?.name || '?',
+    competition: raw.league?.name || raw.competition?.name || '',
+    start_time: raw.date || raw.time || raw.game?.date?.start || null,
+    sport: sportKey,
+    raw_sport: cfg.sport,
+  };
+}
+
+function buildMeta(hStats, aStats, h2h, hForm, aForm, homeName, awayName) {
+  const meta = {};
+
+  if (hStats) {
+    meta.home_form_str = hStats.form?.slice(-8) || null;
+    meta.home_wins_home = hStats.fixtures?.wins?.home || 0;
+    meta.home_played_home = hStats.fixtures?.played?.home || 1;
+    meta.home_goals_for = parseFloat(hStats.goals?.for?.average?.home || 1.3);
+    meta.home_goals_ag = parseFloat(hStats.goals?.against?.average?.home || 1.1);
+    meta.home_cs_home = hStats.clean_sheet?.home || 0;
+    meta.home_failed_home = hStats.failed_to_score?.home || 0;
+  }
+
+  if (aStats) {
+    meta.away_form_str = aStats.form?.slice(-8) || null;
+    meta.away_wins_away = aStats.fixtures?.wins?.away || 0;
+    meta.away_played_away = aStats.fixtures?.played?.away || 1;
+    meta.away_goals_for = parseFloat(aStats.goals?.for?.average?.away || 1.1);
+    meta.away_goals_ag = parseFloat(aStats.goals?.against?.average?.away || 1.3);
+    meta.away_cs_away = aStats.clean_sheet?.away || 0;
+    meta.away_failed_away = aStats.failed_to_score?.away || 0;
+  }
+
+  if (Array.isArray(h2h) && h2h.length) {
+    const last = h2h.slice(0, 6);
+    let hW = 0, aW = 0, dr = 0, totGoals = 0, over25 = 0, btts = 0;
+
+    for (const m of last) {
+      const hs = m.goals?.home || 0;
+      const as = m.goals?.away || 0;
+      const homeIsHome = m.teams?.home?.name === homeName;
+      const homeGoals = homeIsHome ? hs : as;
+      const awayGoals = homeIsHome ? as : hs;
+      if (homeGoals > awayGoals) hW++;
+      else if (homeGoals < awayGoals) aW++;
+      else dr++;
+      totGoals += hs + as;
+      if (hs + as > 2.5) over25++;
+      if (hs > 0 && as > 0) btts++;
+    }
+
+    meta.h2h_home_wins = hW;
+    meta.h2h_away_wins = aW;
+    meta.h2h_draws = dr;
+    meta.h2h_total = last.length;
+    meta.h2h_avg_goals = +(totGoals / last.length).toFixed(2);
+    meta.h2h_over25 = over25;
+    meta.h2h_btts = btts;
+  }
+
+  if (Array.isArray(hForm) && hForm.length) {
+    const wf = computeWeightedForm(hForm, homeName);
+    meta.home_recent_form = wf.formStr;
+    meta.home_form_points = wf.points;
+    meta.home_form_goals_for = wf.goalsFor;
+    meta.home_form_goals_ag = wf.goalsAg;
+    meta.home_form_clean_sh = wf.cleanSheets;
+  }
+
+  if (Array.isArray(aForm) && aForm.length) {
+    const wf = computeWeightedForm(aForm, awayName);
+    meta.away_recent_form = wf.formStr;
+    meta.away_form_points = wf.points;
+    meta.away_form_goals_for = wf.goalsFor;
+    meta.away_form_goals_ag = wf.goalsAg;
+    meta.away_form_clean_sh = wf.cleanSheets;
+  }
+
+  if (meta.home_goals_for && meta.away_goals_for) {
+    meta.est_goals = +((meta.home_goals_for + meta.away_goals_for + meta.home_goals_ag + meta.away_goals_ag) / 2).toFixed(2);
+  } else if (meta.h2h_avg_goals) {
+    meta.est_goals = meta.h2h_avg_goals;
+  } else {
+    meta.est_goals = 2.45;
+  }
+
+  if (meta.home_goals_for && meta.away_goals_for) {
+    const hScores = 1 - Math.exp(-meta.home_goals_for);
+    const aScores = 1 - Math.exp(-meta.away_goals_for);
+    meta.est_btts_prob = +(hScores * aScores * 100).toFixed(1);
+  } else {
+    meta.est_btts_prob = 52;
+  }
+
+  return meta;
+}
+
+function computeWeightedForm(fixtures, teamName) {
+  let pts = 0, maxPts = 0, formStr = '', gFor = 0, gAg = 0, cs = 0;
+  const weights = [1.5, 1.4, 1.3, 1.2, 1.1, 1, 0.9, 0.8];
+  const used = fixtures.slice(0, 8);
+
+  used.forEach((f, i) => {
+    const w = weights[i] || 0.8;
+    const isHome = f.teams?.home?.name === teamName;
+    const gs = isHome ? (f.goals?.home || 0) : (f.goals?.away || 0);
+    const ga = isHome ? (f.goals?.away || 0) : (f.goals?.home || 0);
+    gFor += gs;
+    gAg += ga;
+    if (ga === 0) cs++;
+    if (gs > ga) { pts += 3 * w; formStr += 'V'; }
+    else if (gs === ga) { pts += w; formStr += 'N'; }
+    else formStr += 'D';
+    maxPts += 3 * w;
+  });
+
+  const n = Math.max(1, used.length);
+  return {
+    formStr,
+    points: maxPts > 0 ? Math.round(pts / maxPts * 100) : 50,
+    goalsFor: +(gFor / n).toFixed(2),
+    goalsAg: +(gAg / n).toFixed(2),
+    cleanSheets: cs,
+  };
+}
+
+function buildMultiSportMeta(raw, sp) {
+  const avgMap = {
+    basketball: { home: 113, away: 110, unit: 'points', est_total: 223 },
+    hockey: { home: 3.0, away: 2.7, unit: 'buts', est_total: 5.7 },
+    baseball: { home: 4.5, away: 4.5, unit: 'courses', est_total: 9.0 },
+    rugby: { home: 24, away: 21, unit: 'points', est_total: 45 },
+    handball: { home: 28, away: 26, unit: 'buts', est_total: 54 },
+    nfl: { home: 24, away: 22, unit: 'points', est_total: 46 },
+    volleyball: { home: 2.8, away: 2.4, unit: 'sets', est_total: 5.2 },
+    mma: { home: null, away: null, unit: 'rounds', est_total: null },
+  };
+  const avg = avgMap[sp] || { home: 1.3, away: 1.1, unit: 'points', est_total: 2.4 };
+  return {
+    data_source: `api_sports_${sp}`,
+    sport_type: sp,
+    avg_home: avg.home,
+    avg_away: avg.away,
+    unit: avg.unit,
+    est_total: avg.est_total,
+    est_goals: avg.est_total || 2.4,
+    est_btts_prob: sp === 'football' ? 52 : null,
+    current_score: raw.scores || null,
+  };
+}
+
+function calculateScore(opp, settings) {
+  const w = settings.scoring_weights || DEFAULT_SETTINGS.scoring_weights;
+  const subs = {
+    odds_value: calcOddsValue(opp),
+    recent_form: calcFormScore(opp),
+    h2h_history: calcH2HScore(opp),
+    stat_consistency: calcStatScore(opp),
+    market_consensus: calcConsensusScore(opp),
+    contextual_factors: calcContextScore(opp),
+    stability: calcStabilityScore(opp),
+    data_freshness: calcFreshnessScore(opp),
+  };
+
+  const total = Math.round(
+    subs.odds_value * w.odds_value +
+    subs.recent_form * w.recent_form +
+    subs.h2h_history * w.h2h_history +
+    subs.stat_consistency * w.stat_consistency +
+    subs.market_consensus * w.market_consensus +
+    subs.contextual_factors * w.contextual_factors +
+    subs.stability * w.stability +
+    subs.data_freshness * w.data_freshness
+  );
+
+  const t = clamp(total, 0, 100);
+  const betDir = getBetDirection(opp, t);
+
+  return {
+    total: t,
+    subscores: subs,
+    signal: t >= 85 ? 'EXCEPTIONNEL' : t >= 75 ? 'FORT' : t >= 65 ? 'CORRECT' : t >= 50 ? 'FAIBLE' : 'TRES FAIBLE',
+    risk_level: t >= 85 ? 'Risque mesuré' : t >= 75 ? 'Risque modéré' : t >= 65 ? 'Risque notable' : 'Risque élevé',
+    explanation: buildExplanation(subs, opp),
+    goals_prediction: predictGoals(opp),
+    ...betDir,
+  };
+}
+
+function calcOddsValue(opp) {
+  const bms = (opp.all_bookmakers || []).map(b => Number(b.odds)).filter(Boolean);
+  if (!bms.length) return opp.odds ? 45 : 30;
+  const best = Math.max(...bms);
+  const avg = bms.reduce((a, b) => a + b, 0) / bms.length;
+  const ratio = avg > 0 ? (best - avg) / avg : 0;
+  return clamp(Math.round(50 + ratio * 700 + bms.length * 2), 0, 100);
+}
+
+function calcFormScore(opp) {
+  const m = opp.metadata || {};
+  const sel = norm(opp.selection);
+  const home = norm(opp.home_team).split(' ')[0];
+  const away = norm(opp.away_team).split(' ')[0];
+
+  if (m.home_form_points !== undefined || m.away_form_points !== undefined) {
+    if (sel.includes(home)) return clamp(m.home_form_points || 50, 0, 100);
+    if (sel.includes(away)) return clamp(m.away_form_points || 50, 0, 100);
+    if (sel.includes('over')) return scoreOverUnder(m.est_goals || 2.5, opp.line || 2.5, true);
+    if (sel.includes('under')) return scoreOverUnder(m.est_goals || 2.5, opp.line || 2.5, false);
+    if (sel.includes('oui') || sel.includes('yes') || sel.includes('marquent')) return clamp(Math.round(m.est_btts_prob || 52), 0, 100);
+    if (sel.includes('non') || sel.includes('no')) return clamp(Math.round(100 - (m.est_btts_prob || 52)), 0, 100);
+  }
+
+  if (sel.includes('over')) return scoreOverUnder(m.est_goals || inferEstTotal(opp.sport, opp.market), opp.line || 2.5, true);
+  if (sel.includes('under')) return scoreOverUnder(m.est_goals || inferEstTotal(opp.sport, opp.market), opp.line || 2.5, false);
+  return 55;
+}
+
+function scoreOverUnder(est, line, isOver) {
+  const diff = isOver ? est - line : line - est;
+  return clamp(Math.round(50 + diff * 22), 15, 95);
+}
+
+function calcH2HScore(opp) {
+  const m = opp.metadata || {};
+  if (!m.h2h_total || m.h2h_total < 3) return 50;
+  const sel = norm(opp.selection);
+  const home = norm(opp.home_team).split(' ')[0];
+  const away = norm(opp.away_team).split(' ')[0];
+  if (sel.includes(home)) return clamp(Math.round(m.h2h_home_wins / m.h2h_total * 100), 10, 95);
+  if (sel.includes(away)) return clamp(Math.round(m.h2h_away_wins / m.h2h_total * 100), 10, 95);
+  if (sel.includes('nul') || sel.includes('draw')) return clamp(Math.round(m.h2h_draws / m.h2h_total * 100), 10, 70);
+  if (sel.includes('over')) return clamp(Math.round(m.h2h_over25 / m.h2h_total * 100), 10, 95);
+  if (sel.includes('under')) return clamp(Math.round((1 - m.h2h_over25 / m.h2h_total) * 100), 10, 95);
+  return 55;
+}
+
+function calcStatScore(opp) {
+  const m = opp.metadata || {};
+  const sel = norm(opp.selection);
+  const est = m.est_goals || m.est_total || inferEstTotal(opp.sport, opp.market);
+  if (sel.includes('over')) return scoreOverUnder(est, opp.line || 2.5, true);
+  if (sel.includes('under')) return scoreOverUnder(est, opp.line || 2.5, false);
+  if (sel.includes('oui') || sel.includes('yes') || sel.includes('marquent')) return clamp(Math.round(m.est_btts_prob || 52), 15, 92);
+  if (sel.includes('non') || sel.includes('no')) return clamp(Math.round(100 - (m.est_btts_prob || 52)), 15, 92);
+  return 55;
+}
+
+function calcConsensusScore(opp) {
+  const bms = (opp.all_bookmakers || []).filter(b => b.odds);
+  if (bms.length < 2) return 50;
+  const odds = bms.map(b => Number(b.odds));
+  const avg = odds.reduce((a, b) => a + b, 0) / odds.length;
+  const spread = (Math.max(...odds) - Math.min(...odds)) / avg;
+  return clamp(Math.round(100 - spread * 400 + Math.min(20, bms.length * 4)), 20, 100);
+}
+
+function calcContextScore(opp) {
+  const m = opp.metadata || {};
+  let score = 50;
+  const sel = norm(opp.selection);
+  const home = norm(opp.home_team).split(' ')[0];
+  if (m.home_wins_home && m.home_played_home && sel.includes(home)) {
+    score += ((m.home_wins_home / m.home_played_home) - 0.4) * 35;
+  }
+  if (m.home_form_clean_sh >= 3) score += 5;
+  if (m.away_form_clean_sh >= 3) score += 5;
+  if (m.data_source && m.data_source.includes('api_sports')) score += 5;
+  return clamp(Math.round(score), 0, 100);
+}
+
+function calcStabilityScore(opp) {
+  const bms = (opp.all_bookmakers || []).map(b => Number(b.odds)).filter(Boolean);
+  if (bms.length < 2) return 50;
+  const avg = bms.reduce((a, b) => a + b, 0) / bms.length;
+  const cv = Math.sqrt(bms.reduce((s, b) => s + (b - avg) ** 2, 0) / bms.length) / avg;
+  return clamp(Math.round(100 - cv * 600), 15, 100);
+}
+
+function calcFreshnessScore(opp) {
+  const s = opp.source || '';
+  if (s.includes('+')) return 100;
+  if (s.includes('odds_api')) return 75;
+  if (s.includes('api_football') || s.includes('api_sports')) return 70;
+  return 40;
+}
+
+function predictGoals(opp) {
+  const m = opp.metadata || {};
+  const g = Number(m.est_goals || m.est_total || 0);
+  if (!g) return null;
+  return {
+    expected: +g.toFixed(2),
+    over_15: clamp(Math.round(95 - Math.exp(-g * 1.2) * 70), 20, 98),
+    over_25: clamp(Math.round(80 - Math.exp(-(g - 1.5)) * 60), 10, 92),
+    over_35: clamp(Math.round(60 - Math.exp(-(g - 2)) * 55), 5, 80),
+    btts: m.est_btts_prob != null ? Math.round(m.est_btts_prob) : null,
+  };
+}
+
+function buildExplanation(subs, opp) {
+  const m = opp.metadata || {};
+  const lines = [];
+  if (subs.odds_value >= 70) lines.push('Cote supérieure à la moyenne bookmakers.');
+  else if (subs.odds_value < 45) lines.push('Valeur de cote faible ou cote indisponible.');
+  if (m.home_recent_form) lines.push(`Forme domicile : ${m.home_recent_form} (${m.home_form_points}/100).`);
+  if (m.away_recent_form) lines.push(`Forme extérieur : ${m.away_recent_form} (${m.away_form_points}/100).`);
+  if (m.h2h_total >= 3) lines.push(`H2H : ${m.h2h_home_wins}V-${m.h2h_draws}N-${m.h2h_away_wins}D sur ${m.h2h_total} matchs.`);
+  if (m.est_goals) lines.push(`Estimation total : ${m.est_goals} unités/buts.`);
+  if (subs.stability >= 70) lines.push(`Marché stable avec ${(opp.all_bookmakers || []).length} bookmakers.`);
+  if (!opp.odds) lines.push('Cote à vérifier manuellement sur le bookmaker.');
+  return lines;
+}
+
+function getBetDirection(opp, score) {
+  const sport = getSportCat(opp.sport);
+  const sel = norm(opp.selection);
+  const market = opp.market || '';
+  const meta = opp.metadata || {};
+  const odds = Number(opp.odds || 0);
+  const bms = opp.all_bookmakers || [];
+  const bestOdds = bms.length ? Math.max(...bms.map(b => Number(b.odds || 0))) : odds;
+  const avgOdds = bms.length ? bms.reduce((a, b) => a + Number(b.odds || 0), 0) / bms.length : odds;
+  const edge = avgOdds > 0 && bestOdds > 0 ? Math.round((bestOdds / avgOdds - 1) * 1000) / 10 : 0;
+  const impliedProb = bestOdds > 0 ? Math.round(1000 / bestOdds) / 10 : 0;
+
+  let direction = score >= 75 ? 'FOR' : score >= 60 ? 'WAIT' : 'SKIP';
+  let conseil = score >= 75 ? 'Signal fort, vérifier la cote finale avant décision.' : score >= 60 ? 'Signal moyen, attendre confirmation live.' : 'Valeur insuffisante.';
+  let moment = direction === 'FOR' ? 'Avant match ou live si la cote reste correcte' : direction === 'WAIT' ? 'Live uniquement' : 'Ne pas jouer';
+  let signal_type = score >= 80 ? 'strong' : 'standard';
+
+  if (sport === 'football') {
+    const estGoals = Number(meta.est_goals || 2.45);
+    const bttsProb = Number(meta.est_btts_prob || 52);
+    if (market === 'totals' && sel.includes('over')) {
+      const line = Number(opp.line || 2.5);
+      direction = estGoals > line + 0.25 ? 'FOR' : estGoals < line - 0.25 ? 'AGAINST' : 'WAIT';
+      conseil = `Moyenne estimée : ${estGoals} vs ligne ${line}.`;
+      moment = estGoals > line + 0.45 ? 'Avant le match' : 'Live 0-15 min si match ouvert';
+      signal_type = estGoals > line + 0.55 ? 'strong' : 'standard';
+    } else if (market === 'totals' && sel.includes('under')) {
+      const line = Number(opp.line || 2.5);
+      direction = estGoals < line - 0.25 ? 'FOR' : estGoals > line + 0.25 ? 'AGAINST' : 'WAIT';
+      conseil = `Moyenne estimée : ${estGoals} vs ligne ${line}.`;
+    } else if (market === 'btts') {
+      const yes = sel.includes('oui') || sel.includes('yes') || sel.includes('marquent');
+      direction = yes ? (bttsProb >= 58 ? 'FOR' : bttsProb <= 42 ? 'AGAINST' : 'WAIT') : (bttsProb <= 42 ? 'FOR' : bttsProb >= 58 ? 'AGAINST' : 'WAIT');
+      conseil = `Probabilité BTTS estimée : ${bttsProb}%.`;
+    }
+  }
+
+  if (sport === 'basketball' && market === 'h2h') {
+    direction = odds && odds <= 1.55 ? 'FOR' : odds >= 2.8 ? 'SKIP' : 'WAIT';
+    conseil = `Moneyline basket : cote ${odds || 'à vérifier'}. Favoris courts seulement.`;
+  }
+
+  if (sport === 'tennis' && market === 'h2h') {
+    direction = odds && odds <= 1.55 ? 'FOR' : odds >= 2.5 ? 'WAIT' : direction;
+    conseil = `Tennis : cote ${odds || 'à vérifier'}. Vérifier surface, forme et état physique.`;
+  }
+
+  const pinBm = [...bms].sort((a, b) => Number(b.odds || 0) - Number(a.odds || 0)).find(b => norm(b.bookmaker).includes('pinnacle'));
+  const bookmaker_tip = pinBm ? `Pinnacle : ${pinBm.odds}. Vérifier aussi Piwi 247.` : 'Comparer Piwi 247, Pinnacle et le meilleur bookmaker disponible.';
+
+  return {
+    direction,
+    conseil,
+    moment,
+    edge: edge > 0 ? edge : 0,
+    implied_prob: impliedProb,
+    bookmaker_tip,
+    dont_bet_if: direction === 'SKIP' ? 'Signal insuffisant.' : direction === 'WAIT' ? 'Si la cote baisse ou si le rythme live ne confirme pas.' : null,
+    signal_type,
+  };
+}
+
+async function getAIAnalysis(env, { home, away, competition, date, fixture, markets, mode }) {
+  if (!env.AI_API_KEY) return { error: 'AI_API_KEY non configurée. Configurez AI_PROVIDER et AI_API_KEY.' };
+
+  const prompt = `Analyse ce match en français de manière professionnelle.
+Match : ${home} vs ${away}
+Compétition : ${competition || 'non précisée'}
+Date : ${date || 'non précisée'}
+Marchés : ${(markets || []).join(', ')}
+Données fixture : ${fixture ? JSON.stringify(fixture).slice(0, 1500) : 'non disponible'}
+
+Réponds uniquement en JSON valide avec cette structure :
+{
+  "resume_executif":"...",
+  "contexte_match":{"importance":"...","momentum":"...","facteurs_terrain":"..."},
+  "analyse_equipes":{"home":{"forme":"...","forces":"...","faiblesses":"...","absences":"..."},"away":{"forme":"...","forces":"...","faiblesses":"...","absences":"..."}},
+  "head_to_head":"...",
+  "paris_recommandes":[{"pari":"...","marche":"...","confiance":65,"cote_minimale":1.5,"raisonnement":"...","moment_entrer":"...","risques":"..."}],
+  "pronostic_buts":{"over_15":{"probabilite":75,"raisonnement":"..."},"over_25":{"probabilite":55,"raisonnement":"..."},"over_35":{"probabilite":30,"raisonnement":"..."},"btts":{"probabilite":52,"raisonnement":"..."}},
+  "score_predit":{"score":"1-1","confiance":18,"scenarios_alternatifs":["2-1 (15%)"]},
+  "verdict_final":"...",
+  "disclaimer":"Analyse probabiliste, aucun gain garanti."
+}`;
+
+  try {
+    const text = await callAI(env, [{ role: 'user', content: prompt }], 'Tu es un expert senior en analyse sportive. Réponds uniquement en JSON valide.', { maxTokens: 2200 });
+    return parseJsonLoose(text) || { raw: text, parse_error: 'Réponse IA non parseable.' };
+  } catch (err) {
+    return { error: 'Analyse IA impossible : ' + err.message };
+  }
+}
+
+const EXPERT_SYS = `Tu es un analyste expert senior en paris sportifs. Réponds toujours en français, avec probabilités chiffrées, risques, moment d’entrée et disclaimer. Termine par : MON VERDICT : [pari précis] @ cote minimale [X]. Analyse probabiliste, aucun gain garanti.`;
+
+async function handleChat(req, env) {
+  let body;
+  try { body = await req.json(); } catch { return json(env, { error: 'JSON invalide' }, 400); }
+  const messages = Array.isArray(body.messages) ? body.messages.slice(-10) : [];
+  if (!messages.length) return json(env, { error: 'Aucun message' }, 400);
+
+  let ctx = '';
+  const c = body.context || {};
+  if (c.home && c.away) ctx += `Match : ${c.home} vs ${c.away}. `;
+  if (c.score_home !== undefined) ctx += `Score : ${c.score_home}-${c.score_away}. `;
+  if (c.minute) ctx += `Minute : ${c.minute}. `;
+  if (c.competition) ctx += `Compétition : ${c.competition}. `;
+  if (c.extra) ctx += `Infos : ${c.extra}. `;
+
+  try {
+    const response = await callAI(env, messages, EXPERT_SYS + (ctx ? '\nContexte : ' + ctx : ''), { maxTokens: 1600 });
+    const info = aiInfo(env);
+    return json(env, { response, provider: info.provider, model: info.model, at: new Date().toISOString() });
+  } catch (err) {
+    return json(env, { error: err.message, hint: 'Configurez AI_PROVIDER et AI_API_KEY.' }, 502);
+  }
+}
+
+async function handleStrategy(req, env) {
+  let body;
+  try { body = await req.json(); } catch { return json(env, { error: 'JSON invalide' }, 400); }
+
+  const bankroll = Number(body.bankroll || 0);
+  if (!bankroll || bankroll <= 0) return json(env, { error: 'Bankroll invalide' }, 400);
+  if (!body.bets_text && !body.image_b64) return json(env, { error: 'Image ou texte de paris requis' }, 400);
+
+  const risk = body.risk_profile || 'modere';
+  const kelly = risk === 'conservateur' ? 25 : risk === 'agressif' ? 50 : 35;
+  const input = body.bets_text || '[Image jointe : extraire les paris et cotes visibles]';
+
+  const prompt = `Bankroll : ${bankroll} EUR. Profil : ${risk}. Kelly fractionné : ${kelly}%.
+Contexte : ${body.extra || 'aucun'}
+Paris : ${input}
+
+Analyse chaque pari, estime probabilité réelle, edge, EV/100 EUR, Kelly et mise. Réponds uniquement en JSON valide avec : resume, parsed_bets[], strategy[], bankroll_summary, bets_rejected[], verdict, disclaimer.`;
+
+  try {
+    let raw;
+    if (body.image_b64) raw = await callAIVision(env, body.image_b64, body.image_type || 'image/jpeg', prompt, 'Expert bankroll et paris sportifs. Réponds uniquement en JSON valide.');
+    else raw = await callAI(env, [{ role: 'user', content: prompt }], 'Expert bankroll et paris sportifs. Réponds uniquement en JSON valide.', { maxTokens: 2600 });
+
+    const parsed = parseJsonLoose(raw);
+    if (parsed) return json(env, { strategy: parsed, provider: aiInfo(env).provider, at: new Date().toISOString() });
+    return json(env, { raw, parse_error: 'JSON invalide', provider: aiInfo(env).provider, at: new Date().toISOString() });
+  } catch (err) {
+    return json(env, { error: 'IA impossible : ' + err.message, hint: 'Pour les images, Gemini ou Anthropic sont recommandés.' }, 502);
+  }
+}
+
+async function callAI(env, messages, systemPrompt, opts = {}) {
+  const key = env.AI_API_KEY;
+  if (!key) throw new Error('AI_API_KEY non configurée');
+
+  const provider = (env.AI_PROVIDER || 'groq').toLowerCase().trim();
+  const cfg = AI_DEFAULTS[provider] || AI_DEFAULTS.groq;
+  const model = env.AI_MODEL || cfg.model;
+  const maxTok = opts.maxTokens || 2000;
+
+  if (cfg.format === 'openai') return callOpenAICompatible(key, cfg.url, model, provider, systemPrompt, messages, maxTok);
+  if (cfg.format === 'gemini') return callGemini(key, model, systemPrompt, messages, maxTok);
+  if (cfg.format === 'anthropic') return callAnthropic(key, model, systemPrompt, messages, maxTok);
+  throw new Error('Format IA inconnu : ' + cfg.format);
+}
+
+async function callOpenAICompatible(key, url, model, provider, system, messages, maxTok) {
+  const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key };
+  if (provider === 'openrouter') {
+    headers['HTTP-Referer'] = 'https://pgi-betpro.github.io';
+    headers['X-Title'] = 'PGI BetPro';
+  }
+
+  const r = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ model, max_tokens: maxTok, temperature: 0.45, messages: [{ role: 'system', content: system }, ...messages] }),
+  });
+  if (!r.ok) throw new Error(`${provider} HTTP ${r.status}: ${(await r.text()).slice(0, 250)}`);
+  return (await r.json()).choices?.[0]?.message?.content || '';
+}
+
+async function callGemini(key, model, system, messages, maxTok) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+  const contents = messages.map((m, i) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: i === 0 && m.role === 'user' ? system + '\n\n' + m.content : m.content }],
+  }));
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTok, temperature: 0.45 } }),
+  });
+  if (!r.ok) throw new Error(`Gemini HTTP ${r.status}: ${(await r.text()).slice(0, 250)}`);
+  return (await r.json()).candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function callAnthropic(key, model, system, messages, maxTok) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model, max_tokens: maxTok, system, messages }),
+  });
+  if (!r.ok) throw new Error(`Anthropic HTTP ${r.status}: ${(await r.text()).slice(0, 250)}`);
+  return (await r.json()).content?.[0]?.text || '';
+}
+
+async function callAIVision(env, b64, mime, prompt, system) {
+  const key = env.AI_API_KEY;
+  if (!key) throw new Error('AI_API_KEY non configurée');
+
+  const provider = (env.AI_PROVIDER || 'groq').toLowerCase().trim();
+
+  if (provider === 'gemini') {
+    const model = env.AI_MODEL || 'gemini-1.5-flash';
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ inline_data: { mime_type: mime, data: b64 } }, { text: system + '\n\n' + prompt }] }],
+        generationConfig: { maxOutputTokens: 2600, temperature: 0.25 },
+      }),
+    });
+    if (!r.ok) throw new Error(`Gemini vision HTTP ${r.status}: ${(await r.text()).slice(0, 180)}`);
+    return (await r.json()).candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  if (provider === 'anthropic') {
+    const model = env.AI_MODEL || 'claude-sonnet-4-20250514';
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2600,
+        system,
+        messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: mime, data: b64 } }, { type: 'text', text: prompt }] }],
+      }),
+    });
+    if (!r.ok) throw new Error(`Anthropic vision HTTP ${r.status}: ${(await r.text()).slice(0, 180)}`);
+    return (await r.json()).content?.[0]?.text || '';
+  }
+
+  throw new Error('Analyse image non supportée avec ce fournisseur. Utilisez AI_PROVIDER=gemini ou anthropic.');
+}
+
+function aiInfo(env) {
+  const provider = (env.AI_PROVIDER || 'groq').toLowerCase().trim();
+  const cfg = AI_DEFAULTS[provider] || AI_DEFAULTS.groq;
+  const freeInfo = {
+    groq: 'Quota gratuit disponible selon votre compte Groq. Rapide pour texte.',
+    gemini: 'Quota gratuit disponible selon votre compte Google AI Studio. Compatible images.',
+    openrouter: 'Modèles gratuits variables selon disponibilité.',
+    anthropic: 'Payant. Très bon pour texte et image.',
+  };
+  return {
+    provider,
+    model: env.AI_MODEL || cfg.model,
+    configured: !!env.AI_API_KEY,
+    free_info: freeInfo[provider] || '',
+    available_providers: Object.keys(AI_DEFAULTS),
+  };
+}
+
+async function getSettings(env) {
+  const s = await kv(env).get('settings', 'json');
+  return { ...DEFAULT_SETTINGS, ...(s || {}) };
+}
+
+async function handleSaveSettings(req, env) {
+  let b;
+  try { b = await req.json(); } catch { return json(env, { error: 'JSON invalide' }, 400); }
+  const cur = await getSettings(env);
+  await kv(env).put('settings', JSON.stringify({ ...cur, ...b }));
+  return json(env, { ok: true });
+}
+
+async function getQuotas(env) {
+  const today = dateStr();
+  const [afoot, aodds, orem] = await Promise.all([
+    kv(env).get(`quota:afoot:${today}`),
+    kv(env).get(`quota:odds:${today}`),
+    kv(env).get('quota:odds_remaining'),
+  ]);
+  return {
+    api_football_today: Number(afoot || 0),
+    api_football_daily_limit: 100,
+    odds_api_used_today: Number(aodds || 0),
+    odds_api_credits_remaining: Number(orem ?? 500),
+    odds_api_monthly_limit: 500,
+    date: today,
+  };
+}
+
+async function incQuota(env, src) {
+  const k = src === 'api_football' ? `quota:afoot:${dateStr()}` : `quota:odds:${dateStr()}`;
+  const c = Number(await kv(env).get(k) || 0);
+  await kv(env).put(k, String(c + 1), { expirationTtl: 86400 * 2 });
+}
+
+async function handleHistory(env, url) {
+  const limit = clamp(Number(url.searchParams.get('limit') || 60), 1, 500);
+  try {
+    const list = await kv(env).list({ prefix: 'alert:sent:', limit });
+    const items = await Promise.all(list.keys.map(k => kv(env).get(k.name, 'json')));
+    return json(env, { history: items.filter(Boolean).sort((a, b) => String(b.sent_at).localeCompare(String(a.sent_at))) });
+  } catch {
+    return json(env, { history: [] });
+  }
+}
+
+async function handleTestAlert(env) {
+  const opp = {
+    event_id: 'test_' + Date.now(),
+    home_team: 'Arsenal',
+    away_team: 'Chelsea',
+    competition: 'Premier League',
+    sport: 'soccer_epl',
+    market: 'totals',
+    selection: 'Over 2.5',
+    odds: 1.88,
+    bookmaker: 'Test Bookmaker',
+    start_time: new Date(Date.now() + 86400000).toISOString(),
+    source: 'test',
+    all_bookmakers: [{ bookmaker: 'Book A', odds: 1.88 }, { bookmaker: 'Book B', odds: 1.85 }, { bookmaker: 'Book C', odds: 1.9 }],
+    metadata: { home_recent_form: 'VVDVV', away_recent_form: 'DVVND', home_form_points: 75, away_form_points: 62, est_goals: 2.8, est_btts_prob: 61, h2h_total: 6, h2h_home_wins: 2, h2h_away_wins: 2, h2h_draws: 2, h2h_over25: 4, h2h_btts: 4, h2h_avg_goals: 2.8 },
+  };
+  opp.score = calculateScore(opp, await getSettings(env));
+  const sent = await sendAlert(env, opp, true);
+  return json(env, { ok: sent, message: sent ? 'Email de test envoyé.' : 'Non envoyé : vérifiez RESEND_API_KEY, EMAIL_TO et EMAIL_FROM.' });
+}
+
+async function sendAlert(env, opp, force = false) {
+  if (!env.EMAIL_TO || !env.RESEND_API_KEY) return false;
+  const dupKey = `alert:sent:${opp.event_id}:${opp.market}:${safeKey(opp.selection).slice(0, 40)}`;
+  if (!force && await kv(env).get(dupKey)) return false;
+
+  const s = opp.score || {};
+  const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#060810;color:#d8e8f8;padding:24px"><div style="max-width:620px;margin:auto;background:#0b0f1c;border:1px solid #192236;border-radius:12px;padding:24px"><h1 style="color:#00d4ff">PGI BetPro</h1><p>Signal : <b>${escapeHtml(s.signal || '')}</b></p><h2>${escapeHtml(opp.home_team)} vs ${escapeHtml(opp.away_team)}</h2><p>${escapeHtml(opp.competition || '')} — ${escapeHtml(String(opp.start_time || ''))}</p><p>Sélection : <b style="color:#00d4ff">${escapeHtml(opp.selection || '')}</b></p><p>Cote : <b style="color:#f59e0b">${escapeHtml(String(opp.odds || 'à vérifier'))}</b></p><p>Bookmaker : ${escapeHtml(opp.bookmaker || '')}</p><p>Score : <b>${escapeHtml(String(s.total || '?'))}/100</b></p><ul>${(s.explanation || []).map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul><p style="color:#8ca3bd;font-size:12px">Analyse probabiliste. Aucun gain garanti. Jouez de manière responsable.</p></div></body></html>`;
+
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: env.EMAIL_FROM || 'alerts@example.com',
+        to: [env.EMAIL_TO],
+        subject: `${s.signal || 'Signal'} ${s.total || '?'}/100 — ${opp.home_team} vs ${opp.away_team}`,
+        html,
+      }),
+    });
+    if (!r.ok) return false;
+    await kv(env).put(dupKey, JSON.stringify({ ...opp, sent_at: new Date().toISOString() }), { expirationTtl: 86400 * 14 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function runScheduledScan(env) {
+  try {
+    assertKV(env);
+    const settings = await getSettings(env);
+    if (!settings.scan_enabled) return;
+
+    const sports = settings.alert_filter_sports?.length ? settings.alert_filter_sports : settings.sports || DEFAULT_SETTINGS.sports;
+    const markets = settings.alert_filter_markets?.length ? settings.alert_filter_markets : settings.markets || DEFAULT_SETTINGS.markets;
+    const today = dateStr();
+    let alertCnt = Number(await kv(env).get(`alerts:count:${today}`) || 0);
+    const maxDay = Number(settings.max_alerts_per_day || 5);
+
+    for (const sport of sports) {
+      if (alertCnt >= maxDay) break;
+      for (const market of markets) {
+        if (alertCnt >= maxDay) break;
+        try {
+          const opps = await handleAnalyzeInternal(sport, market, 'quick', env, settings);
+          const scored = opps
+            .filter(o => (o.score?.total || 0) >= (settings.min_alert_score || 75))
+            .filter(o => !o.odds || (o.odds >= (settings.alert_min_odds || 1.4) && o.odds <= (settings.alert_max_odds || 5)))
+            .sort((a, b) => (b.score?.total || 0) - (a.score?.total || 0));
+
+          for (const opp of scored.slice(0, 2)) {
+            if (alertCnt >= maxDay) break;
+            const sent = await sendAlert(env, opp);
+            if (sent) {
+              alertCnt++;
+              await kv(env).put(`alerts:count:${today}`, String(alertCnt), { expirationTtl: 86400 * 2 });
+              await sleep(500);
+            }
+          }
+        } catch (err) {
+          console.error(`Scheduled scan ${sport}/${market}:`, err.message);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Scheduled scan failed:', err.message);
+  }
+}
+
+function runLiveModel(params) {
+  const minute = Number(params.minute || 45);
+  const scoreHome = Number(params.scoreHome || 0);
+  const scoreAway = Number(params.scoreAway || 0);
+  const totalMin = params.extraTime ? 120 : 90;
+  const minLeft = Math.max(1, totalMin - minute);
+  const fracLeft = minLeft / 90;
+
+  const lambdaHome = Number(params.lambdaHome || 1.4);
+  const lambdaAway = Number(params.lambdaAway || 1.1);
+
+  let lH = lambdaHome * fracLeft * (params.redCardHome ? 0.72 : 1) * (params.redCardAway ? 1.12 : 1);
+  let lA = lambdaAway * fracLeft * (params.redCardAway ? 0.72 : 1) * (params.redCardHome ? 1.12 : 1);
+
+  const totalShots = Math.max(1, Number(params.homeShots || 0) + Number(params.awayShots || 0));
+  const totalCorners = Math.max(1, Number(params.homeCorners || 0) + Number(params.awayCorners || 0));
+  const momH = ((Number(params.homeShots || 0) / totalShots) - 0.5) * 0.28 + ((Number(params.homeCorners || 0) / totalCorners) - 0.5) * 0.12;
+  const momA = ((Number(params.awayShots || 0) / totalShots) - 0.5) * 0.28 + ((Number(params.awayCorners || 0) / totalCorners) - 0.5) * 0.12;
+
+  lH = Math.max(0.04, lH * (1 + momH));
+  lA = Math.max(0.04, lA * (1 + momA));
+
+  const pH = computePoisson(lH);
+  const pA = computePoisson(lA);
+
+  let pHW = 0, pD = 0, pAW = 0, p05 = 0, p15 = 0, p25 = 0, p35 = 0, pBTTS = 0;
+  const scoreMtx = [];
+
+  for (let h = 0; h <= 7; h++) {
+    for (let a = 0; a <= 7; a++) {
+      const p = (pH[h] || 0) * (pA[a] || 0);
+      const fH = scoreHome + h;
+      const fA = scoreAway + a;
+      const total = fH + fA;
+      if (fH > fA) pHW += p;
+      else if (fH === fA) pD += p;
+      else pAW += p;
+      if (total > 0.5) p05 += p;
+      if (total > 1.5) p15 += p;
+      if (total > 2.5) p25 += p;
+      if (total > 3.5) p35 += p;
+      if (fH > 0 && fA > 0) pBTTS += p;
+      if (h <= 4 && a <= 4) scoreMtx.push({ h: fH, a: fA, p: Math.round(p * 10000) / 100 });
+    }
+  }
+
+  scoreMtx.sort((a, b) => b.p - a.p);
+  const lH5 = lH * (Math.min(5, minLeft) / minLeft);
+  const lA5 = lA * (Math.min(5, minLeft) / minLeft);
+  const pNext5 = 1 - Math.exp(-(lH5 + lA5));
+
+  return {
+    lambdas: { home: round(lH, 2), away: round(lA, 2) },
+    minutes_left: minLeft,
+    outcomes: { home_win: pct(pHW), draw: pct(pD), away_win: pct(pAW) },
+    totals: { over_05: pct(p05), over_15: pct(p15), over_25: pct(p25), over_35: pct(p35) },
+    btts: pct(pBTTS),
+    next_goal: {
+      within_5min: pct(pNext5),
+      home_pct: lH5 + lA5 > 0 ? round((lH5 / (lH5 + lA5)) * 100, 1) : 50,
+      away_pct: lH5 + lA5 > 0 ? round((lA5 / (lH5 + lA5)) * 100, 1) : 50,
+    },
+    top_scores: scoreMtx.slice(0, 6),
+    context: {
+      late_game: minute >= 70,
+      closing: minute >= 80,
+      momentum: momH > 0.06 ? 'home' : momA > 0.06 ? 'away' : 'balanced',
+      red_card_impact: !!(params.redCardHome || params.redCardAway),
+    },
+  };
+}
+
+function computePoisson(lambda) {
+  const probs = [];
+  let fact = 1;
+  const eL = Math.exp(-lambda);
+  for (let k = 0; k <= 8; k++) {
+    if (k > 0) fact *= k;
+    probs.push(eL * Math.pow(lambda, k) / fact);
+  }
+  return probs;
+}
+
+function detectLiveValue(modelProbs, liveOdds) {
+  if (!liveOdds || !modelProbs) return [];
+  const checks = [
+    { key: 'home_win', prob: modelProbs.outcomes.home_win, label: 'Victoire domicile' },
+    { key: 'draw', prob: modelProbs.outcomes.draw, label: 'Match nul' },
+    { key: 'away_win', prob: modelProbs.outcomes.away_win, label: 'Victoire extérieur' },
+    { key: 'over_15', prob: modelProbs.totals.over_15, label: 'Over 1.5' },
+    { key: 'over_25', prob: modelProbs.totals.over_25, label: 'Over 2.5' },
+    { key: 'over_35', prob: modelProbs.totals.over_35, label: 'Over 3.5' },
+    { key: 'btts', prob: modelProbs.btts, label: 'BTTS Oui' },
+  ];
+  return checks.flatMap(c => {
+    const lo = Number(liveOdds[c.key] || 0);
+    if (!lo || c.prob < 5 || c.prob > 97) return [];
+    const modelOdds = 100 / c.prob;
+    const edge = ((lo / modelOdds) - 1) * 100;
+    if (edge <= 2) return [];
+    return [{ ...c, model_odds: round(modelOdds, 2), live_odds: lo, edge: round(edge, 1), signal: edge > 8 ? 'FORT' : edge > 4 ? 'MODERE' : 'FAIBLE' }];
+  }).sort((a, b) => b.edge - a.edge);
+}
+
+function parseJsonLoose(text) {
+  if (!text) return null;
+  const cleaned = String(text).replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch {}
+  }
+  return null;
+}
+
+function getApiSportsConfig(sport) {
+  return API_SPORTS_ENDPOINTS[sport] || null;
+}
+
+function getSportCat(sport) {
+  const s = (sport || '').toLowerCase();
+  if (s.startsWith('soccer_')) return 'football';
+  if (s.startsWith('basketball_')) return 'basketball';
+  if (s.startsWith('tennis_')) return 'tennis';
+  if (s.startsWith('icehockey_')) return 'hockey';
+  if (s.startsWith('baseball_')) return 'baseball';
+  if (s.startsWith('rugbyunion_') || s.startsWith('rugbyleague_')) return 'rugby';
+  if (s.startsWith('handball_')) return 'handball';
+  if (s.startsWith('americanfootball_')) return 'nfl';
+  if (s.startsWith('mma_')) return 'mma';
+  if (s.startsWith('boxing_')) return 'boxing';
+  if (s.startsWith('volleyball_')) return 'volleyball';
+  if (s.startsWith('cricket_')) return 'cricket';
+  return 'unknown';
+}
+
+function inferEstTotal(sport, market) {
+  const cat = getSportCat(sport);
+  if (cat === 'basketball') return 223;
+  if (cat === 'hockey') return 5.7;
+  if (cat === 'baseball') return 9;
+  if (cat === 'rugby') return 45;
+  if (cat === 'handball') return 54;
+  if (cat === 'nfl') return 46;
+  return 2.45;
+}
+
+function findOddsEvent(oddsMap, home, away) {
+  const targetHome = norm(home);
+  const targetAway = norm(away);
+  const targetHomeFirst = targetHome.split(' ')[0];
+  const targetAwayFirst = targetAway.split(' ')[0];
+  for (const [k, ev] of Object.entries(oddsMap || {})) {
+    const [h, a] = k.split('||');
+    const okHome = h.includes(targetHomeFirst) || targetHome.includes(h.split(' ')[0]);
+    const okAway = a.includes(targetAwayFirst) || targetAway.includes(a.split(' ')[0]);
+    if (okHome || okAway) return ev;
+  }
+  return null;
+}
+
+function matchKey(home, away) {
+  return `${norm(home)}||${norm(away)}`;
+}
+
+function dedupeOpps(opps) {
+  const seen = new Set();
+  const out = [];
+  for (const o of opps) {
+    const k = `${o.event_id}|${o.market}|${o.selection}|${o.line ?? ''}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(o);
+  }
+  return out;
+}
+
+function unique(arr) {
+  return [...new Set(arr.filter(v => v !== undefined && v !== null))];
+}
+
+function dateStr(off = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + off);
+  return d.toISOString().split('T')[0];
+}
+
+function clamp(v, a, b) {
+  return Math.max(a, Math.min(b, Number(v) || 0));
+}
+
+function norm(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function round(v, n = 2) {
+  const p = 10 ** n;
+  return Math.round(Number(v || 0) * p) / p;
+}
+
+function pct(v) {
+  return round(Number(v || 0) * 100, 1);
+}
+
+function safeKey(s) {
+  return norm(s).replace(/\s+/g, '_');
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function fmtSport(s) {
+  return String(s || '').replace('soccer_', 'Football ').replace('basketball_', 'Basketball ').replace('tennis_', 'Tennis ').replace('icehockey_', 'Hockey ').replace('baseball_', 'Baseball ').replace('americanfootball_', 'NFL ').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
