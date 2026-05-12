@@ -490,6 +490,20 @@ a{color:var(--neon);text-decoration:none}
   .scan-sport-btns .ssb{font-size:9px!important;padding:4px 7px!important}
   .tracker-add-form{grid-template-columns:1fr!important}
 }
+
+/* ═══ NOTES ═══ */
+.note-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px;transition:border-color .2s;animation:fa .25s ease}
+.note-card:hover{border-color:var(--bd2)}
+.note-card.unsaved{border-color:rgba(167,139,250,.5)}
+.note-title-input{width:100%;background:transparent;border:none;color:var(--tx);font-family:var(--hd);font-size:15px;font-weight:700;outline:none;margin-bottom:8px;padding:0}
+.note-title-input::placeholder{color:var(--dm)}
+.note-body{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;color:var(--mu);font-family:var(--mo);font-size:12px;line-height:1.75;outline:none;resize:none;overflow:hidden;min-height:80px;transition:border .2s}
+.note-body:focus{border-color:var(--pu);color:var(--tx)}
+.note-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:6px}
+.note-date{font-size:9px;font-family:var(--mo);color:var(--dm)}
+.note-tag{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 7px;border-radius:4px;font-family:var(--mo);font-weight:600}
+.note-saved{background:var(--grb);color:var(--gr)}
+.note-unsaved{background:var(--pub);color:var(--pu)}
 </style>
 </head>
 <body>
@@ -556,6 +570,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="strategy" onclick="go('strategy')"><span class="ni-i">🏆</span>Stratégie Gagnante</div>
     <div class="ni"    data-s="methods"  onclick="go('methods')" ><span class="ni-i">🎲</span>Méthodes de Paris</div>
     <div class="ni"    data-s="blackjack" onclick="go('blackjack')"><span class="ni-i">🃏</span>BlackJack Pro</div>
+    <div class="ni"    data-s="notes"    onclick="go('notes')"   ><span class="ni-i">📝</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings" onclick="go('settings')"><span class="ni-i">⚙</span>Paramètres</div>
     <div class="ni"    data-s="install"  onclick="go('install')" ><span class="ni-i">📖</span>Installation</div>
   </div>
@@ -951,133 +966,107 @@ wrangler deploy</pre></div>
 <section class="sec" id="s-blackjack">
   <div class="ph">
     <div class="pt">🃏 BlackJack Pro</div>
-    <div class="ps">Comptage de cartes · Stratégie de base · Gestion de bankroll — casinos en ligne.</div>
+    <div class="ps">Comptez les cartes en temps réel · Stratégie optimale · Casinos en ligne</div>
   </div>
 
   <!-- HERO -->
-  <div style="background:linear-gradient(135deg,rgba(34,211,165,.08),rgba(245,158,11,.06));border:1px solid rgba(34,211,165,.3);border-radius:14px;padding:18px 20px;margin-bottom:16px">
-    <div style="font-family:var(--hd);font-size:15px;font-weight:800;color:var(--gr);margin-bottom:6px">Système de comptage professionnel Hi-Lo</div>
-    <div style="font-size:12px;color:var(--mu);line-height:1.7">Le comptage de cartes n'est pas illégal — c'est une technique mathématique. Le système Hi-Lo est le plus utilisé par les professionnels : simple, précis et redoutable sur les tables à faible nombre de decks.</div>
+  <div style="background:linear-gradient(135deg,rgba(34,211,165,.08),rgba(245,158,11,.06));border:1px solid rgba(34,211,165,.3);border-radius:14px;padding:16px 18px;margin-bottom:14px">
+    <div style="font-family:var(--hd);font-size:14px;font-weight:800;color:var(--gr);margin-bottom:5px">Système Hi-Lo — Le plus utilisé par les professionnels</div>
+    <div style="font-size:12px;color:var(--mu);line-height:1.65">Le comptage de cartes est <strong>légal</strong> — c'est une technique mathématique pure. Cliquez chaque carte dès qu'elle apparaît sur l'écran du casino. Le système calcule automatiquement votre avantage et vous dit exactement quoi faire.</div>
   </div>
 
-  <!-- TABS -->
-  <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
-    <button class="fbtn on" id="bj-tab-count"    onclick="bjTab('count')">🔢 Compteur live</button>
+  <!-- ONGLETS -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="fbtn on" id="bj-tab-count"    onclick="bjTab('count')">🃏 Compteur live</button>
     <button class="fbtn"    id="bj-tab-strategy"  onclick="bjTab('strategy')">📋 Stratégie de base</button>
-    <button class="fbtn"    id="bj-tab-systems"   onclick="bjTab('systems')">🧮 Systèmes de comptage</button>
-    <button class="fbtn"    id="bj-tab-bankroll"  onclick="bjTab('bankroll')">💰 Bankroll & Mises</button>
-    <button class="fbtn"    id="bj-tab-tips"      onclick="bjTab('tips')">🎯 Conseils casino</button>
+    <button class="fbtn"    id="bj-tab-systems"   onclick="bjTab('systems')">🧮 Systèmes</button>
+    <button class="fbtn"    id="bj-tab-bankroll"  onclick="bjTab('bankroll')">💰 Bankroll</button>
+    <button class="fbtn"    id="bj-tab-tips"      onclick="bjTab('tips')">🎯 Conseils</button>
   </div>
 
   <!-- ═ COMPTEUR LIVE ═ -->
   <div id="bj-panel-count">
-    <div class="card" style="border-color:rgba(34,211,165,.3);padding:12px">
-      <div class="ct" style="margin-bottom:10px">🃏 Tapez les cartes que vous voyez — rapide comme au casino</div>
 
-      <!-- STATS ROW -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:10px;text-align:center">
-          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo)">Compte courant (RC)</div>
-          <div id="bj-running" style="font-family:var(--mo);font-size:30px;font-weight:700;color:var(--neon);transition:all .2s">0</div>
-        </div>
-        <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:10px;text-align:center">
-          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo)">Compte vrai (TC)</div>
-          <div id="bj-true" style="font-family:var(--mo);font-size:30px;font-weight:700;color:var(--am);transition:all .2s">0</div>
-        </div>
-        <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:10px;text-align:center">
-          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo)">Sabots restants</div>
-          <div id="bj-decks-left" style="font-family:var(--mo);font-size:30px;font-weight:700;color:var(--mu);transition:all .2s">6</div>
-        </div>
+    <!-- PARAMÈTRES RAPIDES -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+      <div class="fgrp"><label>Sabots</label>
+        <select id="bj-decks" onchange="bjFullRefresh()" style="font-size:12px;padding:6px 8px">
+          <option value="1">1</option><option value="2">2</option>
+          <option value="4">4</option><option value="6" selected>6</option><option value="8">8</option>
+        </select>
       </div>
+      <div class="fgrp"><label>Bankroll (€)</label><input type="number" id="bj-bankroll" value="200" min="20" onchange="bjFullRefresh()" style="font-size:12px;padding:6px 8px"></div>
+      <div class="fgrp"><label>Mise min (€)</label><input type="number" id="bj-min-bet"  value="5"   min="1"  onchange="bjFullRefresh()" style="font-size:12px;padding:6px 8px"></div>
+      <div class="fgrp"><label>Mise max (€)</label><input type="number" id="bj-max-bet"  value="200" min="10" onchange="bjFullRefresh()" style="font-size:12px;padding:6px 8px"></div>
+    </div>
 
-      <!-- ADVANTAGE BAR -->
-      <div style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu);font-family:var(--mo);margin-bottom:3px">
-          <span>Avantage casino</span>
-          <span id="bj-edge-label" style="font-weight:700;color:var(--dm)">Neutre</span>
-          <span>Avantage joueur</span>
-        </div>
-        <div style="height:8px;background:var(--bd);border-radius:4px;overflow:hidden;position:relative">
-          <div id="bj-edge-bar" style="height:100%;width:50%;background:var(--dm);border-radius:4px;transition:all .4s"></div>
-          <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.2)"></div>
-        </div>
+    <!-- COMPTEURS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:10px;text-align:center">
+        <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mo);margin-bottom:3px">Compte courant</div>
+        <div id="bj-rc" style="font-family:var(--mo);font-size:28px;font-weight:700;color:var(--neon);transition:all .15s">0</div>
+        <div style="font-size:8px;color:var(--dm);font-family:var(--mo)">somme des cartes vues</div>
       </div>
-
-      <!-- BET REC -->
-      <div id="bj-bet-rec" style="background:rgba(34,211,165,.07);border:1px solid rgba(34,211,165,.2);border-radius:8px;padding:10px 13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em">Mise recommandée</div>
-          <div id="bj-bet-reason" style="font-size:10px;color:var(--mu);margin-top:2px">Tapez les cartes vues → appuyez "Dois-je jouer ?"</div>
-        </div>
-        <div id="bj-bet-amount" style="font-family:var(--mo);font-size:24px;font-weight:700;color:var(--gr)">—</div>
+      <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:10px;text-align:center">
+        <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mo);margin-bottom:3px">Compte vrai (TC)</div>
+        <div id="bj-tc" style="font-family:var(--mo);font-size:28px;font-weight:700;color:var(--am);transition:all .15s">0</div>
+        <div style="font-size:8px;color:var(--dm);font-family:var(--mo)">÷ sabots restants</div>
       </div>
-
-      <!-- GRILLE 52 CARTES — une ligne par couleur -->
-      <div style="font-size:9px;color:var(--neon);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mo)">↓ Tapez chaque carte dès qu'elle apparaît à l'écran</div>
-      <div id="bj-card-grid" style="margin-bottom:8px">
-        <!-- généré par bjBuildCardGrid() -->
+      <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:10px;text-align:center">
+        <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mo);margin-bottom:3px">Sabots restants</div>
+        <div id="bj-dl" style="font-family:var(--mo);font-size:28px;font-weight:700;color:var(--mu);transition:all .15s">6.0</div>
+        <div style="font-size:8px;color:var(--dm);font-family:var(--mo)"><span id="bj-seen">0</span> cartes vues</div>
       </div>
+    </div>
 
-      <!-- DÉCISION PANEL -->
-      <div id="bj-decision-panel" style="display:none;margin-bottom:12px"></div>
-
-      <!-- BOUTON PRINCIPAL -->
-      <button onclick="bjAskDecision()" id="bj-main-btn"
-        style="width:100%;padding:15px;margin-bottom:12px;
-        background:linear-gradient(135deg,rgba(34,211,165,.25),rgba(0,212,255,.18));
-        border:2px solid rgba(34,211,165,.6);border-radius:11px;color:#22d3a5;
-        font-family:var(--hd);font-size:15px;font-weight:800;cursor:pointer;
-        transition:all .2s;letter-spacing:.02em;
-        box-shadow:0 0 18px rgba(34,211,165,.2);
-        -webkit-tap-highlight-color:transparent;touch-action:manipulation">
-        🎯 DOIS-JE JOUER ?
-      </button>
-
-      <!-- CARTES MÉMORISÉES -->
-      <div style="margin-bottom:10px">
-        <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Cartes vues cette main (tapez sur une carte pour la retirer)</div>
-        <div id="bj-table-cards" style="display:flex;gap:4px;flex-wrap:wrap;min-height:36px;background:rgba(6,8,16,.4);border:1px dashed var(--bd);border-radius:8px;padding:6px">
-          <span style="font-size:10px;color:var(--dm);font-family:var(--mo);align-self:center">Tapez les cartes ci-dessus…</span>
-        </div>
+    <!-- DÉCISION PRINCIPALE -->
+    <div id="bj-decision" style="border-radius:12px;padding:14px 16px;margin-bottom:12px;border:2px solid var(--bd);background:var(--sf2);transition:all .3s">
+      <div style="font-family:var(--hd);font-size:18px;font-weight:800;color:var(--mu);margin-bottom:4px">Cliquez des cartes pour commencer</div>
+      <div id="bj-decision-sub" style="font-size:11px;color:var(--dm);line-height:1.6">Sélectionnez chaque carte visible sur votre écran de casino dès qu'elle apparaît.</div>
+      <div id="bj-decision-bet" style="margin-top:8px;display:none">
+        <span style="font-size:10px;color:var(--dm)">Mise conseillée : </span>
+        <span id="bj-bet-val" style="font-family:var(--mo);font-size:20px;font-weight:700">—</span>
       </div>
+    </div>
 
-      <!-- CONTROLS -->
-      <div class="bg" style="margin-bottom:10px">
-        <button class="btn bp" onclick="bjNewShoe()" style="font-size:11px">🔀 Nouveau sabot</button>
-        <button class="btn bs" onclick="bjUndo()" style="font-size:11px">↩ Annuler</button>
-        <button class="btn bs" onclick="bjResetTable()" style="font-size:11px">🗑 Fin de main</button>
-      </div>
+    <!-- GRILLE 52 CARTES -->
+    <div style="font-size:9px;color:var(--neon);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:var(--mo)">
+      ↓ Tapez chaque carte dès qu'elle sort · Carte grisée = déjà comptée · Re-cliquez pour annuler
+    </div>
+    <!-- Header valeurs Hi-Lo -->
+    <div style="display:grid;grid-template-columns:repeat(13,1fr);gap:2px;margin-bottom:2px">
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#22d3a5;font-weight:700">+1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#22d3a5;font-weight:700">+1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#22d3a5;font-weight:700">+1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#22d3a5;font-weight:700">+1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#22d3a5;font-weight:700">+1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#4e6a8a;font-weight:700">0</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#4e6a8a;font-weight:700">0</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#4e6a8a;font-weight:700">0</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#ef4444;font-weight:700">-1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#ef4444;font-weight:700">-1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#ef4444;font-weight:700">-1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#ef4444;font-weight:700">-1</div>
+      <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#ef4444;font-weight:700">-1</div>
+    </div>
+    <!-- 4 lignes de cartes (une par couleur) -->
+    <div id="bj-grid" style="display:grid;grid-template-columns:repeat(13,1fr);gap:2px;margin-bottom:10px">
+      <!-- généré par bjBuildGrid() -->
+    </div>
 
-      <!-- PARAMS -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div class="fgrp">
-          <label>Nombre de decks</label>
-          <select id="bj-decks" onchange="bjUpdateDecks()">
-            <option value="1">1 deck</option><option value="2">2 decks</option>
-            <option value="4">4 decks</option><option value="6" selected>6 decks</option>
-            <option value="8">8 decks</option>
-          </select>
-        </div>
-        <div class="fgrp">
-          <label>Bankroll session (€)</label>
-          <input type="number" id="bj-bankroll" value="200" min="20" max="100000">
-        </div>
-        <div class="fgrp">
-          <label>Mise min. table (€)</label>
-          <input type="number" id="bj-min-bet" value="5" min="1" max="1000">
-        </div>
-        <div class="fgrp">
-          <label>Mise max. table (€)</label>
-          <input type="number" id="bj-max-bet" value="200" min="10" max="50000">
-        </div>
+    <!-- CARTES SÉLECTIONNÉES -->
+    <div style="margin-bottom:10px">
+      <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-family:var(--mo)">Cartes mémorisées — cliquez pour retirer</div>
+      <div id="bj-selected" style="min-height:38px;display:flex;gap:3px;flex-wrap:wrap;padding:6px;background:rgba(6,8,16,.6);border:1px dashed var(--bd);border-radius:8px">
+        <span id="bj-selected-empty" style="font-size:10px;color:var(--dm);font-family:var(--mo);align-self:center">Aucune carte sélectionnée</span>
       </div>
+    </div>
 
-      <!-- STATS -->
-      <div style="font-size:9px;color:var(--dm);font-family:var(--mo);padding:6px 10px;background:var(--sf2);border-radius:6px">
-        Cartes vues : <span id="bj-cards-seen" style="color:var(--mu)">0</span>
-        · Deck joué à <span id="bj-deck-pct" style="color:var(--mu)">0</span>%
-        · Hi-Lo value : <span id="bj-hilo-info" style="color:var(--mu)">—</span>
-      </div>
+    <!-- CONTRÔLES -->
+    <div class="bg">
+      <button class="btn bp" onclick="bjNewShoe()" style="font-size:11px">🔀 Nouveau sabot</button>
+      <button class="btn bs"  onclick="bjUndoLast()" style="font-size:11px">↩ Annuler dernière</button>
+      <button class="btn bs"  onclick="bjClearHand()" style="font-size:11px">🗑 Fin de main</button>
     </div>
   </div>
 
@@ -1085,223 +1074,157 @@ wrangler deploy</pre></div>
   <div id="bj-panel-strategy" style="display:none">
     <div class="card">
       <div class="ct">📋 Stratégie de base — Table complète</div>
-      <div class="info" style="margin-bottom:12px">La stratégie de base réduit l'avantage casino à <strong>&lt;0.5%</strong>. Mémorisez-la parfaitement avant d'appliquer le comptage.</div>
+      <div class="info">La stratégie de base réduit l'avantage casino à moins de 0.5%. Mémorisez-la avant d'appliquer le comptage.</div>
       <div style="overflow-x:auto">
-        <table id="bj-strategy-table" style="width:100%;border-collapse:collapse;font-size:10px;font-family:var(--mo);min-width:320px">
-          <thead>
-            <tr>
-              <th style="padding:5px 3px;color:var(--dm);font-size:8px;text-align:center;border-bottom:1px solid var(--bd)">Main\Croupier</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">2</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">3</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">4</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">5</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">6</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">7</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">8</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">9</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">10</th>
-              <th style="padding:5px 3px;color:var(--mu);font-size:9px;text-align:center">A</th>
-            </tr>
-          </thead>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;font-family:var(--mo);min-width:300px">
+          <thead><tr>
+            <th style="padding:4px 3px;color:var(--dm);font-size:8px;border-bottom:1px solid var(--bd)">Main / Croupier</th>
+            <th style="padding:4px 3px;text-align:center;color:var(--mu)">2</th><th style="padding:4px 3px;text-align:center;color:var(--mu)">3</th>
+            <th style="padding:4px 3px;text-align:center;color:var(--mu)">4</th><th style="padding:4px 3px;text-align:center;color:var(--mu)">5</th>
+            <th style="padding:4px 3px;text-align:center;color:var(--mu)">6</th><th style="padding:4px 3px;text-align:center;color:var(--mu)">7</th>
+            <th style="padding:4px 3px;text-align:center;color:var(--mu)">8</th><th style="padding:4px 3px;text-align:center;color:var(--mu)">9</th>
+            <th style="padding:4px 3px;text-align:center;color:var(--mu)">10</th><th style="padding:4px 3px;text-align:center;color:var(--mu)">A</th>
+          </tr></thead>
           <tbody id="bj-strat-body"></tbody>
         </table>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(34,211,165,.15);color:var(--gr);font-family:var(--mo)">T = Tirer</span>
-        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(239,68,68,.12);color:var(--re);font-family:var(--mo)">R = Rester</span>
-        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(0,212,255,.12);color:var(--neon);font-family:var(--mo)">D = Doubler</span>
-        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(167,139,250,.12);color:var(--pu);font-family:var(--mo)">S = Séparer</span>
-        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(245,158,11,.12);color:var(--am);font-family:var(--mo)">A = Abandonner</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(34,211,165,.15);color:var(--gr);font-family:var(--mo)">T = Tirer (prendre une carte)</span>
+        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(239,68,68,.12);color:var(--re);font-family:var(--mo)">R = Rester (ne pas tirer)</span>
+        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(0,212,255,.12);color:var(--neon);font-family:var(--mo)">D = Doubler (mise ×2)</span>
+        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(167,139,250,.12);color:var(--pu);font-family:var(--mo)">S = Séparer (2 mains)</span>
+        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(245,158,11,.12);color:var(--am);font-family:var(--mo)">A = Abandonner (récupérer 50%)</span>
       </div>
-    </div>
-
-    <!-- CALCULATEUR DE MAIN -->
-    <div class="card">
-      <div class="ct">🎯 Quelle action pour ma main ?</div>
-      <div class="fg">
+      <div class="fg" style="margin-top:14px">
         <div class="fgrp"><label>Valeur de ma main</label><input type="number" id="bj-my-hand" placeholder="ex: 16" min="4" max="21"></div>
-        <div class="fgrp"><label>Carte visible du croupier</label>
+        <div class="fgrp"><label>Carte du croupier</label>
           <select id="bj-dealer-card">
-            <option value="2">2</option><option value="3">3</option><option value="4">4</option>
-            <option value="5">5</option><option value="6">6</option><option value="7">7</option>
-            <option value="8">8</option><option value="9">9</option><option value="10">10/J/Q/K</option>
-            <option value="1">As</option>
+            <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+            <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="10">10/J/Q/K</option><option value="1">As</option>
           </select>
         </div>
         <div class="fgrp"><label>Type de main</label>
           <select id="bj-hand-type">
-            <option value="hard">Dure (sans As souple)</option>
-            <option value="soft">Souple (avec As souple)</option>
+            <option value="hard">Dure (sans As)</option>
+            <option value="soft">Souple (avec As)</option>
             <option value="pair">Paire</option>
           </select>
         </div>
       </div>
-      <button class="btn bp" onclick="bjGetAction()" style="width:100%;padding:12px">🎯 Quelle action ?</button>
+      <button class="btn bp" onclick="bjGetAction()" style="width:100%;padding:12px">🎯 Quelle action pour cette main ?</button>
       <div id="bj-action-result" style="margin-top:12px"></div>
     </div>
   </div>
 
-  <!-- ═ SYSTÈMES DE COMPTAGE ═ -->
+  <!-- ═ SYSTÈMES ═ -->
   <div id="bj-panel-systems" style="display:none">
-    <div class="card">
-      <div class="ct">🧮 Systèmes de comptage de cartes</div>
+    <div class="card"><div class="ct">🧮 Systèmes de comptage</div>
       <div style="display:grid;gap:10px">
-        <div style="background:var(--nbg);border:1px solid rgba(0,212,255,.3);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-            <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--neon)">Hi-Lo (Standard)</div>
-            <span style="font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(0,0,0,.2);color:var(--neon);font-family:var(--mo)">⭐ Débutant</span>
-          </div>
-          <div style="font-size:11px;color:var(--mu);line-height:1.65;margin-bottom:6px">Le plus répandu dans le monde. Équilibré et précis.<br><strong style="color:var(--gr)">2-6: +1</strong> / <strong style="color:var(--mu)">7-9: 0</strong> / <strong style="color:var(--re)">10-A: -1</strong></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)"><span style="color:var(--neon)">📈 0.5% à 1.5% avantage</span><span style="color:var(--dm)">👤 95% des compteurs pro</span></div>
+        <div style="background:var(--nbg);border:1px solid rgba(0,212,255,.3);border-radius:10px;padding:13px">
+          <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--neon);margin-bottom:4px">Hi-Lo ⭐ — Recommandé débutant</div>
+          <div style="font-size:11px;color:var(--mu);line-height:1.6">Cartes 2→6 = <strong style="color:#22d3a5">+1</strong> (bonnes pour vous) · 7/8/9 = <strong style="color:var(--mu)">0</strong> (neutre) · 10/J/Q/K/As = <strong style="color:#ef4444">-1</strong> (bonnes pour le casino)</div>
         </div>
-        <div style="background:var(--grb);border:1px solid rgba(34,211,165,.3);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-            <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--gr)">KO (Knock-Out)</div>
-            <span style="font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(0,0,0,.2);color:var(--gr);font-family:var(--mo)">⭐ Débutant</span>
-          </div>
-          <div style="font-size:11px;color:var(--mu);line-height:1.65;margin-bottom:6px">Non équilibré — pas besoin de convertir en True Count. Plus simple.<br><strong style="color:var(--gr)">2-7: +1</strong> / <strong style="color:var(--mu)">8-9: 0</strong> / <strong style="color:var(--re)">10-A: -1</strong></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)"><span style="color:var(--gr)">📈 Similaire au Hi-Lo</span><span style="color:var(--dm)">👤 Idéal pour débuter</span></div>
+        <div style="background:var(--grb);border:1px solid rgba(34,211,165,.3);border-radius:10px;padding:13px">
+          <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--gr);margin-bottom:4px">KO (Knock-Out) — Plus simple</div>
+          <div style="font-size:11px;color:var(--mu);line-height:1.6">Pas besoin de diviser par les sabots restants. Cartes 2→7 = +1 · 8/9 = 0 · 10/As = -1</div>
         </div>
-        <div style="background:var(--amb);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-            <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--am)">Hi-Opt I</div>
-            <span style="font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(0,0,0,.2);color:var(--am);font-family:var(--mo)">🟡 Intermédiaire</span>
-          </div>
-          <div style="font-size:11px;color:var(--mu);line-height:1.65;margin-bottom:6px">Ignore les 2 et les As. <strong style="color:var(--gr)">3-6: +1</strong> / <strong style="color:var(--mu)">7-9: 0</strong> / <strong style="color:var(--re)">10: -1</strong> / 2,A: 0</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)"><span style="color:var(--am)">📈 Légèrement supérieur au Hi-Lo</span><span style="color:var(--dm)">👤 Compteurs expérimentés</span></div>
-        </div>
-        <div style="background:var(--reb);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-            <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--re)">Omega II</div>
-            <span style="font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(0,0,0,.2);color:var(--re);font-family:var(--mo)">🔴 Expert</span>
-          </div>
-          <div style="font-size:11px;color:var(--mu);line-height:1.65;margin-bottom:6px">Système multi-niveau. <strong style="color:var(--gr)">2,3,7: +1 / 4,5,6: +2</strong> / <strong style="color:var(--mu)">8,9: 0</strong> / <strong style="color:var(--re)">10: -2</strong> / A: 0</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)"><span style="color:var(--re)">📈 1.5% à 2.5% avantage max</span><span style="color:var(--dm)">👤 Compteurs élites</span></div>
-        </div>
-        <div style="background:var(--pub);border:1px solid rgba(167,139,250,.3);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-            <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--pu)">Wong Halves</div>
-            <span style="font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(0,0,0,.2);color:var(--pu);font-family:var(--mo)">🔴 Expert</span>
-          </div>
-          <div style="font-size:11px;color:var(--mu);line-height:1.65;margin-bottom:6px">Système décimal. 2,7: +0.5 / 3,4,6: +1 / 5: +1.5 / 8: 0 / 9: -0.5 / <strong style="color:var(--re)">10,A: -1</strong></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)"><span style="color:var(--pu)">📈 Maximum théorique</span><span style="color:var(--dm)">👤 Stanford Wong</span></div>
+        <div style="background:var(--reb);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:13px">
+          <div style="font-family:var(--hd);font-size:13px;font-weight:700;color:var(--re);margin-bottom:4px">Omega II 🔴 — Expert</div>
+          <div style="font-size:11px;color:var(--mu);line-height:1.6">Multi-niveaux : 4/5/6 = +2 · 2/3/7 = +1 · 8/9 = 0 · 10 = -2 · As = 0. Avantage max jusqu'à 2.5%</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═ BANKROLL & MISES ═ -->
+  <!-- ═ BANKROLL ═ -->
   <div id="bj-panel-bankroll" style="display:none">
-    <div class="card">
-      <div class="ct">💰 Gestion de bankroll — Spread de mises</div>
-      <div class="info">Le <strong>spread de mises</strong> (ratio min/max) est la clé du profit. Un spread 1:8 signifie que vous misez 8× plus quand le compte est favorable.</div>
-      <div class="fg" style="margin-bottom:14px">
+    <div class="card"><div class="ct">💰 Gestion de bankroll</div>
+      <div class="info">Le spread de mises = ratio entre mise min et max. Un spread 1:8 = vous misez 8× plus quand c'est favorable.</div>
+      <div class="fg">
         <div class="fgrp"><label>Bankroll totale (€)</label><input type="number" id="bj-br-total" value="2000" onchange="bjCalcBankroll()"></div>
         <div class="fgrp"><label>Mise minimum table (€)</label><input type="number" id="bj-br-min" value="10" onchange="bjCalcBankroll()"></div>
         <div class="fgrp"><label>Spread souhaité</label>
           <select id="bj-br-spread" onchange="bjCalcBankroll()">
-            <option value="4">1:4 — Conservateur</option>
-            <option value="8" selected>1:8 — Standard</option>
-            <option value="12">1:12 — Agressif</option>
-            <option value="16">1:16 — Expert</option>
+            <option value="4">1:4 — Prudent</option><option value="8" selected>1:8 — Standard</option>
+            <option value="12">1:12 — Agressif</option><option value="16">1:16 — Expert</option>
           </select>
         </div>
       </div>
-      <div id="bj-br-result" style="background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px"></div>
-
-      <!-- TABLE SPREAD -->
-      <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Table de mises selon le True Count</div>
-      <div id="bj-spread-table"></div>
-    </div>
-
-    <div class="card">
-      <div class="ct">📊 Règles du jeu et avantage casino</div>
-      <div style="display:grid;gap:7px">
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">BJ paye 3:2</span><span style="color:var(--gr);font-family:var(--mo)">−0.12% casino</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">BJ paye 6:5 ⚠</span><span style="color:var(--re);font-family:var(--mo)">+1.39% casino</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">Croupier tire sur soft 17</span><span style="color:var(--re);font-family:var(--mo)">+0.22% casino</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">Doubler après split autorisé</span><span style="color:var(--gr);font-family:var(--mo)">−0.14% casino</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">Surrender (abandon) autorisé</span><span style="color:var(--gr);font-family:var(--mo)">−0.08% casino</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">1 deck</span><span style="color:var(--gr);font-family:var(--mo)">−0.48% casino</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">6 decks</span><span style="color:var(--re);font-family:var(--mo)">+0.54% casino</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--sf2);border-radius:7px;font-size:11px">
-          <span style="color:var(--mu)">Penetration &gt;75%</span><span style="color:var(--gr);font-family:var(--mo)">Idéal pour compter</span>
-        </div>
-      </div>
+      <div id="bj-br-result"></div>
+      <div id="bj-spread-table" style="margin-top:10px"></div>
     </div>
   </div>
 
-  <!-- ═ CONSEILS CASINO EN LIGNE ═ -->
+  <!-- ═ CONSEILS ═ -->
   <div id="bj-panel-tips" style="display:none">
-    <div class="card">
-      <div class="ct">🎯 Conseils premium — Casinos en ligne</div>
+    <div class="card"><div class="ct">🎯 Conseils — Casinos en ligne</div>
       <div style="display:grid;gap:9px">
         <div style="background:rgba(34,211,165,.07);border:1px solid rgba(34,211,165,.2);border-radius:9px;padding:13px">
-          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--gr);margin-bottom:6px">✅ Choisir la bonne table</div>
+          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--gr);margin-bottom:6px">✅ Table idéale</div>
           <ul style="font-size:11px;color:var(--mu);line-height:1.8;padding-left:16px">
-            <li>BJ paye <strong>3:2 obligatoirement</strong> — jamais 6:5</li>
-            <li>Croupier reste sur soft 17 (S17) — meilleur pour le joueur</li>
-            <li>Penetration &gt;75% : le croupier distribue plus avant de reshuffler</li>
-            <li>Préférez les tables en direct (live dealer) — le comptage y est possible</li>
-            <li>Tables avec 1 ou 2 decks = idéal, mais rares en ligne</li>
+            <li>BlackJack paye <strong>3:2</strong> — jamais 6:5 (vous perdrez toujours avec 6:5)</li>
+            <li>Croupier reste sur soft 17 — meilleur pour le joueur</li>
+            <li>Pénétration &gt;75% = le croupier distribue beaucoup avant de mélanger → idéal pour compter</li>
+            <li>Tables live dealer (Evolution Gaming) — les cartes sont vraiment physiques et comptables</li>
           </ul>
         </div>
         <div style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:9px;padding:13px">
-          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--neon);margin-bottom:6px">📡 Comptage en live dealer</div>
+          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--neon);margin-bottom:6px">📡 Comptage live dealer en ligne</div>
           <ul style="font-size:11px;color:var(--mu);line-height:1.8;padding-left:16px">
-            <li>Les tables live dealer utilisent des <strong>vrais sabots physiques</strong></li>
-            <li>Utilisez ce compteur en parallèle de la table live</li>
-            <li>Attendez TC ≥ +3 avant d'augmenter les mises</li>
-            <li>Variez vos tables régulièrement pour éviter la détection</li>
-            <li>Ne changez jamais de mise de façon trop brusque (+1 unité max à la fois)</li>
-          </ul>
-        </div>
-        <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:9px;padding:13px">
-          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--am);margin-bottom:6px">💡 Camouflage & Discrétion</div>
-          <ul style="font-size:11px;color:var(--mu);line-height:1.8;padding-left:16px">
-            <li>Variez légèrement vos mises même avec un compte négatif</li>
-            <li>Utilisez les bonus de bienvenue — jouez le rollover sur le BJ</li>
-            <li>Sessions courtes (&lt;2h par casino) — moins de risque de détection</li>
-            <li>Ne refusez pas l'assurance de façon systématique et évidente</li>
-            <li>Conversez avec le dealer — paraissez désinvolte</li>
+            <li>Ouvrez cette app en parallèle de votre table casino</li>
+            <li>Tapez chaque carte visible (votre main + main du croupier) instantanément</li>
+            <li>Attendez TC ≥ +2 avant d'augmenter vos mises</li>
+            <li>Variez légèrement vos mises même défavorable pour ne pas paraître suspect</li>
           </ul>
         </div>
         <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:13px">
-          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--re);margin-bottom:6px">⚠ Ce qu'il faut absolument éviter</div>
+          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--re);margin-bottom:6px">⚠ À éviter absolument</div>
           <ul style="font-size:11px;color:var(--mu);line-height:1.8;padding-left:16px">
-            <li>Tables BJ avec shuffle continu (CSM) — comptage impossible</li>
-            <li>Mises qui varient de 1€ à 100€ en un coup — drapeau rouge</li>
-            <li>Jouer intoxiqué ou fatigué — les erreurs de stratégie coûtent cher</li>
-            <li>Prendre l'assurance (edge négatif sauf si TC &gt; +3)</li>
-            <li>Dévier de la stratégie de base sous l'émotion</li>
+            <li>Tables avec mélangeur continu (CSM) — le comptage est impossible</li>
+            <li>Passer de 5€ à 100€ en un coup — trop suspect</li>
+            <li>Prendre l'assurance — toujours perdant (sauf si TC &gt; +3)</li>
+            <li>Jouer fatigué ou sous pression — les erreurs coûtent cher</li>
           </ul>
-        </div>
-        <div style="background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);border-radius:9px;padding:13px">
-          <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--pu);margin-bottom:6px">🏆 Meilleurs casinos live BJ en ligne</div>
-          <div style="font-size:11px;color:var(--mu);line-height:1.8">
-            Critères de sélection : RTP &gt;99.5%, tables 3:2, penetration élevée, live dealer Evolution Gaming ou Playtech.<br><br>
-            <strong style="color:var(--pu)">Cherchez :</strong> "Blackjack Classic" ou "Infinite Blackjack" (Evolution) — penetration ~75%, règles favorables.<br>
-            <strong style="color:var(--am)">Évitez :</strong> toute table "Speed Blackjack" ou "BJ Party" — shuffle trop fréquent.
-          </div>
         </div>
       </div>
     </div>
   </div>
+
 </section>
+
+</section>
+<!-- ═══ MES NOTES ═══ -->
+<section class="sec" id="s-notes">
+  <div class="ph">
+    <div class="pt">📝 Mes Notes</div>
+    <div class="ps">Stockées localement + synchronisation cloud automatique · Ctrl+S pour sauvegarder</div>
+  </div>
+
+  <!-- BARRE D'ACTIONS -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn bp" onclick="notesNew()" style="font-size:13px;padding:10px 18px">
+      ✏️ Nouvelle note
+    </button>
+    <div id="notes-sync-status" style="font-size:10px;font-family:var(--mo);color:var(--dm);display:flex;align-items:center;gap:5px">
+      <div id="notes-sync-dot" style="width:6px;height:6px;border-radius:50%;background:var(--dm);flex-shrink:0"></div>
+      <span id="notes-sync-lbl">—</span>
+    </div>
+    <span style="margin-left:auto;font-size:10px;color:var(--dm);font-family:var(--mo)" id="notes-count-lbl">0 note(s)</span>
+  </div>
+
+  <!-- LISTE DES NOTES -->
+  <div id="notes-list"></div>
+
+  <!-- ÉTAT VIDE -->
+  <div id="notes-empty" style="text-align:center;padding:52px 20px;color:var(--dm);display:none">
+    <div style="font-size:42px;margin-bottom:13px">📝</div>
+    <div style="font-family:var(--hd);font-size:16px;color:var(--mu);margin-bottom:6px">Aucune note</div>
+    <div style="font-size:12px;line-height:1.7">Créez votre première note — stratégies, observations, rappels…<br>Synchronisées automatiquement sur tous vos appareils.</div>
+    <button class="btn bp" onclick="notesNew()" style="margin-top:16px">✏️ Créer une note</button>
+  </div>
+</section>
+
 </main>
 </div>
 <div id="toasts"></div>
@@ -1324,6 +1247,7 @@ function go(name) {
   document.querySelector('[data-s="'+name+'"]')?.classList.add('on');
   cSb();
   if (name==='results')  loadResults();
+  if (name==='notes')    { notesLoad(); notesSyncCloud(true); notesRender(); }
   if (name==='blackjack'){ setTimeout(()=>{ bjBuildCardGrid(); bjSetSuit('s'); },100); }
   if (name==='history')  loadHistory();
   if (name==='settings') { loadSettings(); loadSysStatus(); loadAIStatus(); }
@@ -2836,327 +2760,515 @@ async function sendChat() {
 
 // ═══ BLACKJACK PRO — JAVASCRIPT ═══
 
-let bjState = {
-  runningCount: 0,
-  cardsHistory: [],  // [{val, suit, delta, label}]
-  tableCards: [],    // cartes actuellement visibles sur la table
-  totalDecks: 6,
-  currentSuit: 's',  // pique par défaut
+// ─── État global ───
+const BJ = {
+  rc: 0,             // Running Count (compte courant)
+  totalDecks: 6,     // sabots au départ
+  played: new Set(), // cartes jouées: Set de cardId ('s_A', 'h_10', etc.)
+  history: [],       // [{cardId, val, suit, sym, col, delta}]
 };
 
-const HI_LO = {1:-1,2:1,3:1,4:1,5:1,6:1,7:0,8:0,9:0,10:-1};
-const SUITS = {s:{sym:'♠',col:'#d8e8f8'},h:{sym:'♥',col:'#ef4444'},d:{sym:'♦',col:'#ef4444'},c:{sym:'♣',col:'#d8e8f8'}};
-const CARD_NAMES = [{val:1,label:'A'},{val:2,label:'2'},{val:3,label:'3'},{val:4,label:'4'},{val:5,label:'5'},
-  {val:6,label:'6'},{val:7,label:'7'},{val:8,label:'8'},{val:9,label:'9'},{val:10,label:'10'},
-  {val:10,label:'J'},{val:10,label:'Q'},{val:10,label:'K'}];
+// Valeurs Hi-Lo: +1 pour 2-6, 0 pour 7-9, -1 pour 10/J/Q/K/As
+const HILO = {1:-1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:0, 8:0, 9:0, 10:-1};
 
-function bjTab(tab) {
-  ['count','strategy','systems','bankroll','tips'].forEach(t => {
-    document.getElementById('bj-tab-'+t)?.classList.toggle('on', t===tab);
-    const p = document.getElementById('bj-panel-'+t);
-    if(p) p.style.display = t===tab ? '' : 'none';
-  });
-  if(tab==='count')    bjBuildCardGrid();
-  if(tab==='strategy') bjBuildStrategyTable();
-  if(tab==='bankroll') bjCalcBankroll();
+const SUITS = [
+  {key:'s', sym:'♠', col:'#c8d8e8'},
+  {key:'h', sym:'♥', col:'#ef4444'},
+  {key:'d', sym:'♦', col:'#ef4444'},
+  {key:'c', sym:'♣', col:'#c8d8e8'},
+];
+const CARDS = [
+  {label:'A', val:1}, {label:'2', val:2}, {label:'3', val:3},
+  {label:'4', val:4}, {label:'5', val:5}, {label:'6', val:6},
+  {label:'7', val:7}, {label:'8', val:8}, {label:'9', val:9},
+  {label:'10',val:10},{label:'J', val:10},{label:'Q', val:10},{label:'K', val:10},
+];
+
+// ─── TC précis ───
+function bjTC() {
+  const totalCards = BJ.totalDecks * 52;
+  const seen = BJ.played.size;
+  const cardsLeft = Math.max(52, totalCards - seen);
+  const decksLeft = cardsLeft / 52;
+  const tc = BJ.rc / decksLeft;
+  return { rc: BJ.rc, tc, decksLeft, seen, totalCards };
 }
 
-function bjBuildCardGrid() {
-  const grid = document.getElementById('bj-card-grid');
-  if(!grid) return;
-  // 4 lignes (couleurs) × 13 colonnes (valeurs)
-  const suits = [
-    {key:'s',sym:'♠',col:'#d8e8f8',name:'Pique'},
-    {key:'h',sym:'♥',col:'#ef4444',name:'Coeur'},
-    {key:'d',sym:'♦',col:'#ef4444',name:'Carreau'},
-    {key:'c',sym:'♣',col:'#d8e8f8',name:'Trèfle'},
-  ];
-  const labels = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-  const vals   = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10];
-
-  let html = '<div style="display:grid;grid-template-columns:repeat(13,1fr);gap:3px">';
-  // Header labels
-  labels.forEach((l,i) => {
-    const d = HI_LO[vals[i]];
-    const tc = d>0?'var(--gr)':d<0?'var(--re)':'var(--dm)';
-    html += `<div style="text-align:center;font-family:var(--mo);font-size:8px;color:${tc};font-weight:700;padding-bottom:2px">${d>0?'+1':d<0?'-1':'0'}</div>`;
+// ─── Onglets ───
+function bjTab(t) {
+  ['count','strategy','systems','bankroll','tips'].forEach(x => {
+    const tab = document.getElementById('bj-tab-'+x);
+    const pan = document.getElementById('bj-panel-'+x);
+    if(tab) tab.classList.toggle('on', x===t);
+    if(pan) pan.style.display = x===t ? '' : 'none';
   });
-  // 4 rows of suits
-  suits.forEach(suit => {
-    labels.forEach((label,i) => {
-      const val = vals[i];
-      const cardId = suit.key+'_'+label;
-      const delta = HI_LO[val];
-      const bg = delta>0?'rgba(34,211,165,.12)':delta<0?'rgba(239,68,68,.12)':'rgba(0,212,255,.06)';
-      const bc = delta>0?'rgba(34,211,165,.35)':delta<0?'rgba(239,68,68,.35)':'rgba(0,212,255,.15)';
-      html += `<button id="bj-c-${cardId}" onclick="bjClick52('${cardId}','${label}',${val},'${suit.key}','${suit.sym}','${suit.col.replace('#','')}')"
-        style="background:${bg};border:1px solid ${bc};border-radius:5px;padding:4px 1px;
-        cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;
-        transition:all .1s;-webkit-tap-highlight-color:transparent;user-select:none;
-        touch-action:manipulation;min-height:42px"
-        ontouchstart="bjTouchStart(this)" ontouchend="bjTouchEnd(this)">
-        <span style="font-size:14px;line-height:1;color:${suit.col}">${suit.sym}</span>
-        <span style="font-family:var(--mo);font-size:10px;font-weight:700;color:#d8e8f8;line-height:1.2">${label}</span>
+  if(t==='strategy') bjBuildStrategyTable();
+  if(t==='bankroll') bjCalcBankroll();
+}
+
+// ─── Construction de la grille 52 cartes ───
+function bjBuildGrid() {
+  const grid = document.getElementById('bj-grid');
+  if(!grid || grid.children.length > 0) return; // déjà construit
+  let html = '';
+  SUITS.forEach(suit => {
+    CARDS.forEach(card => {
+      const cardId = suit.key + '_' + card.label;
+      const delta = HILO[card.val];
+      const isLow  = delta > 0;  // 2-6 : avantageux pour le joueur
+      const isHigh = delta < 0;  // 10-A: avantageux pour le casino
+      const bg     = isLow  ? 'rgba(34,211,165,.13)' : isHigh ? 'rgba(239,68,68,.13)' : 'rgba(0,212,255,.06)';
+      const bc     = isLow  ? 'rgba(34,211,165,.4)'  : isHigh ? 'rgba(239,68,68,.4)'  : 'rgba(0,212,255,.15)';
+      html += `<button
+        id="bjb-${cardId}"
+        data-id="${cardId}"
+        data-val="${card.val}"
+        data-label="${card.label}"
+        data-suit="${suit.key}"
+        data-sym="${suit.sym}"
+        data-col="${suit.col}"
+        data-delta="${delta}"
+        onclick="bjToggleCard('${cardId}')"
+        style="background:${bg};border:1px solid ${bc};border-radius:5px;
+               padding:3px 1px;cursor:pointer;display:flex;flex-direction:column;
+               align-items:center;gap:0;min-height:44px;transition:opacity .15s,filter .15s;
+               -webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none">
+        <span style="font-size:13px;line-height:1.1;color:${suit.col}">${suit.sym}</span>
+        <span style="font-family:var(--mo);font-size:10px;font-weight:700;color:#d8e8f8;line-height:1.2">${card.label}</span>
       </button>`;
     });
   });
-  html += '</div>';
   grid.innerHTML = html;
 }
 
-function bjTouchStart(el){ el.style.transform='scale(.88)'; el.style.opacity='.7'; }
-function bjTouchEnd(el){ el.style.transform=''; el.style.opacity=''; }
+// ─── Clic sur une carte ───
+function bjToggleCard(cardId) {
+  const btn = document.getElementById('bjb-'+cardId);
+  if(!btn) return;
 
-function bjClick52(cardId, label, val, suitKey, suitSym, suitColHex) {
-  const suitCol = '#'+suitColHex;
-  const btn = document.getElementById('bj-c-'+cardId);
-  // Check if already played (grayed out) — toggle back if misclick
-  if(btn && btn.dataset.played === '1') {
-    // Remove from history
-    bjRemoveByCardId(cardId);
-    btn.dataset.played = '0';
-    btn.style.opacity = '1';
-    btn.style.filter = '';
+  if(BJ.played.has(cardId)) {
+    // Déjà jouée → annuler
+    bjRemoveCard(cardId);
     return;
   }
-  const delta = HI_LO[val]||0;
-  const cardObj = { val, label, suit:suitKey, suitSym, suitCol, delta, id:Date.now()+Math.random(), cardId };
-  bjState.runningCount += delta;
-  bjState.cardsHistory.push(cardObj);
-  bjState.tableCards.push(cardObj);
-  // Gray out the card
-  if(btn) {
-    btn.dataset.played = '1';
-    btn.style.opacity = '0.28';
-    btn.style.filter = 'grayscale(1)';
-  }
-  bjUpdateDisplay();
-  bjShowDecision();
-}
 
-function bjRemoveByCardId(cardId) {
-  const idx = bjState.tableCards.findIndex(c=>c.cardId===cardId);
-  if(idx!==-1){ const c=bjState.tableCards[idx]; bjState.runningCount-=c.delta; bjState.tableCards.splice(idx,1); }
-  const hi = bjState.cardsHistory.findIndex(c=>c.cardId===cardId);
-  if(hi!==-1) bjState.cardsHistory.splice(hi,1);
-  bjUpdateDisplay();
-  bjShowDecision();
-}
-
-function bjSetSuit(s){}        // keep compat
-function bjUpdateSuitDisplay(){} // keep compat
-
-function bjClickCard(label, val) {
-  const suit = bjState.currentSuit;
-  const suitInfo = SUITS[suit];
-  const delta = HI_LO[val] || 0;
-  const cardObj = { val, label, suit, suitSym: suitInfo.sym, suitCol: suitInfo.col, delta, id: Date.now()+Math.random() };
-  bjState.runningCount += delta;
-  bjState.cardsHistory.push(cardObj);
-  bjState.tableCards.push(cardObj);
-  bjUpdateDisplay();
-  // Flash animation on the button
-  const btn = document.getElementById('card-sym-'+label)?.closest('button');
-  if(btn) {
-    btn.style.background = delta>0?'rgba(34,211,165,.35)':delta<0?'rgba(239,68,68,.35)':'rgba(0,212,255,.25)';
-    setTimeout(()=>{ btn.style.background = ''; }, 250);
-  }
-}
-
-function bjRemoveTableCard(id) {
-  const idx = bjState.tableCards.findIndex(c => c.id === id);
-  if(idx === -1) return;
-  const card = bjState.tableCards[idx];
-  bjState.runningCount -= card.delta;
-  bjState.tableCards.splice(idx, 1);
-  const hi = bjState.cardsHistory.findIndex(c => c.id === id);
-  if(hi !== -1) bjState.cardsHistory.splice(hi, 1);
-  // Réactiver dans la grille
-  if(card.cardId){ const btn=document.getElementById('bj-c-'+card.cardId); if(btn){btn.dataset.played='0';btn.style.opacity='1';btn.style.filter='';} }
-  bjUpdateDisplay();
-  bjShowDecision();
-  toast(`${card.suitSym}${card.label} retirée`,'');
-}
-
-function bjResetTable() {
-  // Fin de main : vider la table MAIS conserver le RC (les cartes ont été comptées)
-  bjState.tableCards = [];
-  bjUpdateDisplay();
-  toast('Fin de main — comptage conservé pour le sabot','ok');
-}
-
-function bjUndo() {
-  if(!bjState.cardsHistory.length) return;
-  const last = bjState.cardsHistory.pop();
-  bjState.runningCount -= last.delta;
-  const ti = bjState.tableCards.findIndex(c => c.id === last.id);
-  if(ti !== -1) bjState.tableCards.splice(ti, 1);
-  // Réactiver la carte dans la grille
-  if(last.cardId) {
-    const btn = document.getElementById('bj-c-'+last.cardId);
-    if(btn){ btn.dataset.played='0'; btn.style.opacity='1'; btn.style.filter=''; }
-  }
-  bjUpdateDisplay();
-  bjShowDecision();
-  toast(`Annulé : ${last.suitSym||''}${last.label||last.val}`,'');
-}
-
-function bjNewShoe() {
-  if(bjState.cardsHistory.length > 0 && !confirm('Nouveau sabot ? Le comptage sera remis à zéro.')) return;
-  bjState.runningCount = 0;
-  bjState.cardsHistory = [];
-  bjState.tableCards = [];
-  // Réactiver toutes les cartes grisées
-  document.querySelectorAll('[id^="bj-c-"]').forEach(btn => {
-    btn.dataset.played = '0';
-    btn.style.opacity = '1';
-    btn.style.filter = '';
+  // Ajouter la carte
+  const delta = parseInt(btn.dataset.delta);
+  BJ.rc += delta;
+  BJ.played.add(cardId);
+  BJ.history.push({
+    cardId,
+    val:   parseInt(btn.dataset.val),
+    label: btn.dataset.label,
+    suit:  btn.dataset.suit,
+    sym:   btn.dataset.sym,
+    col:   btn.dataset.col,
+    delta,
   });
-  bjUpdateDisplay();
-  document.getElementById('bj-decision-panel') && (document.getElementById('bj-decision-panel').style.display='none');
-  toast('Nouveau sabot — toutes les cartes réactivées 🔀','ok');
+
+  // Griser visuellement
+  btn.style.opacity = '0.22';
+  btn.style.filter  = 'grayscale(1)';
+
+  bjRefresh();
 }
 
-function bjUpdateDecks() {
-  bjState.totalDecks = parseInt(document.getElementById('bj-decks')?.value)||6;
-  bjUpdateDisplay();
+// ─── Retirer une carte ───
+function bjRemoveCard(cardId) {
+  if(!BJ.played.has(cardId)) return;
+  const idx = BJ.history.findIndex(h => h.cardId === cardId);
+  if(idx === -1) return;
+  const card = BJ.history[idx];
+  BJ.rc -= card.delta;
+  BJ.played.delete(cardId);
+  BJ.history.splice(idx, 1);
+
+  // Réactiver visuellement
+  const btn = document.getElementById('bjb-'+cardId);
+  if(btn) { btn.style.opacity = '1'; btn.style.filter = ''; }
+
+  bjRefresh();
 }
 
-function bjUpdateDisplay() {
-  const { rc, seen, totalCards, decksLeft, tc } = bjComputeTC();
-  const pctPlayed = Math.round(seen / totalCards * 100);
+// ─── Nouveau sabot ───
+function bjNewShoe() {
+  if(BJ.history.length > 0 && !confirm('Nouveau sabot ? Le comptage sera remis à zéro.')) return;
+  BJ.rc = 0;
+  BJ.played.clear();
+  BJ.history = [];
+  BJ.totalDecks = parseInt(document.getElementById('bj-decks')?.value) || 6;
+  // Réactiver toutes les cartes
+  document.querySelectorAll('[id^="bjb-"]').forEach(b => {
+    b.style.opacity = '1';
+    b.style.filter  = '';
+  });
+  bjRefresh();
+  toast('Nouveau sabot — compteur remis à zéro 🔀', 'ok');
+}
 
-  // Update displays
-  const rcEl = document.getElementById('bj-running');
-  const tcEl = document.getElementById('bj-true');
-  const dlEl = document.getElementById('bj-decks-left');
-  if(rcEl) { rcEl.textContent = rc > 0 ? '+'+rc : rc; rcEl.style.color = rc>0?'var(--gr)':rc<0?'var(--re)':'var(--neon)'; }
-  if(tcEl) { tcEl.textContent = tc > 0 ? '+'+tc : tc; tcEl.style.color = tc>=3?'var(--gr)':tc<=-2?'var(--re)':'var(--am)'; }
+// ─── Fin de main (les cartes restent comptées, on vide juste l'affichage) ───
+function bjClearHand() {
+  // On ne modifie PAS le RC — les cartes sont déjà dans le sabot
+  bjRefresh();
+  toast('Main terminée — comptage conservé pour le sabot', '');
+}
+
+// ─── Annuler la dernière carte ───
+function bjUndoLast() {
+  if(!BJ.history.length) return;
+  const last = BJ.history[BJ.history.length - 1];
+  bjRemoveCard(last.cardId);
+  toast(`Annulé : ${last.sym}${last.label}`, '');
+}
+
+function bjFullRefresh() {
+  BJ.totalDecks = parseInt(document.getElementById('bj-decks')?.value) || 6;
+  bjRefresh();
+}
+
+// ─── Rafraîchissement complet de l'interface ───
+function bjRefresh() {
+  const { rc, tc, decksLeft, seen } = bjTC();
+
+  // Compteurs
+  const rcEl = document.getElementById('bj-rc');
+  const tcEl = document.getElementById('bj-tc');
+  const dlEl = document.getElementById('bj-dl');
+  const seEl = document.getElementById('bj-seen');
+  if(rcEl) { rcEl.textContent = rc > 0 ? '+'+rc : String(rc); rcEl.style.color = rc>0?'#22d3a5':rc<0?'#ef4444':'#00d4ff'; }
+  if(tcEl) { const ts = tc.toFixed(1); tcEl.textContent = tc>0?'+'+ts:ts; tcEl.style.color = tc>=2?'#22d3a5':tc<0?'#ef4444':'#f59e0b'; }
   if(dlEl) { dlEl.textContent = decksLeft.toFixed(1); }
-  if(document.getElementById('bj-cards-seen')) document.getElementById('bj-cards-seen').textContent = seen;
-  if(document.getElementById('bj-deck-pct')) document.getElementById('bj-deck-pct').textContent = pctPlayed;
+  if(seEl) { seEl.textContent = seen; }
 
-  // Edge meter
-  const edgeBar = document.getElementById('bj-edge-bar');
-  const edgeLabel = document.getElementById('bj-edge-label');
-  if(edgeBar && edgeLabel) {
-    // TC: -5 → 0% | 0 → 50% | +5 → 100%
-    const pct = Math.min(100, Math.max(0, 50 + tc * 10));
-    edgeBar.style.width = pct + '%';
-    if(tc >= 4)       { edgeBar.style.background='var(--gr)';  edgeLabel.textContent='Fort avantage joueur +'+tc; edgeLabel.style.color='var(--gr)'; }
-    else if(tc >= 2)  { edgeBar.style.background='var(--neon)'; edgeLabel.textContent='Avantage joueur +'+tc; edgeLabel.style.color='var(--neon)'; }
-    else if(tc >= 0)  { edgeBar.style.background='var(--dm)';  edgeLabel.textContent='Neutre (TC '+tc+')'; edgeLabel.style.color='var(--dm)'; }
-    else if(tc >= -2) { edgeBar.style.background='var(--am)';  edgeLabel.textContent='Léger avantage casino'; edgeLabel.style.color='var(--am)'; }
-    else              { edgeBar.style.background='var(--re)';  edgeLabel.textContent='Avantage casino élevé'; edgeLabel.style.color='var(--re)'; }
+  // Décision principale
+  bjUpdateDecision(tc, rc, decksLeft);
+
+  // Cartes sélectionnées
+  bjRenderSelected();
+}
+
+// ─── Panneau de décision ───
+function bjUpdateDecision(tc, rc, decksLeft) {
+  const minBet   = parseFloat(document.getElementById('bj-min-bet')?.value)   || 5;
+  const maxBet   = parseFloat(document.getElementById('bj-max-bet')?.value)   || 200;
+  const bankroll = parseFloat(document.getElementById('bj-bankroll')?.value)  || 200;
+  const panel    = document.getElementById('bj-decision');
+  const sub      = document.getElementById('bj-decision-sub');
+  const betDiv   = document.getElementById('bj-decision-bet');
+  const betVal   = document.getElementById('bj-bet-val');
+  if(!panel) return;
+
+  // Si pas encore de cartes
+  if(BJ.history.length === 0) {
+    panel.style.background   = 'var(--sf2)';
+    panel.style.borderColor  = 'var(--bd)';
+    panel.querySelector('div').textContent = 'Cliquez des cartes pour commencer';
+    panel.querySelector('div').style.color = 'var(--mu)';
+    if(sub)    { sub.textContent = 'Sélectionnez chaque carte visible sur votre écran de casino.'; sub.style.color='var(--dm)'; }
+    if(betDiv) betDiv.style.display = 'none';
+    return;
   }
 
-  // Mise recommandée
-  bjCalcBet(tc);
+  let title, color, bg, border, advice, bet;
 
-  // Historique cartes
-  const histEl = document.getElementById('bj-history');
-  if(histEl) {
-    const last20 = bjState.cardsHistory.slice(-20);
-    const cardNames = {1:'A',10:'10/F'};
-    histEl.innerHTML = last20.map(c => {
-      const name = cardNames[c.val] || c.val;
-      const col = c.delta>0?'var(--gr)':c.delta<0?'var(--re)':'var(--mu)';
-      const bg  = c.delta>0?'rgba(34,211,165,.15)':c.delta<0?'rgba(239,68,68,.15)':'rgba(0,212,255,.08)';
-      return `<span style="font-family:var(--mo);font-size:11px;font-weight:700;color:${col};background:${bg};padding:2px 6px;border-radius:4px;border:1px solid ${col.replace('var(','rgba(').replace(')','')},.3)">${name}</span>`;
-    }).join('');
+  if (tc >= 4) {
+    title='🚀 JOUEZ FORT — Avantage maximal !'; color='#22d3a5';
+    bg='rgba(34,211,165,.16)'; border='rgba(34,211,165,.7)';
+    bet = Math.min(maxBet, Math.min(bankroll*0.05, minBet*8));
+    advice=`Compte vrai (TC) : +${tc.toFixed(1)} — Le sabot est plein de 10, J, Q, K, As. Vous avez un fort avantage mathématique. Misez ${bet.toFixed(0)}€. Doublez sur 9/10/11. Séparez toujours les 8 et les As.`;
+  } else if (tc >= 2) {
+    title='✅ JOUEZ — Bon avantage joueur'; color='#22d3a5';
+    bg='rgba(34,211,165,.1)'; border='rgba(34,211,165,.5)';
+    bet = Math.min(maxBet, Math.min(bankroll*0.04, minBet*4));
+    advice=`TC +${tc.toFixed(1)} — Avantage de votre côté. Misez ${bet.toFixed(0)}€. Doublez sur 10 et 11. Séparez les As et les 8 contre toutes les cartes.`;
+  } else if (tc >= 1) {
+    title='🟡 LÉGÈREMENT FAVORABLE — Mise modérée'; color='#f59e0b';
+    bg='rgba(245,158,11,.1)'; border='rgba(245,158,11,.4)';
+    bet = Math.min(maxBet, minBet*2);
+    advice=`TC +${tc.toFixed(1)} — Légère amélioration. Doublez la mise minimum (${bet.toFixed(0)}€). Appliquez la stratégie de base.`;
+  } else if (tc >= -1) {
+    title='⚖️ NEUTRE — Mise minimum'; color='#4e6a8a';
+    bg='rgba(30,45,71,.6)'; border='rgba(78,106,138,.5)';
+    bet = minBet;
+    advice=`TC ${tc.toFixed(1)} — Ni avantage ni désavantage. Mise minimum (${minBet}€). Suivez la stratégie de base à la lettre, ne déviez pas.`;
+  } else if (tc >= -3) {
+    title='⏳ CASINO FAVORIS — Soyez prudent'; color='#fb923c';
+    bg='rgba(251,146,60,.1)'; border='rgba(251,146,60,.4)';
+    bet = minBet;
+    advice=`TC ${tc.toFixed(1)} — Le sabot avantage le casino. Mise minimum (${minBet}€). Évitez les doublages risqués. Ne prenez pas l'assurance.`;
+  } else {
+    title='🛑 NE JOUEZ PAS — Fort avantage casino'; color='#ef4444';
+    bg='rgba(239,68,68,.12)'; border='rgba(239,68,68,.6)';
+    bet = 0;
+    advice=`TC ${tc.toFixed(1)} — Comptage très défavorable. Quittez cette table si possible ou misez le strict minimum en attendant un nouveau sabot.`;
+  }
+
+  bet = bet > 0 ? Math.round(bet / minBet) * minBet : 0;
+
+  panel.style.background  = bg;
+  panel.style.borderColor = border;
+  const titleEl = panel.querySelector('div');
+  if(titleEl) { titleEl.textContent = title; titleEl.style.color = color; }
+  if(sub)     { sub.textContent = advice; sub.style.color = 'var(--mu)'; }
+  if(betDiv)  { betDiv.style.display = ''; }
+  if(betVal)  { betVal.textContent = bet > 0 ? bet+'€' : 'Minimum'; betVal.style.color = color; }
+}
+
+// ─── Affichage des cartes sélectionnées ───
+function bjRenderSelected() {
+  const el = document.getElementById('bj-selected');
+  const emptyEl = document.getElementById('bj-selected-empty');
+  if(!el) return;
+  if(!BJ.history.length) {
+    if(emptyEl) emptyEl.style.display = 'inline';
+    // Clear cards but keep empty message
+    Array.from(el.children).forEach(c => { if(c !== emptyEl) c.remove(); });
+    return;
+  }
+  if(emptyEl) emptyEl.style.display = 'none';
+  // Rebuild
+  Array.from(el.children).forEach(c => { if(c !== emptyEl) c.remove(); });
+  BJ.history.forEach(card => {
+    const span = document.createElement('span');
+    const isLow  = card.delta > 0;
+    const isHigh = card.delta < 0;
+    const bg = isLow?'rgba(34,211,165,.2)':isHigh?'rgba(239,68,68,.2)':'rgba(0,212,255,.1)';
+    const bc = isLow?'rgba(34,211,165,.5)':isHigh?'rgba(239,68,68,.5)':'rgba(0,212,255,.3)';
+    const tag = card.delta>0?'+1':card.delta<0?'-1':'0';
+    span.onclick = () => bjRemoveCard(card.cardId);
+    span.title = 'Cliquer pour retirer';
+    span.style.cssText = `display:inline-flex;flex-direction:column;align-items:center;padding:3px 6px;
+      background:${bg};border:1px solid ${bc};border-radius:6px;cursor:pointer;
+      min-width:30px;gap:1px;transition:opacity .1s;user-select:none;-webkit-tap-highlight-color:transparent`;
+    span.innerHTML = `<span style="font-size:14px;line-height:1;color:${card.col}">${card.sym}</span>
+      <span style="font-family:var(--mo);font-size:10px;font-weight:700;color:#d8e8f8">${card.label}</span>
+      <span style="font-size:8px;font-family:var(--mo);color:${isLow?'#22d3a5':isHigh?'#ef4444':'#4e6a8a'}">${tag}</span>`;
+    span.onmouseover = () => span.style.opacity='.6';
+    span.onmouseout  = () => span.style.opacity='1';
+    el.appendChild(span);
+  });
+}
+
+
+// ═══════════════════════════════════════════════
+//  MES NOTES — localStorage + sync Worker
+// ═══════════════════════════════════════════════
+const NOTES_KEY = 'pgi_notes';
+let notesData = []; // [{id, title, body, updatedAt, synced}]
+let notesSaveTimers = {};
+
+function notesGenId() {
+  return 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+}
+
+function notesLoad() {
+  try {
+    const raw = localStorage.getItem(NOTES_KEY);
+    notesData = raw ? JSON.parse(raw) : [];
+  } catch(_) { notesData = []; }
+}
+
+function notesSaveLocal() {
+  try { localStorage.setItem(NOTES_KEY, JSON.stringify(notesData)); } catch(_) {}
+  notesUpdateBadge();
+}
+
+function notesUpdateBadge() {
+  const badge = document.getElementById('notes-badge');
+  const lbl   = document.getElementById('notes-count-lbl');
+  if(badge) {
+    const n = notesData.length;
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'inline' : 'none';
+  }
+  if(lbl) lbl.textContent = notesData.length + ' note(s)';
+}
+
+async function notesSyncCloud(showStatus) {
+  const dot = document.getElementById('notes-sync-dot');
+  const lbl = document.getElementById('notes-sync-lbl');
+  const setSyncStatus = (col, txt) => {
+    if(dot) { dot.style.background = col; dot.style.boxShadow = `0 0 4px ${col}`; }
+    if(lbl)   lbl.textContent = txt;
+  };
+  try {
+    setSyncStatus('#f59e0b', 'Synchronisation…');
+    // Pull from cloud
+    const d = await api('/api/notes');
+    if(d.success && Array.isArray(d.notes)) {
+      // Merge: keep most recent per id
+      const cloudMap = {};
+      d.notes.forEach(n => cloudMap[n.id] = n);
+      notesData.forEach(n => {
+        if(!cloudMap[n.id] || new Date(n.updatedAt) > new Date(cloudMap[n.id].updatedAt)) {
+          cloudMap[n.id] = n;
+        }
+      });
+      notesData = Object.values(cloudMap).sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      notesSaveLocal();
+    }
+    // Push merged to cloud
+    await api('/api/notes','PUT',{ notes: notesData });
+    setSyncStatus('#22d3a5', 'Synchronisé · ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
+    notesRender();
+  } catch(_) {
+    setSyncStatus('#4e6a8a', 'Hors ligne — données locales');
   }
 }
 
-function bjSyncTopBox(tc, rc) {
-  // Synchronise la boîte du haut avec la même logique que le panneau de décision
-  const minBet  = parseFloat(document.getElementById('bj-min-bet')?.value)||5;
-  const maxBet  = parseFloat(document.getElementById('bj-max-bet')?.value)||200;
-  const bankroll= parseFloat(document.getElementById('bj-bankroll')?.value)||200;
-  const amountEl= document.getElementById('bj-bet-amount');
-  const reasonEl= document.getElementById('bj-bet-reason');
-  const recEl   = document.getElementById('bj-bet-rec');
-  if(!amountEl||!reasonEl||!recEl) return;
-
-  let bet, reason, col, bg;
-  if (tc >= 4)      { bet=Math.min(maxBet,bankroll*.05,minBet*8); col='#22d3a5'; bg='rgba(34,211,165,.15)'; reason='🚀 Avantage maximal — misez fort !'; }
-  else if (tc >= 2) { bet=Math.min(maxBet,bankroll*.04,minBet*4); col='#22d3a5'; bg='rgba(34,211,165,.1)';  reason='✅ Bon avantage — augmentez la mise'; }
-  else if (tc >= 1) { bet=Math.min(maxBet,minBet*2);              col='#f59e0b'; bg='rgba(245,158,11,.1)'; reason='🟡 Légèrement favorable — mise modérée'; }
-  else if (tc >= 0) { bet=minBet;                                  col='#4e6a8a'; bg='rgba(30,45,71,.5)';   reason='⚖️ Neutre — mise minimum uniquement'; }
-  else if (tc >=-2) { bet=minBet;                                  col='#fb923c'; bg='rgba(251,146,60,.1)'; reason='⏳ Casino favoris — mise minimum'; }
-  else              { bet=0;                                        col='#ef4444'; bg='rgba(239,68,68,.1)';  reason='🛑 Ne jouez pas — fort avantage casino'; }
-
-  bet = bet>0 ? Math.round(bet/minBet)*minBet : 0;
-  amountEl.textContent = bet>0 ? bet+'€' : 'MIN';
-  amountEl.style.color = col;
-  reasonEl.textContent = reason;
-  recEl.style.background = bg;
-  recEl.style.borderColor = col;
+async function notesPushCloud() {
+  try { await api('/api/notes','PUT',{ notes: notesData }); } catch(_) {}
 }
 
-// ─── STRATÉGIE DE BASE ───
-const BJ_STRATEGY = {
-  hard: {
-    // [main]: [action pour croupier 2,3,4,5,6,7,8,9,10,A]
-    8:  ['T','T','T','T','T','T','T','T','T','T'],
-    9:  ['T','D','D','D','D','T','T','T','T','T'],
-    10: ['D','D','D','D','D','D','D','D','T','T'],
-    11: ['D','D','D','D','D','D','D','D','D','D'],
-    12: ['T','T','R','R','R','T','T','T','T','T'],
-    13: ['R','R','R','R','R','T','T','T','T','T'],
-    14: ['R','R','R','R','R','T','T','T','T','T'],
-    15: ['R','R','R','R','R','T','T','T','A','T'],
-    16: ['R','R','R','R','R','T','T','A','A','A'],
-    17: ['R','R','R','R','R','R','R','R','R','R'],
-    18: ['R','R','R','R','R','R','R','R','R','R'],
-    19: ['R','R','R','R','R','R','R','R','R','R'],
-    20: ['R','R','R','R','R','R','R','R','R','R'],
-    21: ['R','R','R','R','R','R','R','R','R','R'],
-  },
-  soft: {
-    // As + X
-    13: ['T','T','T','D','D','T','T','T','T','T'], // A+2
-    14: ['T','T','T','D','D','T','T','T','T','T'], // A+3
-    15: ['T','T','D','D','D','T','T','T','T','T'], // A+4
-    16: ['T','T','D','D','D','T','T','T','T','T'], // A+5
-    17: ['T','D','D','D','D','T','T','T','T','T'], // A+6
-    18: ['R','D','D','D','D','R','R','T','T','T'], // A+7
-    19: ['R','R','R','R','R','R','R','R','R','R'], // A+8
-    20: ['R','R','R','R','R','R','R','R','R','R'], // A+9
-  },
-  pair: {
-    2:  ['S','S','S','S','S','S','T','T','T','T'],
-    3:  ['S','S','S','S','S','S','T','T','T','T'],
-    4:  ['T','T','T','S','S','T','T','T','T','T'],
-    5:  ['D','D','D','D','D','D','D','D','T','T'],
-    6:  ['S','S','S','S','S','T','T','T','T','T'],
-    7:  ['S','S','S','S','S','S','T','T','T','T'],
-    8:  ['S','S','S','S','S','S','S','S','S','S'],
-    9:  ['S','S','S','S','S','R','S','S','R','R'],
-    10: ['R','R','R','R','R','R','R','R','R','R'],
-    1:  ['S','S','S','S','S','S','S','S','S','S'], // AA
-  }
-};
-const ACTION_LABELS = {T:'Tirer',R:'Rester',D:'Doubler',S:'Séparer',A:'Abandonner'};
-const ACTION_COLORS = {T:'var(--gr)',R:'var(--re)',D:'var(--neon)',S:'var(--pu)',A:'var(--am)'};
-const DEALER_COLS = [2,3,4,5,6,7,8,9,10,1];
+function notesNew() {
+  const note = {
+    id: notesGenId(),
+    title: '',
+    body: '',
+    updatedAt: new Date().toISOString(),
+    synced: false,
+  };
+  notesData.unshift(note);
+  notesSaveLocal();
+  notesRender();
+  // Focus le titre de la nouvelle note
+  setTimeout(() => {
+    const inp = document.getElementById('note-title-'+note.id);
+    if(inp) inp.focus();
+  }, 100);
+}
 
+function notesSave(id) {
+  const note = notesData.find(n => n.id === id);
+  if(!note) return;
+  const titleEl = document.getElementById('note-title-'+id);
+  const bodyEl  = document.getElementById('note-body-'+id);
+  if(titleEl) note.title = titleEl.value;
+  if(bodyEl)  note.body  = bodyEl.value;
+  note.updatedAt = new Date().toISOString();
+  note.synced = false;
+  notesSaveLocal();
+  // Update footer
+  const dateEl = document.getElementById('note-date-'+id);
+  const tagEl  = document.getElementById('note-tag-'+id);
+  const card   = document.getElementById('note-card-'+id);
+  if(dateEl) dateEl.textContent = 'Modifié ' + notesFmtDate(note.updatedAt);
+  if(tagEl)  { tagEl.textContent = '✓ Sauvegardé'; tagEl.className = 'note-tag note-saved'; }
+  if(card)   card.classList.remove('unsaved');
+  // Sync to cloud in background
+  notesPushCloud();
+  toast('Note sauvegardée ✓','ok');
+}
+
+function notesDelete(id) {
+  const note = notesData.find(n => n.id === id);
+  const title = note?.title || 'cette note';
+  if(!confirm(`Supprimer "${title.substring(0,40)}" ? Cette action est irréversible.`)) return;
+  notesData = notesData.filter(n => n.id !== id);
+  notesSaveLocal();
+  notesPushCloud();
+  const card = document.getElementById('note-card-'+id);
+  if(card) { card.style.opacity='0'; card.style.transform='translateX(20px)'; setTimeout(()=>card.remove(), 300); }
+  setTimeout(notesRender, 320);
+  toast('Note supprimée','');
+}
+
+function notesFmtDate(iso) {
+  if(!iso) return '—';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d)/60000);
+  if(diff < 1)  return "à l'instant";
+  if(diff < 60) return `il y a ${diff}min`;
+  if(diff < 1440) return `il y a ${Math.floor(diff/60)}h`;
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function notesAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function notesMarkUnsaved(id) {
+  const card = document.getElementById('note-card-'+id);
+  const tagEl = document.getElementById('note-tag-'+id);
+  if(card) card.classList.add('unsaved');
+  if(tagEl) { tagEl.textContent = '● Non sauvegardé'; tagEl.className = 'note-tag note-unsaved'; }
+  // Auto-save after 3 seconds of inactivity
+  clearTimeout(notesSaveTimers[id]);
+  notesSaveTimers[id] = setTimeout(() => notesSave(id), 3000);
+}
+
+function notesRender() {
+  const list = document.getElementById('notes-list');
+  const empty = document.getElementById('notes-empty');
+  if(!list) return;
+
+  if(!notesData.length) {
+    list.innerHTML = '';
+    if(empty) empty.style.display = 'block';
+    notesUpdateBadge();
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  notesUpdateBadge();
+
+  list.innerHTML = notesData.map(note => `
+    <div class="note-card" id="note-card-${note.id}">
+      <input
+        type="text"
+        class="note-title-input"
+        id="note-title-${note.id}"
+        placeholder="Titre de la note…"
+        value="${esc(note.title)}"
+        oninput="notesMarkUnsaved('${note.id}')"
+        onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='s'){event.preventDefault();notesSave('${note.id}')}"
+      >
+      <textarea
+        class="note-body"
+        id="note-body-${note.id}"
+        placeholder="Écrivez vos observations, stratégies, rappels…"
+        oninput="notesAutoResize(this);notesMarkUnsaved('${note.id}')"
+        onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='s'){event.preventDefault();notesSave('${note.id}')}"
+        rows="4"
+      >${esc(note.body)}</textarea>
+      <div class="note-footer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="note-date" id="note-date-${note.id}">Modifié ${notesFmtDate(note.updatedAt)}</span>
+          <span class="note-tag note-saved" id="note-tag-${note.id}">✓ Sauvegardé</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn bp" onclick="notesSave('${note.id}')" style="font-size:10px;padding:5px 11px">💾 Sauvegarder</button>
+          <button class="btn bs"  onclick="notesDelete('${note.id}')" style="font-size:10px;padding:5px 11px;color:var(--re);border-color:rgba(239,68,68,.3)">🗑</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // Auto-resize toutes les textareas
+  setTimeout(() => {
+    document.querySelectorAll('.note-body').forEach(t => notesAutoResize(t));
+  }, 50);
+}
+
+// ═══════════════════════════════════════════════
+//  BLACKJACK — Fonctions complémentaires
+// ═══════════════════════════════════════════════
 function bjBuildStrategyTable() {
   const tbody = document.getElementById('bj-strat-body');
   if(!tbody || tbody.innerHTML) return;
-  const sections = [
-    {label:'HARD',rows:Object.entries(BJ_STRATEGY.hard).map(([k,v])=>({key:parseInt(k),vals:v}))},
-    {label:'SOFT (A+)',rows:Object.entries(BJ_STRATEGY.soft).map(([k,v])=>({key:parseInt(k),vals:v}))},
-    {label:'PAIRES',rows:Object.entries(BJ_STRATEGY.pair).map(([k,v])=>({key:k==='1'?'AA':k+'/'+k,vals:v}))},
-  ];
+  const strat = {
+    hard:{8:['T','T','T','T','T','T','T','T','T','T'],9:['T','D','D','D','D','T','T','T','T','T'],10:['D','D','D','D','D','D','D','D','T','T'],11:['D','D','D','D','D','D','D','D','D','D'],12:['T','T','R','R','R','T','T','T','T','T'],13:['R','R','R','R','R','T','T','T','T','T'],14:['R','R','R','R','R','T','T','T','T','T'],15:['R','R','R','R','R','T','T','T','A','T'],16:['R','R','R','R','R','T','T','A','A','A'],17:['R','R','R','R','R','R','R','R','R','R']},
+    soft:{13:['T','T','T','D','D','T','T','T','T','T'],14:['T','T','T','D','D','T','T','T','T','T'],15:['T','T','D','D','D','T','T','T','T','T'],16:['T','T','D','D','D','T','T','T','T','T'],17:['T','D','D','D','D','T','T','T','T','T'],18:['R','D','D','D','D','R','R','T','T','T'],19:['R','R','R','R','R','R','R','R','R','R']},
+    pair:{2:['S','S','S','S','S','S','T','T','T','T'],3:['S','S','S','S','S','S','T','T','T','T'],4:['T','T','T','S','S','T','T','T','T','T'],5:['D','D','D','D','D','D','D','D','T','T'],6:['S','S','S','S','S','T','T','T','T','T'],7:['S','S','S','S','S','S','T','T','T','T'],8:['S','S','S','S','S','S','S','S','S','S'],9:['S','S','S','S','S','R','S','S','R','R'],10:['R','R','R','R','R','R','R','R','R','R'],1:['S','S','S','S','S','S','S','S','S','S']},
+  };
+  const AC = {T:'var(--gr)',R:'var(--re)',D:'var(--neon)',S:'var(--pu)',A:'var(--am)'};
   let html = '';
-  sections.forEach(sec => {
-    html += `<tr><td colspan="11" style="padding:6px 4px;font-size:8px;font-weight:700;color:var(--dm);text-transform:uppercase;letter-spacing:.08em;background:rgba(25,34,54,.5)">${sec.label}</td></tr>`;
-    sec.rows.forEach(row => {
-      html += `<tr><td style="padding:4px 5px;color:var(--mu);font-weight:700;font-family:var(--mo);white-space:nowrap">${row.key}</td>`;
-      row.vals.forEach(a => {
-        const col = ACTION_COLORS[a]||'var(--mu)';
-        html += `<td style="padding:4px 3px;text-align:center;font-family:var(--mo);font-weight:700;color:${col};font-size:9px">${a}</td>`;
-      });
+  [['Dur',strat.hard],['Souple A+',strat.soft],['Paire',strat.pair]].forEach(([name,tbl])=>{
+    html += `<tr><td colspan="11" style="padding:5px 4px;font-size:8px;font-weight:700;color:var(--dm);text-transform:uppercase;background:rgba(25,34,54,.5)">${name}</td></tr>`;
+    Object.entries(tbl).forEach(([k,v])=>{
+      html += `<tr><td style="padding:4px 5px;color:var(--mu);font-weight:700;font-family:var(--mo)">${k==='1'?'AA':k}</td>`;
+      v.forEach(a=>{ html+=`<td style="padding:4px 3px;text-align:center;font-family:var(--mo);font-weight:700;color:${AC[a]||'var(--mu)'};font-size:9px">${a}</td>`; });
       html += '</tr>';
     });
   });
@@ -3164,248 +3276,36 @@ function bjBuildStrategyTable() {
 }
 
 function bjGetAction() {
-  const hand     = parseInt(document.getElementById('bj-my-hand')?.value);
-  const dealer   = parseInt(document.getElementById('bj-dealer-card')?.value);
-  const type     = document.getElementById('bj-hand-type')?.value||'hard';
-  const resultEl = document.getElementById('bj-action-result');
-  if(!hand || !dealer || !resultEl) return;
-
-  const dealerIdx = DEALER_COLS.indexOf(dealer);
-  if(dealerIdx === -1) return;
-
-  const table = BJ_STRATEGY[type];
-  const key   = type==='pair' ? (hand===11?1:Math.floor(hand/2)) : hand;
-  const row   = table[key];
-  const action = row ? row[dealerIdx] : 'T';
-  const label  = ACTION_LABELS[action] || action;
-  const color  = ACTION_COLORS[action] || 'var(--mu)';
-
-  const tc = bjState.cardsHistory.length > 10 ? Math.round(bjState.runningCount / Math.max(0.5,(bjState.totalDecks*52-bjState.cardsHistory.length)/52)*10)/10 : null;
-
-  resultEl.innerHTML = `
-    <div style="background:${color.replace('var(','')}11;border:1px solid ${color};border-radius:9px;padding:14px;text-align:center">
-      <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Action recommandée</div>
-      <div style="font-family:var(--hd);font-size:28px;font-weight:800;color:${color}">${label.toUpperCase()}</div>
-      <div style="font-size:11px;color:var(--mu);margin-top:6px">Main ${hand} (${type}) vs Croupier ${dealer==='1'?'As':dealer}</div>
-      ${tc!==null ? `<div style="font-size:10px;color:var(--dm);margin-top:4px;font-family:var(--mo)">True Count actuel: ${tc>0?'+':''}${tc} — ${tc>=3?'Condition favorable pour doubler/séparer':tc<0?'Condition défavorable':' Comptage neutre'}</div>` : ''}
-    </div>`;
-}
-
-// ─── DÉCISION STRATÉGIQUE TEMPS RÉEL ───
-function bjComputeTC() {
-  const rc = bjState.runningCount;
-  const seen = bjState.cardsHistory.length;
-  const totalCards = bjState.totalDecks * 52;
-  const cardsLeft = Math.max(52, totalCards - seen); // au moins 1 deck virtuel
-  const decksLeft = cardsLeft / 52;
-  // True Count = RC / decks restants (arrondi au 0.5 le plus proche)
-  const tc = Math.round((rc / decksLeft) * 2) / 2;
-  return { rc, seen, totalCards, cardsLeft, decksLeft, tc };
-}
-
-function bjGetRemainingCards() {
-  // Cartes encore dans le sabot (non grisées)
-  const remaining = { high:[], low:[], neutral:[] }; // high=10/A, low=2-6, neutral=7-9
-  const labels = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-  const vals   = [1,  2,  3,  4,  5,  6,  7,  8,  9,  10,  10, 10,  10];
-  const suits  = ['s','h','d','c'];
-  const suitSyms = {s:'♠',h:'♥',d:'♦',c:'♣'};
-  const suitCols = {s:'#d8e8f8',h:'#ef4444',d:'#ef4444',c:'#d8e8f8'};
-
-  suits.forEach(suit => {
-    labels.forEach((label, i) => {
-      const cardId = suit+'_'+label;
-      const btn = document.getElementById('bj-c-'+cardId);
-      if(btn && btn.dataset.played !== '1') {
-        const val = vals[i];
-        const delta = HI_LO[val];
-        const card = { label, suit, sym: suitSyms[suit], col: suitCols[suit], val, cardId };
-        if(delta < 0) remaining.high.push(card);
-        else if(delta > 0) remaining.low.push(card);
-        else remaining.neutral.push(card);
-      }
-    });
-  });
-  return remaining;
-}
-
-function bjAskDecision() {
-  const btn = document.getElementById('bj-main-btn');
-  // Flash animation
-  if(btn) {
-    btn.style.transform = 'scale(.96)';
-    btn.style.boxShadow = '0 0 32px rgba(34,211,165,.6)';
-    setTimeout(()=>{ btn.style.transform=''; btn.style.boxShadow=''; }, 200);
-  }
-  bjShowDecision();
-  // Scroll to decision panel
-  setTimeout(()=>{
-    const el = document.getElementById('bj-decision-panel');
-    if(el) el.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  }, 100);
-}
-
-function bjShowDecision() {
-  const el = document.getElementById('bj-decision-panel');
-  if(!el) return;
-
-  const { rc, seen, totalCards, decksLeft, tc } = bjComputeTC();
-  const minBet  = parseFloat(document.getElementById('bj-min-bet')?.value)  || 5;
-  const maxBet  = parseFloat(document.getElementById('bj-max-bet')?.value)  || 200;
-  const bankroll= parseFloat(document.getElementById('bj-bankroll')?.value) || 200;
-  const remaining = bjGetRemainingCards();
-  const pctSeen = Math.round(seen / totalCards * 100);
-
-  let decision, color, bg, border, icon, advice, betAmt, showRemaining = false;
-
-  if (tc >= 4) {
-    decision = '🚀 JOUEZ MAINTENANT — Avantage maximal !';
-    icon = '🚀'; color = '#22d3a5';
-    bg = 'rgba(34,211,165,.18)'; border = 'rgba(34,211,165,.6)';
-    betAmt = Math.min(maxBet, bankroll * 0.05, minBet * 8);
-    advice = `Le sabot contient encore beaucoup de cartes hautes (10, J, Q, K, As). Probabilité de blackjack élevée. Doublez systématiquement sur 9/10/11. Séparez toujours les 8 et les As.`;
-    showRemaining = true;
-  } else if (tc >= 2) {
-    decision = '✅ JOUEZ — Bon avantage joueur';
-    icon = '✅'; color = '#22d3a5';
-    bg = 'rgba(34,211,165,.12)'; border = 'rgba(34,211,165,.4)';
-    betAmt = Math.min(maxBet, bankroll * 0.03, minBet * 4);
-    advice = `Avantage mathématique de votre côté. Augmentez la mise. Doublez sur 10 et 11 contre n'importe quelle carte du croupier. Séparez les As et les 8.`;
-    showRemaining = true;
-  } else if (tc >= 1) {
-    decision = '🟡 LÉGÈREMENT FAVORABLE — Mise modérée';
-    icon = '🟡'; color = '#f59e0b';
-    bg = 'rgba(245,158,11,.1)'; border = 'rgba(245,158,11,.35)';
-    betAmt = Math.min(maxBet, minBet * 2);
-    advice = `Légère amélioration du comptage. Doublez votre mise minimale. Appliquez la stratégie de base strictement.`;
-    showRemaining = false;
-  } else if (tc >= 0) {
-    decision = '⚖️ NEUTRE — Mise minimum';
-    icon = '⚖️'; color = '#4e6a8a';
-    bg = 'rgba(30,45,71,.5)'; border = 'rgba(78,106,138,.4)';
-    betAmt = minBet;
-    advice = `Comptage neutre — ni avantage ni désavantage significatif. Suivez la stratégie de base sans dévier. Misez le minimum.`;
-    showRemaining = false;
-  } else if (tc >= -2) {
-    decision = '⏳ CASINO FAVORIS — Attendez ou misez minimum';
-    icon = '⏳'; color = '#fb923c';
-    bg = 'rgba(251,146,60,.1)'; border = 'rgba(251,146,60,.35)';
-    betAmt = minBet;
-    advice = `Le sabot contient plus de cartes hautes qu'attendu — avantage pour le croupier. Ne prenez pas d'assurance. Évitez les doublages risqués.`;
-    showRemaining = false;
-  } else {
-    decision = '🛑 NE JOUEZ PAS — Fort avantage casino';
-    icon = '🛑'; color = '#ef4444';
-    bg = 'rgba(239,68,68,.12)'; border = 'rgba(239,68,68,.5)';
-    betAmt = 0;
-    advice = `Comptage très défavorable. Si possible, quittez cette table. Sinon misez le strict minimum et attendez le prochain sabot.`;
-    showRemaining = false;
-  }
-
-  betAmt = betAmt > 0 ? Math.round(betAmt / minBet) * minBet : 0;
-  const tcSign = tc > 0 ? '+' : '';
-  const rcSign = rc > 0 ? '+' : '';
-
-  // Cartes hautes restantes (visible si favorable)
-  let remainingHTML = '';
-  if (showRemaining && remaining.high.length > 0) {
-    const maxShow = Math.min(remaining.high.length, 30);
-    remainingHTML = `<div style="margin-top:10px;padding:9px 11px;background:rgba(0,0,0,.2);border-radius:8px">
-      <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mo)">
-        🃏 Cartes hautes (10, J, Q, K, As) encore dans le sabot — ${remaining.high.length} restantes
-        <span style="color:var(--gr);margin-left:4px">← ce sont elles qui vous donnent l'avantage</span>
-      </div>
-      <div style="display:flex;gap:3px;flex-wrap:wrap">
-        ${remaining.high.slice(0, maxShow).map(c =>
-          `<span onclick="bjClick52('${c.cardId}','${c.label}',${c.val},'${c.suit}','${c.sym}','${c.col.replace('#','')}') "
-            style="font-family:var(--mo);font-size:12px;font-weight:700;padding:3px 6px;border-radius:5px;
-            background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);cursor:pointer;
-            color:${c.col};transition:all .1s;-webkit-tap-highlight-color:transparent;user-select:none"
-            title="Cliquer si cette carte sort">
-            ${c.sym}${c.label}
-          </span>`
-        ).join('')}
-        ${remaining.high.length > maxShow ? `<span style="font-size:10px;color:var(--dm);align-self:center">+${remaining.high.length-maxShow} autres</span>` : ''}
-      </div>
-    </div>`;
-  }
-
-  el.innerHTML = `
-    <div style="background:${bg};border:2px solid ${border};border-radius:12px;padding:14px 16px">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">
-        <span style="font-size:26px;flex-shrink:0">${icon}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-family:var(--hd);font-size:14px;font-weight:800;color:${color};line-height:1.2">${decision}</div>
-          <div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">
-            <span title="True Count = Compte courant ÷ Decks restants — plus c'est élevé, mieux c'est pour vous">
-              Compte vrai (TC) : <strong style="color:${color}">${tcSign}${tc}</strong>
-            </span>
-            <span title="Running Count = somme brute de toutes les cartes vues depuis le début du sabot">
-              Compte courant (RC) : <strong style="color:var(--mu)">${rcSign}${rc}</strong>
-            </span>
-            <span>Decks restants : <strong style="color:var(--mu)">${decksLeft.toFixed(1)}</strong></span>
-            <span>${seen} cartes vues (${pctSeen}% du sabot)</span>
-          </div>
-        </div>
-        ${betAmt > 0 ? `<div style="text-align:center;background:rgba(0,0,0,.25);border:1px solid ${border};border-radius:9px;padding:8px 13px;flex-shrink:0">
-          <div style="font-family:var(--mo);font-size:22px;font-weight:700;color:${color}">${betAmt}€</div>
-          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;margin-top:1px">mise conseillée</div>
-        </div>` : `<div style="text-align:center;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:8px 13px;flex-shrink:0">
-          <div style="font-family:var(--mo);font-size:16px;font-weight:700;color:#ef4444">MIN</div>
-          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;margin-top:1px">mise min</div>
-        </div>`}
-      </div>
-      <div style="font-size:11px;color:var(--mu);line-height:1.65;padding:8px 10px;background:rgba(0,0,0,.15);border-radius:7px">${advice}</div>
-      ${remainingHTML}
-    </div>`;
-  el.style.display = 'block';
+  const hand=parseInt(document.getElementById('bj-my-hand')?.value);
+  const dealer=parseInt(document.getElementById('bj-dealer-card')?.value);
+  const type=document.getElementById('bj-hand-type')?.value||'hard';
+  const el=document.getElementById('bj-action-result');
+  if(!hand||!dealer||!el) return;
+  const strat={hard:{8:['T','T','T','T','T','T','T','T','T','T'],9:['T','D','D','D','D','T','T','T','T','T'],10:['D','D','D','D','D','D','D','D','T','T'],11:['D','D','D','D','D','D','D','D','D','D'],12:['T','T','R','R','R','T','T','T','T','T'],13:['R','R','R','R','R','T','T','T','T','T'],14:['R','R','R','R','R','T','T','T','T','T'],15:['R','R','R','R','R','T','T','T','A','T'],16:['R','R','R','R','R','T','T','A','A','A'],17:['R','R','R','R','R','R','R','R','R','R']},soft:{13:['T','T','T','D','D','T','T','T','T','T'],14:['T','T','T','D','D','T','T','T','T','T'],15:['T','T','D','D','D','T','T','T','T','T'],16:['T','T','D','D','D','T','T','T','T','T'],17:['T','D','D','D','D','T','T','T','T','T'],18:['R','D','D','D','D','R','R','T','T','T'],19:['R','R','R','R','R','R','R','R','R','R']},pair:{2:['S','S','S','S','S','S','T','T','T','T'],3:['S','S','S','S','S','S','T','T','T','T'],4:['T','T','T','S','S','T','T','T','T','T'],5:['D','D','D','D','D','D','D','D','T','T'],6:['S','S','S','S','S','T','T','T','T','T'],7:['S','S','S','S','S','S','T','T','T','T'],8:['S','S','S','S','S','S','S','S','S','S'],9:['S','S','S','S','S','R','S','S','R','R'],10:['R','R','R','R','R','R','R','R','R','R'],1:['S','S','S','S','S','S','S','S','S','S']}};
+  const dealerCols=[2,3,4,5,6,7,8,9,10,1];
+  const di=dealerCols.indexOf(dealer);
+  const t=strat[type];
+  const k=type==='pair'?(hand===11?1:Math.floor(hand/2)):hand;
+  const row=t?t[k]:null;
+  const a=row?row[di]:'T';
+  const labels={T:'🃏 TIRER — Prenez une carte',R:'✋ RESTER — Ne tirez pas',D:'💰 DOUBLER — Doublez la mise et tirez 1 carte',S:'✌️ SÉPARER — Faites 2 mains séparées',A:'🏳️ ABANDONNER — Récupérez 50% de la mise'};
+  const colors={T:'var(--gr)',R:'var(--re)',D:'var(--neon)',S:'var(--pu)',A:'var(--am)'};
+  el.innerHTML=`<div style="background:rgba(0,0,0,.2);border:2px solid ${colors[a]||'var(--mu)'};border-radius:9px;padding:14px;text-align:center"><div style="font-family:var(--hd);font-size:18px;font-weight:800;color:${colors[a]||'var(--mu)'}">${labels[a]||a}</div><div style="font-size:10px;color:var(--dm);margin-top:5px;font-family:var(--mo)">Main ${hand} (${type}) vs Croupier ${dealer===1?'As':dealer}</div></div>`;
 }
 
 function bjCalcBankroll() {
-  const total  = parseFloat(document.getElementById('bj-br-total')?.value)||2000;
-  const minBet = parseFloat(document.getElementById('bj-br-min')?.value)||10;
-  const spread = parseInt(document.getElementById('bj-br-spread')?.value)||8;
-  const maxBet = minBet * spread;
-  const unitsPer = Math.round(total / (minBet * 100));
-  const ruin5  = Math.round(Math.exp(-2*0.01*total/(maxBet*maxBet))*100);
-
-  const res = document.getElementById('bj-br-result');
-  const spreadTable = document.getElementById('bj-spread-table');
-
-  if(res) res.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:6px">
-      <div style="text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;color:var(--neon)">${minBet}€</div><div style="font-size:9px;color:var(--dm);text-transform:uppercase">Mise min.</div></div>
-      <div style="text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;color:var(--gr)">${maxBet}€</div><div style="font-size:9px;color:var(--dm);text-transform:uppercase">Mise max.</div></div>
-      <div style="text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;color:var(--am)">${total/minBet}</div><div style="font-size:9px;color:var(--dm);text-transform:uppercase">Unités</div></div>
-      <div style="text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;color:var(--mu)">1:${spread}</div><div style="font-size:9px;color:var(--dm);text-transform:uppercase">Spread</div></div>
-    </div>
-    <div style="font-size:11px;color:var(--mu);padding:8px 12px;background:var(--sf2);border-radius:7px">
-      Bankroll recommandée pour ce spread : <strong style="color:var(--neon)">${minBet*spread*20}€ minimum</strong> (200 unités de mise min).
-      ${total < minBet*spread*20 ? '<span style="color:var(--re)"> ⚠ Bankroll insuffisante pour ce spread — risque de ruine élevé.</span>' : '<span style="color:var(--gr)"> ✓ Bankroll adéquate.</span>'}
-    </div>`;
-
-  if(spreadTable) {
-    const rows = [
-      {tc:'≤ 0',  mult:1,   label:'Minimum — casino favoris'},
-      {tc:'+1',   mult:1,   label:'Neutre — attendre'},
-      {tc:'+2',   mult:2,   label:'Légère opportunité'},
-      {tc:'+3',   mult:4,   label:'Bonne opportunité'},
-      {tc:'+4',   mult:6,   label:'Forte opportunité'},
-      {tc:'≥ +5', mult:spread, label:'Maximale — misez le plafond'},
-    ];
-    spreadTable.innerHTML = rows.map(r => {
-      const bet = Math.min(maxBet, minBet*r.mult);
-      const col = r.mult<=1?'var(--re)':r.mult<=2?'var(--am)':r.mult<=4?'var(--neon)':'var(--gr)';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin-bottom:5px;background:var(--sf2);border-radius:7px;flex-wrap:wrap;gap:5px">
-        <span style="font-family:var(--mo);font-size:11px;font-weight:700;color:${col}">TC ${r.tc}</span>
-        <span style="font-size:10px;color:var(--mu);flex:1;padding:0 10px">${r.label}</span>
-        <span style="font-family:var(--mo);font-size:14px;font-weight:700;color:${col}">${bet}€</span>
-      </div>`;
-    }).join('');
-  }
+  const total=parseFloat(document.getElementById('bj-br-total')?.value)||2000;
+  const minBet=parseFloat(document.getElementById('bj-br-min')?.value)||10;
+  const spread=parseInt(document.getElementById('bj-br-spread')?.value)||8;
+  const maxBet=minBet*spread;
+  const res=document.getElementById('bj-br-result');
+  const tbl=document.getElementById('bj-spread-table');
+  if(res) res.innerHTML=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div style="text-align:center;padding:10px;background:var(--sf2);border-radius:8px"><div style="font-family:var(--mo);font-size:18px;font-weight:700;color:var(--neon)">${minBet}€</div><div style="font-size:9px;color:var(--dm);text-transform:uppercase">Mise min</div></div><div style="text-align:center;padding:10px;background:var(--sf2);border-radius:8px"><div style="font-family:var(--mo);font-size:18px;font-weight:700;color:var(--gr)">${maxBet}€</div><div style="font-size:9px;color:var(--dm);text-transform:uppercase">Mise max</div></div></div><div style="font-size:11px;color:var(--mu);margin-top:8px;padding:8px;background:var(--sf2);border-radius:7px">Bankroll recommandée pour spread 1:${spread} : <strong style="color:var(--neon)">${minBet*spread*20}€ minimum</strong> (200× mise min).${total<minBet*spread*20?'<span style="color:var(--re)"> ⚠ Bankroll insuffisante.</span>':'<span style="color:var(--gr)"> ✓ Adéquate.</span>'}</div>`;
+  if(tbl){const rows=[{tc:'≤0',m:1,l:'Minimum'},{tc:'+1',m:1,l:'Neutre'},{tc:'+2',m:2,l:'Légère opportunité'},{tc:'+3',m:4,l:'Bonne opportunité'},{tc:'+4',m:6,l:'Forte opportunité'},{tc:'≥+5',m:spread,l:'Maximum'}];tbl.innerHTML=rows.map(r=>{const bet=Math.min(maxBet,minBet*r.m);const c=r.m<=1?'var(--re)':r.m<=2?'var(--am)':r.m<=4?'var(--neon)':'var(--gr)';return`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 11px;margin-bottom:4px;background:var(--sf2);border-radius:7px;flex-wrap:wrap;gap:5px"><span style="font-family:var(--mo);font-size:11px;font-weight:700;color:${c}">TC ${r.tc}</span><span style="font-size:10px;color:var(--mu);flex:1;padding:0 10px">${r.l}</span><span style="font-family:var(--mo);font-size:14px;font-weight:700;color:${c}">${bet}€</span></div>`;}).join('');}
 }
 
 document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);startConnectionMonitor();
+  notesLoad(); notesUpdateBadge();
   // Init BJ card grid if on blackjack tab
   setTimeout(()=>{ if(document.getElementById('bj-card-grid')) bjBuildCardGrid(); },500);
   // Init date pickers with today
