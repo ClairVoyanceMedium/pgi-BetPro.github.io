@@ -830,17 +830,8 @@ a{color:var(--neon);text-decoration:none}
   <div id="live-model-res"></div>
   <div class="card" style="padding:12px 14px;margin-bottom:12px">
     <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Questions rapides</div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap">
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Identifie le pari avec la probabilité de gain la plus élevée sur ce match, avec un raisonnement statistique précis. Donne-moi la cote minimale acceptable et le montant à miser pour une bankroll de 100€.')">🎯 Meilleur pari précis</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Analyse la valeur (value bet) de chaque côte disponible sur ce match. Pour chaque marché (1X2, Over/Under 2.5, BTTS), calcule si la cote bookmaker sous-estime ou surestime la probabilité réelle. Donne uniquement les paris avec edge positif.')">💎 Value bets uniquement</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('En appliquant le Critère de Kelly fractionnaire (25%), quelle mise optimale recommandes-tu sur quel pari ? Base-toi sur la forme des 5 derniers matchs, le H2H, et les statistiques xG si disponibles.')">🧮 Kelly + xG</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Ce match est-il joué sur un terrain neutre, ou est-ce que l'avantage domicile est significatif ? Analyse l'impact du facteur domicile sur les cotes et donne-moi le pari qui en bénéficie le plus.')">🏟️ Avantage domicile</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Donne-moi une analyse Over/Under précise : combien de buts sont attendus selon le modèle de Poisson ? Quelle est la probabilité exacte de Over 1.5, Over 2.5, Over 3.5 ? Quel seuil offre le meilleur value ?')">⚽ Analyse buts Poisson</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Analyse le momentum actuel du match : quelle équipe contrôle le jeu, qui est susceptible de marquer en premier et dans quelle tranche horaire ? Quel est le meilleur timing pour rentrer dans un pari live ?')">⏱️ Momentum & timing</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Simule 1000 issues possibles de ce match avec un modèle probabiliste. Donne-moi les 5 scores les plus probables avec leur pourcentage, et quel pari est le plus rentable en tenant compte des cotes bookmaker actuelles.')">🎲 Simulation Monte Carlo</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Identifie les scénarios dans lesquels je dois ÉVITER de parier sur ce match : facteurs de risque cachés, équipes en rotation, conditions météo, enjeux de fin de saison, fatigue, suspensions. Sois exhaustif.')">⚠️ Risques cachés</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Compare les cotes de Pinnacle (référence du marché) avec celles des autres bookmakers sur ce match. Où se situe le vrai edge ? Quelle cote est la plus mal calibrée par le marché et pourquoi ?')">📊 Comparaison Pinnacle</button>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="sendQuick('Si je dois choisir UN SEUL pari sur ce match avec une mise de 50€, lequel me recommandes-tu en priorité absolue ? Justifie avec : probabilité estimée, edge sur la cote, niveau de confiance 0-100, et timing optimal.')">🏆 UN seul pari, 50€</button>
+    <div id="quick-questions-wrap" style="display:flex;gap:5px;flex-wrap:wrap">
+      <!-- généré par renderQuickQuestions() -->
     </div>
   </div>
   <div class="card" style="padding:14px">
@@ -1248,7 +1239,7 @@ function go(name) {
   cSb();
   if (name==='results')  loadResults();
   if (name==='notes')    { notesLoad(); notesSyncCloud(true); notesRender(); }
-  if (name==='blackjack'){ setTimeout(()=>{ bjBuildCardGrid(); bjSetSuit('s'); },100); }
+  if (name==='blackjack'){ setTimeout(()=>{ bjBuildGrid(); bjRefresh(); },100); }
   if (name==='history')  loadHistory();
   if (name==='settings') { loadSettings(); loadSysStatus(); loadAIStatus(); }
   if (name==='live')     loadLive();
@@ -2802,6 +2793,7 @@ function bjTab(t) {
     if(tab) tab.classList.toggle('on', x===t);
     if(pan) pan.style.display = x===t ? '' : 'none';
   });
+  if(t==='count')    { bjBuildGrid(); bjRefresh(); }
   if(t==='strategy') bjBuildStrategyTable();
   if(t==='bankroll') bjCalcBankroll();
 }
@@ -2809,7 +2801,8 @@ function bjTab(t) {
 // ─── Construction de la grille 52 cartes ───
 function bjBuildGrid() {
   const grid = document.getElementById('bj-grid');
-  if(!grid || grid.children.length > 0) return; // déjà construit
+  if(!grid) return;
+  if(grid.children.length > 0) { bjRefresh(); return; } // déjà construit
   let html = '';
   SUITS.forEach(suit => {
     CARDS.forEach(card => {
@@ -3304,10 +3297,123 @@ function bjCalcBankroll() {
   if(tbl){const rows=[{tc:'≤0',m:1,l:'Minimum'},{tc:'+1',m:1,l:'Neutre'},{tc:'+2',m:2,l:'Légère opportunité'},{tc:'+3',m:4,l:'Bonne opportunité'},{tc:'+4',m:6,l:'Forte opportunité'},{tc:'≥+5',m:spread,l:'Maximum'}];tbl.innerHTML=rows.map(r=>{const bet=Math.min(maxBet,minBet*r.m);const c=r.m<=1?'var(--re)':r.m<=2?'var(--am)':r.m<=4?'var(--neon)':'var(--gr)';return`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 11px;margin-bottom:4px;background:var(--sf2);border-radius:7px;flex-wrap:wrap;gap:5px"><span style="font-family:var(--mo);font-size:11px;font-weight:700;color:${c}">TC ${r.tc}</span><span style="font-size:10px;color:var(--mu);flex:1;padding:0 10px">${r.l}</span><span style="font-family:var(--mo);font-size:14px;font-weight:700;color:${c}">${bet}€</span></div>`;}).join('');}
 }
 
+// ═══ QUESTIONS RAPIDES PERSONNALISABLES ═══
+const DEFAULT_QUICK_QUESTIONS = [
+  {label:'🎯 Meilleur pari précis', q:'Identifie le pari avec la probabilité de gain la plus élevée sur ce match, avec un raisonnement statistique précis. Donne-moi la cote minimale acceptable et le montant à miser pour une bankroll de 100€.'},
+  {label:'💎 Value bets', q:'Analyse la valeur (value bet) de chaque cote disponible sur ce match. Pour chaque marché (1X2, Over/Under 2.5, BTTS), calcule si la cote bookmaker sous-estime la probabilité réelle. Donne uniquement les paris avec edge positif.'},
+  {label:'🧮 Kelly + xG', q:'En appliquant le Critère de Kelly fractionnaire (25%), quelle mise optimale recommandes-tu ? Base-toi sur la forme des 5 derniers matchs, le H2H et les statistiques xG.'},
+  {label:'⚽ Analyse buts Poisson', q:'Analyse Over/Under précise : combien de buts sont attendus selon le modèle de Poisson ? Probabilité exacte de Over 1.5, Over 2.5, Over 3.5 ? Quel seuil offre le meilleur value ?'},
+  {label:'⏱️ Momentum & timing', q:'Analyse le momentum actuel : quelle équipe contrôle le jeu, qui est susceptible de marquer en premier et dans quelle tranche horaire ? Quel est le meilleur timing pour parier en live ?'},
+  {label:'🎲 Monte Carlo', q:'Simule 1000 issues possibles de ce match avec un modèle probabiliste. Donne-moi les 5 scores les plus probables avec leur pourcentage, et quel pari est le plus rentable.'},
+  {label:'⚠️ Risques cachés', q:'Identifie tous les scénarios où je dois ÉVITER de parier : facteurs de risque cachés, rotation, météo, enjeux de fin de saison, fatigue, suspensions. Sois exhaustif.'},
+  {label:'📊 Pinnacle', q:'Compare les cotes de Pinnacle avec celles des autres bookmakers. Où se situe le vrai edge ? Quelle cote est la plus mal calibrée ?'},
+  {label:'🏟️ Avantage domicile', q:'Analyse le facteur domicile sur les cotes. Donne-moi le pari qui en bénéficie le plus avec justification statistique.'},
+  {label:'🏆 UN seul pari 50€', q:'Si je dois choisir UN SEUL pari sur ce match avec une mise de 50€, lequel me recommandes-tu en priorité absolue ? Justifie avec : probabilité estimée, edge sur la cote, niveau de confiance 0-100 et timing optimal.'},
+];
+const QQ_KEY = 'pgi_quick_questions';
+let quickQuestions = null;
+
+function loadQuickQuestions() {
+  try {
+    const raw = localStorage.getItem(QQ_KEY);
+    quickQuestions = raw ? JSON.parse(raw) : [...DEFAULT_QUICK_QUESTIONS];
+  } catch(_) { quickQuestions = [...DEFAULT_QUICK_QUESTIONS]; }
+}
+
+function saveQuickQuestions() {
+  try { localStorage.setItem(QQ_KEY, JSON.stringify(quickQuestions)); } catch(_) {}
+}
+
+function renderQuickQuestions() {
+  const el = document.getElementById('quick-questions-wrap');
+  if(!el || !quickQuestions) return;
+  el.innerHTML = quickQuestions.map((q,i) =>
+    `<button class="btn bs" style="font-size:10px;padding:4px 9px;text-align:left" onclick="sendQuick(${JSON.stringify(q.q)})">${esc(q.label)}</button>`
+  ).join('');
+}
+
+function chatEditQuestions() {
+  if(!quickQuestions) loadQuickQuestions();
+  // Build modal
+  const modal = document.createElement('div');
+  modal.id = 'qq-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+  modal.innerHTML = `<div style="background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:20px;max-width:600px;width:100%;margin:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-family:var(--hd);font-size:16px;font-weight:700;color:var(--neon)">✏️ Modifier les questions rapides</div>
+      <button onclick="document.getElementById('qq-modal').remove()" style="background:none;border:none;color:var(--re);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-bottom:12px">Personnalisez vos questions. Glissez pour réordonner.</div>
+    <div id="qq-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+      ${quickQuestions.map((q,i) => `
+        <div class="qq-item" data-idx="${i}" style="background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <input type="text" value="${esc(q.label)}" data-field="label" data-idx="${i}"
+              style="flex:1;background:var(--sf);border:1px solid var(--bd);border-radius:5px;color:var(--tx);font-family:var(--mo);font-size:11px;padding:4px 8px;outline:none"
+              placeholder="Libellé du bouton">
+            <button onclick="qqDelete(${i})" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--re);border-radius:5px;padding:3px 8px;cursor:pointer;font-size:11px">✕</button>
+          </div>
+          <textarea data-field="q" data-idx="${i}"
+            style="width:100%;background:var(--sf);border:1px solid var(--bd);border-radius:5px;color:var(--mu);font-family:var(--mo);font-size:10px;padding:6px 8px;outline:none;resize:vertical;min-height:60px"
+            placeholder="Texte de la question envoyée à l'IA">${esc(q.q)}</textarea>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bp" onclick="qqAdd()" style="font-size:11px">+ Ajouter</button>
+      <button class="btn bs" onclick="qqReset()" style="font-size:11px">↩ Réinitialiser</button>
+      <button class="btn bp" onclick="qqSave()" style="font-size:11px;margin-left:auto">💾 Sauvegarder</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function qqDelete(idx) {
+  const inputs = document.querySelectorAll('#qq-list [data-idx="'+idx+'"]');
+  inputs.forEach(el => el.closest('.qq-item')?.remove());
+  quickQuestions.splice(idx, 1);
+  chatEditQuestions(); // re-render
+  document.getElementById('qq-modal').remove();
+  chatEditQuestions();
+}
+
+function qqAdd() {
+  qqSave(true);
+  quickQuestions.push({label:'✨ Nouvelle question', q:'Posez votre question ici…'});
+  document.getElementById('qq-modal').remove();
+  chatEditQuestions();
+}
+
+function qqReset() {
+  if(!confirm('Réinitialiser les questions par défaut ?')) return;
+  quickQuestions = [...DEFAULT_QUICK_QUESTIONS];
+  saveQuickQuestions();
+  document.getElementById('qq-modal').remove();
+  renderQuickQuestions();
+  toast('Questions réinitialisées','ok');
+}
+
+function qqSave(silent) {
+  const items = document.querySelectorAll('#qq-list .qq-item');
+  const newQs = [];
+  items.forEach(item => {
+    const labelEl = item.querySelector('[data-field="label"]');
+    const qEl     = item.querySelector('[data-field="q"]');
+    if(labelEl && qEl) newQs.push({ label: labelEl.value.trim()||'Question', q: qEl.value.trim()||'…' });
+  });
+  if(newQs.length) quickQuestions = newQs;
+  saveQuickQuestions();
+  renderQuickQuestions();
+  if(!silent) {
+    document.getElementById('qq-modal')?.remove();
+    toast('Questions sauvegardées ✓','ok');
+  }
+}
+
 document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);startConnectionMonitor();
   notesLoad(); notesUpdateBadge();
-  // Init BJ card grid if on blackjack tab
-  setTimeout(()=>{ if(document.getElementById('bj-card-grid')) bjBuildCardGrid(); },500);
+  loadQuickQuestions(); renderQuickQuestions();
+  // Init BJ — build grid immediately
+  setTimeout(()=>{ bjBuildGrid(); bjRefresh(); }, 300);
   // Init date pickers with today
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now()+86400000).toISOString().split('T')[0];
