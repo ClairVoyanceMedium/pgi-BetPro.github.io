@@ -593,7 +593,7 @@ a{color:var(--neon);text-decoration:none}
 <section class="sec on" id="s-dash">
   <div class="ph"><div class="pt">⚡ Tableau de bord</div><div class="ps">Scan live global ou analyse ciblée — Piwi 247 · Pinnacle</div></div>
   <div class="scan-hero">
-    <div class="scan-hero-top"><div class="scan-pulse"></div><div><div class="scan-title">🔴 SCAN LIVE GLOBAL</div></div></div>
+    <div class="scan-hero-top"><div class="scan-pulse"></div><div><div class="scan-title">SCAN LIVE GLOBAL</div></div></div>
     <div class="scan-sub">Détecte les meilleures opportunités sur tous championnats —
       <span class="bk-badge bk-piwi" style="font-size:10px;padding:2px 7px;display:inline-flex">Piwi 247</span>
       <span class="bk-badge bk-pinnacle" style="font-size:10px;padding:2px 7px;display:inline-flex">Pinnacle</span>
@@ -1374,20 +1374,34 @@ function matchesSportFilter(sport, filter) {
   return keys.some(k => (sport||'').toLowerCase().includes(k));
 }
 function filterLiveCards() {
-  document.querySelectorAll('.live-card[data-sport]').forEach(c => {
-    c.style.display = matchesSportFilter(c.dataset.sport, liveSportFilter) ? '' : 'none';
+  // Live cards use data-sport; scan mega-cards use data-sport-key
+  document.querySelectorAll('.live-card[data-sport], .live-card[data-sport-key]').forEach(c => {
+    const s = c.dataset.sport || c.dataset.sportKey || '';
+    c.style.display = matchesSportFilter(s, liveSportFilter) ? '' : 'none';
   });
-  const visible = document.querySelectorAll('.live-card[data-sport]:not([style*="none"])').length;
+  const visible = document.querySelectorAll('#live-cnt .live-card:not([style*="none"])').length;
   const bar = document.querySelector('#live-cnt .sbar span');
   if(bar) bar.textContent = visible + ' match(s) en direct' + (liveSportFilter!=='all' ? ' — '+liveSportFilter : '');
 }
 function filterUpcomingCards() {
-  document.querySelectorAll('.upc-card[data-sport]').forEach(c => {
-    c.style.display = matchesSportFilter(c.dataset.sport, liveSportFilter) ? '' : 'none';
+  document.querySelectorAll('.upc-card[data-sport], .upc-card[data-sport-key]').forEach(c => {
+    const s = c.dataset.sport || c.dataset.sportKey || '';
+    c.style.display = matchesSportFilter(s, liveSportFilter) ? '' : 'none';
   });
-  const visible = document.querySelectorAll('.upc-card[data-sport]:not([style*="none"])').length;
+  const visible = document.querySelectorAll('#upcoming-cnt .upc-card:not([style*="none"])').length;
   const bar = document.querySelector('#upcoming-cnt .sbar span');
   if(bar) bar.textContent = visible + ' match(s) à venir' + (liveSportFilter!=='all' ? ' — '+liveSportFilter : '');
+}
+function filterScanCards() {
+  // For scan mega-cards in #scan-res
+  const cards = document.querySelectorAll('#scan-res [data-sport-key]');
+  cards.forEach(c => {
+    const s = c.dataset.sportKey || '';
+    c.style.display = matchesSportFilter(s, liveSportFilter) ? '' : 'none';
+  });
+  const visible = document.querySelectorAll('#scan-res [data-sport-key]:not([style*="none"])').length;
+  const bar = document.querySelector('#scan-res .sbar span');
+  if(bar) bar.textContent = visible + ' opportunité(s)' + (liveSportFilter!=='all' ? ' · '+liveSportFilter : '');
 }
 
 // Toutes les ligues pour le live multi-sport (1 marché suffit pour voir si des matchs existent)
@@ -1570,24 +1584,7 @@ async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.in
 
 function renderOpps(opps){if(!opps?.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité</div><div class="empty-s">Essayez un autre sport ou abaissez le score minimal.</div></div>';return opps.map((o,i)=>renderOppCard(o,i)).join('');}
 function oppCopyText(o){
-  const s=o.score||{};
-  const lines=[
-    `🏟 ${o.home_team||'?'} vs ${o.away_team||'?'}`,
-    o.competition?`🏆 ${o.competition}`:'',
-    o.start_time?`📅 ${fmtDT(o.start_time)}`:'',
-    `📊 Marché: ${o.market||'?'}`,
-    `🎯 Sélection: ${o.selection||'?'}${o.line?' '+o.line:''}`,
-    o.odds?`💰 Cote: ${o.odds} (${o.bookmaker||'?'})`:'',
-    s.total?`⭐ Score: ${s.total}/100 — ${s.signal||''}`:'',
-    s.edge?`📈 Edge: ${s.edge>0?'+':''}${s.edge}%`:'',
-    o.elo?`🧮 Elo: ${o.home_team} (${o.elo.home_win_prob}%) vs ${o.away_team} (${o.elo.away_win_prob}%)`:'',
-    o.surebet?.is_surebet?`⚡ SUREBET ROI: +${o.surebet.surebet_roi_pct}%`:'',
-    o.line_movement?.signal&&o.line_movement.signal!=='STABLE'?`📉 ${o.line_movement.meaning}`:'',
-    s.conseil?`💡 ${s.conseil}`:'',
-    '',
-    '— PGI BetPro · Analyse probabiliste, aucun gain garanti —',
-  ].filter(Boolean);
-  return lines.join('\n');
+  return `${o.home_team||'?'} vs ${o.away_team||'?'}`;
 }
 
 function renderOppCard(o,i){
@@ -1604,7 +1601,7 @@ function renderOppCard(o,i){
   </div>`:'';
   const lmHtml = o.line_movement&&o.line_movement.signal!=='STABLE'?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:10px;color:var(--am);font-family:var(--mo)">${esc(o.line_movement.meaning)}</div>`:'';
   const copyTxt = oppCopyText(o);
-  return`<div class="oc" id="oc${i}" onclick="tC(${i})"><div class="oh"><div style="flex:1;min-width:0"><div class="om">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="omt"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span></div><div class="os"><span class="osn">${esc(o.selection||'?')}${o.line?' '+o.line:''}</span>${o.odds?`<span class="ood">@ ${o.odds}</span>`:''}</div></div><div class="sc-wrap"><div class="sc-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}">${esc(s.signal||'')}</div><div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">${fmtDate(o.start_time)}</div></div></div><div class="od">${surebetHtml}${lmHtml}${eloHtml}${s.conseil?`<div style="background:rgba(34,211,165,.06);border:1px solid rgba(34,211,165,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:var(--mu)">${esc(s.conseil)}</div>`:''}<div style="margin-bottom:11px">${ssRow('Valeur cote',sub.odds_value)}${ssRow('Forme',sub.recent_form)}${ssRow('H2H',sub.h2h_history)}${ssRow('Stats',sub.stat_consistency)}${ssRow('Marché',sub.market_consensus)}</div>${s.explanation?.length?`<div class="ex">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''}${bms.length>1?`<table class="bmt"><tr><th>Bookmaker</th><th>Cote</th></tr>${bms.slice().sort((a,b)=>b.odds-a.odds).map((b,bi)=>`<tr><td>${esc(b.bookmaker)}</td><td class="${bi===0?'best':''}">${b.odds}</td></tr>`).join('')}</table>`:''}<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px"><span style="font-size:10px;color:var(--dm)">⚠️ Aucun gain garanti.</span><button class="copy-btn" onclick="event.stopPropagation();copyCard(this,${JSON.stringify(copyTxt)})">📋 Copier ce pari</button></div></div></div>`;
+  return`<div class="oc" id="oc${i}" onclick="tC(${i})"><div class="oh"><div style="flex:1;min-width:0"><div class="om">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="omt"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span></div><div class="os"><span class="osn">${esc(o.selection||'?')}${o.line?' '+o.line:''}</span>${o.odds?`<span class="ood">@ ${o.odds}</span>`:''}</div></div><div class="sc-wrap"><div class="sc-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}">${esc(s.signal||'')}</div><div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">${fmtDate(o.start_time)}</div></div></div><div class="od">${surebetHtml}${lmHtml}${eloHtml}${s.conseil?`<div style="background:rgba(34,211,165,.06);border:1px solid rgba(34,211,165,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:var(--mu)">${esc(s.conseil)}</div>`:''}<div style="margin-bottom:11px">${ssRow('Valeur cote',sub.odds_value)}${ssRow('Forme',sub.recent_form)}${ssRow('H2H',sub.h2h_history)}${ssRow('Stats',sub.stat_consistency)}${ssRow('Marché',sub.market_consensus)}</div>${s.explanation?.length?`<div class="ex">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''}${bms.length>1?`<table class="bmt"><tr><th>Bookmaker</th><th>Cote</th></tr>${bms.slice().sort((a,b)=>b.odds-a.odds).map((b,bi)=>`<tr><td>${esc(b.bookmaker)}</td><td class="${bi===0?'best':''}">${b.odds}</td></tr>`).join('')}</table>`:''}<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px"><span style="font-size:10px;color:var(--dm)">⚠️ Aucun gain garanti.</span><button class="copy-btn" onclick="event.stopPropagation();copyCard(this,${JSON.stringify(copyTxt)})">📋 Copier</button></div></div></div>`;
 }
 function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am)':'var(--re)';return`<div class="ssr"><span class="ssl">${l}</span><div class="sst"><div class="ssf" style="width:${n}%;background:${c}"></div></div><span class="ssv">${n}</span></div>`;}
 function gpRow(l,v){const n=parseInt(v)||0,c=n>=65?'var(--neon)':n>=45?'var(--am)':'var(--re)';return`<div class="gpr"><span class="gpl">${l}</span><div class="gpt"><div class="gpf" style="width:${n}%;background:${c}"></div></div><span class="gpv" style="color:${c}">${n}%</span></div>`;}
@@ -1904,7 +1901,12 @@ async function doLiveScan() {
           const key = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'')+'|'+(o.selection||'');
           if(seen.has(key)) return false; seen.add(key); return true;
         });
-        allOpps.sort((a,b) => (b.score?.total||0)-(a.score?.total||0));
+        // Pour scan sport spécifique, montrer TOUS les matchs dispo (même score faible)
+    if(sportType !== 'all') {
+      allOpps.sort((a,b) => (b.score?.total||0)-(a.score?.total||0));
+    } else {
+      allOpps.sort((a,b) => (b.score?.total||0)-(a.score?.total||0));
+    }
       }
     }
 
@@ -1942,7 +1944,15 @@ async function doLiveScan() {
 function renderLiveScan(d) {
   // Affiche UNIQUEMENT les opportunités — pas les matchs live
   const opps=d.upcoming||[],ai=d.ai_commentary||null;
-  if(!opps.length)return`<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité détectée</div><div class="empty-s">Vérifiez ODDS_API_KEY ou changez de sport.<br>Il se peut qu'aucun match ne soit prévu prochainement.</div></div>`;
+  if(!opps.length)return`<div class="empty"><div class="empty-i">🔍</div>
+    <div class="empty-t">Aucune opportunité détectée</div>
+    <div class="empty-s">
+      Causes possibles :<br>
+      ① Pas de matchs programmés prochainement pour ce sport<br>
+      ② Clé <strong>ODDS_API_KEY</strong> non configurée ou quota épuisé<br>
+      ③ Mode Éco = peu de ligues scannées → essayez le mode Standard<br><br>
+      <strong>Football :</strong> Les ligues européennes sont en trêve estivale (juin-juillet). Les résultats arrivent des ligues du Brésil, MLS, Japon qui jouent actuellement.
+    </div></div>`;
   let html='';
   if(d.piwi_pinnacle_note)html+=`<div class="pn-bar"><div class="live-dot"></div><span>${esc(d.piwi_pinnacle_note)}</span><div style="margin-left:auto;display:flex;gap:6px"><span class="bk-badge bk-piwi">Piwi 247</span><span class="bk-badge bk-pinnacle">Pinnacle</span></div></div>`;
   const scoreS=opps.filter(o=>(o.score?.total||0)>=85).length,scoreA=opps.filter(o=>(o.score?.total||0)>=75&&(o.score?.total||0)<85).length,scoreB=opps.filter(o=>(o.score?.total||0)>=65&&(o.score?.total||0)<75).length;
@@ -2184,7 +2194,7 @@ function renderMethodCard(o, i, isExact, nextStake, targetOdds) {
       <div style="flex:1;font-size:11px;color:var(--mu);line-height:1.6">${s.conseil?esc(s.conseil):'Score '+tot+'/100 — probabilité estimée élevée'}</div>
     </div>
   <div style="padding:6px 12px 10px">
-    <button class="copy-btn" onclick="copyUpcomingCard(this,'${esc(home).replace(/'/g,'&#39;')}','${esc(away).replace(/'/g,'&#39;')}','${esc(comp).replace(/'/g,'&#39;')}','${startTime||''}','${esc(sport).replace(/'/g,'&#39;')}')">📋 Copier ce match</button>
+    <button class="copy-btn" onclick="copyUpcomingCard(this,'${esc(home).replace(/'/g,'&#39;')}','${esc(away).replace(/'/g,'&#39;')}','${esc(comp).replace(/'/g,'&#39;')}','${startTime||''}','${esc(sport).replace(/'/g,'&#39;')}')">📋 Copier</button>
   </div></div>`;
 }
 
@@ -2384,35 +2394,46 @@ Continuer le suivi ou réinitialiser ?`;
   const nextStake = s.calcNext(trackerHistory, initStake);
   if(document.getElementById('t-stake')) document.getElementById('t-stake').value = nextStake;
 
-  // AUTO-SEARCH après une défaite : cherche un match avec la cote optimale pour récupérer
+  // AUTO-SEARCH après une défaite
   if(result === 'loss') {
-    // Calculer la cote optimale pour cette stratégie après la perte
-    const targetOdds = s.minOdds;
-    // Mettre à jour les champs de recherche avec la prochaine mise et cote
-    if(document.getElementById('m-init-stake')) document.getElementById('m-init-stake').value = initStake;
-    if(document.getElementById('m-target-odds')) document.getElementById('m-target-odds').value = targetOdds;
-    if(document.getElementById('m-odds-tol'))    document.getElementById('m-odds-tol').value   = 0.15;
-    if(document.getElementById('m-min-score'))   document.getElementById('m-min-score').value  = 75;
+    const targetOdds = parseFloat(document.getElementById('m-target-odds')?.value) || s.minOdds;
+    const tolerance  = parseFloat(document.getElementById('m-odds-tol')?.value)    || 0.15;
 
-    // Afficher un message d'invite avant la recherche
+    // Mettre à jour la mise seulement (pas la cote — l'utilisateur peut la garder manuelle)
+    if(document.getElementById('m-init-stake')) document.getElementById('m-init-stake').value = initStake;
+    if(!document.getElementById('m-target-odds')?.value) {
+      if(document.getElementById('m-target-odds')) document.getElementById('m-target-odds').value = s.minOdds;
+    }
+    if(document.getElementById('m-min-score')) document.getElementById('m-min-score').value = 75;
+
     const searchRes = document.getElementById('m-search-res');
     if(searchRes) {
-      searchRes.innerHTML = `<div class="card" style="border-color:rgba(167,139,250,.4);margin-bottom:0">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <div style="flex:1">
-            <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--pu);margin-bottom:4px">
-              🔄 Défaite enregistrée — Recherche automatique en cours…
-            </div>
-            <div style="font-size:11px;color:var(--mu);line-height:1.6">
-              Prochaine mise <strong style="color:var(--pu)">${nextStake}€</strong>
-              · Cote cible <strong style="color:var(--am)">≈ ${targetOdds}</strong>
-              · Score minimum <strong style="color:var(--neon)">75+</strong>
-            </div>
+      searchRes.innerHTML = `<div class="card" style="border-color:rgba(167,139,250,.5);margin-bottom:0;background:rgba(167,139,250,.06)">
+        <div style="font-family:var(--hd);font-size:12px;font-weight:700;color:var(--pu);margin-bottom:8px">
+          🔄 Défaite — Recherche du meilleur match en cours…
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="text-align:center;background:rgba(0,0,0,.2);border-radius:7px;padding:8px">
+            <div style="font-family:var(--mo);font-size:16px;font-weight:700;color:var(--pu)">${nextStake}€</div>
+            <div style="font-size:9px;color:var(--dm)">Prochaine mise</div>
           </div>
-          <div class="sp" style="width:18px;height:18px;border-width:2px;flex-shrink:0"></div>
+          <div style="text-align:center;background:rgba(0,0,0,.2);border-radius:7px;padding:8px">
+            <div style="font-family:var(--mo);font-size:16px;font-weight:700;color:var(--am)">${targetOdds}</div>
+            <div style="font-size:9px;color:var(--dm)">Cote cible ±${tolerance}</div>
+          </div>
+          <div style="text-align:center;background:rgba(0,0,0,.2);border-radius:7px;padding:8px">
+            <div style="font-family:var(--mo);font-size:16px;font-weight:700;color:var(--neon)">75+</div>
+            <div style="font-size:9px;color:var(--dm)">Score min</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--dm);margin-bottom:8px;font-family:var(--mo)">
+          💡 Vous pouvez modifier la cote ci-dessus avant la recherche
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="sp" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></div>
+          <span style="font-size:10px;color:var(--mu)">Scanning tous les sports disponibles…</span>
         </div>
       </div>`;
-      // Lancer la recherche automatiquement après 800ms
       setTimeout(() => doMethodSearch(), 800);
     }
   }
@@ -3460,38 +3481,15 @@ function qqSave(silent) {
 
 // ═══ COPY CARD ═══
 function copyUpcomingCard(btn, home, away, comp, startTime, sport) {
-  const dt = startTime ? new Date(startTime) : null;
-  const lines = [
-    `🏟 ${home} vs ${away}`,
-    comp ? `🏆 ${comp}` : '',
-    dt ? `📅 ${dt.toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : '',
-    sport ? `🎽 ${sport}` : '',
-    '', '— PGI BetPro —',
-  ].filter(Boolean);
-  copyCard(btn, lines.join('\n'));
+  copyCard(btn, home + ' vs ' + away);
 }
 
 function copyUpcomingCard(btn, home, away, comp, startTime, sport) {
-  const dt = startTime ? new Date(startTime) : null;
-  const lines = [
-    `🏟 ${home} vs ${away}`,
-    comp ? `🏆 ${comp}` : '',
-    dt ? `📅 ${dt.toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : '',
-    sport ? `🎽 ${sport}` : '',
-    '', '— PGI BetPro —',
-  ].filter(Boolean);
-  copyCard(btn, lines.join('\n'));
+  copyCard(btn, home + ' vs ' + away);
 }
 
 function copyLiveCard(btn, home, away, scoreH, scoreA, minute, comp, sport) {
-  const lines = [
-    `🔴 LIVE: ${home} vs ${away}`,
-    `📊 Score: ${scoreH}-${scoreA}${minute ? ' ('+minute+"')": ''}`,
-    comp ? `🏆 ${comp}` : '',
-    sport ? `🎽 ${sport}` : '',
-    '', '— PGI BetPro —',
-  ].filter(Boolean);
-  copyCard(btn, lines.join('\n'));
+  copyCard(btn, home + ' vs ' + away);
 }
 
 function copyCard(btn, text) {
