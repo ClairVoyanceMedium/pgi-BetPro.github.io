@@ -510,6 +510,11 @@ a{color:var(--neon);text-decoration:none}
 .note-tag{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 7px;border-radius:4px;font-family:var(--mo);font-weight:600}
 .note-saved{background:var(--grb);color:var(--gr)}
 .note-unsaved{background:var(--pub);color:var(--pu)}
+
+/* ═══ COPY BUTTON ═══ */
+.copy-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:5px;color:var(--neon);font-size:9px;font-family:var(--mo);cursor:pointer;transition:all .15s;user-select:none;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0}
+.copy-btn:hover,.copy-btn:active{background:rgba(0,212,255,.18);border-color:rgba(0,212,255,.5)}
+.copy-btn.copied{background:rgba(34,211,165,.15);border-color:rgba(34,211,165,.4);color:var(--gr)}
 </style>
 </head>
 <body>
@@ -1564,7 +1569,43 @@ async function clearResults(){
 async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';try{const d=await api('/api/results');if(!d.opportunities?.length){cnt.innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Aucun résultat sauvegardé</div></div>';return;}cnt.innerHTML='<div class="lu">'+fmtDT(d.analyzed_at)+' · '+esc(d.sport||'')+' · '+esc(d.source||'')+'</div>'+renderOpps(d.opportunities);}catch(e){cnt.innerHTML=`<div class="card"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;}}
 
 function renderOpps(opps){if(!opps?.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité</div><div class="empty-s">Essayez un autre sport ou abaissez le score minimal.</div></div>';return opps.map((o,i)=>renderOppCard(o,i)).join('');}
-function renderOppCard(o,i){const s=o.score||{},tot=s.total||0,sc=tot>=85?'e':tot>=75?'f':tot>=65?'c':tot>=50?'w':'vl',sig=tot>=85?'sig-e':tot>=75?'sig-f':tot>=65?'sig-c':tot>=50?'sig-w':'sig-vl',sub=s.subscores||{},bms=o.all_bookmakers||[];const mktLabel={h2h:'1X2',totals:'O/U',totals_15:'O/U 1.5',totals_35:'O/U 3.5',btts:'BTTS',double_chance:'DC',spreads:'HC',h2h_1h:'MT1'}[o.market]||(o.market||'?');const ico=(o.sport||'').includes('soccer')?'⚽':(o.sport||'').includes('basket')?'🏀':(o.sport||'').includes('tennis')?'🎾':'🏆';return`<div class="oc" id="oc${i}" onclick="tC(${i})"><div class="oh"><div style="flex:1;min-width:0"><div class="om">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="omt"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span></div><div class="os"><span class="osn">${esc(o.selection||'?')}</span>${o.odds?`<span class="ood">@ ${o.odds}</span>`:''}</div></div><div class="sc-wrap"><div class="sc-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}">${esc(s.signal||'')}</div><div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">${fmtDate(o.start_time)}</div></div></div><div class="od">${s.conseil?`<div style="background:rgba(34,211,165,.06);border:1px solid rgba(34,211,165,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:var(--mu)">${esc(s.conseil)}</div>`:''}<div style="margin-bottom:11px">${ssRow('Valeur cote',sub.odds_value)}${ssRow('Forme',sub.recent_form)}${ssRow('H2H',sub.h2h_history)}${ssRow('Stats',sub.stat_consistency)}${ssRow('Marché',sub.market_consensus)}</div>${s.explanation?.length?`<div class="ex">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''}${bms.length>1?`<table class="bmt"><tr><th>Bookmaker</th><th>Cote</th></tr>${bms.slice().sort((a,b)=>b.odds-a.odds).map((b,bi)=>`<tr><td>${esc(b.bookmaker)}</td><td class="${bi===0?'best':''}">${b.odds}</td></tr>`).join('')}</table>`:''}<div style="margin-top:8px;font-size:10px;color:var(--dm)">⚠️ Aucun gain garanti.</div></div></div>`;}
+function oppCopyText(o){
+  const s=o.score||{};
+  const lines=[
+    `🏟 ${o.home_team||'?'} vs ${o.away_team||'?'}`,
+    o.competition?`🏆 ${o.competition}`:'',
+    o.start_time?`📅 ${fmtDT(o.start_time)}`:'',
+    `📊 Marché: ${o.market||'?'}`,
+    `🎯 Sélection: ${o.selection||'?'}${o.line?' '+o.line:''}`,
+    o.odds?`💰 Cote: ${o.odds} (${o.bookmaker||'?'})`:'',
+    s.total?`⭐ Score: ${s.total}/100 — ${s.signal||''}`:'',
+    s.edge?`📈 Edge: ${s.edge>0?'+':''}${s.edge}%`:'',
+    o.elo?`🧮 Elo: ${o.home_team} (${o.elo.home_win_prob}%) vs ${o.away_team} (${o.elo.away_win_prob}%)`:'',
+    o.surebet?.is_surebet?`⚡ SUREBET ROI: +${o.surebet.surebet_roi_pct}%`:'',
+    o.line_movement?.signal&&o.line_movement.signal!=='STABLE'?`📉 ${o.line_movement.meaning}`:'',
+    s.conseil?`💡 ${s.conseil}`:'',
+    '',
+    '— PGI BetPro · Analyse probabiliste, aucun gain garanti —',
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
+function renderOppCard(o,i){
+  const s=o.score||{},tot=s.total||0,sc=tot>=85?'e':tot>=75?'f':tot>=65?'c':tot>=50?'w':'vl',sig=tot>=85?'sig-e':tot>=75?'sig-f':tot>=65?'sig-c':tot>=50?'sig-w':'sig-vl',sub=s.subscores||{},bms=o.all_bookmakers||[];
+  const mktLabel={h2h:'1X2',totals:'O/U',totals_15:'O/U 1.5',totals_35:'O/U 3.5',btts:'BTTS',double_chance:'DC',spreads:'HC',h2h_1h:'MT1'}[o.market]||(o.market||'?');
+  const ico=(o.sport||'').includes('soccer')?'⚽':(o.sport||'').includes('basket')?'🏀':(o.sport||'').includes('tennis')?'🎾':(o.sport||'').includes('hockey')?'🏒':(o.sport||'').includes('rugby')?'🏉':'🏆';
+  const eloHtml = o.elo?`<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+    <span style="font-size:9px;font-family:var(--mo);padding:2px 6px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.15);border-radius:4px;color:var(--neon)">🧮 ${esc(o.home_team||'?')} Elo ${o.elo.home_elo} (${o.elo.home_win_prob}%)</span>
+    <span style="font-size:9px;font-family:var(--mo);padding:2px 6px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.15);border-radius:4px;color:var(--neon)">🧮 ${esc(o.away_team||'?')} Elo ${o.elo.away_elo} (${o.elo.away_win_prob}%)</span>
+  </div>`:'';
+  const surebetHtml = o.surebet?.is_surebet?`<div style="background:rgba(34,211,165,.15);border:1px solid rgba(34,211,165,.5);border-radius:7px;padding:7px 10px;margin-bottom:8px">
+    <span style="font-family:var(--mo);font-size:10px;font-weight:700;color:var(--gr)">⚡ SUREBET — ROI garanti : +${o.surebet.surebet_roi_pct}%</span>
+    ${o.surebet.surebet_stakes?`<div style="font-size:9px;color:var(--mu);margin-top:4px">${o.surebet.surebet_stakes.map(st=>`${esc(st.selection)}: ${st.stake}€ @ ${st.odds} sur ${esc(st.bookmaker)}`).join(' · ')}</div>`:''}
+  </div>`:'';
+  const lmHtml = o.line_movement&&o.line_movement.signal!=='STABLE'?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:10px;color:var(--am);font-family:var(--mo)">${esc(o.line_movement.meaning)}</div>`:'';
+  const copyTxt = oppCopyText(o);
+  return`<div class="oc" id="oc${i}" onclick="tC(${i})"><div class="oh"><div style="flex:1;min-width:0"><div class="om">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="omt"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span></div><div class="os"><span class="osn">${esc(o.selection||'?')}${o.line?' '+o.line:''}</span>${o.odds?`<span class="ood">@ ${o.odds}</span>`:''}</div></div><div class="sc-wrap"><div class="sc-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}">${esc(s.signal||'')}</div><div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">${fmtDate(o.start_time)}</div></div></div><div class="od">${surebetHtml}${lmHtml}${eloHtml}${s.conseil?`<div style="background:rgba(34,211,165,.06);border:1px solid rgba(34,211,165,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:var(--mu)">${esc(s.conseil)}</div>`:''}<div style="margin-bottom:11px">${ssRow('Valeur cote',sub.odds_value)}${ssRow('Forme',sub.recent_form)}${ssRow('H2H',sub.h2h_history)}${ssRow('Stats',sub.stat_consistency)}${ssRow('Marché',sub.market_consensus)}</div>${s.explanation?.length?`<div class="ex">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''}${bms.length>1?`<table class="bmt"><tr><th>Bookmaker</th><th>Cote</th></tr>${bms.slice().sort((a,b)=>b.odds-a.odds).map((b,bi)=>`<tr><td>${esc(b.bookmaker)}</td><td class="${bi===0?'best':''}">${b.odds}</td></tr>`).join('')}</table>`:''}<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px"><span style="font-size:10px;color:var(--dm)">⚠️ Aucun gain garanti.</span><button class="copy-btn" onclick="event.stopPropagation();copyCard(this,${JSON.stringify(copyTxt)})">📋 Copier ce pari</button></div></div></div>`;
+}
 function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am)':'var(--re)';return`<div class="ssr"><span class="ssl">${l}</span><div class="sst"><div class="ssf" style="width:${n}%;background:${c}"></div></div><span class="ssv">${n}</span></div>`;}
 function gpRow(l,v){const n=parseInt(v)||0,c=n>=65?'var(--neon)':n>=45?'var(--am)':'var(--re)';return`<div class="gpr"><span class="gpl">${l}</span><div class="gpt"><div class="gpf" style="width:${n}%;background:${c}"></div></div><span class="gpv" style="color:${c}">${n}%</span></div>`;}
 function tC(i){document.getElementById('oc'+i)?.classList.toggle('xp');}
@@ -2140,9 +2181,11 @@ function renderMethodCard(o, i, isExact, nextStake, targetOdds) {
         <div style="font-family:var(--mo);font-size:18px;font-weight:700;color:var(--gr)">+${potGain}€</div>
         <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em">Gain si ✅</div>
       </div>
-      <div style="flex:1;font-size:11px;color:var(--mu);line-height:1.6">${s.conseil?esc(s.conseil):`Score ${tot}/100 — probabilité estimée élevée`}</div>
+      <div style="flex:1;font-size:11px;color:var(--mu);line-height:1.6">${s.conseil?esc(s.conseil):'Score '+tot+'/100 — probabilité estimée élevée'}</div>
     </div>
-  </div>`;
+  <div style="padding:6px 12px 10px">
+    <button class="copy-btn" onclick="copyUpcomingCard(this,'${esc(home).replace(/'/g,'&#39;')}','${esc(away).replace(/'/g,'&#39;')}','${esc(comp).replace(/'/g,'&#39;')}','${startTime||''}','${esc(sport).replace(/'/g,'&#39;')}')">📋 Copier ce match</button>
+  </div></div>`;
 }
 
 function renderTrackerStats() {
@@ -2174,7 +2217,7 @@ function renderTrackerStats() {
   const plMax = Math.max(...plPoints);
   const plRange = plMax - plMin || 1;
   const svgH = 60, svgW = 300;
-  const pts = plPoints.map((v,i)=>`${Math.round(i/(plPoints.length-1||1)*(svgW-20)+10)},${Math.round((plMax-v)/plRange*(svgH-10)+5)}`).join(' ');
+  const pts = plPoints.map((v,i)=>(Math.round(i/(plPoints.length-1||1)*(svgW-20)+10)+','+Math.round((plMax-v)/plRange*(svgH-10)+5))).join(' ');
   const plColor = cumul>=0 ? 'var(--gr)' : 'var(--re)';
 
   return `
@@ -3413,6 +3456,82 @@ function qqSave(silent) {
     document.getElementById('qq-modal')?.remove();
     toast('Questions sauvegardées ✓','ok');
   }
+}
+
+// ═══ COPY CARD ═══
+function copyUpcomingCard(btn, home, away, comp, startTime, sport) {
+  const dt = startTime ? new Date(startTime) : null;
+  const lines = [
+    `🏟 ${home} vs ${away}`,
+    comp ? `🏆 ${comp}` : '',
+    dt ? `📅 ${dt.toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : '',
+    sport ? `🎽 ${sport}` : '',
+    '', '— PGI BetPro —',
+  ].filter(Boolean);
+  copyCard(btn, lines.join('\n'));
+}
+
+function copyUpcomingCard(btn, home, away, comp, startTime, sport) {
+  const dt = startTime ? new Date(startTime) : null;
+  const lines = [
+    `🏟 ${home} vs ${away}`,
+    comp ? `🏆 ${comp}` : '',
+    dt ? `📅 ${dt.toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : '',
+    sport ? `🎽 ${sport}` : '',
+    '', '— PGI BetPro —',
+  ].filter(Boolean);
+  copyCard(btn, lines.join('\n'));
+}
+
+function copyLiveCard(btn, home, away, scoreH, scoreA, minute, comp, sport) {
+  const lines = [
+    `🔴 LIVE: ${home} vs ${away}`,
+    `📊 Score: ${scoreH}-${scoreA}${minute ? ' ('+minute+"')": ''}`,
+    comp ? `🏆 ${comp}` : '',
+    sport ? `🎽 ${sport}` : '',
+    '', '— PGI BetPro —',
+  ].filter(Boolean);
+  copyCard(btn, lines.join('\n'));
+}
+
+function copyCard(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ Copié !';
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 1800);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.classList.add('copied');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ Copié !';
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 1800);
+  });
+}
+
+function buildCopyText(data) {
+  const lines = [];
+  if (data.home && data.away)     lines.push(`🏟 ${data.home} vs ${data.away}`);
+  if (data.competition)           lines.push(`🏆 ${data.competition}`);
+  if (data.sport)                 lines.push(`🎽 Sport: ${data.sport}`);
+  if (data.start_time)            lines.push(`📅 ${new Date(data.start_time).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`);
+  if (data.market)                lines.push(`📊 Marché: ${data.market}`);
+  if (data.selection)             lines.push(`🎯 Sélection: ${data.selection}${data.line ? ' '+data.line : ''}`);
+  if (data.odds)                  lines.push(`💰 Meilleure cote: ${data.odds} (${data.bookmaker || '?'})`);
+  if (data.score?.total)          lines.push(`⭐ Score: ${data.score.total}/100 — ${data.score.signal || ''}`);
+  if (data.score?.edge)           lines.push(`📈 Edge: ${data.score.edge > 0 ? '+' : ''}${data.score.edge}%`);
+  if (data.elo)                   lines.push(`🧮 Elo: ${data.home} ${data.elo.home_elo} (${data.elo.home_win_prob}%) vs ${data.away} ${data.elo.away_elo} (${data.elo.away_win_prob}%)`);
+  if (data.surebet?.is_surebet)   lines.push(`⚡ SUREBET: ROI +${data.surebet.surebet_roi_pct}%`);
+  if (data.line_movement?.signal && data.line_movement.signal !== 'STABLE') lines.push(`📉 Mouvement: ${data.line_movement.meaning}`);
+  if (data.context?.flags?.length) lines.push(`🚩 Contexte: ${data.context.flags.map(f=>f.label).join(' · ')}`);
+  if (data.score?.explanation?.length) lines.push('', ...data.score.explanation);
+  lines.push('', '— PGI BetPro · Analyse probabiliste, aucun gain garanti —');
+  return lines.join('\n');
 }
 
 document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);startConnectionMonitor();
