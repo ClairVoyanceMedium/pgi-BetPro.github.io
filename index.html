@@ -1486,6 +1486,11 @@ function buildLiveCard(m, sport) {
   const comp = m.competition||m.sport_title||sport||'';
   const score = m.score;
   const hasScore = score && (score.home!=null || score.away!=null);
+  const startTime = m.start_time || m.commence_time;
+  const isUpcoming = startTime && (new Date(startTime) > new Date());
+  const timeLabel = isUpcoming
+    ? (() => { const diff = Math.round((new Date(startTime)-new Date())/60000); return diff < 60 ? `dans ${diff}min` : `dans ${Math.floor(diff/60)}h${String(diff%60).padStart(2,'0')}`; })()
+    : null;
   return `<div class="live-card" data-sport="${esc(sport)}">
     <div class="lc-head">
       <div style="flex:1">
@@ -1524,7 +1529,13 @@ async function loadLive() {
 
     const promises = ligsToScan.map(({sport,market}) =>
       api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick')
-        .then(d => (d.opportunities||[]).map(o=>({...o, _sport:sport, _fromAnalyze:true})))
+        .then(d => (d.opportunities||[]).map(o=>({
+          ...o,
+          _sport: sport,
+          sport:  sport,
+          sport_key: sport,
+          _fromAnalyze: true,
+        })))
         .catch(()=>[])
     );
     const results = await Promise.all(promises);
@@ -1539,17 +1550,21 @@ async function loadLive() {
       seen.add(key); return true;
     });
 
-    // Séparer live (avec score) vs à venir très proche (< 3h)
-    const liveOnly = allMatches.filter(m => {
-      if(m._fromAnalyze) return false; // analyze = upcoming, pas live
-      return true;
-    });
+    // Pour sport non-football: montrer tous les matchs du jour (live + prochain 12h)
+    // Pour football: live strict uniquement
+    const isSoccerOnly = liveSportFilter === 'soccer';
+    const timeWindowMin = liveSportFilter === 'all' ? 180 : 720; // 3h pour tout, 12h pour sport spécifique
+
+    const liveOnly = allMatches.filter(m => !m._fromAnalyze);
+
     const liveFromAnalyze = analyzeOpps.filter(o => {
       const st = o.start_time || o.commence_time;
-      if(!st) return false;
+      if(!st) return true; // pas de date = inclure
       const diff = (new Date(st) - now) / 60000;
-      return diff <= 0 && diff >= -180; // commencé il y a moins de 3h
+      // Commencé il y a moins de 3h OU à venir dans la fenêtre
+      return diff >= -180 && diff <= timeWindowMin;
     });
+
     const combinedLive = [...new Map([...liveOnly,...liveFromAnalyze].map(m=>[(m.home||m.home_team||'')+'|'+(m.away||m.away_team||''),m])).values()];
 
     if(!combinedLive.length) {
@@ -1557,8 +1572,13 @@ async function loadLive() {
         <div class="empty-s">Aucun match live détecté en ce moment.<br>
         <span style="color:var(--dm);font-family:var(--mo);font-size:10px">Utilisez "Matchs à venir" pour voir les prochains.</span></div></div>`;
     } else {
-      cnt.innerHTML = `<div class="sbar"><div class="sdot ldot-r"></div>
-        <span>${combinedLive.length} match(s) en direct</span>
+      const liveCount = combinedLive.filter(m => !m._fromAnalyze).length;
+      const upcCount  = combinedLive.filter(m =>  m._fromAnalyze).length;
+      const headerLabel = liveCount > 0
+        ? `${liveCount} en direct${upcCount>0?' + '+upcCount+' à venir':''}`
+        : `${upcCount} match(s) à venir (prochaines 12h)`;
+      cnt.innerHTML = `<div class="sbar"><div class="sdot ldot-r" style="${liveCount===0?'background:var(--am);box-shadow:0 0 5px var(--am)':''}"></div>
+        <span>${headerLabel}</span>
         <span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span>
       </div>` + combinedLive.map(m => buildLiveCard(m, m._sport||m.sport||m.sport_key||'')).join('');
       filterLiveCards();
@@ -2676,11 +2696,11 @@ async function loadUpcoming() {
     if(seen.has(key)) return false; seen.add(key); return true;
   });
 
-  // Filtre fenêtre temporelle — avec tolérance large (±6h pour matches "en cours")
-  const fromTs = new Date(win.from).getTime() - 6*3600000;
-  const toTs   = new Date(win.to).getTime() + 6*3600000;
+  // Filtre fenêtre temporelle — tolérance ±12h pour maximiser les résultats
+  const fromTs = new Date(win.from).getTime() - 12*3600000;
+  const toTs   = new Date(win.to).getTime()   + 12*3600000;
   let filtered = allMatches.filter(m => {
-    if(!m.start_time) return true; // pas de date = on l'inclut quand même
+    if(!m.start_time) return true; // pas de date = inclure
     const ts = new Date(m.start_time).getTime();
     return ts >= fromTs && ts <= toTs;
   });
