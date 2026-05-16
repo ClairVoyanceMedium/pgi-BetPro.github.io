@@ -722,7 +722,7 @@ a{color:var(--neon);text-decoration:none}
   <div class="card" style="padding:12px 14px;margin-bottom:14px">
     <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Filtrer par sport</div>
     <div style="display:flex;gap:5px;flex-wrap:wrap" id="live-sport-btns">
-      <button class="fbtn on" data-ls="all"             onclick="setLiveSport(this)">🌍 Tous</button>
+      <button class="fbtn on" id="live-btn-all" data-ls="all" onclick="setLiveSport(this)">🌍 Tous</button>
       <button class="fbtn"    data-ls="soccer"          onclick="setLiveSport(this)">⚽ Football</button>
       <button class="fbtn"    data-ls="basketball"      onclick="setLiveSport(this)">🏀 Basketball</button>
       <button class="fbtn"    data-ls="tennis"          onclick="setLiveSport(this)">🎾 Tennis</button>
@@ -1250,6 +1250,7 @@ function go(name) {
   cSb();
   if (name==='results')  loadResults();
   if (name==='notes')    { notesLoad(); notesSyncCloud(true); notesRender(); }
+  if (name==='methods')  { trackerLoad(); }
   if (name==='blackjack'){ setTimeout(()=>{ bjBuildGrid(); bjRefresh(); },100); }
   if (name==='history')  loadHistory();
   if (name==='settings') { loadSettings(); loadSysStatus(); loadAIStatus(); }
@@ -1353,7 +1354,8 @@ async function doCSVAnalyze() {
 function renderManualResults(results){if(!results.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucun résultat</div></div>';return results.map(r=>renderManualCard(r)).join('');}
 function renderManualCard(r){const ai=r.ai_analysis;if(!ai||ai.error)return`<div class="card"><div class="ct">${esc(r.home||'?')} vs ${esc(r.away||'?')}</div><div style="color:var(--re)">${esc(ai?.error||'Analyse non disponible')}</div></div>`;const bets=ai.paris_recommandes||[];const confColor=c=>c>=70?'var(--neon)':c>=55?'var(--gr)':c>=40?'var(--am)':'var(--re)';return`<div class="ai-card"><div class="ai-head"><span style="font-size:18px">🤖</span><div><div class="ai-title">${esc(r.home)} vs ${esc(r.away)}</div><div class="ai-sub">${esc(r.competition||'')}${r.date?' · '+r.date:''}</div></div></div>${ai.resume_executif?`<div class="ai-sec"><div class="ai-sec-t">Résumé</div><div class="ai-sec-c">${esc(ai.resume_executif)}</div></div>`:''} ${bets.length?`<div class="ai-sec"><div class="ai-sec-t">Paris recommandés</div>${bets.map(b=>`<div class="ai-bet"><div class="ai-bet-h"><span class="ai-bet-sel">${esc(b.pari||'?')}</span><span style="font-family:var(--mo);font-size:11px;font-weight:700;color:${confColor(b.confiance||0)}">${b.confiance||'?'}%</span></div>${b.raisonnement?`<p class="ai-bet-txt">${esc(b.raisonnement)}</p>`:''}${b.moment_entrer?`<div class="ai-bet-when">⏱ ${esc(b.moment_entrer)}</div>`:''}</div>`).join('')}</div>`:''} ${ai.verdict_final?`<div style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dm);text-transform:uppercase;margin-bottom:5px">Verdict</div><div style="font-size:12px;color:var(--mu);line-height:1.7">${esc(ai.verdict_final)}</div></div>`:''}<p style="font-size:10px;color:var(--dm);margin-top:11px">⚠️ Aucun gain garanti. Jouez de manière responsable.</p></div>`;}
 
-let liveSportFilter = 'all';
+let liveSportFilter = 'all';        // pour compatibilité
+let liveSportSet = new Set(['all']); // multi-sélection réelle
 const LIVE_SPORT_KEYS = {
   soccer:['soccer'],basketball:['basketball','nba','wnba'],tennis:['tennis'],
   rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball','mlb'],
@@ -1361,12 +1363,40 @@ const LIVE_SPORT_KEYS = {
   handball:['handball'],cricket:['cricket'],
 };
 function setLiveSport(el) {
-  liveSportFilter = el.dataset.ls || 'all';
-  document.querySelectorAll('#live-sport-btns .fbtn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  // Filtrer visuellement les cartes déjà affichées
+  const sport = el.dataset.ls || 'all';
+
+  if (sport === 'all') {
+    // "Tous" efface toute sélection et revient à "all"
+    liveSportSet = new Set(['all']);
+    liveSportFilter = 'all';
+    document.querySelectorAll('#live-sport-btns .fbtn').forEach(b => b.classList.remove('on'));
+    el.classList.add('on');
+  } else {
+    // Toggle ce sport dans la sélection
+    liveSportSet.delete('all');
+    if (liveSportSet.has(sport)) {
+      liveSportSet.delete(sport);
+    } else {
+      liveSportSet.add(sport);
+    }
+    // Si rien de sélectionné → revenir à "all"
+    if (liveSportSet.size === 0) liveSportSet.add('all');
+
+    // Mettre à jour l'état "all"
+    const allBtn = document.getElementById('live-btn-all');
+    if (allBtn) allBtn.classList.toggle('on', liveSportSet.has('all'));
+
+    // Mettre à jour le bouton cliqué
+    el.classList.toggle('on', liveSportSet.has(sport));
+
+    // liveSportFilter = premier sport sélectionné pour compatibilité
+    liveSportFilter = liveSportSet.has('all') ? 'all' : [...liveSportSet][0];
+  }
+
+  // Appliquer filtres visuels
   filterLiveCards();
   filterUpcomingCards();
+  filterScanCards();
 }
 function matchesSportFilter(sport, filter) {
   if(filter==='all') return true;
@@ -1899,9 +1929,13 @@ async function doLiveScan() {
       // Mode éco : 12 ligues top / Standard : 25 / Complet : tout
       leagueList = ALL_LEAGUES_SCAN.slice(0, mode.maxLeagues);
     } else {
-      const leagues = (SPORT_LEAGUES[sportType] || []).slice(0, mode.maxLeagues);
-      const markets = (SPORT_MARKETS[sportType] || ['h2h']).slice(0, mode.markets);
-      leagues.forEach(sport => markets.forEach(market => leagueList.push({sport, market})));
+      // Multi-sport: build league list from ALL selected sports
+      const selectedSports = liveSportSet.has('all') ? ['all'] : [...liveSportSet];
+      selectedSports.forEach(sp => {
+        const leagues = (SPORT_LEAGUES[sp] || []).slice(0, Math.ceil(mode.maxLeagues / selectedSports.length));
+        const markets = (SPORT_MARKETS[sp] || ['h2h']).slice(0, mode.markets);
+        leagues.forEach(s => markets.forEach(m => leagueList.push({sport:s, market:m})));
+      });
     }
 
     txt.textContent = `PHASE 1 — ${leagueList.length} sources…`;
@@ -2018,6 +2052,72 @@ const STRATEGIES = [
 
 let selectedStrategy=null, trackerHistory=[];
 
+// ═══ PERSISTANCE RATTRAPAGE INTELLIGENT ═══
+const TRACKER_KEY = 'pgi_tracker';
+
+function trackerSave() {
+  try {
+    const data = {
+      strategyId:   selectedStrategy?.id || null,
+      history:      trackerHistory,
+      initStake:    document.getElementById('m-init-stake')?.value    || '10',
+      targetOdds:   document.getElementById('m-target-odds')?.value   || '',
+      oddsTol:      document.getElementById('m-odds-tol')?.value      || '0.15',
+      minScore:     document.getElementById('m-min-score')?.value     || '75',
+      sportFilter:  document.getElementById('m-sport-filter')?.value  || 'all',
+      savedAt:      new Date().toISOString(),
+    };
+    localStorage.setItem(TRACKER_KEY, JSON.stringify(data));
+  } catch(e) { console.warn('trackerSave error:', e); }
+}
+
+function trackerLoad() {
+  try {
+    const raw = localStorage.getItem(TRACKER_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+
+    // Restaurer l'historique
+    if (Array.isArray(data.history)) {
+      trackerHistory = data.history;
+    }
+
+    // Restaurer la stratégie sélectionnée
+    if (data.strategyId) {
+      // Appeler selectStrategy après que le DOM est prêt
+      setTimeout(() => {
+        const btn = document.querySelector('[data-strat-id="'+data.strategyId+'"]');
+        if (btn) btn.click();
+        else selectStrategy(data.strategyId);
+
+        // Restaurer les champs du formulaire
+        const setVal = (id, val) => { const el = document.getElementById(id); if(el && val !== undefined && val !== '') el.value = val; };
+        setVal('m-init-stake',   data.initStake);
+        setVal('m-target-odds',  data.targetOdds);
+        setVal('m-odds-tol',     data.oddsTol);
+        setVal('m-min-score',    data.minScore);
+        setVal('m-sport-filter', data.sportFilter);
+
+        // Re-render le tracker avec l'historique restauré
+        if (trackerHistory.length > 0) renderTracker();
+      }, 300);
+    }
+  } catch(e) { console.warn('trackerLoad error:', e); }
+}
+
+function trackerClear() {
+  if (!confirm('Vider tout le suivi Rattrapage Intelligent ? Historique et paramètres seront effacés.')) return;
+  trackerHistory = [];
+  selectedStrategy = null;
+  localStorage.removeItem(TRACKER_KEY);
+  renderTracker();
+  // Reset the strategy selection view
+  document.querySelectorAll('.m-strat-card').forEach(c => c.classList.remove('on'));
+  const detail = document.getElementById('m-detail-panel');
+  if (detail) detail.innerHTML = '';
+  toast('Rattrapage Intelligent réinitialisé ✓', 'ok');
+}
+
 function initMethods() {
   const grid=document.getElementById('m-strat-grid');
   if(grid.innerHTML!=='') return;
@@ -2077,26 +2177,26 @@ function renderStrategyDetail() {
     <div style="border-top:1px solid var(--bd);padding-top:16px;margin-top:4px">
       <div style="font-family:var(--hd);font-size:11px;font-weight:700;color:var(--pu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">🔍 Recherche de matchs</div>
       <div class="m-params">
-        <div class="fgrp"><label>Mise de base (€)</label><input type="number" id="m-init-stake" value="10" min="1" max="10000" step="1">
+        <div class="fgrp"><label>Mise de base (€)</label><input type="number" id="m-init-stake" onchange="trackerSave()" value="10" min="1" max="10000" step="1">
           <div class="fh-help">Point de départ de votre stratégie. Aussi votre profit cible par cycle (Martingale) ou unité de base (D'Alembert).</div>
         </div>
         <div class="fgrp">
           <label>🎯 Cote cible</label>
-          <input type="number" id="m-target-odds" value="${s.minOdds}" min="1.10" max="20.00" step="0.05">
+          <input type="number" id="m-target-odds" value="${s.minOdds}" onchange="trackerSave()" min="1.10" max="20.00" step="0.05">
           <div class="fh-help">La cote que vous cherchez pour parier. Ex: 2.00 = si vous misez 10€ et gagnez, vous récupérez 20€ (+10€ de profit). Pour la Martingale, cote ≥ 2.00 obligatoire pour récupérer les pertes.</div>
         </div>
         <div class="fgrp">
           <label>↔ Tolérance (±)</label>
-          <input type="number" id="m-odds-tol" value="0.15" min="0.05" max="0.50" step="0.05">
+          <input type="number" id="m-odds-tol" value="0.15" onchange="trackerSave()" min="0.05" max="0.50" step="0.05">
           <div class="fh-help">Marge acceptée autour de votre cote cible. Ex: cible 2.00 ± 0.15 → cherche les matchs entre 1.85 et 2.15. Plus grande = plus de résultats, moins grande = cote très précise.</div>
         </div>
       </div>
       <div class="fg">
         <div class="fgrp"><label>Score minimum</label>
-          <select id="m-min-score"><option value="65">🟡 65+ (Correct)</option><option value="70">🟢 70+ (Bon)</option><option value="75" selected>🟢 75+ (Fort) ⭐</option><option value="80">💎 80+ (Très fort)</option><option value="85">💎 85+ (Exceptionnel)</option></select>
+          <select id="m-min-score" onchange="trackerSave()"><option value="65">🟡 65+ (Correct)</option><option value="70">🟢 70+ (Bon)</option><option value="75" selected>🟢 75+ (Fort) ⭐</option><option value="80">💎 80+ (Très fort)</option><option value="85">💎 85+ (Exceptionnel)</option></select>
         </div>
         <div class="fgrp"><label>Sport</label>
-          <select id="m-sport-filter">
+          <select id="m-sport-filter" onchange="trackerSave()">
             <option value="all">🌍 Tous les sports</option>
             <option value="soccer">⚽ Football</option>
             <option value="basketball">🏀 Basketball</option>
@@ -2135,15 +2235,30 @@ function renderStrategyDetail() {
   </div>`;
 }
 
+// Multi-sport set for Rattrapage Intelligent
+let methodSportSet = new Set(['all']);
+
 function setMethodSport(sport, btn) {
-  // Sync with the select dropdown
-  const sel = document.getElementById('m-sport-filter');
-  if(sel) sel.value = sport;
-  // Update button states
-  ['all','soc','bas','ten','hoc','mma','nfl','han','rug'].forEach(k => {
-    document.getElementById('ms-'+k)?.classList.remove('on');
+  if (sport === 'all') {
+    methodSportSet = new Set(['all']);
+  } else {
+    methodSportSet.delete('all');
+    if (methodSportSet.has(sport)) methodSportSet.delete(sport);
+    else methodSportSet.add(sport);
+    if (methodSportSet.size === 0) methodSportSet.add('all');
+  }
+  // Update button visual states
+  const ids = {all:'ms-all',soccer:'ms-soc',basketball:'ms-bas',tennis:'ms-ten',
+               icehockey:'ms-hoc',mma:'ms-mma',americanfootball:'ms-nfl',
+               handball:'ms-han',rugby:'ms-rug'};
+  Object.entries(ids).forEach(([sp, id]) => {
+    const b = document.getElementById(id);
+    if(b) b.classList.toggle('on', methodSportSet.has('all') ? sp==='all' : methodSportSet.has(sp));
   });
-  btn?.classList.add('on');
+  // Sync dropdown to first selected sport
+  const sel = document.getElementById('m-sport-filter');
+  if(sel) sel.value = methodSportSet.has('all') ? 'all' : [...methodSportSet][0];
+  trackerSave();
 }
 
 async function doMethodSearch() {
@@ -2151,7 +2266,9 @@ async function doMethodSearch() {
   const targetOdds = parseFloat(document.getElementById('m-target-odds')?.value)||s.minOdds;
   const tolerance  = parseFloat(document.getElementById('m-odds-tol')?.value)||0.15;
   const minScore   = parseInt(document.getElementById('m-min-score')?.value)||75;
-  const sportFilter= document.getElementById('m-sport-filter')?.value||'all';
+  // Use multi-sport set if available, else fallback to dropdown
+  const sportFilter = methodSportSet.has('all') ? 'all'
+    : [...methodSportSet].join(',');
   const initStake  = parseFloat(document.getElementById('m-init-stake')?.value)||10;
   const nextStake  = s.calcNext(trackerHistory, initStake);
   const btn=document.getElementById('m-search-btn');
@@ -2386,7 +2503,7 @@ function renderTracker() {
         <button class="btn bp" onclick="addTrackerEntry()" style="white-space:nowrap">+ Ajouter</button>
       </div>
     </div>
-    ${trackerHistory.length?`<button class="btn bs" style="font-size:10px" onclick="resetTracker()">🗑 Réinitialiser le suivi</button>`:''}
+    ${trackerHistory.length?`<button class="btn bs" style="font-size:10px" onclick="resetTracker()" style="font-size:11px">🗑 Réinitialiser le suivi</button>`:''}
   </div>`;
 }
 
@@ -2426,13 +2543,15 @@ Réinitialiser le suivi pour un nouveau cycle ?`
 Continuer le suivi ou réinitialiser ?`;
     if(confirm(msg)) {
       trackerHistory.push(entry);
+      trackerSave();
       renderTracker();
-      setTimeout(()=>{ if(confirm('Réinitialiser complètement le suivi pour un nouveau cycle ?')) { trackerHistory=[]; renderTracker(); toast('Nouveau cycle démarré 🔄','ok'); } }, 200);
+      setTimeout(()=>{ if(confirm('Réinitialiser complètement le suivi pour un nouveau cycle ?')) { trackerHistory=[]; trackerSave(); renderTracker(); toast('Nouveau cycle démarré 🔄','ok'); } }, 200);
       return;
     }
   }
 
   trackerHistory.push(entry);
+  trackerSave();
   toast(`${result==='win'?'✅ Victoire':'❌ Défaite'} — ${pl>0?'+':''}${pl.toFixed(2)}€`,'');
   renderTracker();
 
@@ -3540,7 +3659,10 @@ function copyLiveCard(btn, home, away, scoreH, scoreA, minute, comp, sport) {
 }
 
 function copyCard(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
+  // Support both direct text and data-copy attribute
+  const txt = text || btn.dataset.copy || '';
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => {
     btn.classList.add('copied');
     const orig = btn.innerHTML;
     btn.innerHTML = '✅ Copié !';
@@ -3581,6 +3703,8 @@ function buildCopyText(data) {
 
 document.addEventListener('DOMContentLoaded',()=>{loadQuotas();setTimeout(loadAIStatus,1000);startConnectionMonitor();
   notesLoad(); notesUpdateBadge();
+  // Charger le Rattrapage Intelligent depuis localStorage
+  trackerLoad();
   loadQuickQuestions(); renderQuickQuestions();
   // Init BJ — build grid immediately
   setTimeout(()=>{ bjBuildGrid(); bjRefresh(); }, 300);
