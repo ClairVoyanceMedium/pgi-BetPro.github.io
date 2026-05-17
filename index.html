@@ -1651,7 +1651,7 @@ function renderOppCard(o,i){
   </div>`:'';
   const lmHtml = o.line_movement&&o.line_movement.signal!=='STABLE'?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:10px;color:var(--am);font-family:var(--mo)">${esc(o.line_movement.meaning)}</div>`:'';
   const copyTxt = oppCopyText(o);
-  return`<div class="oc" id="oc${i}" onclick="tC(${i},event)"><div class="oh"><div style="flex:1;min-width:0"><div class="om">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="omt"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span></div><div class="os"><span class="osn">${esc(o.selection||'?')}${o.line?' '+o.line:''}</span>${o.odds?`<span class="ood">@ ${o.odds}</span>`:''}</div></div><div class="sc-wrap"><div class="sc-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}">${esc(s.signal||'')}</div><div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">${fmtDate(o.start_time)}</div></div></div><div class="od">${surebetHtml}${lmHtml}${eloHtml}${s.conseil?`<div style="background:rgba(34,211,165,.06);border:1px solid rgba(34,211,165,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:var(--mu)">${esc(s.conseil)}</div>`:''}<div style="margin-bottom:11px">${ssRow('Valeur cote',sub.odds_value)}${ssRow('Forme',sub.recent_form)}${ssRow('H2H',sub.h2h_history)}${ssRow('Stats',sub.stat_consistency)}${ssRow('Marché',sub.market_consensus)}</div>${s.explanation?.length?`<div class="ex">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''}${bms.length>1?`<table class="bmt"><tr><th>Bookmaker</th><th>Cote</th></tr>${bms.slice().sort((a,b)=>b.odds-a.odds).map((b,bi)=>`<tr><td>${esc(b.bookmaker)}</td><td class="${bi===0?'best':''}">${b.odds}</td></tr>`).join('')}</table>`:''}<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px"><span style="font-size:10px;color:var(--dm)">⚠️ Aucun gain garanti.</span><button class="copy-btn" data-copy="${esc(copyTxt)}" onclick="event.stopPropagation();var t=this.dataset.copy;copyCard(this,t)">📋 Copier</button></div></div></div>`;
+  return`<div class="oc" id="oc${i}" onclick="tC(${i},event)"><div class="oh"><div style="flex:1;min-width:0"><div class="om">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="omt"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span></div><div class="os"><span class="osn">${esc(o.selection||'?')}${o.line?' '+o.line:''}</span>${o.odds?`<span class="ood">@ ${o.odds}</span>`:''}</div></div><div class="sc-wrap"><div class="sc-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}">${esc(s.signal||'')}</div><div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">${fmtDate(o.start_time)}</div></div></div><div class="od">${surebetHtml}${lmHtml}${eloHtml}${s.conseil?`<div style="background:rgba(34,211,165,.06);border:1px solid rgba(34,211,165,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:var(--mu)">${esc(s.conseil)}</div>`:''}<div style="margin-bottom:11px">${ssRow('Valeur cote',sub.odds_value)}${ssRow('Forme',sub.recent_form)}${ssRow('H2H',sub.h2h_history)}${ssRow('Stats',sub.stat_consistency)}${ssRow('Marché',sub.market_consensus)}</div>${s.explanation?.length?`<div class="ex">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''}${bms.length>1?`<table class="bmt"><tr><th>Bookmaker</th><th>Cote</th></tr>${bms.slice().sort((a,b)=>b.odds-a.odds).map((b,bi)=>`<tr><td>${esc(b.bookmaker)}</td><td class="${bi===0?'best':''}">${b.odds}</td></tr>`).join('')}</table>`:''}<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px"><span style="font-size:10px;color:var(--dm)">⚠️ Aucun gain garanti.</span><button class="copy-btn" onclick="event.stopPropagation();copyCard(this,'${esc(o.home_team||'?')} vs ${esc(o.away_team||'?')}')" title="Copier le nom du match">📋 Copier</button></div></div></div>`;
 }
 function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am)':'var(--re)';return`<div class="ssr"><span class="ssl">${l}</span><div class="sst"><div class="ssf" style="width:${n}%;background:${c}"></div></div><span class="ssv">${n}</span></div>`;}
 function gpRow(l,v){const n=parseInt(v)||0,c=n>=65?'var(--neon)':n>=45?'var(--am)':'var(--re)';return`<div class="gpr"><span class="gpl">${l}</span><div class="gpt"><div class="gpf" style="width:${n}%;background:${c}"></div></div><span class="gpv" style="color:${c}">${n}%</span></div>`;}
@@ -1999,18 +1999,56 @@ async function doLiveScan() {
   btn.disabled=false; btn.className='scan-main-btn ready'; ico.textContent='🔴'; txt.textContent='RELANCER LE SCAN';
 }
 
+function buildProbCard(o, s, tot) {
+  const impliedProb = o.odds ? +(100/o.odds).toFixed(1) : null;
+  const edge = s.edge || 0;
+  const estProb = impliedProb ? +(impliedProb + edge * impliedProb / 100).toFixed(1) : null;
+  const ecart = estProb && impliedProb ? +(estProb - impliedProb).toFixed(1) : null;
+  const confidence = tot>=85?'🟢 Très bon':tot>=75?'🟡 Bon':tot>=65?'🟠 Moyen':tot>=50?'🔴 Faible':'⚫ Très faible';
+  const riskCol = (tot>=75&&(!o.odds||o.odds<3.0)) ? 'var(--gr)' : (tot>=65&&(!o.odds||o.odds<4.0)) ? 'var(--am)' : 'var(--re)';
+  const riskLabel = (tot>=75&&(!o.odds||o.odds<3.0)) ? 'Faible' : (tot>=65&&(!o.odds||o.odds<4.0)) ? 'Moyen' : 'Élevé';
+  const decision = tot>=80?'✅ À jouer':tot>=70?'👁 À surveiller':tot>=55?'⚠ Risqué':'❌ À éviter';
+  const raison = (s.explanation&&s.explanation[0]) || 'Opportunité détectée sur le marché';
+  let html = '<div style="background:rgba(0,0,0,.25);border-radius:7px;padding:9px 11px;margin-bottom:9px;font-family:var(--mo);font-size:10px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px">';
+  if(impliedProb) html += '<div><span style="color:var(--dm)">Prob. implicite</span><br><strong style="color:var(--neon);font-size:12px">'+impliedProb+'%</strong></div>';
+  if(estProb)     html += '<div><span style="color:var(--dm)">Prob. estimée</span><br><strong style="color:var(--gr);font-size:12px">'+estProb+'%</strong></div>';
+  if(ecart!==null)html += '<div><span style="color:var(--dm)">Écart valeur</span><br><strong style="color:'+(ecart>0?'var(--gr)':'var(--re)')+'">'+(ecart>0?'+':'')+ecart+'pts</strong></div>';
+  html += '<div><span style="color:var(--dm)">Risque</span><br><strong style="color:'+riskCol+'">'+riskLabel+'</strong></div>';
+  html += '</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">'
+    +'<span style="color:var(--dm)">Confiance: <strong style="color:var(--mu)">'+confidence+'</strong></span>'
+    +'<span style="font-weight:700;font-size:11px">'+decision+'</span>'
+    +'</div>';
+  if(raison) html += '<div style="margin-top:6px;font-size:9px;color:var(--dm);border-top:1px solid rgba(255,255,255,.06);padding-top:5px">💡 '+esc(raison)+'</div>';
+  html += '<div style="margin-top:5px;font-size:9px;color:rgba(255,255,255,.25)">Analyse probabiliste — aucun gain garanti</div></div>';
+  return html;
+}
+
 function renderLiveScan(d) {
   // Affiche UNIQUEMENT les opportunités — pas les matchs live
   const opps=d.upcoming||[],ai=d.ai_commentary||null;
-  if(!opps.length)return`<div class="empty"><div class="empty-i">🔍</div>
-    <div class="empty-t">Aucune opportunité détectée</div>
-    <div class="empty-s">
-      Causes possibles :<br>
-      ① Pas de matchs programmés prochainement pour ce sport<br>
-      ② Clé <strong>ODDS_API_KEY</strong> non configurée ou quota épuisé<br>
-      ③ Mode Éco = peu de ligues scannées → essayez le mode Standard<br><br>
-      <strong>Football :</strong> Les ligues européennes sont en trêve estivale (juin-juillet). Les résultats arrivent des ligues du Brésil, MLS, Japon qui jouent actuellement.
-    </div></div>`;
+  const scanMode = currentScanMode||'standard';
+  const sportLabel2 = document.querySelector('.ssb.on')?.textContent?.trim()||'Tous les sports';
+  if(!opps.length) {
+    const diagReasons = [];
+    diagReasons.push('Aucun match avec valeur statistique suffisante pour : <strong>'+sportLabel2+'</strong>');
+    if(scanMode==='eco') diagReasons.push('Mode <strong>Éco</strong> actif → essayez <strong>Standard</strong> ou <strong>Complet</strong>');
+    diagReasons.push('Vérifiez que <strong>ODDS_API_KEY</strong> est configurée dans Cloudflare');
+    diagReasons.push('Football EU en trêve juin-juillet → résultats du Brésil, MLS, Japon');
+    diagReasons.push('MMA/Boxe : événements hebdomadaires, pas quotidiens');
+    diagReasons.push('Élargissez : <strong>Score 50+</strong> ou <strong>Tous les sports</strong>');
+    const nums = ['①','②','③','④','⑤','⑥'];
+    const rows = diagReasons.map((r,i)=>'<div style="margin-bottom:5px">'+(nums[i]||'•')+' '+r+'</div>').join('');
+    return '<div class="empty"><div class="empty-i">🔍</div>'
+      +'<div class="empty-t">Aucune opportunité détectée</div>'
+      +'<div class="empty-s" style="text-align:left;max-width:340px;margin:0 auto">'
+      +'<div style="font-weight:700;color:var(--am);margin-bottom:8px">Diagnostic :</div>'
+      +rows
+      +'<div style="margin-top:12px;padding:8px;background:rgba(0,212,255,.05);border-radius:6px;border:1px solid rgba(0,212,255,.1);font-size:10px;color:var(--dm)">'
+      +'💡 <em>opportunité détectée</em>, <em>valeur potentielle</em>, <em>risque acceptable</em> — jamais "pari sûr" ou "garanti"'
+      +'</div></div></div>';
+  }
   let html='';
   if(d.piwi_pinnacle_note)html+=`<div class="pn-bar"><div class="live-dot"></div><span>${esc(d.piwi_pinnacle_note)}</span><div style="margin-left:auto;display:flex;gap:6px"><span class="bk-badge bk-piwi">Piwi 247</span><span class="bk-badge bk-pinnacle">Pinnacle</span></div></div>`;
   const scoreS=opps.filter(o=>(o.score?.total||0)>=85).length,scoreA=opps.filter(o=>(o.score?.total||0)>=75&&(o.score?.total||0)<85).length,scoreB=opps.filter(o=>(o.score?.total||0)>=65&&(o.score?.total||0)<75).length;
@@ -2025,7 +2063,7 @@ function renderLiveScan(d) {
     const bms=o.all_bookmakers||[],mktLabel={h2h:'1X2',totals:'O/U 2.5',totals_15:'O/U 1.5',totals_35:'O/U 3.5',btts:'BTTS',double_chance:'DC',spreads:'HC'}[o.market]||(o.market||'?');
     const ico=(o.sport||'').includes('soccer')?'⚽':(o.sport||'').includes('basket')?'🏀':(o.sport||'').includes('tennis')?'🎾':'🏆';
     const pinBm=bms.find(b=>b.bookmaker?.toLowerCase().includes('pinnacle')),bestBm=bms.length?bms.reduce((a,b)=>b.odds>a.odds?b:a):null,aiCom=ai?.analyses?.find(a=>a.id===i+1);
-    html+=`<div class="opp-mega tier-${tier}" id="om${i}" onclick="tOM(${i})" data-market="${o.market}" data-score="${tot}" data-sport-key="${o.sport||''}"><div class="om-bar" style="background:${barC}"></div><div class="om-body"><div class="om-top"><div class="om-left"><div class="om-match">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="om-meta"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span>${tier==='S'?'<span class="bdg" style="background:rgba(0,212,255,.2);color:var(--neon);border:1px solid rgba(0,212,255,.3)">💎 TOP</span>':''}</div><div class="om-sel"><span class="om-sel-name">📌 ${esc(o.selection||'?')}</span>${o.odds?`<span class="om-odds">@ ${o.odds}</span>`:''}<span class="sc-sig ${sig}" style="font-size:8px">${esc(s.signal||'')}</span></div>${pinBm?`<div style="margin-top:5px;font-size:10px;font-family:var(--mo);color:var(--am)">📌 Pinnacle: <strong>${pinBm.odds}</strong></div>`:''} ${o.start_time?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:3px">⏰ ${fmtDT(o.start_time)}</div>`:''}</div><div class="om-right"><div class="om-score-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}" style="font-size:8px">/ 100</div></div></div></div><div class="om-detail">${s.explanation?.length?`<div class="ex" style="margin:0 0 10px">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''} ${bms.length?`<div style="margin-bottom:10px"><div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Cotes par bookmaker</div>${bms.slice().sort((a,b)=>b.odds-a.odds).map(b=>{const isPiwi=b.bookmaker?.toLowerCase().includes('piwi')||b.bookmaker?.toLowerCase().includes('247'),isPin=b.bookmaker?.toLowerCase().includes('pinnacle'),isBest=b.odds===bestBm?.odds;return`<div class="om-bm-row"><span style="flex:1;color:${isPiwi?'var(--neon)':isPin?'var(--am)':'var(--mu)'}">${esc(b.bookmaker)}</span><span class="${isPiwi?'bm-piwi-hi':isPin?'bm-pin-hi':''}" style="font-weight:${isBest?'700':'400'};color:${isBest?'var(--gr)':'var(--mu)'}">${b.odds}${isBest?' ✓':''}</span><span style="color:var(--dm);width:40px;text-align:right;font-size:10px">${(100/b.odds).toFixed(1)}%</span></div>`;}).join('')}</div>`:''} ${aiCom?`<div class="ai-tip-box"><div class="ai-tip-t">Analyse IA</div><div class="ai-tip-c">${esc(aiCom.verdict||'')}${aiCom.conseil?'<br><strong>Conseil:</strong> '+esc(aiCom.conseil):''}</div></div>`:''}<div style="margin-top:9px;font-size:10px;color:var(--dm)">⚠️ Vérifiez sur Piwi 247 et Pinnacle avant de parier.</div></div></div>`;
+    html+=`<div class="opp-mega tier-${tier}" id="om${i}" onclick="tOM(${i})" data-market="${o.market}" data-score="${tot}" data-sport-key="${o.sport||''}"><div class="om-bar" style="background:${barC}"></div><div class="om-body"><div class="om-top"><div class="om-left"><div class="om-match">${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div><div class="om-meta"><span class="bdg bsp">${ico} ${esc(o.competition||o.sport||'')}</span><span class="bdg bmk">${mktLabel}</span>${tier==='S'?'<span class="bdg" style="background:rgba(0,212,255,.2);color:var(--neon);border:1px solid rgba(0,212,255,.3)">💎 TOP</span>':''}</div><div class="om-sel"><span class="om-sel-name">📌 ${esc(o.selection||'?')}</span>${o.odds?`<span class="om-odds">@ ${o.odds}</span>`:''}<span class="sc-sig ${sig}" style="font-size:8px">${esc(s.signal||'')}</span></div>${pinBm?`<div style="margin-top:5px;font-size:10px;font-family:var(--mo);color:var(--am)">📌 Pinnacle: <strong>${pinBm.odds}</strong></div>`:''} ${o.start_time?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:3px">⏰ ${fmtDT(o.start_time)}</div>`:''}</div><div class="om-right"><div class="om-score-num sc-${sc}">${tot}</div><div class="sc-sig ${sig}" style="font-size:8px">/ 100</div></div></div></div><div class="om-detail">${buildProbCard(o,s,tot)}${s.explanation?.length?`<div class="ex" style="margin:0 0 10px">${s.explanation.map(e=>'<p>'+esc(e)+'</p>').join('')}</div>`:''} ${bms.length?`<div style="margin-bottom:10px"><div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Cotes par bookmaker</div>${bms.slice().sort((a,b)=>b.odds-a.odds).map(b=>{const isPiwi=b.bookmaker?.toLowerCase().includes('piwi')||b.bookmaker?.toLowerCase().includes('247'),isPin=b.bookmaker?.toLowerCase().includes('pinnacle'),isBest=b.odds===bestBm?.odds;return`<div class="om-bm-row"><span style="flex:1;color:${isPiwi?'var(--neon)':isPin?'var(--am)':'var(--mu)'}">${esc(b.bookmaker)}</span><span class="${isPiwi?'bm-piwi-hi':isPin?'bm-pin-hi':''}" style="font-weight:${isBest?'700':'400'};color:${isBest?'var(--gr)':'var(--mu)'}">${b.odds}${isBest?' ✓':''}</span><span style="color:var(--dm);width:40px;text-align:right;font-size:10px">${(100/b.odds).toFixed(1)}%</span></div>`;}).join('')}</div>`:''} ${aiCom?`<div class="ai-tip-box"><div class="ai-tip-t">Analyse IA</div><div class="ai-tip-c">${esc(aiCom.verdict||'')}${aiCom.conseil?'<br><strong>Conseil:</strong> '+esc(aiCom.conseil):''}</div></div>`:''}<div style="margin-top:9px;font-size:10px;color:var(--dm)">⚠️ Vérifiez sur Piwi 247 et Pinnacle avant de parier.</div></div></div>`;
   });
   html+='</div>';
   return html;
