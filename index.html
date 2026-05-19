@@ -1051,6 +1051,14 @@ wrangler deploy</pre></div>
       <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#ef4444;font-weight:700">-1</div>
       <div style="text-align:center;font-family:var(--mo);font-size:9px;color:#ef4444;font-weight:700">-1</div>
     </div>
+    <!-- Contrôles voix + grille -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <button id="bj-voice-btn" onclick="bjVoiceToggle()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:8px;color:var(--neon);font-size:11px;font-family:var(--mo);cursor:pointer;transition:all .2s">
+        🎤 <span id="bj-voice-label">Saisie vocale</span>
+      </button>
+      <div id="bj-voice-status" style="font-size:10px;color:var(--dm);font-family:var(--mo);flex:1"></div>
+    </div>
+    <div id="bj-voice-transcript" style="display:none;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.15);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:11px;color:var(--neon);font-family:var(--mo)"></div>
     <!-- 4 lignes de cartes (une par couleur) -->
     <div id="bj-grid" style="display:grid;grid-template-columns:repeat(13,1fr);gap:2px;margin-bottom:10px">
       <!-- généré par bjBuildGrid() -->
@@ -1300,15 +1308,32 @@ function setScanMode(mode, el) {
 }
 
 function setScanSport(el){
-  document.querySelectorAll('.ssb').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  // Si des résultats sont déjà affichés, on filtre visuellement sans re-scanner
+  const sport = el.dataset.sport || 'all';
+  // Update liveSportSet for multi-sport support
+  if (sport === 'all') {
+    liveSportSet = new Set(['all']);
+  } else {
+    if (el.classList.contains('on')) {
+      // Already selected — deselect
+      liveSportSet.delete(sport);
+      if (!liveSportSet.size) liveSportSet = new Set(['all']);
+    } else {
+      liveSportSet.delete('all');
+      liveSportSet.add(sport);
+    }
+  }
+  liveSportFilter = liveSportSet.has('all') ? 'all' : [...liveSportSet][0];
+  // Update button states
+  document.querySelectorAll('.ssb').forEach(b => {
+    b.classList.toggle('on', liveSportSet.has('all') ? b.dataset.sport==='all' : liveSportSet.has(b.dataset.sport||''));
+  });
+  // Filter existing scan cards if already rendered
   if(document.querySelector('.opp-mega')){
-    filterScanBySport(el.dataset.sport||'all');
-    // Mettre à jour le compteur
-    const visible=document.querySelectorAll('.opp-mega:not([style*="none"])').length;
-    const totalShown=document.querySelector('.stat-cell .sv');
-    if(totalShown) totalShown.textContent=visible;
+    filterScanCards();
+    const visible = document.querySelectorAll('.opp-mega:not([style*="none"])').length;
+    const totalShown = document.querySelector('.stat-cell .sv');
+    if(totalShown) totalShown.textContent = visible;
+    toast(visible + ' carte(s) pour ' + (liveSportSet.has('all') ? 'tous les sports' : [...liveSportSet].join('+')), '');
   }
 }
 
@@ -2009,6 +2034,8 @@ async function doLiveScan() {
     } else {
       const fakeD = { upcoming: allOpps, scan_at: new Date().toISOString(), total_opportunities: allOpps.length };
       res.innerHTML = renderLiveScan(fakeD);
+      // Apply sport filter after render
+      setTimeout(() => filterScanCards(), 50);
       loadQuotas();
       const creditsUsed = leagueList.length + (currentScanMode!=='eco'?Math.round(leagueList.length*0.3):0);
       toast(allOpps.length+' opportunité(s) — ~'+creditsUsed+' crédits utilisés','ok');
@@ -3111,6 +3138,159 @@ function bjTab(t) {
 }
 
 // ─── Construction de la grille 52 cartes ───
+// ═══ BLACKJACK VOICE CONTROL ═══
+let bjVoiceActive = false;
+let bjSpeechRecognition = null;
+
+// Card name mappings (FR + EN)
+const BJ_VOICE_MAP = {
+  // Values
+  'as':1,'ace':1,'un':1,'one':1,
+  'deux':2,'two':2,'2':2,
+  'trois':3,'three':3,'3':3,
+  'quatre':4,'four':4,'4':4,
+  'cinq':5,'five':5,'5':5,
+  'six':6,'6':6,
+  'sept':7,'seven':7,'7':7,
+  'huit':8,'eight':8,'8':8,
+  'neuf':9,'nine':9,'9':9,
+  'dix':10,'ten':10,'10':10,
+  'valet':10,'jack':10,'j':10,
+  'dame':10,'queen':10,'q':10,
+  'roi':10,'king':10,'k':10,
+  // Suits
+  'pique':  's','spade':'s','spades':'s','♠':'s',
+  'coeur':  'h','heart':'h','hearts':'h','cœur':'h','♥':'h',
+  'carreau':'d','diamond':'d','diamonds':'d','♦':'d',
+  'trèfle': 'c','club':'c','clubs':'c','treffle':'c','trèfle':'c','♣':'c',
+};
+
+const BJ_LABEL_MAP = {
+  1:'A',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',
+};
+
+function bjParseVoice(transcript) {
+  const words = transcript.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(/[\s,]+/);
+  let cardVal = null, suitKey = null, cardLabel = null;
+
+  for (const word of words) {
+    const mapped = BJ_VOICE_MAP[word];
+    if (mapped === undefined) continue;
+    if (typeof mapped === 'number') {
+      cardVal = mapped;
+      // Determine label
+      cardLabel = word === 'as' || word === 'ace' || word === 'un' || word === 'one' ? 'A'
+        : word === 'valet' || word === 'jack' || word === 'j' ? 'J'
+        : word === 'dame' || word === 'queen' || word === 'q' ? 'Q'
+        : word === 'roi' || word === 'king' || word === 'k' ? 'K'
+        : String(cardVal);
+    } else if (typeof mapped === 'string') {
+      suitKey = mapped;
+    }
+  }
+
+  if (!cardLabel) return null;
+
+  // If no suit specified, find the first unplayed card with this label
+  if (!suitKey) {
+    for (const suit of SUITS) {
+      const cardId = suit.key + '_' + cardLabel;
+      if (!BJ.played.has(cardId)) {
+        return cardId;
+      }
+    }
+    return null;
+  }
+
+  return suitKey + '_' + cardLabel;
+}
+
+function bjVoiceToggle() {
+  if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+    toast('Reconnaissance vocale non disponible sur ce navigateur', '');
+    return;
+  }
+
+  if (bjVoiceActive) {
+    bjVoiceStop();
+    return;
+  }
+
+  bjVoiceStart();
+}
+
+function bjVoiceStart() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  bjSpeechRecognition = new SR();
+  bjSpeechRecognition.lang = 'fr-FR';
+  bjSpeechRecognition.continuous = true;
+  bjSpeechRecognition.interimResults = true;
+
+  const btn = document.getElementById('bj-voice-btn');
+  const label = document.getElementById('bj-voice-label');
+  const status = document.getElementById('bj-voice-status');
+  const transcript_el = document.getElementById('bj-voice-transcript');
+
+  bjSpeechRecognition.onstart = () => {
+    bjVoiceActive = true;
+    btn.style.background = 'rgba(239,68,68,.15)';
+    btn.style.borderColor = 'rgba(239,68,68,.5)';
+    btn.style.color = 'var(--re)';
+    label.textContent = '⏹ Arrêter la voix';
+    status.textContent = '🎙 En écoute… Dites le nom de la carte (ex: "As de pique", "Roi", "Dix de carreau")';
+    transcript_el.style.display = '';
+    transcript_el.textContent = '…';
+  };
+
+  bjSpeechRecognition.onresult = (event) => {
+    let finalTranscript = '';
+    let interimTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+      else interimTranscript += event.results[i][0].transcript;
+    }
+    transcript_el.textContent = (finalTranscript || interimTranscript) || '…';
+
+    if (finalTranscript) {
+      const cardId = bjParseVoice(finalTranscript);
+      if (cardId) {
+        bjToggleCard(cardId);
+        const parts = cardId.split('_');
+        const suitSym = SUITS.find(s=>s.key===parts[0])?.sym || parts[0];
+        status.textContent = `✅ Carte reconnue : ${parts[1]} ${suitSym}`;
+        transcript_el.textContent = `"${finalTranscript}" → ${parts[1]} ${suitSym}`;
+      } else {
+        status.textContent = `❓ Non reconnu : "${finalTranscript}" — Réessayez (ex: "Roi de cœur")`;
+      }
+    }
+  };
+
+  bjSpeechRecognition.onerror = (e) => {
+    if (e.error === 'no-speech') return;
+    status.textContent = '⚠ Erreur micro : ' + e.error;
+    bjVoiceStop();
+  };
+
+  bjSpeechRecognition.onend = () => {
+    if (bjVoiceActive) bjSpeechRecognition.start(); // restart for continuous
+  };
+
+  bjSpeechRecognition.start();
+}
+
+function bjVoiceStop() {
+  bjVoiceActive = false;
+  if (bjSpeechRecognition) { bjSpeechRecognition.stop(); bjSpeechRecognition = null; }
+  const btn = document.getElementById('bj-voice-btn');
+  const label = document.getElementById('bj-voice-label');
+  const status = document.getElementById('bj-voice-status');
+  const transcript_el = document.getElementById('bj-voice-transcript');
+  if (btn) { btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; }
+  if (label) label.textContent = '🎤 Saisie vocale';
+  if (status) status.textContent = '';
+  if (transcript_el) transcript_el.style.display = 'none';
+}
+
 function bjBuildGrid() {
   const grid = document.getElementById('bj-grid');
   if(!grid) return;
