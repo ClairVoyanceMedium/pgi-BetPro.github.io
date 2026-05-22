@@ -3170,39 +3170,38 @@ const BJ_LABEL_MAP = {
 };
 
 function bjParseVoice(transcript) {
-  const words = transcript.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(/[\s,]+/);
-  let cardVal = null, suitKey = null, cardLabel = null;
-
+  const raw = transcript.toLowerCase()
+    .replace(/[àâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[îï]/g,'i')
+    .replace(/[ôö]/g,'o').replace(/[ùûü]/g,'u').replace(/ç/g,'c')
+    .replace(/œ/g,'oe').replace(/[''']/g,"'");
+  const words = raw.split(/[\s,.']+/).filter(Boolean);
+  const VALUE_WORDS = {
+    'as':'A','ace':'A','un':'A','one':'A',
+    'deux':'2','two':'2','trois':'3','three':'3',
+    'quatre':'4','four':'4','cinq':'5','five':'5',
+    'six':'6','sept':'7','seven':'7','huit':'8','eight':'8',
+    'neuf':'9','nine':'9','dix':'10','ten':'10',
+    'valet':'J','jack':'J','dame':'Q','queen':'Q','roi':'K','king':'K',
+  };
+  const SUIT_WORDS = {
+    'pique':'s','spade':'s','spades':'s','pic':'s',
+    'coeur':'h','coeurs':'h','heart':'h','hearts':'h',
+    'carreau':'d','carreaux':'d','diamond':'d','diamonds':'d','caro':'d',
+    'trefle':'c','treffle':'c','club':'c','clubs':'c',
+  };
+  let cardLabel = null, suitKey = null;
   for (const word of words) {
-    const mapped = BJ_VOICE_MAP[word];
-    if (mapped === undefined) continue;
-    if (typeof mapped === 'number') {
-      cardVal = mapped;
-      // Determine label
-      cardLabel = word === 'as' || word === 'ace' || word === 'un' || word === 'one' ? 'A'
-        : word === 'valet' || word === 'jack' || word === 'j' ? 'J'
-        : word === 'dame' || word === 'queen' || word === 'q' ? 'Q'
-        : word === 'roi' || word === 'king' || word === 'k' ? 'K'
-        : String(cardVal);
-    } else if (typeof mapped === 'string') {
-      suitKey = mapped;
-    }
+    if (!cardLabel && VALUE_WORDS[word])  { cardLabel = VALUE_WORDS[word]; continue; }
+    if (!suitKey  && SUIT_WORDS[word])    { suitKey   = SUIT_WORDS[word];  continue; }
+    if (cardLabel && suitKey) break;
   }
-
   if (!cardLabel) return null;
-
-  // If no suit specified, find the first unplayed card with this label
-  if (!suitKey) {
-    for (const suit of SUITS) {
-      const cardId = suit.key + '_' + cardLabel;
-      if (!BJ.played.has(cardId)) {
-        return cardId;
-      }
-    }
-    return null;
+  if (suitKey) return suitKey + '_' + cardLabel;
+  for (const suit of SUITS) {
+    const id = suit.key + '_' + cardLabel;
+    if (!BJ.played.has(id)) return id;
   }
-
-  return suitKey + '_' + cardLabel;
+  return null;
 }
 
 function bjVoiceToggle() {
@@ -3242,27 +3241,30 @@ function bjVoiceStart() {
     transcript_el.textContent = '…';
   };
 
+  let bjLastCardId = null, bjLastCardTime = 0;
   bjSpeechRecognition.onresult = (event) => {
-    let finalTranscript = '';
-    let interimTranscript = '';
+    let finalTranscript = '', interimTranscript = '';
     for (let i = event.resultIndex; i < event.results.length; i++) {
       if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
       else interimTranscript += event.results[i][0].transcript;
     }
-    transcript_el.textContent = (finalTranscript || interimTranscript) || '…';
-
-    if (finalTranscript) {
-      const cardId = bjParseVoice(finalTranscript);
-      if (cardId) {
-        bjToggleCard(cardId);
-        const parts = cardId.split('_');
-        const suitSym = SUITS.find(s=>s.key===parts[0])?.sym || parts[0];
-        status.textContent = `✅ Carte reconnue : ${parts[1]} ${suitSym}`;
-        transcript_el.textContent = `"${finalTranscript}" → ${parts[1]} ${suitSym}`;
-      } else {
-        status.textContent = `❓ Non reconnu : "${finalTranscript}" — Réessayez (ex: "Roi de cœur")`;
-      }
+    if (interimTranscript) transcript_el.textContent = '🎙 ' + interimTranscript;
+    if (!finalTranscript.trim()) return;
+    transcript_el.textContent = '"' + finalTranscript + '"';
+    const cardId = bjParseVoice(finalTranscript);
+    if (!cardId) {
+      status.textContent = '❓ Non reconnu — dites ex: "Roi de cœur", "As de pique"';
+      return;
     }
+    const now = Date.now();
+    if (cardId === bjLastCardId && (now - bjLastCardTime) < 2000) return;
+    bjLastCardId = cardId; bjLastCardTime = now;
+    bjToggleCard(cardId);
+    const parts = cardId.split('_');
+    const suitName = {h:'Cœur',s:'Pique',d:'Carreau',c:'Trèfle'}[parts[0]] || parts[0];
+    const suitSym  = SUITS.find(s=>s.key===parts[0])?.sym || '';
+    status.textContent = '✅ ' + parts[1] + ' de ' + suitName + ' ' + suitSym;
+    transcript_el.textContent = '"' + finalTranscript + '" → ' + parts[1] + ' ' + suitSym;
   };
 
   bjSpeechRecognition.onerror = (e) => {
@@ -3791,18 +3793,13 @@ function bjCalcBankroll() {
 
 // ═══ QUESTIONS RAPIDES PERSONNALISABLES ═══
 const DEFAULT_QUICK_QUESTIONS = [
-  {label:'🎯 Meilleur pari précis', q:'Identifie le pari avec la probabilité de gain la plus élevée sur ce match, avec un raisonnement statistique précis. Donne-moi la cote minimale acceptable et le montant à miser pour une bankroll de 100€.'},
-  {label:'💎 Value bets', q:'Analyse la valeur (value bet) de chaque cote disponible sur ce match. Pour chaque marché (1X2, Over/Under 2.5, BTTS), calcule si la cote bookmaker sous-estime la probabilité réelle. Donne uniquement les paris avec edge positif.'},
-  {label:'🧮 Kelly + xG', q:'En appliquant le Critère de Kelly fractionnaire (25%), quelle mise optimale recommandes-tu ? Base-toi sur la forme des 5 derniers matchs, le H2H et les statistiques xG.'},
-  {label:'⚽ Analyse buts Poisson', q:'Analyse Over/Under précise : combien de buts sont attendus selon le modèle de Poisson ? Probabilité exacte de Over 1.5, Over 2.5, Over 3.5 ? Quel seuil offre le meilleur value ?'},
-  {label:'⏱️ Momentum & timing', q:'Analyse le momentum actuel : quelle équipe contrôle le jeu, qui est susceptible de marquer en premier et dans quelle tranche horaire ? Quel est le meilleur timing pour parier en live ?'},
-  {label:'🎲 Monte Carlo', q:'Simule 1000 issues possibles de ce match avec un modèle probabiliste. Donne-moi les 5 scores les plus probables avec leur pourcentage, et quel pari est le plus rentable.'},
-  {label:'⚠️ Risques cachés', q:'Identifie tous les scénarios où je dois ÉVITER de parier : facteurs de risque cachés, rotation, météo, enjeux de fin de saison, fatigue, suspensions. Sois exhaustif.'},
-  {label:'📊 Pinnacle', q:'Compare les cotes de Pinnacle avec celles des autres bookmakers. Où se situe le vrai edge ? Quelle cote est la plus mal calibrée ?'},
-  {label:'🏟️ Avantage domicile', q:'Analyse le facteur domicile sur les cotes. Donne-moi le pari qui en bénéficie le plus avec justification statistique.'},
-  {label:'🏆 UN seul pari 50€', q:'Si je dois choisir UN SEUL pari sur ce match avec une mise de 50€, lequel me recommandes-tu en priorité absolue ? Justifie avec : probabilité estimée, edge sur la cote, niveau de confiance 0-100 et timing optimal.'},
-];
-const QQ_KEY = 'pgi_quick_questions';
+  {label:'🏆 Qui va gagner ?',       q:'Qui va gagner cette rencontre entre : '},
+  {label:'⚽ Nombre de buts ?',      q:'À combien tu estimerais le nombre de buts total dans la rencontre entre : '},
+  {label:'📊 Score exact ?',         q:"D'après ton analyse, quel devrait être le score exact entre : "},
+  {label:'🥇 Qui remporte ?',        q:"D'après ton analyse poussée, qui devrait remporter : "},
+  {label:'💎 Value bets du moment',  q:"Tu as fait tes recherches — quels sont tes meilleurs value bets en ce moment sur tous les sports disponibles ?"},
+  {label:'🔴 Paris en direct',       q:"Essaie de me trouver un match en direct sur lequel je pourrais gagner de l'argent. Analyse la situation actuelle et propose le meilleur pari live possible avec justification complète."},
+];const QQ_KEY = 'pgi_quick_questions';
 let quickQuestions = null;
 
 function loadQuickQuestions() {
