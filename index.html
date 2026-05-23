@@ -517,22 +517,32 @@ a{color:var(--neon);text-decoration:none}
 .copy-btn.copied{background:rgba(34,211,165,.15);border-color:rgba(34,211,165,.4);color:var(--gr)}
 
 /* ═══ NEWS TICKER ═══ */
-@keyframes tickerScroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+#news-ticker-wrap { position:relative; }
+#news-ticker-scroll-box {
+  height:220px; overflow:hidden; position:relative;
+  border:1px solid rgba(0,212,255,.1); border-radius:10px;
+  background:rgba(0,0,0,.25);
 }
-#news-ticker-track { transition: animation-play-state .2s; }
-#news-ticker-track.paused { animation-play-state: paused; }
+#news-ticker-list {
+  position:absolute; top:0; left:0; right:0;
+  transition:animation-play-state .2s;
+  animation:tickerScrollUp 40s linear infinite;
+}
+#news-ticker-list.paused { animation-play-state:paused; }
+@keyframes tickerScrollUp {
+  0%   { transform:translateY(0); }
+  100% { transform:translateY(-50%); }
+}
 .ticker-item {
-  display:inline-flex; align-items:center; gap:10px;
-  padding:10px 20px; border-right:1px solid rgba(255,255,255,.05);
-  min-width:280px; max-width:340px; white-space:normal; vertical-align:top;
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 14px; border-bottom:1px solid rgba(255,255,255,.04);
   cursor:pointer; transition:background .15s;
 }
-.ticker-item:hover { background:rgba(0,212,255,.04); }
+.ticker-item:hover { background:rgba(0,212,255,.05); }
 .ticker-sport-badge {
   font-size:9px; font-family:var(--mo); font-weight:700; padding:2px 6px;
-  border-radius:4px; flex-shrink:0; text-transform:uppercase; letter-spacing:.05em;
+  border-radius:4px; flex-shrink:0; text-transform:uppercase; letter-spacing:.04em;
+  margin-top:2px;
 }
 .ticker-title { font-size:11px; font-weight:600; color:var(--mu); line-height:1.4; }
 .ticker-desc  { font-size:9px; color:var(--dm); margin-top:2px; line-height:1.3; }
@@ -674,10 +684,10 @@ a{color:var(--neon);text-decoration:none}
         <span id="ticker-source" style="font-size:9px;color:var(--dm);font-family:var(--mo)">ESPN · TheSportsDB</span>
       </div>
     </div>
-    <div style="overflow:hidden;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25)">
-      <div id="news-ticker-track" style="display:flex;gap:0;white-space:nowrap;animation:tickerScroll 60s linear infinite;will-change:transform">
-        <div id="news-ticker-inner" style="display:flex;gap:0;flex-shrink:0"></div>
-        <div id="news-ticker-clone"  style="display:flex;gap:0;flex-shrink:0"></div>
+    <div id="news-ticker-scroll-box">
+      <div id="news-ticker-list">
+        <div id="news-ticker-inner"></div>
+        <div id="news-ticker-clone"></div>
       </div>
     </div>
   </div>
@@ -900,7 +910,7 @@ a{color:var(--neon);text-decoration:none}
     <div id="chat-attach-wrap" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;padding:8px;background:var(--sf2);border:1px solid var(--bd);border-radius:8px"></div>
     <div class="chat-input-wrap">
       <div style="position:relative;flex:1">
-        <textarea id="chat-input" placeholder="Votre question… (joignez une image, PDF ou texte avec 📎)" onkeydown="chatKey(event)" style="padding-right:40px"></textarea>
+        <textarea id="chat-input" placeholder="Votre question… ex: 'Qui va gagner PSG vs Real ?' · 📎 pour joindre" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px'" style="padding-right:40px;resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
         <label for="chat-file-input" title="Joindre un fichier (image, PDF)" style="position:absolute;right:8px;bottom:10px;cursor:pointer;font-size:18px;color:var(--mu);transition:color .2s;user-select:none" onmouseover="this.style.color='var(--neon)'" onmouseout="this.style.color='var(--mu)'">📎</label>
         <input type="file" id="chat-file-input" accept="image/*,application/pdf,.txt,.csv" multiple style="display:none" onchange="handleChatFile(this)">
       </div>
@@ -1751,6 +1761,15 @@ function updW(){const ids=['w-odds','w-form','w-h2h','w-stat','w-cons','w-ctx','
 async function saveSettings(){const ids=['w-odds','w-form','w-h2h','w-stat','w-cons','w-ctx','w-stab','w-fresh'];const t=ids.reduce((s,id)=>s+(parseInt(document.getElementById(id)?.value)||0),0);if(t!==100){toast('Somme = '+t+'% (doit être 100%)','err');return;}try{await api('/api/settings','POST',{min_alert_score:parseInt(document.getElementById('s-minscore').value),max_alerts_per_day:parseInt(document.getElementById('s-maxalerts').value),alert_min_odds:parseFloat(document.getElementById('s-minodds').value),alert_max_odds:parseFloat(document.getElementById('s-maxodds').value),scan_enabled:document.getElementById('s-scan').value==='true',scoring_weights:{odds_value:parseInt(document.getElementById('w-odds').value)/100,recent_form:parseInt(document.getElementById('w-form').value)/100,h2h_history:parseInt(document.getElementById('w-h2h').value)/100,stat_consistency:parseInt(document.getElementById('w-stat').value)/100,market_consensus:parseInt(document.getElementById('w-cons').value)/100,contextual_factors:parseInt(document.getElementById('w-ctx').value)/100,stability:parseInt(document.getElementById('w-stab').value)/100,data_freshness:parseInt(document.getElementById('w-fresh').value)/100}});toast('Sauvegardé ✓','ok');}catch(e){toast('Erreur: '+e.message,'err');}}
 async function testAlert(){try{const d=await api('/api/test-alert','POST');toast(d.message||(d.ok?'✓ Envoyé':'⚠ Non envoyé'),d.ok?'ok':'');}catch(e){toast('Erreur: '+e.message,'err');}}
 async function loadSysStatus(){const cnt=document.getElementById('sysstatus');try{const q=await api('/api/quotas');const fp=Math.round(q.api_football_today/q.api_football_daily_limit*100),op=Math.round((q.odds_api_monthly_limit-q.odds_api_credits_remaining)/q.odds_api_monthly_limit*100);cnt.innerHTML=`<div class="ct">Quotas API</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:18px"><div><div style="font-size:10px;color:var(--dm);margin-bottom:4px;font-family:var(--mo)">API-Football / jour</div><div style="font-size:22px;font-family:var(--mo);font-weight:700;margin-bottom:5px;color:${fp<70?'var(--neon)':fp<90?'var(--am)':'var(--re)'}">${q.api_football_today}<span style="font-size:11px;color:var(--dm)">/${q.api_football_daily_limit}</span></div><div class="qtr"><div class="qfi ${fp<70?'g':fp<90?'a':'r'}" style="width:${fp}%"></div></div></div><div><div style="font-size:10px;color:var(--dm);margin-bottom:4px;font-family:var(--mo)">Odds API / mois</div><div style="font-size:22px;font-family:var(--mo);font-weight:700;margin-bottom:5px;color:${q.odds_api_credits_remaining>150?'var(--neon)':q.odds_api_credits_remaining>50?'var(--am)':'var(--re)'}">${q.odds_api_credits_remaining}<span style="font-size:11px;color:var(--dm)"> crédits</span></div><div class="qtr"><div class="qfi ${op<60?'g':op<85?'a':'r'}" style="width:${op}%"></div></div></div></div>`;}catch(e){cnt.innerHTML=`<div class="ct">Quotas API</div><div style="color:var(--re)">Erreur: ${esc(e.message)}</div>`;}}
+async function resetQuotaManual(){
+  if(!confirm('Réinitialiser les compteurs de crédits ? (ne recharge pas votre quota API réel)')) return;
+  try {
+    await api('/api/reset-quota','POST',{});
+    toast('Compteurs réinitialisés ✅','ok');
+    loadQuotas();
+  } catch(e) { toast('Erreur: '+e.message,''); }
+}
+
 async function loadQuotas(){const el=document.getElementById('qfoot');try{const q=await api('/api/quotas');const fp=Math.round(q.api_football_today/q.api_football_daily_limit*100),op=Math.round((q.odds_api_monthly_limit-q.odds_api_credits_remaining)/q.odds_api_monthly_limit*100);el.innerHTML=`<div class="qbl"><span>API-Football</span><span>${q.api_football_today}/${q.api_football_daily_limit}</span></div><div class="qtr"><div class="qfi ${fp<70?'g':fp<90?'a':'r'}" style="width:${fp}%"></div></div><div class="qbl"><span>Odds API</span><span>${q.odds_api_credits_remaining} left</span></div><div class="qtr"><div class="qfi ${op<60?'g':op<85?'a':'r'}" style="width:${op}%"></div></div>`;}catch(_){}}
 
 let chatHistory=[];
@@ -3230,7 +3249,7 @@ function bjParseVoice(transcript) {
     // As
     'as':'A','ace':'A','ah':'A','a':'A','une':'A','un':'A','1':'A','one':'A',
     // 2
-    'deux':'2','de':'2','deu':'2','two':'2','2':'2',
+    'deux':'2','deu':'2','two':'2','2':'2','deux':'2',
     // 3
     'trois':'3','troi':'3','three':'3','3':'3',
     // 4
@@ -3242,7 +3261,7 @@ function bjParseVoice(transcript) {
     // 7
     'sept':'7','set':'7','sett':'7','seven':'7','7':'7',
     // 8
-    'huit':'8','oui':'8','eight':'8','ate':'8','8':'8',
+    'huit':'8','huis':'8','uit':'8','eight':'8','ate':'8','8':'8',
     // 9
     'neuf':'9','noeuf':'9','nine':'9','9':'9',
     // 10
@@ -3250,7 +3269,7 @@ function bjParseVoice(transcript) {
     // J
     'valet':'J','vale':'J','vole':'J','jack':'J','jaque':'J','j':'J',
     // Q
-    'dame':'J','dam':'Q','queen':'Q','q':'Q',
+    'dame':'Q','dam':'Q','queen':'Q','q':'Q',
     // K
     'roi':'K','roie':'K','rois':'K','king':'K','k':'K',
   };
@@ -4058,50 +4077,69 @@ const SPORT_ICONS = {
   icehockey:'🏒', americanfootball:'🏈', baseball:'⚾',
   rugby:'🏉', handball:'🤾', golf:'⛳',
 };
-let tickerPaused = false;
-let tickerLoaded = false;
+let tickerPaused = false, tickerLoaded = false;
 
 function tickerToggle() {
   tickerPaused = !tickerPaused;
-  const track = document.getElementById('news-ticker-track');
-  const btn   = document.getElementById('ticker-pause-btn');
-  if (track) track.classList.toggle('paused', tickerPaused);
-  if (btn) btn.textContent = tickerPaused ? '▶ Reprendre' : '⏸ Pause';
+  const list = document.getElementById('news-ticker-list');
+  const btn  = document.getElementById('ticker-pause-btn');
+  if (list) list.classList.toggle('paused', tickerPaused);
+  if (btn)  btn.textContent = tickerPaused ? '▶ Reprendre' : '⏸ Pause';
 }
 
 function buildTickerItem(item) {
   const col  = SPORT_COLORS[item.sport] || '#a78bfa';
-  const icon = SPORT_ICONS[item.sport] || '🏆';
+  const icon = SPORT_ICONS[item.sport]  || '🏆';
+  const sportLabels = {
+    soccer:'Foot', basketball:'Basket', tennis:'Tennis', mma:'MMA',
+    icehockey:'Hockey', americanfootball:'NFL', baseball:'Baseball',
+    rugby:'Rugby', handball:'Handball', golf:'Golf',
+  };
   const isMatch = item.is_match;
-  const link = item.link ? `onclick="window.open('${item.link}','_blank')"` : '';
-  return `<div class="ticker-item${isMatch?' ticker-match':''}" ${link}>
-    <span class="ticker-sport-badge" style="background:${col}22;color:${col}">${icon} ${item.sport||'sport'}</span>
-    <div>
-      <div class="ticker-title">${esc(item.title||'')}</div>
-      ${item.description?`<div class="ticker-desc">${esc(item.description.substring(0,80))}${item.description.length>80?'…':''}</div>`:''}
-    </div>
-  </div>`;
+  const onclick = item.link ? ('onclick="window.open(' + JSON.stringify(item.link) + ',\'_blank\')'+'"') : '';
+  const desc = item.description ? item.description.substring(0, 90) + (item.description.length > 90 ? '…' : '') : '';
+  return '<div class="ticker-item' + (isMatch?' ticker-match':'') + '" ' + onclick + '>'
+    + '<span class="ticker-sport-badge" style="background:' + col + '22;color:' + col + '">' + icon + ' ' + (sportLabels[item.sport]||item.sport) + '</span>'
+    + '<div>'
+    + '<div class="ticker-title">' + esc(item.title||'') + '</div>'
+    + (desc ? '<div class="ticker-desc">' + esc(desc) + '</div>' : '')
+    + '</div></div>';
 }
 
 async function loadTicker() {
   if (tickerLoaded) return;
   tickerLoaded = true;
+  const wrap = document.getElementById('news-ticker-wrap');
   try {
     const data = await api('/api/news?sports=soccer,tennis,mma,basketball,icehockey,americanfootball,baseball,rugby,handball,golf');
-    if (!data?.news?.length) return;
+    if (!data?.news?.length) { if(wrap) wrap.style.display='none'; return; }
     const inner = document.getElementById('news-ticker-inner');
     const clone  = document.getElementById('news-ticker-clone');
     if (!inner || !clone) return;
     const html = data.news.map(buildTickerItem).join('');
     inner.innerHTML = html;
-    clone.innerHTML  = html; // duplicate for seamless loop
-    // Adjust animation speed based on content width
-    const totalW = inner.scrollWidth;
-    const speed  = Math.max(30, totalW / 8); // ~8px/s
-    document.getElementById('news-ticker-track').style.animationDuration = speed + 's';
-    document.getElementById('ticker-source').textContent = `ESPN · ${data.total} infos`;
+    clone.innerHTML  = html; // duplicate for seamless vertical loop
+    // Set animation duration based on item count (each item ~55px tall)
+    const itemH = 56;
+    const totalH = data.news.length * itemH;
+    const speed = Math.max(20, totalH / 2.5); // ~2.5px/s
+    document.getElementById('news-ticker-list').style.animationDuration = speed + 's';
+    document.getElementById('ticker-source').textContent = 'ESPN · ' + data.total + ' actus';
+    // Add pausé on hover
+    const box = document.getElementById('news-ticker-scroll-box');
+    if (box) {
+      box.addEventListener('mouseenter', () => {
+        const l = document.getElementById('news-ticker-list');
+        if(l) l.classList.add('paused');
+      });
+      box.addEventListener('mouseleave', () => {
+        if (!tickerPaused) {
+          const l = document.getElementById('news-ticker-list');
+          if(l) l.classList.remove('paused');
+        }
+      });
+    }
   } catch(e) {
-    const wrap = document.getElementById('news-ticker-wrap');
     if (wrap) wrap.style.display = 'none';
   }
 }
