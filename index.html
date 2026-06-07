@@ -49,11 +49,10 @@ body{background:var(--bg);color:var(--tx);font-family:var(--hd);font-size:13px;l
 /* ── MOBILE BAR — FIX hamburger sans points rouges ── */
 .mb{display:none;position:fixed;top:0;left:0;right:0;height:52px;background:var(--sf);border-bottom:1px solid var(--bd);align-items:center;justify-content:space-between;padding:0 14px;z-index:200;gap:8px}
 .ml{font-family:var(--logo-f);font-size:14px;font-weight:900;color:var(--neon);animation:nb 7s ease-in-out infinite;flex-shrink:0}
-/* Hamburger : aucune couleur rouge, aucune liste, aucun list-style */
-.hb{background:none;border:none;color:var(--mu);cursor:pointer;padding:6px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;transition:color .2s;list-style:none;outline:none;-webkit-tap-highlight-color:transparent}
+/* Hamburger : 3 traits horizontaux empilés, aucun artefact */
+.hb{background:none;border:none;color:var(--mu);cursor:pointer;padding:6px;line-height:1;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:36px;height:36px;border-radius:4px;transition:color .2s;outline:none;-webkit-tap-highlight-color:transparent}
 .hb:hover{color:var(--neon)}
-.hb span{display:block;width:18px;height:2px;background:currentColor;border-radius:2px;transition:all .2s;list-style:none}
-.hb span+span{margin-top:4px}
+.hb span{display:block;width:18px;height:2px;background:currentColor;border-radius:1px;flex-shrink:0}
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:99}
 .ov.on{display:block}
 @media(max-width:768px){
@@ -74,18 +73,18 @@ body{background:var(--bg);color:var(--tx);font-family:var(--hd);font-size:13px;l
 .pt{font-family:var(--hd);font-size:19px;font-weight:700;letter-spacing:-.3px}
 .ps{color:var(--mu);font-size:12px;margin-top:3px}
 .sec{display:none}.sec.on{display:block}
-.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:13px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:20px;margin-bottom:13px}
 .ct{font-family:var(--hd);font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.09em;margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid var(--bd)}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .fgrp label{display:block;font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
-select,input[type=number],input[type=text],textarea{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:8px 11px;color:var(--tx);font-family:var(--hd);font-size:13px;outline:none;transition:border .2s;appearance:none;resize:vertical}
+select,input[type=number],input[type=text],textarea{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:8px 11px;color:var(--tx);font-family:var(--hd);font-size:13px;outline:none;transition:border .2s;appearance:none;resize:vertical}
 select:focus,input:focus,textarea:focus{border-color:var(--neon)}
 select option{background:#111827}
 textarea{min-height:80px;font-size:11px;font-family:var(--mo)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;border:none;font-family:var(--hd);font-weight:600;font-size:11px;cursor:pointer;transition:all .2s}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:4px;border:none;font-family:var(--hd);font-weight:600;font-size:11px;cursor:pointer;transition:all .2s}
 .bp{background:var(--neon);color:#060810;box-shadow:0 0 14px rgba(0,212,255,.35)}
 .bp:hover{opacity:.9;transform:translateY(-1px)}
-.bs{background:var(--sf2);color:var(--tx);border:1px solid var(--bd)}
+.bs{background:var(--sf2);color:var(--tx);border:1px solid var(--bd);border-radius:4px}
 .bs:hover{border-color:var(--neon);color:var(--neon)}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
 .bg{display:flex;gap:8px;flex-wrap:wrap}
@@ -96,7 +95,7 @@ textarea{min-height:80px;font-size:11px;font-family:var(--mo)}
 .bsp{background:rgba(56,232,255,.1);color:#7ae8ff}.bmk{background:var(--pub);color:var(--pu)}
 .bsr{background:rgba(100,116,139,.12);color:#94a3b8}.bca{background:var(--amb);color:var(--am)}
 .blv{background:var(--reb);color:var(--re);animation:pu 1.5s ease infinite}
-.oc{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:9px;transition:border-color .2s;cursor:pointer}
+.oc{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:9px;transition:border-color .2s;cursor:pointer}
 .oc.xp{border-color:var(--neon);box-shadow:0 0 0 1px rgba(0,212,255,.1)}
 .oh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .om{font-family:var(--hd);font-size:13px;font-weight:700;line-height:1.3}
@@ -194,7 +193,7 @@ a{color:var(--neon);text-decoration:none}
 .stat-cell .sv{font-family:var(--mo);font-size:20px;font-weight:700;margin-bottom:2px}
 .stat-cell label{font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;display:block}
 .opp-grid{display:grid;gap:10px}
-.opp-mega{background:var(--sf);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s}
+.opp-mega{background:var(--sf);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .2s}
 .opp-mega.tier-S{border:1px solid var(--neon);box-shadow:0 0 0 1px rgba(0,212,255,.15)}
 .opp-mega.tier-A{border:1px solid var(--gr)}.opp-mega.tier-B{border:1px solid var(--am)}.opp-mega.tier-C{border:1px solid var(--bd2)}
 .opp-mega:hover{transform:translateY(-1px)}
@@ -287,7 +286,7 @@ a{color:var(--neon);text-decoration:none}
 .ticker-match{border-left:2px solid var(--neon);background:rgba(0,212,255,.04)}
 
 /* ── DIRECTION CARD — cartes avec verdict clair ── */
-.dir-card{background:var(--sf);border-radius:12px;overflow:hidden;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.dir-card{background:var(--sf);border-radius:8px;overflow:hidden;margin-bottom:10px;cursor:pointer;transition:all .2s}
 .dir-card:hover{transform:translateY(-1px)}
 .dir-card.dir-play{border:1px solid var(--gr);box-shadow:0 0 0 1px rgba(34,211,165,.1)}
 .dir-card.dir-watch{border:1px solid var(--am)}
@@ -390,6 +389,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
     <div class="ni"    data-s="install"   onclick="go('install')" ><span class="ni-i">&#128214;</span>Installation</div>
+    <a href="https://www.piwi247.com/customer" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:9px;padding:9px 18px;color:var(--neon);font-size:12px;border-left:2px solid var(--neon);background:rgba(0,212,255,.06);text-decoration:none;font-weight:700;font-family:var(--hd);transition:all .2s;margin-top:4px" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'"><span style="font-size:15px">&#127919;</span>Piwi247 — Mon compte</a>
   </div>
   <div class="sbf" id="qfoot"><div style="color:var(--dm);font-size:10px;font-family:var(--mo)">Quotas — chargement…</div></div>
 </nav>
@@ -672,49 +672,74 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ MÉTHODES / RATTRAPAGE ═══════════════ -->
 <section class="sec" id="s-methods">
-  <div class="ph"><div class="pt">&#127919; Rattrapage Intelligent</div><div class="ps">Suivi persistant des pertes · Calcul de récupération automatique</div></div>
+  <div class="ph"><div class="pt">&#127919; Rattrapage Intelligent</div><div class="ps">Suivi persistant · Calcul de récupération automatique · Statistiques</div></div>
   <div class="methods-hero">
     <div style="font-family:var(--hd);font-size:16px;font-weight:800;color:var(--pu);margin-bottom:5px">Stratégies professionnelles avec suivi IA</div>
-    <div style="font-size:12px;color:var(--mu);line-height:1.7">Enregistrez chaque perte → l'outil calcule la mise exacte pour récupérer + bénéfice avec la prochaine cote.</div>
+    <div style="font-size:12px;color:var(--mu);line-height:1.7">1. Choisissez une stratégie → 2. Enregistrez chaque pari → 3. L'outil calcule votre prochaine mise et trouve les matchs.</div>
   </div>
 
-  <!-- SAISIE PERTE -->
+  <!-- ① STRATÉGIES EN HAUT -->
+  <div class="card"><div class="ct">① Choisissez votre stratégie de rattrapage</div><div class="m-strat-grid" id="m-strat-grid"></div></div>
+  <div id="m-detail-panel" style="display:none"></div>
+
+  <!-- ② SAISIE PARI (gagné OU perdu) -->
   <div class="card" id="loss-input-card">
-    <div class="ct">&#128308; Enregistrer une perte</div>
-    <div class="fg" style="grid-template-columns:2fr 1fr 1fr">
-      <div class="fgrp"><label>Match (ex: PSG vs Montpellier)</label><input type="text" id="loss-match" placeholder="PSG vs Montpellier"></div>
-      <div class="fgrp"><label>Mise perdue (€)</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="20"></div>
+    <div class="ct">② Enregistrer un pari</div>
+    <div class="fg" style="grid-template-columns:2fr 1fr 1fr 1fr">
+      <div class="fgrp"><label>Match</label><input type="text" id="loss-match" placeholder="PSG vs Montpellier"></div>
+      <div class="fgrp"><label>Sélection</label><input type="text" id="loss-sel" placeholder="PSG victoire"></div>
+      <div class="fgrp"><label>Mise (€)</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="20"></div>
       <div class="fgrp"><label>Cote jouée</label><input type="number" id="loss-odds" min="1.01" step="0.01" placeholder="2.10"></div>
     </div>
-    <div class="fg" style="grid-template-columns:2fr 1fr;margin-bottom:0">
-      <div class="fgrp"><label>Paris / sélection</label><input type="text" id="loss-sel" placeholder="ex: PSG victoire"></div>
+    <div class="fg" style="grid-template-columns:1fr 1fr;margin-bottom:0">
       <div class="fgrp"><label>Résultat</label>
         <select id="loss-result">
           <option value="loss">❌ Perdu</option>
-          <option value="void">— Remboursé</option>
+          <option value="win">✅ Gagné</option>
+          <option value="void">— Remboursé/Void</option>
+        </select>
+      </div>
+      <div class="fgrp"><label>Sport</label>
+        <select id="loss-sport-sel">
+          <option value="all">Tous sports</option>
+          <option value="soccer">⚽ Football</option>
+          <option value="basketball">🏀 Basketball</option>
+          <option value="mma">🥊 MMA/Boxe</option>
+          <option value="tennis">🎾 Tennis</option>
+          <option value="icehockey">🏒 Hockey</option>
+          <option value="rugby">🏉 Rugby</option>
+          <option value="baseball">⚾ Baseball</option>
+          <option value="americanfootball">🏈 NFL</option>
         </select>
       </div>
     </div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn bp" onclick="lossAdd()">&#43; Enregistrer la perte</button>
+      <button class="btn bp" onclick="lossAdd()">&#43; Enregistrer</button>
       <button class="btn bs" onclick="lossMarkRecovered()">&#10003; Session récupérée</button>
-      <button class="btn" onclick="lossClearAll()" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25)">&#128465; Tout effacer</button>
+      <button class="btn" onclick="lossClearAll()" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25);border-radius:4px">&#128465; Tout effacer</button>
     </div>
   </div>
 
-  <!-- RÉCAPITULATIF & CALCUL -->
-  <div id="loss-recovery-panel"></div>
+  <!-- ③ STATS -->
+  <div id="loss-stats-panel"></div>
 
-  <!-- HISTORIQUE PERTES -->
+  <!-- ④ RÉCUPÉRATION + RECHERCHE -->
+  <div id="loss-recovery-panel"></div>
+  <div id="m-search-res"></div>
+
+  <!-- ⑤ HISTORIQUE -->
   <div class="card" id="loss-history-card" style="display:none">
-    <div class="ct">&#128202; Historique des pertes (session en cours)</div>
+    <div class="ct">&#128202; Historique complet</div>
+    <div id="loss-period-btns" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="fbtn on" id="lp-all" onclick="lossSetPeriod('all',this)">Tout</button>
+      <button class="fbtn" id="lp-day" onclick="lossSetPeriod('day',this)">Aujourd'hui</button>
+      <button class="fbtn" id="lp-2d" onclick="lossSetPeriod('2d',this)">48h</button>
+      <button class="fbtn" id="lp-3d" onclick="lossSetPeriod('3d',this)">3 jours</button>
+      <button class="fbtn" id="lp-week" onclick="lossSetPeriod('week',this)">7 jours</button>
+      <button class="fbtn" id="lp-month" onclick="lossSetPeriod('month',this)">30 jours</button>
+    </div>
     <div id="loss-history-list"></div>
   </div>
-
-  <!-- MÉTHODES -->
-  <div class="card" style="margin-top:14px"><div class="ct">Choisissez votre stratégie de rattrapage</div><div class="m-strat-grid" id="m-strat-grid"></div></div>
-  <div id="m-detail-panel" style="display:none"></div>
-  <div id="m-search-res"></div>
   <div id="m-tracker-section" style="display:none"></div>
 </section>
 
@@ -768,7 +793,7 @@ wrangler deploy</pre>
 <section class="sec" id="s-notes">
   <div class="ph"><div class="pt">&#128221; Mes Notes</div><div class="ps">Stockées localement + synchronisation cloud</div></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-    <button class="btn bp" onclick="notesNew()" style="font-size:13px;padding:10px 18px">&#9999;&#65039; Nouvelle note</button>
+    <button onclick="notesNew()" style="font-size:13px;padding:10px 18px;border-radius:4px;border:none;font-family:var(--hd);font-weight:700;cursor:pointer;transition:all .2s;background:linear-gradient(135deg,#ff7043,#ff5722);color:#fff;box-shadow:0 0 16px rgba(255,112,67,.45);display:inline-flex;align-items:center;gap:6px">&#9999;&#65039; Nouvelle note</button>
     <div id="notes-sync-status" style="font-size:10px;font-family:var(--mo);color:var(--dm);display:flex;align-items:center;gap:5px">
       <div id="notes-sync-dot" style="width:6px;height:6px;border-radius:50%;background:var(--dm);flex-shrink:0"></div>
       <span id="notes-sync-lbl">—</span>
@@ -779,7 +804,7 @@ wrangler deploy</pre>
   <div id="notes-empty" style="text-align:center;padding:52px 20px;color:var(--dm);display:none">
     <div style="font-size:42px;margin-bottom:13px">&#128221;</div>
     <div style="font-family:var(--hd);font-size:16px;color:var(--mu);margin-bottom:6px">Aucune note</div>
-    <button class="btn bp" onclick="notesNew()" style="margin-top:16px">&#9999;&#65039; Créer une note</button>
+    <button onclick="notesNew()" style="margin-top:16px;padding:9px 18px;border-radius:4px;border:none;font-family:var(--hd);font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ff7043,#ff5722);color:#fff;box-shadow:0 0 14px rgba(255,112,67,.4);display:inline-flex;align-items:center;gap:6px">&#9999;&#65039; Créer une note</button>
   </div>
 </section>
 
@@ -876,32 +901,65 @@ function filterScanCards(){document.querySelectorAll('#scan-res [data-sport-key]
 //  LEAGUES PAR SPORT — FOOTBALL INCLUS
 // ═══════════════════════════════════════════════
 const ALL_SOCCER_LEAGUES = [
+  // Ligues nationales actives
   {sport:'soccer_epl',market:'h2h'},{sport:'soccer_epl',market:'totals'},
   {sport:'soccer_france_ligue1',market:'h2h'},{sport:'soccer_france_ligue1',market:'btts'},
   {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'h2h'},
-  {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_ucl',market:'h2h'},
-  {sport:'soccer_uel',market:'h2h'},{sport:'soccer_brasil',market:'h2h'},
-  {sport:'soccer_argentina',market:'h2h'},{sport:'soccer_mls',market:'h2h'},
-  {sport:'soccer_netherlands',market:'h2h'},{sport:'soccer_portugal',market:'h2h'},
+  {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_netherlands_eredivisie',market:'h2h'},
+  {sport:'soccer_portugal_primeira_liga',market:'h2h'},
+  // Coupes Europe
+  {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_uel',market:'h2h'},
+  // Coupe du Monde 2026 — plusieurs clés possibles selon The Odds API
+  {sport:'soccer_fifa_world_cup',market:'h2h'},
+  {sport:'soccer_world_cup_2026',market:'h2h'},
+  {sport:'soccer_conmebol_copa_america',market:'h2h'},
+  {sport:'soccer_concacaf_gold_cup',market:'h2h'},
+  {sport:'soccer_usa_major_league_soccer',market:'h2h'},
+  {sport:'soccer_mls',market:'h2h'},
+  // Championnats hors-saison mais matchs amicaux/tournois actifs
+  {sport:'soccer_brazil_campeonato',market:'h2h'},
+  {sport:'soccer_argentina_primera_division',market:'h2h'},
+  {sport:'soccer_mexico_ligamx',market:'h2h'},
+  {sport:'soccer_japan_j_league',market:'h2h'},
+  {sport:'soccer_australia_aleague',market:'h2h'},
+  {sport:'soccer_turkey_super_liga',market:'h2h'},
 ];
 
 const SCAN_LEAGUES_BY_MODE = {
   eco: [
-    {sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue1',market:'h2h'},
-    {sport:'soccer_ucl',market:'h2h'},{sport:'basketball_nba',market:'h2h'},
-    {sport:'tennis_atp',market:'h2h'},{sport:'icehockey_nhl',market:'h2h'},
-    {sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'rugbyunion_top14',market:'h2h'},
-    {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'h2h'},
-    {sport:'tennis_wta',market:'h2h'},{sport:'baseball_mlb',market:'h2h'},
+    // Football prioritaire
+    {sport:'soccer_fifa_world_cup',market:'h2h'},
+    {sport:'soccer_world_cup_2026',market:'h2h'},
+    {sport:'soccer_epl',market:'h2h'},
+    {sport:'soccer_france_ligue1',market:'h2h'},
+    {sport:'soccer_mls',market:'h2h'},
+    {sport:'soccer_brazil_campeonato',market:'h2h'},
+    // Autres
+    {sport:'basketball_nba',market:'h2h'},
+    {sport:'tennis_atp',market:'h2h'},
+    {sport:'mma_mixed_martial_arts',market:'h2h'},
+    {sport:'icehockey_nhl',market:'h2h'},
+    {sport:'baseball_mlb',market:'h2h'},
+    {sport:'rugbyunion_top14',market:'h2h'},
   ],
   standard: [
-    // Football — complet
+    // Football — TOUTES compétitions actives juin 2026
+    {sport:'soccer_fifa_world_cup',market:'h2h'},
+    {sport:'soccer_world_cup_2026',market:'h2h'},
+    {sport:'soccer_conmebol_copa_america',market:'h2h'},
+    {sport:'soccer_concacaf_gold_cup',market:'h2h'},
     {sport:'soccer_epl',market:'h2h'},{sport:'soccer_epl',market:'totals'},
     {sport:'soccer_france_ligue1',market:'h2h'},{sport:'soccer_france_ligue1',market:'btts'},
-    {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'h2h'},
-    {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_ucl',market:'h2h'},
-    {sport:'soccer_uel',market:'h2h'},{sport:'soccer_brasil',market:'h2h'},
-    {sport:'soccer_mls',market:'h2h'},{sport:'soccer_netherlands',market:'h2h'},
+    {sport:'soccer_spain_la_liga',market:'h2h'},
+    {sport:'soccer_germany_bundesliga',market:'h2h'},
+    {sport:'soccer_italy_serie_a',market:'h2h'},
+    {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_uel',market:'h2h'},
+    {sport:'soccer_mls',market:'h2h'},
+    {sport:'soccer_brazil_campeonato',market:'h2h'},
+    {sport:'soccer_argentina_primera_division',market:'h2h'},
+    {sport:'soccer_mexico_ligamx',market:'h2h'},
+    {sport:'soccer_netherlands_eredivisie',market:'h2h'},
+    {sport:'soccer_turkey_super_liga',market:'h2h'},
     // Basket
     {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'spreads'},
     {sport:'basketball_euroleague',market:'h2h'},
@@ -911,26 +969,47 @@ const SCAN_LEAGUES_BY_MODE = {
     // MMA / Boxe
     {sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'boxing_boxing',market:'h2h'},
     // Autres
-    {sport:'icehockey_nhl',market:'h2h'},{sport:'rugbyunion_top14',market:'h2h'},
-    {sport:'baseball_mlb',market:'h2h'},{sport:'americanfootball_nfl',market:'h2h'},
+    {sport:'icehockey_nhl',market:'h2h'},
+    {sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'},
+    {sport:'baseball_mlb',market:'h2h'},
+    {sport:'americanfootball_nfl',market:'h2h'},
   ],
   complet: [
+    // Football complet
+    {sport:'soccer_fifa_world_cup',market:'h2h'},
+    {sport:'soccer_world_cup_2026',market:'h2h'},
+    {sport:'soccer_conmebol_copa_america',market:'h2h'},
+    {sport:'soccer_concacaf_gold_cup',market:'h2h'},
     {sport:'soccer_epl',market:'h2h'},{sport:'soccer_epl',market:'totals'},{sport:'soccer_epl',market:'btts'},
     {sport:'soccer_france_ligue1',market:'h2h'},{sport:'soccer_france_ligue1',market:'totals'},{sport:'soccer_france_ligue1',market:'btts'},
     {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_spain_la_liga',market:'totals'},
     {sport:'soccer_germany_bundesliga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'totals'},
     {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_italy_serie_a',market:'totals'},
     {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_uel',market:'h2h'},
-    {sport:'soccer_brasil',market:'h2h'},{sport:'soccer_argentina',market:'h2h'},
-    {sport:'soccer_mls',market:'h2h'},{sport:'soccer_netherlands',market:'h2h'},{sport:'soccer_portugal',market:'h2h'},
-    {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'spreads'},{sport:'basketball_euroleague',market:'h2h'},
+    {sport:'soccer_mls',market:'h2h'},
+    {sport:'soccer_brazil_campeonato',market:'h2h'},
+    {sport:'soccer_argentina_primera_division',market:'h2h'},
+    {sport:'soccer_mexico_ligamx',market:'h2h'},
+    {sport:'soccer_netherlands_eredivisie',market:'h2h'},
+    {sport:'soccer_portugal_primeira_liga',market:'h2h'},
+    {sport:'soccer_turkey_super_liga',market:'h2h'},
+    {sport:'soccer_japan_j_league',market:'h2h'},
+    {sport:'soccer_australia_aleague',market:'h2h'},
+    // Basket
+    {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'spreads'},
+    {sport:'basketball_euroleague',market:'h2h'},
+    // Tennis
     {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
     {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
+    // MMA / Boxe
     {sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'boxing_boxing',market:'h2h'},
+    // Autres
     {sport:'icehockey_nhl',market:'h2h'},{sport:'icehockey_nhl',market:'totals'},
     {sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'},
-    {sport:'baseball_mlb',market:'h2h'},{sport:'americanfootball_nfl',market:'h2h'},
-    {sport:'handball_champions_league',market:'h2h'},{sport:'aussierules_afl',market:'h2h'},
+    {sport:'baseball_mlb',market:'h2h'},
+    {sport:'americanfootball_nfl',market:'h2h'},
+    {sport:'handball_champions_league',market:'h2h'},
+    {sport:'aussierules_afl',market:'h2h'},
   ],
 };
 
@@ -1425,26 +1504,28 @@ function lossAdd() {
   const odds = parseFloat(document.getElementById('loss-odds')?.value);
   const sel = document.getElementById('loss-sel')?.value.trim() || '';
   const result = document.getElementById('loss-result')?.value || 'loss';
+  const sport = document.getElementById('loss-sport-sel')?.value || 'all';
 
   if (!match) { toast('Renseignez le match', 'err'); return; }
   if (!stake || stake <= 0) { toast('Mise invalide', 'err'); return; }
   if (!odds || odds <= 1) { toast('Cote invalide (>1)', 'err'); return; }
 
   const data = lossLoad();
+  const gain = result === 'win' ? parseFloat(((stake * odds) - stake).toFixed(2)) : 0;
   const entry = {
     id: Date.now(),
-    match, sel, odds, stake,
-    result, // 'loss' | 'void'
-    amount_lost: result === 'void' ? 0 : stake,
+    match, sel, odds, stake, sport,
+    result, // 'loss' | 'win' | 'void'
+    amount_lost: result === 'loss' ? stake : 0,
+    amount_won: result === 'win' ? gain : 0,
     date: new Date().toISOString(),
     recovered: false,
   };
   data.entries.unshift(entry);
   lossSave(data);
 
-  // Reset form
   ['loss-match','loss-sel','loss-stake','loss-odds'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  toast('Perte enregistrée ✓', 'ok');
+  toast(result==='win'?`✅ Gain enregistré (+${gain}€)`:'❌ Perte enregistrée', result==='win'?'ok':'');
   lossRender();
 }
 
@@ -1472,167 +1553,218 @@ function lossDeleteEntry(id) {
   lossRender();
 }
 
+let lossPeriodFilter = 'all';
+let recoverySport = 'all';
+
+function lossSetPeriod(p, el) {
+  lossPeriodFilter = p;
+  document.querySelectorAll('#loss-period-btns .fbtn').forEach(b=>b.classList.remove('on'));
+  el?.classList.add('on');
+  lossRender();
+}
+function lossFilterByPeriod(entries) {
+  if (lossPeriodFilter === 'all') return entries;
+  const now = Date.now();
+  const ms = {day:86400000,'2d':172800000,'3d':259200000,week:604800000,month:2592000000}[lossPeriodFilter]||Infinity;
+  return entries.filter(e => now - new Date(e.date).getTime() <= ms);
+}
+function setRecoverySport(sport, el) {
+  recoverySport = sport;
+  document.querySelectorAll('#recovery-sport-btns .fbtn').forEach(b=>b.classList.remove('on'));
+  el?.classList.add('on');
+}
+
 function lossRender() {
   const data = lossLoad();
-  const entries = data.entries || [];
+  const allEntries = data.entries || [];
+  const filteredEntries = lossFilterByPeriod(allEntries);
+  const wins = filteredEntries.filter(e=>e.result==='win');
+  const losses = filteredEntries.filter(e=>e.result==='loss');
+  const voids = filteredEntries.filter(e=>e.result==='void');
+  const totalBets = wins.length + losses.length;
+  const winRate = totalBets > 0 ? Math.round(wins.length/totalBets*100) : 0;
+  const totalWon = wins.reduce((s,e)=>s+(e.amount_won||0),0);
+  const totalLostPeriod = losses.reduce((s,e)=>s+(e.amount_lost||0),0);
+  const netPL = totalWon - totalLostPeriod;
+  const activeLosses = allEntries.filter(e=>!e.recovered&&e.result==='loss');
+  const totalActiveLost = activeLosses.reduce((s,e)=>s+(e.amount_lost||0),0);
 
-  // Séparer pertes actives (non récupérées, réelles)
-  const active = entries.filter(e => !e.recovered && e.result === 'loss');
-  const totalLost = active.reduce((s, e) => s + (e.amount_lost || 0), 0);
-
+  const statsPanel = document.getElementById('loss-stats-panel');
   const panel = document.getElementById('loss-recovery-panel');
   const histCard = document.getElementById('loss-history-card');
   const histList = document.getElementById('loss-history-list');
 
+  // STATS
+  if (statsPanel && allEntries.length > 0) {
+    const plColor = netPL >= 0 ? 'var(--gr)' : 'var(--re)';
+    const chartE = [...filteredEntries].reverse().slice(-15);
+    const maxV = Math.max(...chartE.map(e=>Math.max(e.amount_lost||0,e.amount_won||0)),1);
+    statsPanel.innerHTML = '<div class="card"><div class="ct">&#128202; Statistiques</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:12px">'
+      + '<div class="tsm-cell"><div class="sv" style="color:var(--gr)">'+wins.length+'</div><label>Gagnés</label></div>'
+      + '<div class="tsm-cell"><div class="sv" style="color:var(--re)">'+losses.length+'</div><label>Perdus</label></div>'
+      + '<div class="tsm-cell"><div class="sv" style="color:var(--am)">'+voids.length+'</div><label>Void</label></div>'
+      + '<div class="tsm-cell"><div class="sv" style="color:'+(winRate>=55?'var(--gr)':winRate>=40?'var(--am)':'var(--re)')+'">'+winRate+'%</div><label>% Gain</label></div>'
+      + '<div class="tsm-cell"><div class="sv" style="color:'+plColor+'">'+(netPL>=0?'+':'')+netPL.toFixed(2)+'€</div><label>P&L net</label></div>'
+      + '<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+totalActiveLost.toFixed(2)+'€</div><label>À récupérer</label></div>'
+      + '</div>'
+      + (totalBets>0?'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dm);font-family:var(--mo);margin-bottom:3px"><span style="color:var(--gr)">✅ '+winRate+'% gagnés ('+wins.length+')</span><span style="color:var(--re)">❌ '+(100-winRate)+'% perdus ('+losses.length+')</span></div><div style="height:6px;background:var(--bd);border-radius:3px;overflow:hidden;display:flex"><div style="width:'+winRate+'%;background:var(--gr)"></div><div style="width:'+(100-winRate)+'%;background:var(--re)"></div></div></div>':'')
+      + (chartE.length>1?'<div style="display:flex;align-items:flex-end;gap:3px;height:48px;padding:0 2px">'
+        + chartE.map(function(e){var val=e.result==='win'?(e.amount_won||0):(e.amount_lost||0);var h=Math.max(4,Math.round(val/maxV*44));var c=e.result==='win'?'var(--gr)':e.result==='loss'?'var(--re)':'var(--am)';return '<div title="'+esc(e.match)+'" style="flex:1;height:'+h+'px;background:'+c+';border-radius:1px 1px 0 0;opacity:.85;min-width:5px"></div>';}).join('')
+        + '</div><div style="display:flex;gap:10px;font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:4px"><span style="color:var(--gr)">■ Gain</span><span style="color:var(--re)">■ Perte</span><span style="color:var(--am)">■ Void</span></div>':'')
+      + '</div>';
+  } else if (statsPanel) { statsPanel.innerHTML = ''; }
+
   if (!panel) return;
 
-  if (!entries.length) {
-    panel.innerHTML = '<div class="info">Aucune perte enregistrée. Commencez par saisir un pari perdu ci-dessus.</div>';
+  if (!allEntries.length) {
+    panel.innerHTML = '<div class="info">Aucun pari enregistré. Saisissez un résultat ci-dessus.</div>';
     if (histCard) histCard.style.display = 'none';
     return;
   }
 
-  // ── CALCUL DE RÉCUPÉRATION ──
-  // On propose une mise pour récupérer TOUTES les pertes actives + bénéfice minimal
-  // Méthode : mise = (totalLost + profit_cible) / (cote_cible - 1)
-  // On vise une cote entre 1.50 et 2.50 pour un risque raisonnable
-  const profitCible = Math.max(10, totalLost * 0.1); // +10% de bénéfice
-  const coteCible = 2.0; // cote idéale pour la récupération
-  const miseCible = (totalLost + profitCible) / (coteCible - 1);
-
-  // Historique P&L des 10 derniers
-  const pnlEntries = entries.slice(0, 10).reverse();
-
-  let panelHtml = '';
-
-  if (totalLost > 0) {
-    panelHtml += `<div class="recovery-banner">
-      <div class="rb-label">Total pertes actives (session)</div>
-      <div class="rb-loss-total">-${totalLost.toFixed(2)}€</div>
-      <div style="height:1px;background:rgba(167,139,250,.2);margin:14px 0"></div>
-      <div class="rb-label">Mise recommandée pour récupérer</div>
-      <div class="rb-next-stake">${miseCible.toFixed(2)}€</div>
-      <div class="rb-odds-target">sur une cote cible : ${coteCible.toFixed(2)}</div>
-      <div class="rb-expl">
-        Gain si victoire : <strong style="color:var(--gr)">+${(miseCible*(coteCible-1)-totalLost+profitCible).toFixed(2)}€</strong> net (récupère ${totalLost.toFixed(2)}€ + ${profitCible.toFixed(2)}€ bénéfice).<br>
-        ⚠️ Ne misez que ce que vous pouvez vous permettre de perdre. Aucun gain garanti.
-      </div>
-    </div>`;
-
-    // Bouton pour trouver des matchs avec la cote cible
-    panelHtml += `<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <button class="btn bp" onclick="lossSearchMatches(${coteCible})">🔍 Trouver matchs @ ${coteCible}</button>
-      <button class="btn bs" onclick="lossSearchMatches(1.7)">🔍 @ 1.70 (sûr)</button>
-      <button class="btn bs" onclick="lossSearchMatches(2.5)">🔍 @ 2.50 (value)</button>
-    </div>`;
-
-    // Zone résultats de recherche
-    panelHtml += '<div id="loss-search-results"></div>';
+  // RÉCUPÉRATION
+  var panelHtml = '';
+  if (totalActiveLost > 0) {
+    var profitCible = Math.max(5, totalActiveLost * 0.1);
+    var coteCible = selectedMethod==='martingale'?2.0:selectedMethod==='fibonacci'?1.85:selectedMethod==='dalembert'?1.70:2.0;
+    var miseCible = (totalActiveLost + profitCible) / (coteCible - 1);
+    var lastSport = activeLosses[0]&&activeLosses[0].sport ? activeLosses[0].sport : 'all';
+    if (!recoverySport || recoverySport==='all') recoverySport = lastSport;
+    var sportBtns = [{val:'all',label:'🌍 Tous'},{val:'basketball',label:'🏀 Basket'},{val:'mma',label:'🥊 MMA'},{val:'tennis',label:'🎾 Tennis'},{val:'soccer',label:'⚽ Foot'},{val:'icehockey',label:'🏒 Hockey'},{val:'rugby',label:'🏉 Rugby'}];
+    panelHtml += '<div class="recovery-banner">'
+      + '<div class="rb-label">Pertes actives à récupérer</div>'
+      + '<div class="rb-loss-total">-'+totalActiveLost.toFixed(2)+'€</div>'
+      + '<div style="height:1px;background:rgba(167,139,250,.2);margin:12px 0"></div>'
+      + '<div class="rb-label">Mise recommandée ('+( selectedMethod||'standard')+')</div>'
+      + '<div class="rb-next-stake">'+miseCible.toFixed(2)+'€</div>'
+      + '<div class="rb-odds-target">cote cible @ '+coteCible.toFixed(2)+'</div>'
+      + '<div class="rb-expl">Gain net si victoire : <strong style="color:var(--gr)">+'+(miseCible*(coteCible-1)-totalActiveLost+profitCible).toFixed(2)+'€</strong> (récupère '+totalActiveLost.toFixed(2)+'€ + '+profitCible.toFixed(2)+'€ bénéfice)<br>⚠️ Aucun gain garanti.</div>'
+      + '</div>'
+      + '<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mo)">Sport pour la recherche</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap" id="recovery-sport-btns">'
+      + sportBtns.map(function(s){return '<button class="fbtn '+(s.val===recoverySport?'on':'')+'" onclick="setRecoverySport(\''+s.val+'\',this)">'+s.label+'</button>';}).join('')
+      + '</div></div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+      + '<button class="btn bp" onclick="lossSearchMatchesSport('+coteCible+')">🔍 Trouver matchs pour se refaire</button>'
+      + '<button class="btn bs" onclick="lossSearchMatches(1.70)">@ 1.70 sûr</button>'
+      + '<button class="btn bs" onclick="lossSearchMatches(2.50)">@ 2.50 value</button>'
+      + '</div>'
+      + '<div id="loss-search-results"></div>';
   } else {
-    panelHtml += '<div class="ok-box">✅ Aucune perte active — session à l\'équilibre ou bénéficiaire !</div>';
+    panelHtml += '<div class="ok-box">✅ Aucune perte active — session équilibrée ou bénéficiaire !</div>';
   }
-
-  // Mini P&L chart
-  if (entries.length > 1) {
-    const maxVal = Math.max(...pnlEntries.map(e=>Math.abs(e.amount_lost||0)),1);
-    panelHtml += `<div class="card" style="padding:14px;margin-bottom:13px">
-      <div class="ct">P&L des ${pnlEntries.length} derniers paris</div>
-      <div class="pnl-chart" style="display:flex;align-items:flex-end;gap:4px;padding:0 4px">
-        ${pnlEntries.map(e=>{
-          const h=Math.max(4,Math.round((e.amount_lost||0)/maxVal*56));
-          const color=e.recovered?'var(--gr)':e.result==='loss'?'var(--re)':'var(--am)';
-          return `<div title="${esc(e.match)} — ${e.result==='loss'?'-':'±'}${e.amount_lost||0}€" style="flex:1;height:${h}px;background:${color};border-radius:2px 2px 0 0;opacity:.85;min-width:6px"></div>`;
-        }).join('')}
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:4px">
-        <span style="color:var(--re)">■ Perte</span>
-        <span style="color:var(--gr)">■ Récupéré</span>
-        <span style="color:var(--am)">■ Void</span>
-      </div>
-    </div>`;
-  }
-
   panel.innerHTML = panelHtml;
 
-  // ── HISTORIQUE ──
+  // HISTORIQUE
   if (histCard) histCard.style.display = '';
   if (histList) {
-    histList.innerHTML = entries.map(e => `
-      <div class="loss-entry ${!e.recovered&&e.result==='loss'?'active-loss':''}">
-        <div style="flex:1;min-width:0">
-          <div class="le-match">${esc(e.match)}${e.sel?` — <span style="color:var(--mu)">${esc(e.sel)}</span>`:''}</div>
-          <div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">
-            <span class="le-odds">@ ${e.odds}</span>
-            <span class="le-stake">${e.stake}€ misés</span>
-            ${e.recovered?'<span class="bdg" style="background:var(--grb);color:var(--gr)">✓ Récupéré</span>':e.result==='void'?'<span class="bdg bca">Void</span>':'<span class="bdg" style="background:var(--reb);color:var(--re)">❌ Perdu</span>'}
-            <span class="le-date">${fmtDT(e.date)}</span>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-          ${e.result==='loss'&&!e.recovered?`<span style="font-family:var(--mo);font-weight:700;color:var(--re)">-${(e.amount_lost||0).toFixed(2)}€</span>`:''}
-          <button onclick="lossDeleteEntry(${e.id})" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:11px;padding:3px">🗑</button>
-        </div>
-      </div>`).join('');
+    var toShow = filteredEntries;
+    if (!toShow.length) { histList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dm);font-size:12px">Aucun pari sur cette période.</div>'; return; }
+    histList.innerHTML = toShow.map(function(e) {
+      var icon = e.result==='win'?'✅':e.result==='void'?'—':'❌';
+      var amtColor = e.result==='win'?'var(--gr)':e.result==='loss'?'var(--re)':'var(--am)';
+      var amtStr = e.result==='win'?'+'+(e.amount_won||0).toFixed(2)+'€':e.result==='loss'?'-'+(e.amount_lost||0).toFixed(2)+'€':'Void';
+      var sl = {soccer:'⚽',basketball:'🏀',mma:'🥊',tennis:'🎾',icehockey:'🏒',rugby:'🏉',baseball:'⚾',americanfootball:'🏈'}[e.sport]||'🏆';
+      return '<div class="loss-entry '+(!e.recovered&&e.result==='loss'?'active-loss':'')+'">'
+        +'<div style="flex:1;min-width:0"><div class="le-match">'+sl+' '+esc(e.match)+(e.sel?' — <span style="color:var(--mu)">'+esc(e.sel)+'</span>':'')+'</div>'
+        +'<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">'
+        +'<span class="le-odds">@ '+e.odds+'</span><span class="le-stake">'+e.stake+'€</span> '+icon+' '
+        +(e.recovered?'<span class="bdg" style="background:var(--grb);color:var(--gr)">✓ Récupéré</span>':'')
+        +'<span class="le-date">'+fmtDT(e.date)+'</span></div></div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+        +'<span style="font-family:var(--mo);font-weight:700;color:'+amtColor+';font-size:13px">'+amtStr+'</span>'
+        +'<button onclick="lossDeleteEntry('+e.id+')" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:11px;padding:2px">🗑</button>'
+        +'</div></div>';
+    }).join('');
   }
 }
 
-async function lossSearchMatches(targetOdds) {
+async function lossSearchMatchesSport(coteCible) {
+  var target = coteCible || 2.0;
+  var sportLeagues = {
+    basketball:[{sport:'basketball_nba',market:'h2h'},{sport:'basketball_euroleague',market:'h2h'}],
+    mma:[{sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'boxing_boxing',market:'h2h'}],
+    tennis:[{sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},{sport:'tennis_atp_french_open',market:'h2h'}],
+    soccer:[{sport:'soccer_fifa_world_cup',market:'h2h'},{sport:'soccer_world_cup_2026',market:'h2h'},{sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue1',market:'h2h'},{sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_mls',market:'h2h'},{sport:'soccer_brazil_campeonato',market:'h2h'}],
+    icehockey:[{sport:'icehockey_nhl',market:'h2h'}],
+    rugby:[{sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'}],
+    all:[{sport:'basketball_nba',market:'h2h'},{sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'tennis_atp',market:'h2h'},{sport:'soccer_fifa_world_cup',market:'h2h'},{sport:'soccer_epl',market:'h2h'},{sport:'icehockey_nhl',market:'h2h'},{sport:'rugbyunion_top14',market:'h2h'},{sport:'baseball_mlb',market:'h2h'}],
+  };
+  var leagues = sportLeagues[recoverySport] || sportLeagues['all'];
+  await lossSearchMatches(target, leagues);
+}
+
+async function lossSearchMatches(targetOdds, customLeagues) {
   const res = document.getElementById('loss-search-results');
   if (!res) return;
   res.innerHTML = '<div class="ls" style="padding:20px"><div class="sp"></div><p>Recherche matchs @ '+targetOdds+'…</p></div>';
 
   try {
-    // Scan les principales ligues de foot + autres pour trouver la cote cible
-    const leagues = [
-      ...ALL_SOCCER_LEAGUES.slice(0,8),
+    const leagues = customLeagues || [
       {sport:'basketball_nba',market:'h2h'},
-      {sport:'tennis_atp',market:'h2h'},
       {sport:'mma_mixed_martial_arts',market:'h2h'},
+      {sport:'tennis_atp',market:'h2h'},
+      {sport:'soccer_fifa_world_cup',market:'h2h'},
+      {sport:'soccer_epl',market:'h2h'},
+      {sport:'soccer_france_ligue1',market:'h2h'},
+      {sport:'icehockey_nhl',market:'h2h'},
+      {sport:'rugbyunion_top14',market:'h2h'},
+      {sport:'baseball_mlb',market:'h2h'},
     ];
-    const tol = 0.25;
+    const tol = 0.30;
     const allMatches = [];
-    const promises = leagues.map(({sport,market}) =>
-      api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick')
-        .then(d => (d.opportunities||[]).filter(o => {
-          const diff = Math.abs((o.odds||0)-targetOdds);
-          return diff <= tol && (o.score?.total||0) >= 55;
-        }).map(o=>({...o,_sport:sport})))
-        .catch(()=>[])
-    );
+    const promises = leagues.map(function(l) {
+      return api('/api/analyze?sport='+enc(l.sport)+'&market='+enc(l.market)+'&mode=quick')
+        .then(function(d) {
+          return (d.opportunities||[]).filter(function(o) {
+            return Math.abs((o.odds||0)-targetOdds) <= tol && (o.score&&o.score.total||0) >= 50;
+          }).map(function(o){return Object.assign({},o,{_sport:l.sport});});
+        }).catch(function(){return [];});
+    });
     const results = await Promise.all(promises);
-    results.forEach(r => allMatches.push(...r));
+    results.forEach(function(r){allMatches.push.apply(allMatches,r);});
 
-    allMatches.sort((a,b) => {
-      const dA=Math.abs((a.odds||0)-targetOdds), dB=Math.abs((b.odds||0)-targetOdds);
-      if(Math.abs(dA-dB)<0.05) return (b.score?.total||0)-(a.score?.total||0);
+    allMatches.sort(function(a,b){
+      var dA=Math.abs((a.odds||0)-targetOdds), dB=Math.abs((b.odds||0)-targetOdds);
+      if(Math.abs(dA-dB)<0.05) return ((b.score&&b.score.total)||0)-((a.score&&a.score.total)||0);
       return dA-dB;
     });
 
     if (!allMatches.length) {
-      res.innerHTML = `<div class="warn">Aucun match trouvé près de @ ${targetOdds} (±${tol}). Essayez une autre cote.</div>`;
+      res.innerHTML = '<div class="warn">Aucun match trouvé près de @ '+targetOdds+' (±'+tol+'). Essayez un autre sport ou une autre cote.</div>';
       return;
     }
 
-    res.innerHTML = `<div class="sbar"><div class="sdot"></div><span>${allMatches.length} match(s) proches de @ ${targetOdds}</span></div>
-      <div class="opp-grid">${allMatches.slice(0,8).map((o,i)=>{
-        const diff=Math.abs((o.odds||0)-targetOdds);
-        const isClose=diff<=0.05;
-        return `<div class="method-res-card ${i===0?'top':''}">
-          <div class="mrc-match">${getSportLabel(o._sport||'')} ${esc(o.home_team||'?')} vs ${esc(o.away_team||'?')}</div>
-          <div class="mrc-sel">${esc(o.selection||'?')}</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-            <span class="mrc-odds-big">${o.odds}</span>
-            ${isClose?'<span class="odds-match-badge">✓ COTE IDÉALE</span>':'<span class="odds-close-badge">±'+diff.toFixed(2)+'</span>'}
-            <span style="font-size:11px;color:var(--mu)">${o.score?.total||0}/100</span>
-          </div>
-          ${o.start_time?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:4px">⏰ ${fmtDT(o.start_time)}</div>`:''}
-          <div style="font-size:10px;color:var(--mu);margin-top:5px">${esc(o.score?.explanation?.[0]||'')}</div>
-        </div>`;
-      }).join('')}</div>`;
-
+    var html = '<div class="sbar"><div class="sdot"></div><span>'+allMatches.length+' match(s) proches de @ '+targetOdds+'</span></div>';
+    html += '<div class="opp-grid">';
+    allMatches.slice(0,8).forEach(function(o,i){
+      var diff = Math.abs((o.odds||0)-targetOdds);
+      var isClose = diff <= 0.07;
+      var sport = o._sport||o.sport||'';
+      var sl = sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('mma')||sport.includes('box')?'🥊':sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':sport.includes('base')?'⚾':'🏆';
+      var dir = computeDirection(o);
+      var dirLabel = dir.direction==='play'?'✅ JOUER':dir.direction==='watch'?'👁 SURVEILLER':'— Neutre';
+      var dirColor = dir.direction==='play'?'var(--gr)':dir.direction==='watch'?'var(--am)':'var(--mu)';
+      html += '<div class="method-res-card '+(i===0?'top':'')+'">'
+        +'<div class="mrc-match">'+sl+' '+esc(o.home_team||'?')+' vs '+esc(o.away_team||'?')+'</div>'
+        +'<div class="mrc-sel">'+esc(o.selection||'?')+'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">'
+        +'<span class="mrc-odds-big">'+o.odds+'</span>'
+        +(isClose?'<span class="odds-match-badge">✓ COTE IDÉALE</span>':'<span class="odds-close-badge">±'+diff.toFixed(2)+'</span>')
+        +'<span style="font-family:var(--mo);font-size:11px;font-weight:700;color:'+dirColor+'">'+dirLabel+'</span>'
+        +'<span style="font-size:10px;color:var(--mu)">EV '+(dir.evPct>=0?'+':'')+dir.evPct+'%</span>'
+        +'</div>'
+        +(o.start_time?'<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:4px">⏰ '+fmtDT(o.start_time)+'</div>':'')
+        +'<div style="font-size:10px;color:var(--mu);margin-top:5px">'+esc((o.score&&o.score.explanation&&o.score.explanation[0])||'')+'</div>'
+        +'<div style="margin-top:8px"><a href="https://www.piwi247.com/customer" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;text-decoration:none">🎯 Parier sur Piwi247</a></div>'
+        +'</div>';
+    });
+    html += '</div>';
+    res.innerHTML = html;
     toast(allMatches.length+' match(s) trouvé(s) @ '+targetOdds, 'ok');
   } catch(e) {
-    res.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
+    res.innerHTML = '<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ '+esc(e.message)+'</div></div>';
   }
 }
 
@@ -1792,8 +1924,8 @@ function tickerToggle() {
 
 async function loadTicker() {
   try {
-    // Sports incluant foot + MMA
-    const sports = 'soccer,basketball,tennis,mma,icehockey,americanfootball,baseball';
+    // Foot + MMA + tous sports
+    const sports = 'soccer,mma,basketball,tennis,icehockey,americanfootball,baseball';
     const d = await api('/api/news?sports='+enc(sports));
     const news = d.news || [];
     if (!news.length) return;
@@ -1802,37 +1934,52 @@ async function loadTicker() {
     const clone = document.getElementById('news-ticker-clone');
     if (!inner) return;
 
-    // Prioriser foot et MMA
-    const sorted = news.sort((a,b)=>{
-      const priA = ['soccer','mma'].includes(a.sport)?0:a.priority||1;
-      const priB = ['soccer','mma'].includes(b.sport)?0:b.priority||1;
-      return priA-priB;
+    // Foot et MMA en priorité absolue
+    const sorted = [...news].sort((a,b) => {
+      const priA = ['soccer','mma','boxing'].includes(a.sport) ? 0 : (a.priority||2);
+      const priB = ['soccer','mma','boxing'].includes(b.sport) ? 0 : (b.priority||2);
+      return priA - priB || new Date(b.published||0) - new Date(a.published||0);
     });
 
     const renderItem = (art) => {
       const style = getTickerStyle(art.sport||'');
-      const label = {soccer:'⚽ FOOT',basketball:'🏀 BASKET',tennis:'🎾 TENNIS',mma:'🥊 MMA',icehockey:'🏒 HOCKEY',americanfootball:'🏈 NFL',baseball:'⚾ MLB',rugby:'🏉 RUGBY'}[art.sport]||'🏆 SPORT';
-      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" onclick="${art.link?'window.open(\''+art.link+'\',\'_blank\')':''}">
+      const label = {
+        soccer:'⚽ FOOT', basketball:'🏀 BASKET', tennis:'🎾 TENNIS',
+        mma:'🥊 MMA', boxing:'🥊 BOXE', icehockey:'🏒 HOCKEY',
+        americanfootball:'🏈 NFL', baseball:'⚾ MLB', rugby:'🏉 RUGBY'
+      }[art.sport] || '🏆 SPORT';
+
+      // Date/heure de parution
+      let dateStr = '';
+      if (art.published) {
+        try {
+          const pub = new Date(art.published);
+          dateStr = pub.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})
+            + ' ' + pub.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        } catch(_) {}
+      }
+
+      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" onclick="${art.link?`window.open('${art.link}','_blank')`:''}">
         <span class="ticker-sport-badge" style="background:${style.bg};color:${style.color}">${label}</span>
-        <div>
+        <div style="flex:1;min-width:0">
           <div class="ticker-title">${esc(art.title||'')}</div>
-          ${art.description?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px">${esc(art.description.slice(0,100))}${art.description.length>100?'…':''}</div>`:''}
+          ${art.description?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px;line-height:1.4">${esc(art.description.slice(0,100))}${art.description.length>100?'…':''}</div>`:''}
+          ${dateStr?`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px;opacity:.7">📅 ${dateStr}</div>`:''}
         </div>
       </div>`;
     };
 
     const html = sorted.map(renderItem).join('');
     inner.innerHTML = html;
-    if (clone) clone.innerHTML = html; // double pour scroll continu
+    if (clone) clone.innerHTML = html;
 
     const list = document.getElementById('news-ticker-list');
-    if (list) {
-      list.classList.add('auto-scroll');
-    }
+    if (list) list.classList.add('auto-scroll');
 
     // Drag scroll
     const box = document.getElementById('news-ticker-scroll-box');
-    if (box) {
+    if (box && !box._dragInit) {
+      box._dragInit = true;
       let isDragging=false, startY=0, scrollTop=0;
       box.addEventListener('mousedown',e=>{isDragging=true;startY=e.pageY-box.offsetTop;scrollTop=box.scrollTop;list?.classList.add('paused');});
       box.addEventListener('mouseleave',()=>{if(isDragging&&!tickerPaused)list?.classList.remove('paused');isDragging=false;});
@@ -1858,22 +2005,45 @@ function notesRender(){
   if(!notes.length){if(list)list.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
   if(!list)return;
-  list.innerHTML=notes.map((n,i)=>`<div class="note-card ${n.unsaved?'unsaved':''}" id="note-${n.id}">
-    <input class="note-title-input" value="${esc(n.title||'')}" placeholder="Titre…" oninput="noteEdit(${i},'title',this.value)">
-    <textarea class="note-body" oninput="noteEdit(${i},'body',this.value);autoResize(this)">${esc(n.body||'')}</textarea>
-    <div class="note-footer">
-      <span class="note-date">${fmtDT(n.updatedAt)}</span>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span class="note-tag ${n.unsaved?'note-unsaved':'note-saved'}">${n.unsaved?'⬤ Non sync':'✓ Sync'}</span>
-        <button onclick="notesDelete(${i})" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:12px;padding:2px">🗑</button>
-      </div>
-    </div>
-  </div>`).join('');
-  list.querySelectorAll('textarea.note-body').forEach(t=>autoResize(t));
+  list.innerHTML=notes.map(function(n,i){
+    var createdStr = n.createdAt ? '<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:2px">Créée le '+fmtDT(n.createdAt)+'</div>' : '';
+    var updatedStr = n.updatedAt && n.updatedAt !== n.createdAt ? '<div style="font-size:9px;color:var(--dm);font-family:var(--mo)">Modifiée le '+fmtDT(n.updatedAt)+'</div>' : '';
+    var syncLabel = n.unsaved
+      ? '<span class="note-tag note-unsaved">⬤ Non sauvegardé</span>'
+      : '<span class="note-tag note-saved">✓ Sauvegardé</span>';
+    return '<div class="note-card '+(n.unsaved?'unsaved':'')+'" id="note-'+n.id+'">'
+      +'<input class="note-title-input" value="'+esc(n.title||'')+'" placeholder="Titre…" oninput="noteEdit('+i+',\'title\',this.value)">'
+      +'<textarea class="note-body" oninput="noteEdit('+i+',\'body\',this.value);autoResize(this)">'+esc(n.body||'')+'</textarea>'
+      +'<div class="note-footer">'
+      +'<div>'+createdStr+updatedStr+'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      +syncLabel
+      +'<button onclick="noteSaveManual('+i+')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:linear-gradient(135deg,#ff7043,#ff5722);border:none;border-radius:4px;color:#fff;font-size:10px;font-family:var(--mo);font-weight:700;cursor:pointer">💾 Enregistrer</button>'
+      +'<button onclick="notesDelete('+i+')" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:12px;padding:2px">🗑</button>'
+      +'</div></div>'
+      +'</div>';
+  }).join('');
+  list.querySelectorAll('textarea.note-body').forEach(function(t){autoResize(t);});
 }
+
 function autoResize(t){t.style.height='auto';t.style.height=t.scrollHeight+'px';}
-function notesNew(){notes.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),title:'',body:'',updatedAt:new Date().toISOString(),unsaved:true});notesRender();}
-function noteEdit(i,field,val){if(!notes[i])return;notes[i][field]=val;notes[i].updatedAt=new Date().toISOString();notes[i].unsaved=true;notesSave();clearTimeout(noteSaveTimer);noteSaveTimer=setTimeout(()=>{notesSyncCloud();},3000);}
+function notesNew(){
+  var now=new Date().toISOString();
+  notes.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),title:'',body:'',createdAt:now,updatedAt:now,unsaved:true});
+  notesRender();
+  setTimeout(function(){var inp=document.querySelector('.note-title-input');if(inp)inp.focus();},100);
+}
+function noteEdit(i,field,val){
+  if(!notes[i])return;
+  notes[i][field]=val;
+  notes[i].updatedAt=new Date().toISOString();
+  if(!notes[i].createdAt) notes[i].createdAt=notes[i].updatedAt;
+  notes[i].unsaved=true;
+  notesSave();
+  // Mettre à jour le badge visuel sans re-render complet
+  var card=document.getElementById('note-'+notes[i].id);
+  if(card) card.classList.add('unsaved');
+}
 function notesDelete(i){if(!confirm('Supprimer cette note ?'))return;notes.splice(i,1);notesSave();notesSyncCloud();notesRender();}
 
 // ═══════════════════════════════════════════════
@@ -1890,6 +2060,14 @@ async function initStatusBadges() {
     if(ok){ setDot('odds-dot','var(--neon)'); setLbl('odds-label','ODDS API','var(--neon)'); setLbl('odds-info',q.odds_api_credits_remaining+' cr. restants'); setDot('m-odds-dot','var(--neon)'); setLbl('m-odds-lbl','OA','var(--neon)'); }
     else{ setDot('odds-dot','var(--re)'); setLbl('odds-label','ODDS API','var(--re)'); setLbl('odds-info','Quota épuisé'); }
   } catch(_) {}
+}
+function noteSaveManual(i){
+  if(!notes[i])return;
+  notes[i].unsaved=false;
+  notesSave();
+  notesSyncCloud();
+  notesRender();
+  toast('Note sauvegardée ✓','ok');
 }
 
 // Quick questions
