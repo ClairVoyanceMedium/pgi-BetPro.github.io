@@ -337,7 +337,7 @@ a{color:var(--neon);text-decoration:none}
 <!-- MOBILE BAR -->
 <div class="mb">
   <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-    <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(135deg,#38e8ff,#00d4ff 40%,#fff 60%,#38e8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 10px rgba(0,212,255,.8));animation:nb 7s ease-in-out infinite">PGI<span style="-webkit-text-fill-color:#38e8ff;margin:0 3px">•</span>BetPro</span>BetPro</span>
+    <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(135deg,#38e8ff,#00d4ff 40%,#fff 60%,#38e8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 10px rgba(0,212,255,.8));animation:nb 7s ease-in-out infinite">PGI<span style="-webkit-text-fill-color:#38e8ff;margin:0 3px">•</span>BetPro</span>
     <div style="display:flex;gap:4px;align-items:center">
       <div id="m-cf-badge" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;border:1px solid rgba(44,64,96,.6);background:rgba(6,8,16,.6)">
         <div id="m-cf-dot" style="width:5px;height:5px;border-radius:50%;background:var(--dm);flex-shrink:0"></div>
@@ -1128,43 +1128,93 @@ function buildWhyBox(o, s, impliedProb, trueProb, evPct) {
   var sport = (o.sport||o._sport||'').toLowerCase();
   var odds = o.odds||0;
   var market = o.market||'h2h';
-  var sel = o.selection||'';
+  var sel = (o.selection||'').toLowerCase();
   var tot = (s&&s.total)||0;
   var bms = o.all_bookmakers||[];
+  var edge = (s&&s.edge)||0;
+  var subs = (s&&s.subscores)||{};
+  var home = o.home_team||'';
+  var away = o.away_team||'';
+  var startTime = o.start_time ? new Date(o.start_time) : null;
+  var now = new Date();
 
-  if(odds>=1.40&&odds<=2.20) reasons.push('Cote optimale ('+odds+') — zone de valeur maximale, prob. implicite '+impliedProb+'%.');
-  else if(odds>2.20&&odds<=3.50) reasons.push('Cote interessante ('+odds+') — outsider leger, prob. estimee '+trueProb+'%.');
-  else if(odds<1.40) reasons.push('Favori marque ('+odds+') — faible risque, convient au Rattrapage Intelligent.');
-  else if(odds>3.50) reasons.push('Outsider ('+odds+') — fort potentiel gain, risque eleve. Mise reduite recommandee.');
+  // Analyse cote et valeur
+  if(odds>=1.40&&odds<=1.90) reasons.push("Cote de favori ("+odds+") dans la zone optimale 1.40-1.90 : probabilite implicite forte ("+impliedProb+"%), risque maitrise. Ideale pour Martingale.");
+  else if(odds>1.90&&odds<=2.40) reasons.push("Cote equilibree ("+odds+") : zone de valeur maximale. Prob. implicite "+impliedProb+"%, estimee vraie "+trueProb+"%. Zone privilegiee par les professionnels.");
+  else if(odds>2.40&&odds<=3.50) reasons.push("Cote outsider ("+odds+") : potentiel value eleve si sous-estimation du marche. EV estime "+(evPct>=0?"+":"")+evPct+"%. Mise moderee recommandee.");
+  else if(odds>3.50) reasons.push("Cote haute ("+odds+") : outsider marque. Mise max 2-3% bankroll. Ne convient pas au Rattrapage standard.");
+  else if(odds<1.40) reasons.push("Favori dominant ("+odds+") : probabilite implicite "+impliedProb+"%. Tres sur mais gain limite — adapte au Rattrapage Intelligent.");
 
-  if(evPct>5) reasons.push('EV positif significatif : +'+evPct+'% — le marche sous-estime cette selection.');
-  else if(evPct>0) reasons.push('EV legerement positif (+'+evPct+'%) — pari viable a petite mise.');
+  // EV et edge
+  if(evPct>8) reasons.push("Valeur esperee excellente : EV +"+evPct+"% — le marche sous-evalue significativement cette selection. Signal fort d efficience bookmaker.");
+  else if(evPct>3) reasons.push("EV positif ("+evPct+"%) — avantage sur le marche. Paris viable sur la duree.");
+  else if(evPct>0) reasons.push("EV marginalement positif (+"+evPct+"%) — pari rentable a long terme si repete avec discipline.");
+  else if(evPct<-5) reasons.push("EV negatif ("+evPct+"%) : le marche favorise le bookmaker ici. A eviter sauf signal tres fort par ailleurs.");
 
-  if(tot>=85) reasons.push('Score exceptionnel ('+tot+'/100) — tous les indicateurs convergent.');
-  else if(tot>=75) reasons.push('Fort signal ('+tot+'/100) — bonne convergence des indicateurs de valeur.');
+  // Score global
+  if(tot>=85) reasons.push("Score exceptionnel ("+tot+"/100) : tous les indicateurs convergent — valeur cote, consensus bookmakers, stabilite et plausibilite statistique.");
+  else if(tot>=75) reasons.push("Fort signal ("+tot+"/100) : bonne convergence des indicateurs quantitatifs. Au-dessus du seuil de confiance recommande (75).");
+  else if(tot>=65) reasons.push("Signal correct ("+tot+"/100) : opportunite standard. Verifier sur Pinnacle ou Piwi247 avant de miser.");
 
-  if(market==='h2h'&&sport.includes('basket')) reasons.push('1X2 Basket NBA/Euro — victoire directe, marche tres liquide avec nombreux bookmakers.');
-  if(market==='totals'&&sport.includes('soccer')) reasons.push('Total buts — statistiquement previsible sur ce championnat, forte liquidite.');
-  if(market==='btts') reasons.push('BTTS — les deux equipes marquent : marche a haute probabilite sur les championnats offensifs (EPL, Bundesliga...).');
-  if(market==='spreads') reasons.push('Handicap asiatique — equilibre favoris/outsiders, souvent meilleure valeur que le 1X2 brut.');
-  if(market==='h2h'&&(sport.includes('tennis')||sport.includes('mma'))) reasons.push('1X2 individuel — marche binaire (pas de nul), prediction plus directe.');
+  // Marche specifique par sport
+  if(market==='h2h'&&sport.includes('soccer')) {
+    reasons.push("Marche 1X2 Football : resultat final 90 min. Statistiquement, les favoris l emportent dans ~62% des cas en ligues majeures europeennes.");
+    if(sel.includes('draw')||sel==='x') reasons.push("Pari Match Nul : probabilite historique ~26% en football europeen. Souvent sous-evalue par les bookmakers sur matchs equilibres.");
+  }
+  if(market==='totals'&&sport.includes('soccer')) reasons.push("Total Buts : Over/Under statistiquement previsible. Moyenne 2.6 buts/match EPL, 2.8 Bundesliga. Meteo et terrain influencent fortement.");
+  if(market==='btts') reasons.push("Both Teams To Score : probabilite historique 50-55% en Europa League, 48% en Ligue 1. Stable car independant du resultat final.");
+  if(market==='spreads') reasons.push("Handicap Asiatique : elimine le nul, equilibre favori/outsider. Meilleure valeur long terme que le 1X2 brut selon modeles quant.");
+  if(market==='h2h'&&sport.includes('basket')) reasons.push("1X2 Basketball : marche tres liquide, pas de nul. Forme sur 5 derniers matchs et avantage domicile sont les facteurs cles.");
+  if(market==='h2h'&&(sport.includes('tennis')||sport.includes('mma'))) reasons.push("Duel individuel : marche binaire. Etat physique, blessures recentes et historique tete-a-tete sont determinants.");
 
-  if(bms.length>=5) reasons.push(bms.length+' bookmakers compares — marche tres liquide, cote de reference fiable.');
-  if(s&&s.subscores&&s.subscores.consensus>=15) reasons.push('Consensus fort entre bookmakers — stabilite de la cote confirmee.');
-  if(s&&s.subscores&&s.subscores.stability>=15) reasons.push('Spread faible entre bookmakers — peu de divergence, signal clair.');
+  // Analyse temporelle
+  if(startTime) {
+    var hoursUntil = (startTime-now)/3600000;
+    if(hoursUntil<2) reasons.push("Match imminent (dans "+Math.round(hoursUntil*60)+" min) : cote stabilisee. Verifier les compositions officielles annoncees.");
+    else if(hoursUntil<6) reasons.push("Match dans "+Math.round(hoursUntil)+"h : surveiller les annonces de composition (H-1h) et conditions meteo locales.");
+    else if(hoursUntil<24) reasons.push("Match dans "+Math.round(hoursUntil)+"h : temps suffisant pour verifier blessures, suspensions et tendance des cotes sur Oddsportal.");
+    else reasons.push("Match dans "+Math.round(hoursUntil/24)+" jour(s) : cote peut encore bouger. Ideal pour un bet early si confiance dans l analyse.");
+    var hour = startTime.getHours();
+    if(hour>=20&&hour<=22) reasons.push("Match en soiree ("+hour+"h) : prime time europeen — forte affluence, pression mediatique elevee, equipes bien preparees.");
+    else if(hour>=14&&hour<=16) reasons.push("Match apres-midi ("+hour+"h) : conditions standard, equipes non fatiguees par voyage nocturne.");
+    else if(hour>=12&&hour<=13) reasons.push("Match de midi : equipes en rotation frequente sur ces horaires — verifier la composition.");
+  }
 
-  if(sel.toLowerCase().includes('over')) reasons.push('Pari Over — tendance offensive confirmee par les cotes disponibles sur plusieurs bookmakers.');
-  if((sel.toLowerCase().includes('home')||sel==='1')) reasons.push('Domicile — avantage statistique moyen (+12%) confirme sur ce type de competition.');
+  // Facteurs meteo et terrain
+  if(sport.includes('soccer')||sport.includes('rugby')||sport.includes('americanfootball')) {
+    reasons.push("Facteur meteo (football/rugby/NFL) : pluie et vent fort favorisent statistiquement l Under et les equipes physiques. Verifier meteo locale le jour J.");
+  }
+  if(sport.includes('tennis')) {
+    reasons.push("Tennis : chaleur extreme (+35C) avantage les gros serveurs. Vent perturbe les joueurs de fond de court. La surface (terre/gazon/dur) est determinante pour le H2H.");
+  }
 
-  if(!reasons.length) reasons.push('Score '+tot+'/100. Prob. implicite '+impliedProb+'%, estimee '+trueProb+'%. EV '+(evPct>=0?'+':'')+evPct+'%. Analyse basee sur '+bms.length+' bookmakers.');
+  // Forme et domicile
+  if(sel.includes('home')||sel==='1') reasons.push("Equipe a domicile : avantage statistique moyen de +12% en ligues europeennes sur les 3 dernieres saisons.");
+  if(sel.includes('away')||sel==='2') reasons.push("Equipe a l exterieur : bonus de cote frequemment present. Equipes en deplacement ont tendance a jouer plus defensif — analyser leur forme Out.");
+
+  // Analyse bookmakers
+  if(bms.length>=8) reasons.push(bms.length+" bookmakers compares : excellent consensus de marche. Signal authentique, arbitrage difficile — cote de reference fiable.");
+  else if(bms.length>=5) reasons.push(bms.length+" bookmakers compares : bon consensus. Spread "+(((subs.stability)||0)<10?"eleve — possible inefficience":"faible — cote stable")+".");
+  else if(bms.length>=2) reasons.push(bms.length+" bookmakers seulement : liquidite limitee. Confirmer manuellement sur Pinnacle.");
+
+  if(subs.stability>=15) reasons.push("Stabilite des cotes excellente ("+subs.stability+"/20) : faible dispersion inter-bookmakers, signal de confiance eleve.");
+  if(subs.consensus>=18) reasons.push("Consensus maximal ("+subs.consensus+"/20) : tous les bookmakers s accordent sur cette selection.");
+  if(subs.odds_value>=18) reasons.push("Valeur cote elevee ("+subs.odds_value+"/25) : cote meilleure que la moyenne du marche.");
+
+  // Recommandation finale
+  if(tot>=75&&evPct>0) reasons.push("Recommandation JOUER : verifier sur Piwi247 ou Pinnacle que la cote est toujours disponible avant de miser.");
+  else if(tot>=65) reasons.push("Recommandation SURVEILLER : attendre confirmation (composition officielle, tendance cote) avant de valider.");
+
+  if(!reasons.length) reasons.push("Score "+tot+"/100. Prob. implicite "+impliedProb+"%, estimee "+trueProb+"%. EV "+(evPct>=0?"+":"")+evPct+"%. "+bms.length+" bookmakers compares.");
 
   return reasons.map(function(r){
-    return '<div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:5px">'
-      +'<span style="color:var(--gr);flex-shrink:0;font-weight:700">&#8226;</span>'
-      +'<span style="font-size:11px;color:var(--mu);line-height:1.6">'+esc(r)+'</span>'
+    return '<div style="display:flex;gap:7px;align-items:flex-start;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.04)">'
+      +'<span style="color:var(--gr);flex-shrink:0;font-size:13px">&#8226;</span>'
+      +'<span style="font-size:11px;color:#94a3b8;line-height:1.65">'+esc(r)+'</span>'
       +'</div>';
   }).join('');
 }
+
 
 function computeDirection(o) {
   const tot = o.score?.total || 0;
@@ -1959,7 +2009,13 @@ function initMethods() {
   const grid = document.getElementById('m-strat-grid');
   if (!grid) return;
   grid.innerHTML = METHODS.map(function(m) {
-    return '<div class="m-strat-card '+(selectedMethod===m.id?'sel':'')+'" onclick="selectMethod(\"'+m.id+'\")">'+'<div class="msc-ico">'+m.ico+'</div><div class="msc-name">'+m.name+'</div><div class="msc-sub">'+m.sub+'</div><div class="msc-risk '+m.risk+'">'+m.riskLabel+'</div></div>';
+    var isSel = selectedMethod===m.id;
+    return '<div class="m-strat-card'+(isSel?' sel':'')+'" data-mid="'+m.id+'" onclick="selectMethod(this.dataset.mid)">'
+      +'<div class="msc-ico">'+m.ico+'</div>'
+      +'<div class="msc-name">'+m.name+'</div>'
+      +'<div class="msc-sub">'+m.sub+'</div>'
+      +'<div class="msc-risk '+m.risk+'">'+m.riskLabel+'</div>'
+      +'</div>';
   }).join('');
   lossRender();
   lossLoadCloud().then(function(){ lossRender(); }).catch(function(){});
@@ -1967,18 +2023,21 @@ function initMethods() {
 
 function selectMethod(id) {
   selectedMethod = id;
+  // Mettre à jour visuellement toutes les cartes
   document.querySelectorAll('.m-strat-card').forEach(function(c){
-    c.classList.toggle('sel', c.getAttribute('onclick')&&c.getAttribute('onclick').indexOf("'"+id+"'")>=0);
+    var isSelected = c.dataset.mid === id;
+    c.classList.toggle('sel', isSelected);
   });
   lossRender();
-  // Auto-lancer la recherche si des pertes actives
+  // Relancer la recherche auto si pertes actives
   var data = lossLoad();
-  var active = (data.entries||[]).filter(function(e){return !e.recovered&&e.result==='loss';});
-  if(active.length>0){
-    setTimeout(function(){ lossAutoSearch(); }, 300);
+  var active = (data.entries||[]).filter(function(e){ return !e.recovered && e.result==='loss'; });
+  if(active.length > 0) {
+    setTimeout(function(){ lossAutoSearch(); }, 400);
   }
-  toast('Methode '+id+' selectionnee','ok');
+  toast('Strategie: '+id,'ok');
 }
+
 // ═══════════════════════════════════════════════
 //  TICKER — Foot + MMA inclus, vitesse ×1.5
 // ═══════════════════════════════════════════════
@@ -2011,11 +2070,50 @@ function tickerToggle() {
 }
 
 async function loadTicker() {
+  // ─── Génération d'articles sport depuis les matchs disponibles ───
+  async function getMatchArticles() {
+    const articles = [];
+    const leagues = [
+      {sport:'soccer_epl', label:'⚽ FOOT', cat:'soccer'},
+      {sport:'soccer_france_ligue1', label:'⚽ FOOT', cat:'soccer'},
+      {sport:'soccer_ucl', label:'⚽ FOOT', cat:'soccer'},
+      {sport:'soccer_fifa_world_cup', label:'⚽ CDM', cat:'soccer'},
+      {sport:'mma_mixed_martial_arts', label:'🥊 MMA', cat:'mma'},
+      {sport:'boxing_boxing', label:'🥊 BOXE', cat:'mma'},
+      {sport:'basketball_nba', label:'🏀 NBA', cat:'basketball'},
+      {sport:'tennis_atp', label:'🎾 TENNIS', cat:'tennis'},
+      {sport:'icehockey_nhl', label:'🏒 NHL', cat:'icehockey'},
+      {sport:'baseball_mlb', label:'⚾ MLB', cat:'baseball'},
+      {sport:'americanfootball_nfl', label:'🏈 NFL', cat:'americanfootball'},
+    ];
+    const results = await Promise.allSettled(
+      leagues.map(({sport, label, cat}) =>
+        api('/api/analyze?sport='+enc(sport)+'&market=h2h&mode=quick')
+          .then(d => (d.opportunities||[]).slice(0,3).map(o => ({
+            sport: cat,
+            title: o.home_team+' vs '+o.away_team,
+            description: (o.selection||'?')+' @ '+o.odds+' — Score: '+(o.score&&o.score.total||0)+'/100 — '+(o.score&&o.score.signal||''),
+            published: o.start_time || new Date().toISOString(),
+            link: '',
+            is_match: true,
+            _label: label,
+          })))
+          .catch(()=>[])
+      )
+    );
+    results.forEach(r => { if(r.status==='fulfilled') articles.push(...r.value); });
+    return articles;
+  }
   try {
-    // Foot + MMA + tous sports
+    // Charger en parallèle : news ESPN + articles générés depuis les matchs
     const sports = 'soccer,mma,basketball,tennis,icehockey,americanfootball,baseball';
-    const d = await api('/api/news?sports='+enc(sports));
-    const news = d.news || [];
+    const [newsData, matchArticles] = await Promise.allSettled([
+      api('/api/news?sports='+enc(sports)).then(d=>d.news||[]).catch(()=>[]),
+      getMatchArticles()
+    ]);
+    const newsFromAPI = newsData.status==='fulfilled' ? newsData.value : [];
+    const newsFromMatches = matchArticles.status==='fulfilled' ? matchArticles.value : [];
+    const news = [...newsFromAPI, ...newsFromMatches];
     if (!news.length) return;
 
     const inner = document.getElementById('news-ticker-inner');
@@ -2031,7 +2129,7 @@ async function loadTicker() {
 
     const renderItem = (art) => {
       const style = getTickerStyle(art.sport||'');
-      const label = {
+      const label = art._label || {
         soccer:'⚽ FOOT', basketball:'🏀 BASKET', tennis:'🎾 TENNIS',
         mma:'🥊 MMA', boxing:'🥊 BOXE', icehockey:'🏒 HOCKEY',
         americanfootball:'🏈 NFL', baseball:'⚾ MLB', rugby:'🏉 RUGBY'
