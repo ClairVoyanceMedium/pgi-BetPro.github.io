@@ -271,13 +271,13 @@ a{color:var(--neon);text-decoration:none}
 .note-saved{background:var(--grb);color:var(--gr)}.note-unsaved{background:var(--pub);color:var(--pu)}
 
 /* ── NEWS TICKER — plus rapide ── */
-#news-ticker-scroll-box{height:260px;overflow-y:scroll;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:smooth;-webkit-overflow-scrolling:touch;cursor:grab}
+#news-ticker-scroll-box{height:280px;overflow-y:scroll;scroll-snap-type:y proximity;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:smooth;-webkit-overflow-scrolling:touch;cursor:grab}
 #news-ticker-scroll-box:active{cursor:grabbing}
 #news-ticker-scroll-box::-webkit-scrollbar{width:4px}
 #news-ticker-scroll-box::-webkit-scrollbar-track{background:transparent}
 #news-ticker-scroll-box::-webkit-scrollbar-thumb{background:rgba(0,212,255,.25);border-radius:4px}
 #news-ticker-list{position:relative;top:auto;left:auto;right:auto}
-#news-ticker-list.auto-scroll{animation:tickerScrollUp 22s linear infinite}
+#news-ticker-list.auto-scroll{animation:tickerScrollUp 30s linear infinite}
 #news-ticker-list.paused{animation-play-state:paused}
 @keyframes tickerScrollUp{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
 .ticker-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
@@ -288,11 +288,11 @@ a{color:var(--neon);text-decoration:none}
 /* ── DIRECTION CARD — cartes avec verdict clair ── */
 .dir-card{background:var(--sf);border-radius:8px;overflow:hidden;margin-bottom:10px;cursor:pointer;transition:all .2s}
 .dir-card:hover{transform:translateY(-1px)}
-.dir-card.dir-play{border:1px solid var(--gr);box-shadow:0 0 0 1px rgba(0,255,157,.15),0 0 12px rgba(0,255,157,.08)}
+.dir-card.dir-play{border:1px solid var(--gr);box-shadow:0 0 0 1px rgba(0,255,157,.2),0 0 14px rgba(0,255,157,.1);background:linear-gradient(135deg,rgba(0,255,157,.03),transparent)}
 .dir-card.dir-watch{border:1px solid var(--am)}
 .dir-card.dir-avoid{border:1px solid var(--re);opacity:.7}
 .dir-banner{padding:6px 14px;font-size:9px;font-family:var(--mo);font-weight:700;text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:6px}
-.dir-play .dir-banner{background:rgba(34,211,165,.15);color:var(--gr)}
+.dir-play .dir-banner{background:linear-gradient(135deg,rgba(0,255,157,.18),rgba(0,255,157,.08));color:var(--gr);font-weight:700}
 .dir-watch .dir-banner{background:rgba(245,158,11,.18);color:var(--am);font-size:10px}
 .dir-avoid .dir-banner{background:rgba(239,68,68,.1);color:var(--re)}
 .dir-body{padding:12px 14px}
@@ -748,6 +748,24 @@ a{color:var(--neon);text-decoration:none}
 <section class="sec" id="s-settings">
   <div class="ph"><div class="pt">&#9881; Paramètres</div></div>
   <div class="warn">&#128274; Clés API configurées côté Cloudflare (<code>wrangler secret put</code>).</div>
+  <div class="card">
+    <div class="ct">&#127919; Lien Bookmaker (Piwi247 / autre)</div>
+    <div class="info" style="margin-bottom:12px">Modifiez le nom et le lien qui apparaissent sur toutes les cartes. S'ouvre toujours dans un nouvel onglet.</div>
+    <div class="fg">
+      <div class="fgrp">
+        <label>Nom affiché</label>
+        <input type="text" id="bookie-name-input" placeholder="Piwi247" value="Piwi247">
+      </div>
+      <div class="fgrp">
+        <label>URL complète</label>
+        <input type="text" id="bookie-url-input" placeholder="https://www.piwi247.com/customer" value="https://www.piwi247.com/customer">
+      </div>
+    </div>
+    <div class="bg">
+      <button class="btn bp" onclick="bookieSaveUI()">&#128190; Sauvegarder le lien</button>
+      <a href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" class="bookie-link btn bs">&#127919; Tester le lien</a>
+    </div>
+  </div>
   <div class="card"><div class="ct">Fournisseur IA</div><div id="ai-status-box"><div class="ls" style="padding:20px"><div class="sp"></div><p>Vérification…</p></div></div></div>
   <div class="card">
     <div class="ct">Alertes automatiques</div>
@@ -1082,22 +1100,21 @@ async function doLiveScan() {
   });
 
   // Trier : play en vert (date proche) > watch (date proche) > avoid
-  const filtered = deduped.filter(o => (o.score?.total||0) >= 55);
+  const filtered = deduped.filter(o => (o.score?.total||0) >= 60);
+  // Ne garder que les cartes JOUER — trier par date proche puis score
   filtered.forEach(o => { o._dir = computeDirection(o).direction; });
-  filtered.sort((a,b) => {
-    const dirOrder = {play:0, watch:1, avoid:2};
-    const dA = dirOrder[a._dir]||2, dB = dirOrder[b._dir]||2;
-    if(dA !== dB) return dA - dB;
-    // Même direction : date la plus proche d'abord
+  const playOnly = filtered.filter(o => o._dir === 'play');
+  playOnly.sort((a,b) => {
     const tA = a.start_time ? new Date(a.start_time).getTime() : Infinity;
     const tB = b.start_time ? new Date(b.start_time).getTime() : Infinity;
-    if(Math.abs(tA-tB) > 3600000) return tA - tB; // diff > 1h → trier par date
-    return (b.score?.total||0) - (a.score?.total||0); // sinon score
+    if(Math.abs(tA-tB) > 3600000) return tA - tB;
+    return (b.score?.total||0) - (a.score?.total||0);
   });
+  const filtered2 = playOnly; // alias pour la suite
 
   if (currentScanMode !== 'complet') setScanCache(cacheKey, filtered);
 
-  renderScanResults(filtered, cnt, 0);
+  renderScanResults(filtered2.length > 0 ? filtered2 : filtered, cnt, 0);
   loadQuotas();
 
   btn.className = 'scan-main-btn ready';
@@ -1108,7 +1125,7 @@ async function doLiveScan() {
 
 // Données globales pour les filtres scan
 let _scanAllOpps = [];
-let _scanScoreFilter = 55;
+let _scanScoreFilter = 65;
 let _scanDirFilter = 'all';
 
 function renderScanResults(opps, cnt, cacheAge) {
@@ -1138,16 +1155,15 @@ function renderScanResults(opps, cnt, cacheAge) {
     <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;margin-bottom:10px">
       <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;font-family:var(--mo);font-weight:700">Filtrer par score de fiabilité</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="scan-score-btns">
-        <button class="fbtn" onclick="setScanScoreFilter(0,this)">Tout</button>
+        <button class="fbtn" onclick="setScanScoreFilter(0,this)">Tout (debug)</button>
         <button class="fbtn" onclick="setScanScoreFilter(55,this)"><span class="sc-sig sig-vl" style="font-size:9px;padding:1px 5px">50+</span></button>
         <button class="fbtn on" onclick="setScanScoreFilter(65,this)"><span class="sc-sig sig-c" style="font-size:9px;padding:1px 5px">🟡 65+</span></button>
         <button class="fbtn" onclick="setScanScoreFilter(75,this)"><span class="sc-sig sig-f" style="font-size:9px;padding:1px 5px">🟢 75+</span></button>
         <button class="fbtn" onclick="setScanScoreFilter(85,this)"><span class="sc-sig sig-e" style="font-size:9px;padding:1px 5px">💎 85+</span></button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap" id="scan-dir-btns">
-        <button class="fbtn on" onclick="setScanDirFilter('all',this)">Tous</button>
-        <button class="fbtn" onclick="setScanDirFilter('play',this)" style="color:var(--gr);border-color:rgba(0,255,157,.3)">✅ JOUER seulement</button>
-        <button class="fbtn" onclick="setScanDirFilter('watch',this)" style="color:var(--am);border-color:rgba(245,158,11,.3)">👁 SURVEILLER seulement</button>
+        <button class="fbtn on" onclick="setScanDirFilter('all',this)">Toutes les cartes</button>
+        <button class="fbtn" onclick="setScanDirFilter('play',this)" style="color:var(--gr);border-color:rgba(0,255,157,.3)">✅ Score élevé d'abord</button>
       </div>
     </div>
     <div id="scan-cards-grid" class="opp-grid"></div>`;
@@ -1287,59 +1303,170 @@ function buildWhyBox(o, s, impliedProb, trueProb, evPct) {
 }
 
 
-function computeDirection(o) {
-  const tot = o.score?.total || 0;
-  const odds = o.odds || 0;
-  const impliedProb = odds > 1 ? Math.round(100/odds) : 50;
-  // Edge estimé : différence entre probabilité implicite vs ce que le marché dit
-  const edge = o.score?.edge || 0;
-  // EV = (prob_estimée * (odds-1)) - (1-prob_estimée)
-  // On estime la vraie prob comme impliedProb + edge%
-  const trueProb = Math.min(95, Math.max(5, impliedProb + edge));
-  const ev = ((trueProb/100) * (odds-1) - (1-trueProb/100));
-  const evPct = Math.round(ev * 100);
+// ═══════════════════════════════════════════════════════
+//  computeDirection — Analyse professionnelle multicritères
+//  Seules les opportunités avec VRAIE valeur statistique
+//  ressortent. Rien n'est laissé au hasard.
+// ═══════════════════════════════════════════════════════
+// Traduit une sélection brute API en texte français clair
+function translateSelection(selection, market, homeTeam, awayTeam, line) {
+  const sel = (selection || '').trim();
+  const mkt = market || 'h2h';
+  const home = homeTeam || '';
+  const away = awayTeam || '';
+  const lineStr = line != null ? ` ${line > 0 ? '+' : ''}${line}` : '';
 
-  let direction, reason;
-  if (tot >= 75 && ev > 0 && odds >= 1.30 && odds <= 4.0) {
-    direction = 'play';
-    reason = `Score ${tot}/100 — EV estimé +${evPct}% — Probabilité implicite ${impliedProb}% (estimée vraie: ${trueProb}%)`;
-  } else if (tot >= 60 && odds >= 1.40) {
-    direction = 'watch';
-    // Message clair selon EV
-    if(evPct > 0) {
-      reason = `Score ${tot}/100 — EV +${evPct}% positif MAIS confiance insuffisante (75 requis). Vérifiez la compo et misez réduit si vous souhaitez jouer.`;
-    } else {
-      reason = `Score ${tot}/100 — EV ${evPct}% négatif. NE PAS MISER. Surveiller uniquement si la cote monte.`;
-    }
-  } else {
-    direction = 'avoid';
-    reason = `Score ${tot}/100 — Valeur insuffisante`;
+  // Marché 1X2
+  if (mkt === 'h2h') {
+    if (sel === home || sel.toLowerCase() === 'home') return `Victoire ${home}`;
+    if (sel === away || sel.toLowerCase() === 'away') return `Victoire ${away}`;
+    if (sel.toLowerCase() === 'draw' || sel === 'X') return 'Match nul';
   }
 
-  return { direction, impliedProb, trueProb, ev, evPct, reason };
+  // Marché Over/Under
+  if (mkt === 'totals') {
+    if (sel.toLowerCase().startsWith('over')) return `Plus de ${line || sel.replace(/over/i,'').trim()} buts/pts`;
+    if (sel.toLowerCase().startsWith('under')) return `Moins de ${line || sel.replace(/under/i,'').trim()} buts/pts`;
+  }
+
+  // BTTS
+  if (mkt === 'btts') {
+    if (sel.toLowerCase() === 'yes') return 'Les deux équipes marquent (Oui)';
+    if (sel.toLowerCase() === 'no') return 'Au moins une équipe ne marque pas (Non)';
+  }
+
+  // Handicap / Spreads
+  if (mkt === 'spreads') {
+    // "San Antonio Spurs 2" → l'équipe avec handicap
+    // Chercher si c'est home ou away
+    if (sel.includes(home) || sel.toLowerCase().includes('home')) {
+      return `${home} avec handicap${lineStr} pts`;
+    }
+    if (sel.includes(away) || sel.toLowerCase().includes('away')) {
+      return `${away} avec handicap${lineStr} pts`;
+    }
+    // Fallback : afficher proprement
+    return `${sel}${lineStr} pts (Handicap)`;
+  }
+
+  // Double chance
+  if (mkt === 'double_chance') {
+    if (sel === '1X') return `${home} ou Match nul`;
+    if (sel === 'X2') return `Match nul ou ${away}`;
+    if (sel === '12') return `${home} ou ${away} (pas de nul)`;
+  }
+
+  // Fallback propre : capitaliser et ajouter contexte marché
+  const mktLabels = {h2h:'Résultat', totals:'Total', btts:'BTTS', spreads:'Handicap', double_chance:'Double chance'};
+  return `${sel}${lineStr}`;
+}
+
+function computeDirection(o) {
+  const tot   = o.score?.total || 0;
+  const odds  = o.odds || 0;
+  const subs  = o.score?.subscores || {};
+  const bms   = o.all_bookmakers || [];
+  const sport = (o.sport || o._sport || '').toLowerCase();
+  const market = o.market || 'h2h';
+
+  // ── 1. Probabilité implicite & vraie ──────────────────
+  const impliedProb = odds > 1 ? Math.round(100 / odds) : 50;
+  const rawEdge = o.score?.edge || 0;
+
+  // Edge pondéré par la stabilité des cotes (consensus bookmakers)
+  const stabilityBonus = ((subs.stability || 0) / 20) * 3;  // max +3%
+  const consensusBonus = ((subs.consensus || 0) / 20) * 2;  // max +2%
+  const adjustedEdge   = rawEdge + stabilityBonus + consensusBonus;
+
+  const trueProb = Math.min(92, Math.max(8, impliedProb + adjustedEdge));
+
+  // ── 2. EV (Espérance de Valeur) Kelly-ajusté ──────────
+  const ev    = (trueProb / 100) * (odds - 1) - (1 - trueProb / 100);
+  const evPct = Math.round(ev * 100);
+
+  // ── 3. Score de confiance composite (0-100) ───────────
+  // Facteurs multiplicatifs de la confiance finale
+  let confScore = tot;
+
+  // Bonus cote dans la zone optimale (1.50-2.50 = max value)
+  if (odds >= 1.50 && odds <= 2.50) confScore += 5;
+  else if (odds < 1.30 || odds > 3.50) confScore -= 8;
+
+  // Bonus multi-bookmakers (≥6 = marché liquide)
+  if (bms.length >= 8) confScore += 4;
+  else if (bms.length >= 5) confScore += 2;
+  else if (bms.length < 3) confScore -= 6;
+
+  // Bonus marché adapté au sport
+  if (market === 'h2h' && (sport.includes('tennis') || sport.includes('mma'))) confScore += 3;
+  if (market === 'btts' && (sport.includes('epl') || sport.includes('bundesliga'))) confScore += 2;
+
+  // Pénalité cote trop courte (< 1.25 = trop de vig)
+  if (odds < 1.25) confScore -= 10;
+
+  confScore = Math.min(100, Math.max(0, confScore));
+
+  // ── 4. Seuil de décision ─────────────────────────────
+  // JOUER uniquement si TOUS ces critères sont vrais :
+  // • confScore >= 72 (signal fort)
+  // • EV > 0% (valeur positive)
+  // • cote dans la zone acceptable
+  // • au moins 3 bookmakers comparés
+  const isPlay = (
+    confScore >= 72 &&
+    ev > 0 &&
+    odds >= 1.25 &&
+    odds <= 4.50 &&
+    bms.length >= 2
+  );
+
+  // ── 5. Calcul % de confiance affiché ────────────────
+  // Basé sur confScore + EV + probabilité
+  let displayConf = 0;
+  if (isPlay) {
+    // Formule : moyenne pondérée de confScore, trueProb et EV
+    displayConf = Math.round(
+      confScore * 0.45 +
+      trueProb  * 0.35 +
+      Math.min(evPct * 2, 20) * 1.0
+    );
+    displayConf = Math.min(97, Math.max(62, displayConf));
+  }
+
+  // ── 6. Direction finale ───────────────────────────────
+  // DÉCISION FINALE : play ou avoid uniquement (jamais watch)
+  const direction = isPlay ? 'play' : 'avoid';
+  const reason = isPlay
+    ? `Confiance ${displayConf}% — Score ${confScore}/100 — EV +${evPct}% — ${bms.length} bookmakers — Prob. estimée ${trueProb}%`
+    : `Score ${confScore}/100 — Valeur insuffisante (seuil 72 requis, EV>0 requis)`;
+
+  return { direction, impliedProb, trueProb, ev, evPct, reason, confScore, displayConf: displayConf || 0 };
 }
 
 function renderDirectionCard(o, i, containerId) {
   const s = o.score || {};
   const tot = s.total || 0;
-  const { direction, impliedProb, trueProb, evPct, reason } = computeDirection(o);
+  const result = computeDirection(o);
+  const { direction, impliedProb, trueProb, evPct, reason, confScore, displayConf } = result;
 
-  // Ne pas afficher les cartes "avoid" sauf si explicitement demandé
-  if (direction === 'avoid' && tot < 50) return '';
+  // Afficher SEULEMENT les cartes "play" — les autres sont filtrées
+  if (direction !== 'play') return '';
 
   const tier = tot>=85?'S':tot>=75?'A':tot>=65?'B':'C';
   const sport = o.sport || o._sport || '';
   const ico = sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('tennis')?'🎾':sport.includes('mma')||sport.includes('box')?'🥊':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':sport.includes('baseball')?'⚾':sport.includes('football')?'🏈':'🏆';
   const mktLabel = {h2h:'1X2',totals:'O/U',btts:'BTTS',double_chance:'DC',spreads:'HC'}[o.market]||(o.market||'');
-  const selDisplay = (o.selection||'?')+(o.line!=null?' '+o.line:'');
+  const selDisplay = translateSelection(
+    o.selection, o.market, o.home_team, o.away_team, o.line
+  );
   const subs = s.subscores || {};
   const bms = o.all_bookmakers || [];
 
-  const dirLabel = direction==='play'?'✅ JOUER — Miser':direction==='watch'?'⚡ SURVEILLER — Vérifier avant':direction==='avoid'?'❌ ÉVITER':'❌ ÉVITER';
+  const dirLabel = '✅ À JOUER';
   const evClass = evPct >= 0 ? 'pos' : 'neg';
 
   return `<div class="dir-card dir-${direction} opp-mega tier-${tier}" data-sport-key="${esc(sport)}" id="dc-${containerId}-${i}" onclick="tDC(this,event)">
-    <div class="dir-banner">${dirLabel} <span style="margin-left:auto;font-family:var(--mo);font-size:10px">${tot}/100</span></div>
+    <div class="dir-banner"><span style="font-size:10px;font-weight:700">✅ À JOUER</span><span style="margin-left:auto;font-family:var(--mo);font-size:13px;font-weight:700;color:var(--gr)">${displayConf}% confiance</span></div>
     <div class="dir-body">
       <div class="dir-match">${ico} ${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
@@ -1597,10 +1724,8 @@ async function loadUpcoming(){
     all=all.filter(o=>{const k=(o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'');if(seen.has(k))return false;seen.add(k);return true;});
     all=all.filter(o=>(o.score?.total||0)>=55);
     all.forEach(o=>{o._dir=computeDirection(o).direction;});
+    all=all.filter(o=>o._dir==='play'); // play uniquement
     all.sort((a,b)=>{
-      const do2={play:0,watch:1,avoid:2};
-      const da=do2[a._dir]||2,db=do2[b._dir]||2;
-      if(da!==db) return da-db;
       const ta=a.start_time?new Date(a.start_time).getTime():Infinity;
       const tb=b.start_time?new Date(b.start_time).getTime():Infinity;
       if(Math.abs(ta-tb)>3600000) return ta-tb;
@@ -1621,7 +1746,13 @@ async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.in
 // ═══════════════════════════════════════════════
 //  SETTINGS
 // ═══════════════════════════════════════════════
-async function loadSettings(){try{const s=await api('/api/settings');document.getElementById('s-minscore').value=s.min_alert_score||75;document.getElementById('s-maxalerts').value=s.max_alerts_per_day||5;document.getElementById('s-minodds').value=s.alert_min_odds||1.40;document.getElementById('s-maxodds').value=s.alert_max_odds||5.00;document.getElementById('s-scan').value=String(s.scan_enabled!==false);}catch(e){toast('Erreur: '+e.message,'err');}}
+async function loadSettings(){
+  // Charger la config bookmaker
+  const bCfg = bookieLoad();
+  const nameEl = document.getElementById('bookie-name-input');
+  const urlEl  = document.getElementById('bookie-url-input');
+  if(nameEl) nameEl.value = bCfg.name;
+  if(urlEl)  urlEl.value  = bCfg.url;try{const s=await api('/api/settings');document.getElementById('s-minscore').value=s.min_alert_score||75;document.getElementById('s-maxalerts').value=s.max_alerts_per_day||5;document.getElementById('s-minodds').value=s.alert_min_odds||1.40;document.getElementById('s-maxodds').value=s.alert_max_odds||5.00;document.getElementById('s-scan').value=String(s.scan_enabled!==false);}catch(e){toast('Erreur: '+e.message,'err');}}
 async function saveSettings(){try{await api('/api/settings','POST',{min_alert_score:parseInt(document.getElementById('s-minscore').value),max_alerts_per_day:parseInt(document.getElementById('s-maxalerts').value),alert_min_odds:parseFloat(document.getElementById('s-minodds').value),alert_max_odds:parseFloat(document.getElementById('s-maxodds').value),scan_enabled:document.getElementById('s-scan').value==='true'});toast('Sauvegardé ✓','ok');}catch(e){toast('Erreur: '+e.message,'err');}}
 async function testAlert(){try{const d=await api('/api/test-alert','POST');toast(d.message||(d.ok?'✓ Envoyé':'⚠ Non envoyé'),d.ok?'ok':'');}catch(e){toast('Erreur: '+e.message,'err');}}
 async function loadSysStatus(){const cnt=document.getElementById('sysstatus');try{const q=await api('/api/quotas');const op=Math.round((q.odds_api_monthly_limit-q.odds_api_credits_remaining)/q.odds_api_monthly_limit*100);const activeKey=(q.active_key_idx||0)+1;const keysTotal=q.keys_total||1;cnt.innerHTML=`<div class="ct">Quotas API</div><div style="margin-bottom:8px"><div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-bottom:4px">Odds API — Clé ${activeKey}/${keysTotal} active · ${q.odds_api_credits_remaining} crédits restants</div><div class="qtr"><div class="qfi ${op<60?'g':op<85?'a':'r'}" style="width:${op}%"></div></div></div><div class="info" style="font-size:11px">💡 Rotation automatique: jusqu'à 6 clés (ODDS_API_KEY à ODDS_API_KEY_6).</div>`;}catch(e){cnt.innerHTML=`<div class="ct">Quotas API</div><div style="color:var(--re)">Erreur: ${esc(e.message)}</div>`;}}
@@ -2103,7 +2234,7 @@ async function lossAutoSearch(forcedOdds){
         +(isClose?'<span style="background:rgba(34,211,165,.15);border:1px solid rgba(34,211,165,.3);color:var(--gr);border-radius:3px;font-size:9px;font-family:var(--mo);padding:1px 5px;font-weight:700">COTE IDEALE</span>':'<span style="background:var(--amb);border:1px solid rgba(245,158,11,.3);color:var(--am);border-radius:3px;font-size:9px;font-family:var(--mo);padding:1px 5px">+/-'+diff.toFixed(2)+'</span>')
         +'</div>'
         +'<div class="mrc-match">'+esc(o.home_team||'?')+' vs '+esc(o.away_team||'?')+'</div>'
-        +'<div class="mrc-sel">'+esc(o.selection||'?')+'</div>'
+        +'<div class="mrc-sel">'+esc(translateSelection(o.selection,o._market||o.market,o.home_team,o.away_team,o.line||null))+'</div>'
         +'<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">'
         +'<span class="mrc-odds-big">'+o.odds+'</span>'
         +'<span style="font-family:var(--mo);font-size:11px;font-weight:700;color:'+dirColor+'">'+dirLabel+'</span>'
@@ -2112,7 +2243,7 @@ async function lossAutoSearch(forcedOdds){
         +'</div>'
         +(o.start_time?'<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:4px">'+fmtDT(o.start_time)+'</div>':'')
         +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
-        +'<a href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;text-decoration:none">Piwi247</a>'
+        +'"+bookieLinkHtml()+"'
         +'<button onclick="event.stopPropagation();copyTeamNames(this)" data-home="'+esc(o.home_team||'')+'" data-away="'+esc(o.away_team||'')+'" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;cursor:pointer">Copier</button>'
         +'</div>'
         +'</div>';
@@ -2480,6 +2611,62 @@ async function initStatusBadges() {
 }
 
 
+// ═══════════════════════════════════════════════════
+//  LIEN BOOKMAKER CONFIGURABLE
+// ═══════════════════════════════════════════════════
+const BOOKIE_KEY = 'pgi_bookie_config';
+
+function bookieLoad() {
+  try {
+    const raw = localStorage.getItem(BOOKIE_KEY);
+    return raw ? JSON.parse(raw) : { name: 'Piwi247', url: 'https://www.piwi247.com/customer' };
+  } catch(_) { return { name: 'Piwi247', url: 'https://www.piwi247.com/customer' }; }
+}
+
+function bookieSave(name, url) {
+  try {
+    localStorage.setItem(BOOKIE_KEY, JSON.stringify({ name: name.trim(), url: url.trim() }));
+  } catch(_) {}
+}
+
+function bookieApply() {
+  const cfg = bookieLoad();
+  // Mettre à jour tous les liens du site
+  document.querySelectorAll('.bookie-link').forEach(function(el) {
+    el.href = cfg.url;
+    el.textContent = '🎯 ' + cfg.name;
+  });
+  // Sidebar
+  const sidebar = document.querySelector('.bookie-sidebar-link');
+  if (sidebar) {
+    sidebar.href = cfg.url;
+    sidebar.querySelector('.bookie-sidebar-name').textContent = cfg.name + ' — Mon compte';
+  }
+}
+
+function bookieSaveUI() {
+  const name = document.getElementById('bookie-name-input')?.value || 'Piwi247';
+  const url  = document.getElementById('bookie-url-input')?.value || 'https://www.piwi247.com/customer';
+  if (!url.startsWith('http')) { toast('URL invalide (doit commencer par https://)', 'err'); return; }
+  bookieSave(name, url);
+  bookieApply();
+  toast('Lien bookmaker sauvegardé ✓', 'ok');
+}
+
+// Génère un lien bookmaker cliquable dynamiquement
+function bookieLinkHtml(label) {
+  const cfg = bookieLoad();
+  return '<a href="' + cfg.url + '" target="_blank" rel="noopener noreferrer" '
+    + 'class="bookie-link" '
+    + 'style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;'
+    + 'background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);'
+    + 'border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);'
+    + 'font-weight:700;text-decoration:none">'
+    + '🎯 ' + (label || cfg.name)
+    + '</a>';
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
   notesLoad();
   notesRender();
@@ -2488,6 +2675,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadQuotas();
   ttsInit();
   loadTicker();
+  bookieApply();
   // Sync pertes depuis cloud au démarrage
   lossLoadCloud().then(()=>{
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
