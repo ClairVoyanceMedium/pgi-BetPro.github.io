@@ -293,7 +293,7 @@ a{color:var(--neon);text-decoration:none}
 .dir-card.dir-avoid{border:1px solid var(--re);opacity:.7}
 .dir-banner{padding:6px 14px;font-size:9px;font-family:var(--mo);font-weight:700;text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:6px}
 .dir-play .dir-banner{background:rgba(34,211,165,.15);color:var(--gr)}
-.dir-watch .dir-banner{background:rgba(245,158,11,.12);color:var(--am)}
+.dir-watch .dir-banner{background:rgba(245,158,11,.18);color:var(--am);font-size:10px}
 .dir-avoid .dir-banner{background:rgba(239,68,68,.1);color:var(--re)}
 .dir-body{padding:12px 14px}
 .dir-match{font-family:var(--hd);font-size:13px;font-weight:700;margin-bottom:4px}
@@ -389,7 +389,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
     <div class="ni"    data-s="install"   onclick="go('install')" ><span class="ni-i">&#128214;</span>Installation</div>
-    <a href="https://www.piwi247.com/customer" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:9px;padding:9px 18px;color:var(--neon);font-size:12px;border-left:2px solid var(--neon);background:rgba(0,212,255,.06);text-decoration:none;font-weight:700;font-family:var(--hd);transition:all .2s;margin-top:4px" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'"><span style="font-size:15px">&#127919;</span>Piwi247 — Mon compte</a>
+    <a href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:9px;padding:9px 18px;color:var(--neon);font-size:12px;border-left:2px solid var(--neon);background:rgba(0,212,255,.06);text-decoration:none;font-weight:700;font-family:var(--hd);transition:all .2s;margin-top:4px" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'"><span style="font-size:15px">&#127919;</span>Piwi247 — Mon compte</a>
   </div>
   <div class="sbf" id="qfoot"><div style="color:var(--dm);font-size:10px;font-family:var(--mo)">Quotas — chargement…</div></div>
 </nav>
@@ -717,6 +717,7 @@ a{color:var(--neon);text-decoration:none}
       <button class="btn bp" onclick="lossAdd()">&#43; Enregistrer</button>
       <button class="btn bs" onclick="lossMarkRecovered()">&#10003; Session récupérée</button>
       <button class="btn" onclick="lossClearAll()" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25);border-radius:4px">&#128465; Tout effacer</button>
+      <button class="btn" onclick="lossResetSession()" style="background:rgba(34,211,165,.08);color:var(--gr);border:1px solid rgba(34,211,165,.25);border-radius:4px">&#8635; Remettre à zéro</button>
     </div>
   </div>
 
@@ -891,11 +892,24 @@ function setScanSport(el){
   else{if(el.classList.contains('on')){liveSportSet.delete(sport);if(!liveSportSet.size)liveSportSet=new Set(['all']);}else{liveSportSet.delete('all');liveSportSet.add(sport);}}
   liveSportFilter=liveSportSet.has('all')?'all':[...liveSportSet][0];
   document.querySelectorAll('.ssb').forEach(b=>b.classList.toggle('on',liveSportSet.has('all')?b.dataset.sport==='all':liveSportSet.has(b.dataset.sport||'')));
-  if(document.querySelector('.dir-card')||document.querySelector('.oc')){filterScanCards();}
+  if(_scanAllOpps && _scanAllOpps.length) {
+    applyScanFilters();
+  } else if(document.querySelector('.dir-card')||document.querySelector('.oc')) {
+    filterScanCards();
+  }
 }
 const LIVE_SPORT_KEYS={soccer:['soccer'],basketball:['basketball','nba'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],handball:['handball']};
 function matchesSportFilter(sport,filter){if(filter==='all')return true;const keys=LIVE_SPORT_KEYS[filter]||[filter];return keys.some(k=>(sport||'').toLowerCase().includes(k));}
-function filterScanCards(){document.querySelectorAll('#scan-res [data-sport-key]').forEach(c=>{c.style.display=matchesSportFilter(c.dataset.sportKey||'',liveSportFilter)?'':'none';});}
+function filterScanCards(){
+  // Si les filtres score sont actifs, les utiliser
+  if(typeof applyScanFilters === 'function' && _scanAllOpps && _scanAllOpps.length) {
+    applyScanFilters();
+  } else {
+    document.querySelectorAll('#scan-res [data-sport-key]').forEach(c=>{
+      c.style.display=matchesSportFilter(c.dataset.sportKey||'',liveSportFilter)?'':'none';
+    });
+  }
+}
 
 // ═══════════════════════════════════════════════
 //  LEAGUES PAR SPORT — FOOTBALL INCLUS
@@ -1092,31 +1106,88 @@ async function doLiveScan() {
   btn.disabled = false;
 }
 
+// Données globales pour les filtres scan
+let _scanAllOpps = [];
+let _scanScoreFilter = 55;
+let _scanDirFilter = 'all';
+
 function renderScanResults(opps, cnt, cacheAge) {
   if (!opps?.length) {
     cnt.innerHTML = '<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité détectée</div><div class="empty-s">Essayez le mode Complet ou un autre sport.</div></div>';
     return;
   }
+  _scanAllOpps = opps;
 
   const sPortCount = {};
   opps.forEach(o => { const s=getSportLabel(o.sport||''); sPortCount[s]=(sPortCount[s]||0)+1; });
-  const statsHtml = Object.entries(sPortCount).slice(0,6).map(([s,n])=>
+  const statsHtml = Object.entries(sPortCount).slice(0,8).map(([s,n])=>
     `<div class="stat-cell"><div class="sv">${n}</div><label>${s}</label></div>`
   ).join('');
-
   const cacheInfo = cacheAge > 0 ? `<span class="bdg bca">Cache ${cacheAge}min</span>` : '';
 
   cnt.innerHTML = `
     <div class="sbar">
       <div class="sdot"></div>
-      <span><strong>${opps.length}</strong> opportunité(s) — directions claires uniquement</span>
+      <span><strong id="scan-count">${opps.length}</strong> opportunité(s)</span>
       ${cacheInfo}
       <span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span>
     </div>
-    <div class="scan-stats" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));margin-bottom:14px">${statsHtml}</div>
-    <div class="opp-grid">
-      ${opps.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('')}
-    </div>`;
+    <div class="scan-stats" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));margin-bottom:10px">${statsHtml}</div>
+
+    <!-- FILTRES SCORE -->
+    <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;font-family:var(--mo);font-weight:700">Filtrer par score de fiabilité</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="scan-score-btns">
+        <button class="fbtn" onclick="setScanScoreFilter(0,this)">Tout</button>
+        <button class="fbtn" onclick="setScanScoreFilter(55,this)"><span class="sc-sig sig-vl" style="font-size:9px;padding:1px 5px">50+</span></button>
+        <button class="fbtn on" onclick="setScanScoreFilter(65,this)"><span class="sc-sig sig-c" style="font-size:9px;padding:1px 5px">🟡 65+</span></button>
+        <button class="fbtn" onclick="setScanScoreFilter(75,this)"><span class="sc-sig sig-f" style="font-size:9px;padding:1px 5px">🟢 75+</span></button>
+        <button class="fbtn" onclick="setScanScoreFilter(85,this)"><span class="sc-sig sig-e" style="font-size:9px;padding:1px 5px">💎 85+</span></button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="scan-dir-btns">
+        <button class="fbtn on" onclick="setScanDirFilter('all',this)">Tous</button>
+        <button class="fbtn" onclick="setScanDirFilter('play',this)" style="color:var(--gr);border-color:rgba(0,255,157,.3)">✅ JOUER seulement</button>
+        <button class="fbtn" onclick="setScanDirFilter('watch',this)" style="color:var(--am);border-color:rgba(245,158,11,.3)">👁 SURVEILLER seulement</button>
+      </div>
+    </div>
+    <div id="scan-cards-grid" class="opp-grid"></div>`;
+
+  applyScanFilters();
+}
+
+function setScanScoreFilter(val, el) {
+  _scanScoreFilter = val;
+  document.querySelectorAll('#scan-score-btns .fbtn').forEach(b=>b.classList.remove('on'));
+  if(el) el.classList.add('on');
+  applyScanFilters();
+}
+function setScanDirFilter(val, el) {
+  _scanDirFilter = val;
+  document.querySelectorAll('#scan-dir-btns .fbtn').forEach(b=>b.classList.remove('on'));
+  if(el) el.classList.add('on');
+  applyScanFilters();
+}
+function applyScanFilters() {
+  const grid = document.getElementById('scan-cards-grid');
+  const countEl = document.getElementById('scan-count');
+  if(!grid) return;
+  const filtered = _scanAllOpps.filter(o => {
+    const tot = (o.score&&o.score.total)||0;
+    if(tot < _scanScoreFilter) return false;
+    if(_scanDirFilter !== 'all') {
+      const dir = computeDirection(o).direction;
+      if(dir !== _scanDirFilter) return false;
+    }
+    // Filtre sport actif
+    if(!matchesSportFilter(o.sport||o._sport||'', liveSportFilter)) return false;
+    return true;
+  });
+  if(countEl) countEl.textContent = filtered.length;
+  if(!filtered.length) {
+    grid.innerHTML = '<div class="empty" style="padding:28px"><div class="empty-i">🔍</div><div class="empty-t">Aucune carte pour ce filtre</div><div class="empty-s">Élargissez les critères.</div></div>';
+    return;
+  }
+  grid.innerHTML = filtered.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -1234,7 +1305,12 @@ function computeDirection(o) {
     reason = `Score ${tot}/100 — EV estimé +${evPct}% — Probabilité implicite ${impliedProb}% (estimée vraie: ${trueProb}%)`;
   } else if (tot >= 60 && odds >= 1.40) {
     direction = 'watch';
-    reason = `Score ${tot}/100 — À surveiller — EV ${evPct>=0?'+':''}${evPct}%`;
+    // Message clair selon EV
+    if(evPct > 0) {
+      reason = `Score ${tot}/100 — EV +${evPct}% positif MAIS confiance insuffisante (75 requis). Vérifiez la compo et misez réduit si vous souhaitez jouer.`;
+    } else {
+      reason = `Score ${tot}/100 — EV ${evPct}% négatif. NE PAS MISER. Surveiller uniquement si la cote monte.`;
+    }
   } else {
     direction = 'avoid';
     reason = `Score ${tot}/100 — Valeur insuffisante`;
@@ -1259,7 +1335,7 @@ function renderDirectionCard(o, i, containerId) {
   const subs = s.subscores || {};
   const bms = o.all_bookmakers || [];
 
-  const dirLabel = direction==='play'?'✅ JOUER':direction==='watch'?'👁 SURVEILLER':'❌ ÉVITER';
+  const dirLabel = direction==='play'?'✅ JOUER — Miser':direction==='watch'?'⚡ SURVEILLER — Vérifier avant':direction==='avoid'?'❌ ÉVITER':'❌ ÉVITER';
   const evClass = evPct >= 0 ? 'pos' : 'neg';
 
   return `<div class="dir-card dir-${direction} opp-mega tier-${tier}" data-sport-key="${esc(sport)}" id="dc-${containerId}-${i}" onclick="tDC(this,event)">
@@ -1301,7 +1377,28 @@ function renderDirectionCard(o, i, containerId) {
 }
 
 function tDC(el, evt){ if(evt&&evt.target.closest('button,a,input')) return; el.classList.toggle('xp'); }
-function copyMatchText(match,sel,odds,btn){ const t=`${match} — ${sel} @ ${odds}`; navigator.clipboard?.writeText(t).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);}).catch(()=>{}); }
+
+function copyTeamNames(btn) {
+  var home = btn.dataset.home || '';
+  var away = btn.dataset.away || '';
+  var text = (home + ' ' + away).trim();
+  if(navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){
+      var orig = btn.textContent;
+      btn.textContent = 'Copie!';
+      setTimeout(function(){ btn.textContent = orig; }, 1500);
+    });
+  }
+}
+function copyMatchText(match,sel,odds,btn){
+  // Supprimer le " vs " pour la copie : "PSG vs Marseille" → "PSG Marseille"
+  const cleanMatch = match.replace(/\s+vs\.?\s+/gi,' ').trim();
+  const t = cleanMatch;
+  navigator.clipboard?.writeText(t).then(()=>{
+    btn.textContent='✓ Copié';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);
+  }).catch(()=>{});
+}
 function copyCard(btn,match){ navigator.clipboard?.writeText(match).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);}); }
 
 function getSportLabel(sport){
@@ -1356,17 +1453,48 @@ function renderManualCard(r){const ai=r.ai_analysis;if(!ai||ai.error)return`<div
 //  LIVE & UPCOMING — avec direction de pari
 // ═══════════════════════════════════════════════
 const LIVE_ALL_LEAGUES=[
-  {sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue1',market:'h2h'},
-  {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'h2h'},
-  {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_ucl',market:'h2h'},
-  {sport:'soccer_uel',market:'h2h'},{sport:'soccer_brasil',market:'h2h'},
-  {sport:'soccer_argentina',market:'h2h'},{sport:'soccer_mls',market:'h2h'},
-  {sport:'basketball_nba',market:'h2h'},{sport:'basketball_euroleague',market:'h2h'},
-  {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
-  {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
-  {sport:'rugbyunion_top14',market:'h2h'},{sport:'icehockey_nhl',market:'h2h'},
-  {sport:'baseball_mlb',market:'h2h'},{sport:'mma_mixed_martial_arts',market:'h2h'},
-  {sport:'americanfootball_nfl',market:'h2h'},{sport:'handball_champions_league',market:'h2h'},
+  // Football — toutes compétitions (CDM 2026 + ligues nationales + coupes)
+  {sport:'soccer_fifa_world_cup',market:'h2h'},
+  {sport:'soccer_world_cup_2026',market:'h2h'},
+  {sport:'soccer_conmebol_copa_america',market:'h2h'},
+  {sport:'soccer_concacaf_gold_cup',market:'h2h'},
+  {sport:'soccer_epl',market:'h2h'},
+  {sport:'soccer_france_ligue1',market:'h2h'},
+  {sport:'soccer_spain_la_liga',market:'h2h'},
+  {sport:'soccer_germany_bundesliga',market:'h2h'},
+  {sport:'soccer_italy_serie_a',market:'h2h'},
+  {sport:'soccer_ucl',market:'h2h'},
+  {sport:'soccer_uel',market:'h2h'},
+  {sport:'soccer_mls',market:'h2h'},
+  {sport:'soccer_brazil_campeonato',market:'h2h'},
+  {sport:'soccer_argentina_primera_division',market:'h2h'},
+  {sport:'soccer_mexico_ligamx',market:'h2h'},
+  {sport:'soccer_netherlands_eredivisie',market:'h2h'},
+  {sport:'soccer_portugal_primeira_liga',market:'h2h'},
+  {sport:'soccer_turkey_super_liga',market:'h2h'},
+  {sport:'soccer_japan_j_league',market:'h2h'},
+  {sport:'soccer_australia_aleague',market:'h2h'},
+  // Basketball
+  {sport:'basketball_nba',market:'h2h'},
+  {sport:'basketball_euroleague',market:'h2h'},
+  // Tennis
+  {sport:'tennis_atp',market:'h2h'},
+  {sport:'tennis_wta',market:'h2h'},
+  {sport:'tennis_atp_french_open',market:'h2h'},
+  {sport:'tennis_wta_french_open',market:'h2h'},
+  // MMA / Boxe
+  {sport:'mma_mixed_martial_arts',market:'h2h'},
+  {sport:'boxing_boxing',market:'h2h'},
+  // Hockey
+  {sport:'icehockey_nhl',market:'h2h'},
+  {sport:'icehockey_khl',market:'h2h'},
+  // Rugby
+  {sport:'rugbyunion_top14',market:'h2h'},
+  {sport:'rugbyunion_premiership',market:'h2h'},
+  // Baseball / NFL / Handball
+  {sport:'baseball_mlb',market:'h2h'},
+  {sport:'americanfootball_nfl',market:'h2h'},
+  {sport:'handball_champions_league',market:'h2h'},
 ];
 
 async function loadLive(){
@@ -1736,6 +1864,14 @@ function lossClearAll(){
   toast('Historique efface','ok');
   lossRender();
 }
+
+// Remettre a zero
+function lossResetSession(){
+  if(!confirm("Remettre a zero ? Les paris actuels seront effaces et une nouvelle session commencera.")) return;
+  lossSave({entries:[]});
+  toast("Session remise a zero !","ok");
+  lossRender();
+}
 function lossDeleteEntry(id){
   var data=lossLoad();
   data.entries=data.entries.filter(function(e){return e.id!==id;});
@@ -1827,7 +1963,7 @@ function lossRender(){
       +sportBtns.map(function(s){return '<button class="fbtn '+(s.val===recoverySport?'on':'')+'" onclick="setRecoverySport(\''+s.val+'\',this)">'+s.label+'</button>';}).join('')
       +'</div></div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-      +'<button class="btn bp" onclick="lossAutoSearch()">Trouver matchs pour se refaire</button>'
+      +'<button class="btn bp" onclick="lossAutoSearch()">Trouver des rencontres pour se refaire</button>'
       +'<button class="btn bs" onclick="lossAutoSearch(1.70)">@ 1.70</button>'
       +'<button class="btn bs" onclick="lossAutoSearch(2.50)">@ 2.50</button>'
       +'</div>'
@@ -1976,7 +2112,8 @@ async function lossAutoSearch(forcedOdds){
         +'</div>'
         +(o.start_time?'<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:4px">'+fmtDT(o.start_time)+'</div>':'')
         +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
-        +'<a href="https://www.piwi247.com/customer" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.25);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;text-decoration:none">Parier Piwi247</a>'
+        +'<a href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;text-decoration:none">Piwi247</a>'
+        +'<button onclick="event.stopPropagation();copyTeamNames(this)" data-home="'+esc(o.home_team||'')+'" data-away="'+esc(o.away_team||'')+'" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;cursor:pointer">Copier</button>'
         +'</div>'
         +'</div>';
     });
