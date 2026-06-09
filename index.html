@@ -271,13 +271,13 @@ a{color:var(--neon);text-decoration:none}
 .note-saved{background:var(--grb);color:var(--gr)}.note-unsaved{background:var(--pub);color:var(--pu)}
 
 /* ── NEWS TICKER — plus rapide ── */
-#news-ticker-scroll-box{height:280px;overflow-y:scroll;scroll-snap-type:y proximity;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:smooth;-webkit-overflow-scrolling:touch;cursor:grab}
+#news-ticker-scroll-box{height:270px;overflow-y:scroll;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:smooth;-webkit-overflow-scrolling:touch;cursor:grab}
 #news-ticker-scroll-box:active{cursor:grabbing}
 #news-ticker-scroll-box::-webkit-scrollbar{width:4px}
 #news-ticker-scroll-box::-webkit-scrollbar-track{background:transparent}
 #news-ticker-scroll-box::-webkit-scrollbar-thumb{background:rgba(0,212,255,.25);border-radius:4px}
 #news-ticker-list{position:relative;top:auto;left:auto;right:auto}
-#news-ticker-list.auto-scroll{animation:tickerScrollUp 30s linear infinite}
+#news-ticker-list.auto-scroll{animation:tickerScrollUp 32s linear infinite}
 #news-ticker-list.paused{animation-play-state:paused}
 @keyframes tickerScrollUp{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
 .ticker-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
@@ -288,12 +288,12 @@ a{color:var(--neon);text-decoration:none}
 /* ── DIRECTION CARD — cartes avec verdict clair ── */
 .dir-card{background:var(--sf);border-radius:8px;overflow:hidden;margin-bottom:10px;cursor:pointer;transition:all .2s}
 .dir-card:hover{transform:translateY(-1px)}
-.dir-card.dir-play{border:1px solid var(--gr);box-shadow:0 0 0 1px rgba(0,255,157,.2),0 0 14px rgba(0,255,157,.1);background:linear-gradient(135deg,rgba(0,255,157,.03),transparent)}
+.dir-card.dir-play{border:1px solid var(--gr);box-shadow:0 0 0 1px rgba(0,255,157,.15),0 0 12px rgba(0,255,157,.08)}
 .dir-card.dir-watch{border:1px solid var(--am)}
 .dir-card.dir-avoid{border:1px solid var(--re);opacity:.7}
 .dir-banner{padding:6px 14px;font-size:9px;font-family:var(--mo);font-weight:700;text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:6px}
-.dir-play .dir-banner{background:linear-gradient(135deg,rgba(0,255,157,.18),rgba(0,255,157,.08));color:var(--gr);font-weight:700}
-.dir-watch .dir-banner{background:rgba(245,158,11,.18);color:var(--am);font-size:10px}
+.dir-play .dir-banner{background:rgba(34,211,165,.15);color:var(--gr)}
+.dir-watch .dir-banner{background:rgba(245,158,11,.12);color:var(--am)}
 .dir-avoid .dir-banner{background:rgba(239,68,68,.1);color:var(--re)}
 .dir-body{padding:12px 14px}
 .dir-match{font-family:var(--hd);font-size:13px;font-weight:700;margin-bottom:4px}
@@ -389,7 +389,10 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
     <div class="ni"    data-s="install"   onclick="go('install')" ><span class="ni-i">&#128214;</span>Installation</div>
-    <a href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:9px;padding:9px 18px;color:var(--neon);font-size:12px;border-left:2px solid var(--neon);background:rgba(0,212,255,.06);text-decoration:none;font-weight:700;font-family:var(--hd);transition:all .2s;margin-top:4px" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'"><span style="font-size:15px">&#127919;</span>Piwi247 — Mon compte</a>
+    <div style="display:flex;align-items:center;margin-top:4px;gap:2px">
+      <a id="bookie-sidebar-link" href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:9px;padding:9px 14px;color:var(--neon);font-size:12px;border-left:2px solid var(--neon);background:rgba(0,212,255,.06);text-decoration:none;font-weight:700;font-family:var(--hd);transition:all .2s;flex:1" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'"><span style="font-size:15px">&#127919;</span><span id="bookie-sidebar-name">Piwi247 — Mon compte</span></a>
+      <button onclick="bookieEditModal()" title="Modifier le lien" style="background:rgba(0,212,255,.06);border:none;color:var(--neon);cursor:pointer;padding:9px 10px;font-size:14px;transition:background .2s" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'">&#9998;</button>
+    </div>
   </div>
   <div class="sbf" id="qfoot"><div style="color:var(--dm);font-size:10px;font-family:var(--mo)">Quotas — chargement…</div></div>
 </nav>
@@ -717,7 +720,6 @@ a{color:var(--neon);text-decoration:none}
       <button class="btn bp" onclick="lossAdd()">&#43; Enregistrer</button>
       <button class="btn bs" onclick="lossMarkRecovered()">&#10003; Session récupérée</button>
       <button class="btn" onclick="lossClearAll()" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25);border-radius:4px">&#128465; Tout effacer</button>
-      <button class="btn" onclick="lossResetSession()" style="background:rgba(34,211,165,.08);color:var(--gr);border:1px solid rgba(34,211,165,.25);border-radius:4px">&#8635; Remettre à zéro</button>
     </div>
   </div>
 
@@ -748,24 +750,6 @@ a{color:var(--neon);text-decoration:none}
 <section class="sec" id="s-settings">
   <div class="ph"><div class="pt">&#9881; Paramètres</div></div>
   <div class="warn">&#128274; Clés API configurées côté Cloudflare (<code>wrangler secret put</code>).</div>
-  <div class="card">
-    <div class="ct">&#127919; Lien Bookmaker (Piwi247 / autre)</div>
-    <div class="info" style="margin-bottom:12px">Modifiez le nom et le lien qui apparaissent sur toutes les cartes. S'ouvre toujours dans un nouvel onglet.</div>
-    <div class="fg">
-      <div class="fgrp">
-        <label>Nom affiché</label>
-        <input type="text" id="bookie-name-input" placeholder="Piwi247" value="Piwi247">
-      </div>
-      <div class="fgrp">
-        <label>URL complète</label>
-        <input type="text" id="bookie-url-input" placeholder="https://www.piwi247.com/customer" value="https://www.piwi247.com/customer">
-      </div>
-    </div>
-    <div class="bg">
-      <button class="btn bp" onclick="bookieSaveUI()">&#128190; Sauvegarder le lien</button>
-      <a href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" class="bookie-link btn bs">&#127919; Tester le lien</a>
-    </div>
-  </div>
   <div class="card"><div class="ct">Fournisseur IA</div><div id="ai-status-box"><div class="ls" style="padding:20px"><div class="sp"></div><p>Vérification…</p></div></div></div>
   <div class="card">
     <div class="ct">Alertes automatiques</div>
@@ -830,6 +814,25 @@ wrangler deploy</pre>
 </main>
 </div>
 <div id="toasts"></div>
+
+<!-- MODAL BOOKMAKER -->
+<div id="bookie-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--sf);border:1px solid var(--neon);border-radius:10px;padding:24px;width:90%;max-width:400px;box-shadow:0 0 40px rgba(0,212,255,.2)">
+    <div style="font-family:var(--hd);font-size:15px;font-weight:700;color:var(--neon);margin-bottom:16px">&#9998; Modifier le lien bookmaker</div>
+    <div class="fgrp" style="margin-bottom:12px">
+      <label style="display:block;font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Nom affiché</label>
+      <input type="text" id="bookie-modal-name" placeholder="Piwi247" style="width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:8px 11px;color:var(--tx);font-family:var(--hd);font-size:13px;outline:none">
+    </div>
+    <div class="fgrp" style="margin-bottom:20px">
+      <label style="display:block;font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">URL (commence par https://)</label>
+      <input type="text" id="bookie-modal-url" placeholder="https://www.piwi247.com/customer" style="width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:8px 11px;color:var(--tx);font-family:var(--hd);font-size:13px;outline:none">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="bookieModalSave()" style="flex:1;padding:10px;background:var(--neon);color:#060810;border:none;border-radius:4px;font-family:var(--hd);font-weight:700;font-size:13px;cursor:pointer">&#128190; Sauvegarder</button>
+      <button onclick="bookieModalClose()" style="padding:10px 16px;background:var(--sf2);color:var(--mu);border:1px solid var(--bd);border-radius:4px;font-family:var(--hd);font-weight:600;font-size:13px;cursor:pointer">Annuler</button>
+    </div>
+  </div>
+</div>
 <script>
 // ═══════════════════════════════════════════════
 //  CONFIG
@@ -910,24 +913,11 @@ function setScanSport(el){
   else{if(el.classList.contains('on')){liveSportSet.delete(sport);if(!liveSportSet.size)liveSportSet=new Set(['all']);}else{liveSportSet.delete('all');liveSportSet.add(sport);}}
   liveSportFilter=liveSportSet.has('all')?'all':[...liveSportSet][0];
   document.querySelectorAll('.ssb').forEach(b=>b.classList.toggle('on',liveSportSet.has('all')?b.dataset.sport==='all':liveSportSet.has(b.dataset.sport||'')));
-  if(_scanAllOpps && _scanAllOpps.length) {
-    applyScanFilters();
-  } else if(document.querySelector('.dir-card')||document.querySelector('.oc')) {
-    filterScanCards();
-  }
+  if(document.querySelector('.dir-card')||document.querySelector('.oc')){filterScanCards();}
 }
 const LIVE_SPORT_KEYS={soccer:['soccer'],basketball:['basketball','nba'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],handball:['handball']};
 function matchesSportFilter(sport,filter){if(filter==='all')return true;const keys=LIVE_SPORT_KEYS[filter]||[filter];return keys.some(k=>(sport||'').toLowerCase().includes(k));}
-function filterScanCards(){
-  // Si les filtres score sont actifs, les utiliser
-  if(typeof applyScanFilters === 'function' && _scanAllOpps && _scanAllOpps.length) {
-    applyScanFilters();
-  } else {
-    document.querySelectorAll('#scan-res [data-sport-key]').forEach(c=>{
-      c.style.display=matchesSportFilter(c.dataset.sportKey||'',liveSportFilter)?'':'none';
-    });
-  }
-}
+function filterScanCards(){document.querySelectorAll('#scan-res [data-sport-key]').forEach(c=>{c.style.display=matchesSportFilter(c.dataset.sportKey||'',liveSportFilter)?'':'none';});}
 
 // ═══════════════════════════════════════════════
 //  LEAGUES PAR SPORT — FOOTBALL INCLUS
@@ -1099,22 +1089,20 @@ async function doLiveScan() {
     if(seen.has(k)) return false; seen.add(k); return true;
   });
 
-  // Trier : play en vert (date proche) > watch (date proche) > avoid
-  const filtered = deduped.filter(o => (o.score?.total||0) >= 60);
-  // Ne garder que les cartes JOUER — trier par date proche puis score
-  filtered.forEach(o => { o._dir = computeDirection(o).direction; });
-  const playOnly = filtered.filter(o => o._dir === 'play');
-  playOnly.sort((a,b) => {
+  // Garder uniquement les cartes JOUER (play), triees par date proche puis score
+  const allDeduped = deduped.filter(o => (o.score?.total||0) >= 60);
+  allDeduped.forEach(o => { o._dir = computeDirection(o).direction; });
+  const filtered = allDeduped.filter(o => o._dir === 'play');
+  filtered.sort((a,b) => {
     const tA = a.start_time ? new Date(a.start_time).getTime() : Infinity;
     const tB = b.start_time ? new Date(b.start_time).getTime() : Infinity;
     if(Math.abs(tA-tB) > 3600000) return tA - tB;
     return (b.score?.total||0) - (a.score?.total||0);
   });
-  const filtered2 = playOnly; // alias pour la suite
 
   if (currentScanMode !== 'complet') setScanCache(cacheKey, filtered);
 
-  renderScanResults(filtered2.length > 0 ? filtered2 : filtered, cnt, 0);
+  renderScanResults(filtered, cnt, 0);
   loadQuotas();
 
   btn.className = 'scan-main-btn ready';
@@ -1123,87 +1111,31 @@ async function doLiveScan() {
   btn.disabled = false;
 }
 
-// Données globales pour les filtres scan
-let _scanAllOpps = [];
-let _scanScoreFilter = 65;
-let _scanDirFilter = 'all';
-
 function renderScanResults(opps, cnt, cacheAge) {
   if (!opps?.length) {
     cnt.innerHTML = '<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité détectée</div><div class="empty-s">Essayez le mode Complet ou un autre sport.</div></div>';
     return;
   }
-  _scanAllOpps = opps;
 
   const sPortCount = {};
   opps.forEach(o => { const s=getSportLabel(o.sport||''); sPortCount[s]=(sPortCount[s]||0)+1; });
-  const statsHtml = Object.entries(sPortCount).slice(0,8).map(([s,n])=>
+  const statsHtml = Object.entries(sPortCount).slice(0,6).map(([s,n])=>
     `<div class="stat-cell"><div class="sv">${n}</div><label>${s}</label></div>`
   ).join('');
+
   const cacheInfo = cacheAge > 0 ? `<span class="bdg bca">Cache ${cacheAge}min</span>` : '';
 
   cnt.innerHTML = `
     <div class="sbar">
       <div class="sdot"></div>
-      <span><strong id="scan-count">${opps.length}</strong> opportunité(s)</span>
+      <span><strong>${opps.length}</strong> opportunité(s) — directions claires uniquement</span>
       ${cacheInfo}
       <span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span>
     </div>
-    <div class="scan-stats" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));margin-bottom:10px">${statsHtml}</div>
-
-    <!-- FILTRES SCORE -->
-    <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;margin-bottom:10px">
-      <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;font-family:var(--mo);font-weight:700">Filtrer par score de fiabilité</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="scan-score-btns">
-        <button class="fbtn" onclick="setScanScoreFilter(0,this)">Tout (debug)</button>
-        <button class="fbtn" onclick="setScanScoreFilter(55,this)"><span class="sc-sig sig-vl" style="font-size:9px;padding:1px 5px">50+</span></button>
-        <button class="fbtn on" onclick="setScanScoreFilter(65,this)"><span class="sc-sig sig-c" style="font-size:9px;padding:1px 5px">🟡 65+</span></button>
-        <button class="fbtn" onclick="setScanScoreFilter(75,this)"><span class="sc-sig sig-f" style="font-size:9px;padding:1px 5px">🟢 75+</span></button>
-        <button class="fbtn" onclick="setScanScoreFilter(85,this)"><span class="sc-sig sig-e" style="font-size:9px;padding:1px 5px">💎 85+</span></button>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="scan-dir-btns">
-        <button class="fbtn on" onclick="setScanDirFilter('all',this)">Toutes les cartes</button>
-        <button class="fbtn" onclick="setScanDirFilter('play',this)" style="color:var(--gr);border-color:rgba(0,255,157,.3)">✅ Score élevé d'abord</button>
-      </div>
-    </div>
-    <div id="scan-cards-grid" class="opp-grid"></div>`;
-
-  applyScanFilters();
-}
-
-function setScanScoreFilter(val, el) {
-  _scanScoreFilter = val;
-  document.querySelectorAll('#scan-score-btns .fbtn').forEach(b=>b.classList.remove('on'));
-  if(el) el.classList.add('on');
-  applyScanFilters();
-}
-function setScanDirFilter(val, el) {
-  _scanDirFilter = val;
-  document.querySelectorAll('#scan-dir-btns .fbtn').forEach(b=>b.classList.remove('on'));
-  if(el) el.classList.add('on');
-  applyScanFilters();
-}
-function applyScanFilters() {
-  const grid = document.getElementById('scan-cards-grid');
-  const countEl = document.getElementById('scan-count');
-  if(!grid) return;
-  const filtered = _scanAllOpps.filter(o => {
-    const tot = (o.score&&o.score.total)||0;
-    if(tot < _scanScoreFilter) return false;
-    if(_scanDirFilter !== 'all') {
-      const dir = computeDirection(o).direction;
-      if(dir !== _scanDirFilter) return false;
-    }
-    // Filtre sport actif
-    if(!matchesSportFilter(o.sport||o._sport||'', liveSportFilter)) return false;
-    return true;
-  });
-  if(countEl) countEl.textContent = filtered.length;
-  if(!filtered.length) {
-    grid.innerHTML = '<div class="empty" style="padding:28px"><div class="empty-i">🔍</div><div class="empty-t">Aucune carte pour ce filtre</div><div class="empty-s">Élargissez les critères.</div></div>';
-    return;
-  }
-  grid.innerHTML = filtered.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('');
+    <div class="scan-stats" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));margin-bottom:14px">${statsHtml}</div>
+    <div class="opp-grid">
+      ${opps.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('')}
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════
@@ -1303,62 +1235,34 @@ function buildWhyBox(o, s, impliedProb, trueProb, evPct) {
 }
 
 
-// ═══════════════════════════════════════════════════════
-//  computeDirection — Analyse professionnelle multicritères
-//  Seules les opportunités avec VRAIE valeur statistique
-//  ressortent. Rien n'est laissé au hasard.
-// ═══════════════════════════════════════════════════════
-// Traduit une sélection brute API en texte français clair
-function translateSelection(selection, market, homeTeam, awayTeam, line) {
-  const sel = (selection || '').trim();
-  const mkt = market || 'h2h';
-  const home = homeTeam || '';
-  const away = awayTeam || '';
-  const lineStr = line != null ? ` ${line > 0 ? '+' : ''}${line}` : '';
-
-  // Marché 1X2
-  if (mkt === 'h2h') {
-    if (sel === home || sel.toLowerCase() === 'home') return `Victoire ${home}`;
-    if (sel === away || sel.toLowerCase() === 'away') return `Victoire ${away}`;
-    if (sel.toLowerCase() === 'draw' || sel === 'X') return 'Match nul';
+function translateSelection(sel, market, home, away, line) {
+  sel = (sel||'').trim();
+  home = home||''; away = away||'';
+  const ln = line!=null ? ' '+(line>0?'+':'')+line : '';
+  if(market==='h2h'){
+    if(sel===home) return 'Victoire '+home;
+    if(sel===away) return 'Victoire '+away;
+    if(sel.toLowerCase()==='draw'||sel==='X'||sel.toLowerCase()==='nul') return 'Match nul';
   }
-
-  // Marché Over/Under
-  if (mkt === 'totals') {
-    if (sel.toLowerCase().startsWith('over')) return `Plus de ${line || sel.replace(/over/i,'').trim()} buts/pts`;
-    if (sel.toLowerCase().startsWith('under')) return `Moins de ${line || sel.replace(/under/i,'').trim()} buts/pts`;
+  if(market==='totals'){
+    if(sel.toLowerCase().startsWith('over'))  return 'Plus de '+(line||sel.replace(/over/i,'').trim())+' buts/pts';
+    if(sel.toLowerCase().startsWith('under')) return 'Moins de '+(line||sel.replace(/under/i,'').trim())+' buts/pts';
   }
-
-  // BTTS
-  if (mkt === 'btts') {
-    if (sel.toLowerCase() === 'yes') return 'Les deux équipes marquent (Oui)';
-    if (sel.toLowerCase() === 'no') return 'Au moins une équipe ne marque pas (Non)';
+  if(market==='btts'){
+    if(sel.toLowerCase()==='yes') return 'Les deux equipes marquent (Oui)';
+    if(sel.toLowerCase()==='no')  return 'Min. une equipe ne marque pas (Non)';
   }
-
-  // Handicap / Spreads
-  if (mkt === 'spreads') {
-    // "San Antonio Spurs 2" → l'équipe avec handicap
-    // Chercher si c'est home ou away
-    if (sel.includes(home) || sel.toLowerCase().includes('home')) {
-      return `${home} avec handicap${lineStr} pts`;
-    }
-    if (sel.includes(away) || sel.toLowerCase().includes('away')) {
-      return `${away} avec handicap${lineStr} pts`;
-    }
-    // Fallback : afficher proprement
-    return `${sel}${lineStr} pts (Handicap)`;
+  if(market==='spreads'){
+    if(sel.includes(home)||sel.toLowerCase().includes('home')) return home+' handicap'+ln+' pts';
+    if(sel.includes(away)||sel.toLowerCase().includes('away')) return away+' handicap'+ln+' pts';
+    return sel+ln+' pts (Handicap)';
   }
-
-  // Double chance
-  if (mkt === 'double_chance') {
-    if (sel === '1X') return `${home} ou Match nul`;
-    if (sel === 'X2') return `Match nul ou ${away}`;
-    if (sel === '12') return `${home} ou ${away} (pas de nul)`;
+  if(market==='double_chance'){
+    if(sel==='1X') return home+' ou Match nul';
+    if(sel==='X2') return 'Match nul ou '+away;
+    if(sel==='12') return home+' ou '+away+' (sans nul)';
   }
-
-  // Fallback propre : capitaliser et ajouter contexte marché
-  const mktLabels = {h2h:'Résultat', totals:'Total', btts:'BTTS', spreads:'Handicap', double_chance:'Double chance'};
-  return `${sel}${lineStr}`;
+  return sel+(ln?ln:'');
 }
 
 function computeDirection(o) {
@@ -1366,142 +1270,50 @@ function computeDirection(o) {
   const odds  = o.odds || 0;
   const subs  = o.score?.subscores || {};
   const bms   = o.all_bookmakers || [];
-  const sport = (o.sport || o._sport || '').toLowerCase();
-  const market = o.market || 'h2h';
+  const sport = (o.sport||o._sport||'').toLowerCase();
+  const market = o.market||'h2h';
 
-  // ── 1. Probabilité implicite & vraie ──────────────────
-  const impliedProb = odds > 1 ? Math.round(100 / odds) : 50;
+  // Probabilite implicite
+  const impliedProb = odds > 1 ? Math.round(100/odds) : 50;
   const rawEdge = o.score?.edge || 0;
-
-  // Edge pondéré par la stabilité des cotes (consensus bookmakers)
-  const stabilityBonus = ((subs.stability || 0) / 20) * 3;  // max +3%
-  const consensusBonus = ((subs.consensus || 0) / 20) * 2;  // max +2%
+  const stabilityBonus = ((subs.stability||0)/20)*3;
+  const consensusBonus = ((subs.consensus||0)/20)*2;
   const adjustedEdge   = rawEdge + stabilityBonus + consensusBonus;
-
   const trueProb = Math.min(92, Math.max(8, impliedProb + adjustedEdge));
 
-  // ── 2. EV (Espérance de Valeur) Kelly-ajusté ──────────
-  const ev    = (trueProb / 100) * (odds - 1) - (1 - trueProb / 100);
-  const evPct = Math.round(ev * 100);
+  // EV
+  const ev    = (trueProb/100)*(odds-1) - (1-trueProb/100);
+  const evPct = Math.round(ev*100);
 
-  // ── 3. Score de confiance composite (0-100) ───────────
-  // Facteurs multiplicatifs de la confiance finale
+  // Score composite
   let confScore = tot;
-
-  // Bonus cote dans la zone optimale (1.50-2.50 = max value)
-  if (odds >= 1.50 && odds <= 2.50) confScore += 5;
-  else if (odds < 1.30 || odds > 3.50) confScore -= 8;
-
-  // Bonus multi-bookmakers (≥6 = marché liquide)
-  if (bms.length >= 8) confScore += 4;
-  else if (bms.length >= 5) confScore += 2;
-  else if (bms.length < 3) confScore -= 6;
-
-  // Bonus marché adapté au sport
-  if (market === 'h2h' && (sport.includes('tennis') || sport.includes('mma'))) confScore += 3;
-  if (market === 'btts' && (sport.includes('epl') || sport.includes('bundesliga'))) confScore += 2;
-
-  // Pénalité cote trop courte (< 1.25 = trop de vig)
-  if (odds < 1.25) confScore -= 10;
-
+  if(odds>=1.50&&odds<=2.50) confScore+=5;
+  else if(odds<1.30||odds>3.50) confScore-=8;
+  if(bms.length>=8) confScore+=4;
+  else if(bms.length>=5) confScore+=2;
+  else if(bms.length<3) confScore-=6;
+  if(market==='h2h'&&(sport.includes('tennis')||sport.includes('mma'))) confScore+=3;
+  if(odds<1.25) confScore-=10;
   confScore = Math.min(100, Math.max(0, confScore));
 
-  // ── 4. Seuil de décision ─────────────────────────────
-  // JOUER uniquement si TOUS ces critères sont vrais :
-  // • confScore >= 72 (signal fort)
-  // • EV > 0% (valeur positive)
-  // • cote dans la zone acceptable
-  // • au moins 3 bookmakers comparés
-  const isPlay = (
-    confScore >= 72 &&
-    ev > 0 &&
-    odds >= 1.25 &&
-    odds <= 4.50 &&
-    bms.length >= 2
-  );
+  // Criteres JOUER (tous requis)
+  const isPlay = (confScore>=72 && ev>0 && odds>=1.25 && odds<=4.50 && bms.length>=2);
 
-  // ── 5. Calcul % de confiance affiché ────────────────
-  // Basé sur confScore + EV + probabilité
+  // % confiance affiche
   let displayConf = 0;
-  if (isPlay) {
-    // Formule : moyenne pondérée de confScore, trueProb et EV
-    displayConf = Math.round(
-      confScore * 0.45 +
-      trueProb  * 0.35 +
-      Math.min(evPct * 2, 20) * 1.0
-    );
+  if(isPlay){
+    displayConf = Math.round(confScore*0.45 + trueProb*0.35 + Math.min(evPct*2,20));
     displayConf = Math.min(97, Math.max(62, displayConf));
   }
 
-  // ── 6. Direction finale ───────────────────────────────
-  // DÉCISION FINALE : play ou avoid uniquement (jamais watch)
   const direction = isPlay ? 'play' : 'avoid';
   const reason = isPlay
-    ? `Confiance ${displayConf}% — Score ${confScore}/100 — EV +${evPct}% — ${bms.length} bookmakers — Prob. estimée ${trueProb}%`
-    : `Score ${confScore}/100 — Valeur insuffisante (seuil 72 requis, EV>0 requis)`;
+    ? 'Confiance '+displayConf+'% — Score '+confScore+'/100 — EV +'+evPct+'% — '+bms.length+' bookmakers — Prob. estimee '+trueProb+'%'
+    : 'Score '+confScore+'/100 — Valeur insuffisante (seuil 72 requis, EV>0 requis)';
 
-  return { direction, impliedProb, trueProb, ev, evPct, reason, confScore, displayConf: displayConf || 0 };
+  return { direction, impliedProb, trueProb, ev, evPct, reason, confScore, displayConf: displayConf||0 };
 }
 
-function renderDirectionCard(o, i, containerId) {
-  const s = o.score || {};
-  const tot = s.total || 0;
-  const result = computeDirection(o);
-  const { direction, impliedProb, trueProb, evPct, reason, confScore, displayConf } = result;
-
-  // Afficher SEULEMENT les cartes "play" — les autres sont filtrées
-  if (direction !== 'play') return '';
-
-  const tier = tot>=85?'S':tot>=75?'A':tot>=65?'B':'C';
-  const sport = o.sport || o._sport || '';
-  const ico = sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('tennis')?'🎾':sport.includes('mma')||sport.includes('box')?'🥊':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':sport.includes('baseball')?'⚾':sport.includes('football')?'🏈':'🏆';
-  const mktLabel = {h2h:'1X2',totals:'O/U',btts:'BTTS',double_chance:'DC',spreads:'HC'}[o.market]||(o.market||'');
-  const selDisplay = translateSelection(
-    o.selection, o.market, o.home_team, o.away_team, o.line
-  );
-  const subs = s.subscores || {};
-  const bms = o.all_bookmakers || [];
-
-  const dirLabel = '✅ À JOUER';
-  const evClass = evPct >= 0 ? 'pos' : 'neg';
-
-  return `<div class="dir-card dir-${direction} opp-mega tier-${tier}" data-sport-key="${esc(sport)}" id="dc-${containerId}-${i}" onclick="tDC(this,event)">
-    <div class="dir-banner"><span style="font-size:10px;font-weight:700">✅ À JOUER</span><span style="margin-left:auto;font-family:var(--mo);font-size:13px;font-weight:700;color:var(--gr)">${displayConf}% confiance</span></div>
-    <div class="dir-body">
-      <div class="dir-match">${ico} ${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
-        <span class="bdg bsp">${esc(o.competition||sport)}</span>
-        <span class="bdg bmk">${mktLabel}</span>
-        ${o.start_time?`<span class="bdg bsr">${fmtDate(o.start_time)}</span>`:''}
-      </div>
-      <div class="dir-sel">
-        <span class="dir-sel-name">${esc(selDisplay)}</span>
-        <span class="dir-odds">@ ${o.odds||'?'}</span>
-        <span class="dir-prob">Prob. implicite: ${impliedProb}%</span>
-        <span class="dir-ev ${evClass}">EV ${evPct>=0?'+':''}${evPct}%</span>
-      </div>
-      <div class="dir-reason">${esc(reason)}</div>
-    </div>
-    <div class="dir-detail">
-      <!-- POURQUOI CE PARI — analyse detaillee -->
-      <div style="background:linear-gradient(135deg,rgba(0,212,255,.04),rgba(167,139,250,.03));border:1px solid rgba(0,212,255,.12);border-radius:6px;padding:12px;margin-bottom:10px">
-        <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:var(--mo);font-weight:700">Pourquoi jouer ce pari ?</div>
-        ${buildWhyBox(o, s, impliedProb, trueProb, evPct)}
-      </div>
-      ${bms.length>1?`<div style="margin-bottom:10px"><div style="font-size:9px;color:var(--dm);font-family:var(--mo);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Comparaison bookmakers</div>${bms.slice().sort((a,b)=>b.odds-a.odds).map((b,bi)=>`<div class="om-bm-row"><span style="flex:1">${esc(b.bookmaker||b.name||'?')}</span><span style="font-family:var(--mo);font-weight:700;color:${bi===0?'var(--gr)':'var(--mu)'}">${b.odds}</span>${bi===0?'<span class="bdg" style="background:rgba(0,255,157,.15);color:var(--gr)">BEST</span>':''}</div>`).join('')}</div>`:''}
-      <div style="margin-bottom:8px">
-        ${ssRow('Valeur cote',subs.odds_value)}
-        ${ssRow('Stabilité',subs.stability)}
-        ${ssRow('Consensus bookmakers',subs.consensus)}
-        ${ssRow('Plausibilité',subs.plausibility)}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
-        <span style="font-size:10px;color:var(--dm)">⚠️ Aucun gain garanti.</span>
-        <button class="copy-btn" onclick="event.stopPropagation();copyMatchText('${esc(o.home_team||'')} vs ${esc(o.away_team||'')}','${esc(selDisplay)}','${o.odds||'?'}',this)">📋 Copier</button>
-      </div>
-    </div>
-  </div>`;
-}
 
 function tDC(el, evt){ if(evt&&evt.target.closest('button,a,input')) return; el.classList.toggle('xp'); }
 
@@ -1517,15 +1329,7 @@ function copyTeamNames(btn) {
     });
   }
 }
-function copyMatchText(match,sel,odds,btn){
-  // Supprimer le " vs " pour la copie : "PSG vs Marseille" → "PSG Marseille"
-  const cleanMatch = match.replace(/\s+vs\.?\s+/gi,' ').trim();
-  const t = cleanMatch;
-  navigator.clipboard?.writeText(t).then(()=>{
-    btn.textContent='✓ Copié';btn.classList.add('copied');
-    setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);
-  }).catch(()=>{});
-}
+function copyMatchText(match,sel,odds,btn){ const t=`${match} — ${sel} @ ${odds}`; navigator.clipboard?.writeText(t).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);}).catch(()=>{}); }
 function copyCard(btn,match){ navigator.clipboard?.writeText(match).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);}); }
 
 function getSportLabel(sport){
@@ -1580,48 +1384,17 @@ function renderManualCard(r){const ai=r.ai_analysis;if(!ai||ai.error)return`<div
 //  LIVE & UPCOMING — avec direction de pari
 // ═══════════════════════════════════════════════
 const LIVE_ALL_LEAGUES=[
-  // Football — toutes compétitions (CDM 2026 + ligues nationales + coupes)
-  {sport:'soccer_fifa_world_cup',market:'h2h'},
-  {sport:'soccer_world_cup_2026',market:'h2h'},
-  {sport:'soccer_conmebol_copa_america',market:'h2h'},
-  {sport:'soccer_concacaf_gold_cup',market:'h2h'},
-  {sport:'soccer_epl',market:'h2h'},
-  {sport:'soccer_france_ligue1',market:'h2h'},
-  {sport:'soccer_spain_la_liga',market:'h2h'},
-  {sport:'soccer_germany_bundesliga',market:'h2h'},
-  {sport:'soccer_italy_serie_a',market:'h2h'},
-  {sport:'soccer_ucl',market:'h2h'},
-  {sport:'soccer_uel',market:'h2h'},
-  {sport:'soccer_mls',market:'h2h'},
-  {sport:'soccer_brazil_campeonato',market:'h2h'},
-  {sport:'soccer_argentina_primera_division',market:'h2h'},
-  {sport:'soccer_mexico_ligamx',market:'h2h'},
-  {sport:'soccer_netherlands_eredivisie',market:'h2h'},
-  {sport:'soccer_portugal_primeira_liga',market:'h2h'},
-  {sport:'soccer_turkey_super_liga',market:'h2h'},
-  {sport:'soccer_japan_j_league',market:'h2h'},
-  {sport:'soccer_australia_aleague',market:'h2h'},
-  // Basketball
-  {sport:'basketball_nba',market:'h2h'},
-  {sport:'basketball_euroleague',market:'h2h'},
-  // Tennis
-  {sport:'tennis_atp',market:'h2h'},
-  {sport:'tennis_wta',market:'h2h'},
-  {sport:'tennis_atp_french_open',market:'h2h'},
-  {sport:'tennis_wta_french_open',market:'h2h'},
-  // MMA / Boxe
-  {sport:'mma_mixed_martial_arts',market:'h2h'},
-  {sport:'boxing_boxing',market:'h2h'},
-  // Hockey
-  {sport:'icehockey_nhl',market:'h2h'},
-  {sport:'icehockey_khl',market:'h2h'},
-  // Rugby
-  {sport:'rugbyunion_top14',market:'h2h'},
-  {sport:'rugbyunion_premiership',market:'h2h'},
-  // Baseball / NFL / Handball
-  {sport:'baseball_mlb',market:'h2h'},
-  {sport:'americanfootball_nfl',market:'h2h'},
-  {sport:'handball_champions_league',market:'h2h'},
+  {sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue1',market:'h2h'},
+  {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'h2h'},
+  {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_ucl',market:'h2h'},
+  {sport:'soccer_uel',market:'h2h'},{sport:'soccer_brasil',market:'h2h'},
+  {sport:'soccer_argentina',market:'h2h'},{sport:'soccer_mls',market:'h2h'},
+  {sport:'basketball_nba',market:'h2h'},{sport:'basketball_euroleague',market:'h2h'},
+  {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
+  {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
+  {sport:'rugbyunion_top14',market:'h2h'},{sport:'icehockey_nhl',market:'h2h'},
+  {sport:'baseball_mlb',market:'h2h'},{sport:'mma_mixed_martial_arts',market:'h2h'},
+  {sport:'americanfootball_nfl',market:'h2h'},{sport:'handball_champions_league',market:'h2h'},
 ];
 
 async function loadLive(){
@@ -1722,9 +1495,9 @@ async function loadUpcoming(){
     }
     const seen=new Set();
     all=all.filter(o=>{const k=(o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'');if(seen.has(k))return false;seen.add(k);return true;});
-    all=all.filter(o=>(o.score?.total||0)>=55);
+    all=all.filter(o=>(o.score?.total||0)>=60);
     all.forEach(o=>{o._dir=computeDirection(o).direction;});
-    all=all.filter(o=>o._dir==='play'); // play uniquement
+    all=all.filter(o=>o._dir==='play');
     all.sort((a,b)=>{
       const ta=a.start_time?new Date(a.start_time).getTime():Infinity;
       const tb=b.start_time?new Date(b.start_time).getTime():Infinity;
@@ -1746,13 +1519,7 @@ async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.in
 // ═══════════════════════════════════════════════
 //  SETTINGS
 // ═══════════════════════════════════════════════
-async function loadSettings(){
-  // Charger la config bookmaker
-  const bCfg = bookieLoad();
-  const nameEl = document.getElementById('bookie-name-input');
-  const urlEl  = document.getElementById('bookie-url-input');
-  if(nameEl) nameEl.value = bCfg.name;
-  if(urlEl)  urlEl.value  = bCfg.url;try{const s=await api('/api/settings');document.getElementById('s-minscore').value=s.min_alert_score||75;document.getElementById('s-maxalerts').value=s.max_alerts_per_day||5;document.getElementById('s-minodds').value=s.alert_min_odds||1.40;document.getElementById('s-maxodds').value=s.alert_max_odds||5.00;document.getElementById('s-scan').value=String(s.scan_enabled!==false);}catch(e){toast('Erreur: '+e.message,'err');}}
+async function loadSettings(){try{const s=await api('/api/settings');document.getElementById('s-minscore').value=s.min_alert_score||75;document.getElementById('s-maxalerts').value=s.max_alerts_per_day||5;document.getElementById('s-minodds').value=s.alert_min_odds||1.40;document.getElementById('s-maxodds').value=s.alert_max_odds||5.00;document.getElementById('s-scan').value=String(s.scan_enabled!==false);}catch(e){toast('Erreur: '+e.message,'err');}}
 async function saveSettings(){try{await api('/api/settings','POST',{min_alert_score:parseInt(document.getElementById('s-minscore').value),max_alerts_per_day:parseInt(document.getElementById('s-maxalerts').value),alert_min_odds:parseFloat(document.getElementById('s-minodds').value),alert_max_odds:parseFloat(document.getElementById('s-maxodds').value),scan_enabled:document.getElementById('s-scan').value==='true'});toast('Sauvegardé ✓','ok');}catch(e){toast('Erreur: '+e.message,'err');}}
 async function testAlert(){try{const d=await api('/api/test-alert','POST');toast(d.message||(d.ok?'✓ Envoyé':'⚠ Non envoyé'),d.ok?'ok':'');}catch(e){toast('Erreur: '+e.message,'err');}}
 async function loadSysStatus(){const cnt=document.getElementById('sysstatus');try{const q=await api('/api/quotas');const op=Math.round((q.odds_api_monthly_limit-q.odds_api_credits_remaining)/q.odds_api_monthly_limit*100);const activeKey=(q.active_key_idx||0)+1;const keysTotal=q.keys_total||1;cnt.innerHTML=`<div class="ct">Quotas API</div><div style="margin-bottom:8px"><div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-bottom:4px">Odds API — Clé ${activeKey}/${keysTotal} active · ${q.odds_api_credits_remaining} crédits restants</div><div class="qtr"><div class="qfi ${op<60?'g':op<85?'a':'r'}" style="width:${op}%"></div></div></div><div class="info" style="font-size:11px">💡 Rotation automatique: jusqu'à 6 clés (ODDS_API_KEY à ODDS_API_KEY_6).</div>`;}catch(e){cnt.innerHTML=`<div class="ct">Quotas API</div><div style="color:var(--re)">Erreur: ${esc(e.message)}</div>`;}}
@@ -1981,6 +1748,13 @@ function lossAdd(){
   }
 }
 
+
+function lossResetSession(){
+  if(!confirm('Remettre a zero ? Tous les paris seront effaces et une nouvelle session commence.')) return;
+  lossSave({entries:[]});
+  toast('Session remise a zero !','ok');
+  lossRender();
+}
 function lossMarkRecovered(){
   if(!confirm('Marquer toute la session comme recuperee ?')) return;
   var data=lossLoad();
@@ -1993,14 +1767,6 @@ function lossClearAll(){
   if(!confirm('Effacer tout l\'historique ? (Irreversible)')) return;
   lossSave({entries:[]});
   toast('Historique efface','ok');
-  lossRender();
-}
-
-// Remettre a zero
-function lossResetSession(){
-  if(!confirm("Remettre a zero ? Les paris actuels seront effaces et une nouvelle session commencera.")) return;
-  lossSave({entries:[]});
-  toast("Session remise a zero !","ok");
   lossRender();
 }
 function lossDeleteEntry(id){
@@ -2094,7 +1860,7 @@ function lossRender(){
       +sportBtns.map(function(s){return '<button class="fbtn '+(s.val===recoverySport?'on':'')+'" onclick="setRecoverySport(\''+s.val+'\',this)">'+s.label+'</button>';}).join('')
       +'</div></div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-      +'<button class="btn bp" onclick="lossAutoSearch()">Trouver des rencontres pour se refaire</button>'
+      +'<button class="btn bp" onclick="lossAutoSearch()">Trouver matchs pour se refaire</button>'
       +'<button class="btn bs" onclick="lossAutoSearch(1.70)">@ 1.70</button>'
       +'<button class="btn bs" onclick="lossAutoSearch(2.50)">@ 2.50</button>'
       +'</div>'
@@ -2234,7 +2000,7 @@ async function lossAutoSearch(forcedOdds){
         +(isClose?'<span style="background:rgba(34,211,165,.15);border:1px solid rgba(34,211,165,.3);color:var(--gr);border-radius:3px;font-size:9px;font-family:var(--mo);padding:1px 5px;font-weight:700">COTE IDEALE</span>':'<span style="background:var(--amb);border:1px solid rgba(245,158,11,.3);color:var(--am);border-radius:3px;font-size:9px;font-family:var(--mo);padding:1px 5px">+/-'+diff.toFixed(2)+'</span>')
         +'</div>'
         +'<div class="mrc-match">'+esc(o.home_team||'?')+' vs '+esc(o.away_team||'?')+'</div>'
-        +'<div class="mrc-sel">'+esc(translateSelection(o.selection,o._market||o.market,o.home_team,o.away_team,o.line||null))+'</div>'
+        +'<div class="mrc-sel">'+esc(o.selection||'?')+'</div>'
         +'<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">'
         +'<span class="mrc-odds-big">'+o.odds+'</span>'
         +'<span style="font-family:var(--mo);font-size:11px;font-weight:700;color:'+dirColor+'">'+dirLabel+'</span>'
@@ -2243,8 +2009,7 @@ async function lossAutoSearch(forcedOdds){
         +'</div>'
         +(o.start_time?'<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:4px">'+fmtDT(o.start_time)+'</div>':'')
         +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
-        +'"+bookieLinkHtml()+"'
-        +'<button onclick="event.stopPropagation();copyTeamNames(this)" data-home="'+esc(o.home_team||'')+'" data-away="'+esc(o.away_team||'')+'" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;cursor:pointer">Copier</button>'
+        +bookieLinkHtml()
         +'</div>'
         +'</div>';
     });
@@ -2590,6 +2355,66 @@ function initQuickQuestions() {
 // ═══════════════════════════════════════════════
 //  STATUS BADGES — CF + Odds API
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+//  LIEN BOOKMAKER CONFIGURABLE
+// ═══════════════════════════════════════════════
+const BOOKIE_KEY = 'pgi_bookie_config';
+
+function bookieLoad() {
+  try {
+    const raw = localStorage.getItem(BOOKIE_KEY);
+    return raw ? JSON.parse(raw) : { name: 'Piwi247', url: 'https://www.piwi247.com/customer' };
+  } catch(_) { return { name: 'Piwi247', url: 'https://www.piwi247.com/customer' }; }
+}
+
+function bookieSave(name, url) {
+  try { localStorage.setItem(BOOKIE_KEY, JSON.stringify({ name: name.trim(), url: url.trim() })); } catch(_) {}
+}
+
+function bookieApply() {
+  const cfg = bookieLoad();
+  document.querySelectorAll('.bookie-link').forEach(el => {
+    el.href = cfg.url;
+  });
+  const sidebar = document.getElementById('bookie-sidebar-link');
+  if (sidebar) sidebar.href = cfg.url;
+  const sName = document.getElementById('bookie-sidebar-name');
+  if (sName) sName.textContent = cfg.name + ' — Mon compte';
+}
+
+function bookieLinkHtml() {
+  const cfg = bookieLoad();
+  return '<a href="' + cfg.url + '" target="_blank" rel="noopener noreferrer" class="bookie-link"'
+    + ' style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);font-weight:700;text-decoration:none">'
+    + '&#127919; ' + cfg.name + '</a>';
+}
+
+function bookieEditModal() {
+  const cfg = bookieLoad();
+  const nameEl = document.getElementById('bookie-modal-name');
+  const urlEl  = document.getElementById('bookie-modal-url');
+  if (nameEl) nameEl.value = cfg.name;
+  if (urlEl)  urlEl.value  = cfg.url;
+  const modal = document.getElementById('bookie-modal');
+  if (modal) { modal.style.display = 'flex'; }
+}
+
+function bookieModalClose() {
+  const modal = document.getElementById('bookie-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function bookieModalSave() {
+  const name = (document.getElementById('bookie-modal-name')?.value || '').trim() || 'Piwi247';
+  const url  = (document.getElementById('bookie-modal-url')?.value  || '').trim();
+  if (!url.startsWith('http')) { toast('URL invalide — doit commencer par https://', 'err'); return; }
+  bookieSave(name, url);
+  bookieApply();
+  bookieModalClose();
+  toast(name + ' sauvegardé ✓', 'ok');
+}
+
+
 async function initStatusBadges() {
   try {
     const q = await api('/api/quotas');
@@ -2611,63 +2436,8 @@ async function initStatusBadges() {
 }
 
 
-// ═══════════════════════════════════════════════════
-//  LIEN BOOKMAKER CONFIGURABLE
-// ═══════════════════════════════════════════════════
-const BOOKIE_KEY = 'pgi_bookie_config';
-
-function bookieLoad() {
-  try {
-    const raw = localStorage.getItem(BOOKIE_KEY);
-    return raw ? JSON.parse(raw) : { name: 'Piwi247', url: 'https://www.piwi247.com/customer' };
-  } catch(_) { return { name: 'Piwi247', url: 'https://www.piwi247.com/customer' }; }
-}
-
-function bookieSave(name, url) {
-  try {
-    localStorage.setItem(BOOKIE_KEY, JSON.stringify({ name: name.trim(), url: url.trim() }));
-  } catch(_) {}
-}
-
-function bookieApply() {
-  const cfg = bookieLoad();
-  // Mettre à jour tous les liens du site
-  document.querySelectorAll('.bookie-link').forEach(function(el) {
-    el.href = cfg.url;
-    el.textContent = '🎯 ' + cfg.name;
-  });
-  // Sidebar
-  const sidebar = document.querySelector('.bookie-sidebar-link');
-  if (sidebar) {
-    sidebar.href = cfg.url;
-    sidebar.querySelector('.bookie-sidebar-name').textContent = cfg.name + ' — Mon compte';
-  }
-}
-
-function bookieSaveUI() {
-  const name = document.getElementById('bookie-name-input')?.value || 'Piwi247';
-  const url  = document.getElementById('bookie-url-input')?.value || 'https://www.piwi247.com/customer';
-  if (!url.startsWith('http')) { toast('URL invalide (doit commencer par https://)', 'err'); return; }
-  bookieSave(name, url);
-  bookieApply();
-  toast('Lien bookmaker sauvegardé ✓', 'ok');
-}
-
-// Génère un lien bookmaker cliquable dynamiquement
-function bookieLinkHtml(label) {
-  const cfg = bookieLoad();
-  return '<a href="' + cfg.url + '" target="_blank" rel="noopener noreferrer" '
-    + 'class="bookie-link" '
-    + 'style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;'
-    + 'background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);'
-    + 'border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);'
-    + 'font-weight:700;text-decoration:none">'
-    + '🎯 ' + (label || cfg.name)
-    + '</a>';
-}
-
-
 document.addEventListener('DOMContentLoaded', () => {
+  bookieApply();
   notesLoad();
   notesRender();
   initStatusBadges();
@@ -2675,7 +2445,6 @@ document.addEventListener('DOMContentLoaded', () => {
   loadQuotas();
   ttsInit();
   loadTicker();
-  bookieApply();
   // Sync pertes depuis cloud au démarrage
   lossLoadCloud().then(()=>{
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
@@ -2683,4 +2452,88 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-</html>
+</html>function renderDirectionCard(o, i, containerId) {
+  const s = o.score || {};
+  const tot = s.total || 0;
+  const res = computeDirection(o);
+  const { direction, impliedProb, trueProb, evPct, reason, confScore, displayConf } = res;
+
+  // Afficher UNIQUEMENT les cartes a jouer
+  if(direction !== 'play') return '';
+
+  const sport = o.sport || o._sport || '';
+  const ico = sport.includes('soccer')?'&#9917;':sport.includes('basket')?'&#127936;':sport.includes('tennis')?'&#127934;':sport.includes('mma')||sport.includes('box')?'&#129354;':sport.includes('hockey')?'&#127944;':sport.includes('rugby')?'&#127945;':sport.includes('baseball')?'&#9918;':sport.includes('football')?'&#127944;':'&#127942;';
+  const mktLabel = {h2h:'1X2',totals:'O/U',btts:'BTTS',double_chance:'DC',spreads:'HC'}[o.market]||(o.market||'');
+  const selDisplay = translateSelection(o.selection, o.market, o.home_team, o.away_team, o.line!=null?o.line:null);
+  const bms = o.all_bookmakers||[];
+  const subs = s.subscores||{};
+
+  return `<div class="dir-card dir-play" data-sport-key="${sport}" id="dc-${containerId}-${i}" onclick="tDC(this,event)">
+    <div class="dir-banner">
+      <span style="font-size:10px;font-weight:700">&#9989; A JOUER</span>
+      <span style="margin-left:auto;font-family:var(--mo);font-size:15px;font-weight:700;color:var(--gr)">${displayConf}%</span>
+      <span style="font-family:var(--mo);font-size:9px;color:rgba(0,255,157,.7);margin-left:4px">confiance</span>
+    </div>
+    <div class="dir-body">
+      <div class="dir-match">${ico} ${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+        <span class="bdg bsp">${esc(o.competition||sport)}</span>
+        <span class="bdg bmk">${mktLabel}</span>
+        ${o.start_time?`<span class="bdg bsr">${fmtDate(o.start_time)}</span>`:''}
+      </div>
+      <div class="dir-sel">
+        <span class="dir-sel-name">${esc(selDisplay)}</span>
+        <span class="dir-odds">@ ${o.odds||'?'}</span>
+        <span class="dir-prob">Prob. implicite: ${impliedProb}%</span>
+        <span class="dir-ev pos" style="font-family:var(--mo);font-size:11px;font-weight:700;color:var(--gr)">EV +${evPct}%</span>
+      </div>
+    </div>
+    <div class="dir-detail">
+      <div style="background:linear-gradient(135deg,rgba(0,255,157,.04),rgba(0,212,255,.03));border:1px solid rgba(0,255,157,.12);border-radius:6px;padding:12px;margin-bottom:10px">
+        <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:var(--mo);font-weight:700">Pourquoi jouer ce pari ?</div>
+        ${buildWhyBox(o, s, impliedProb, trueProb, evPct)}
+      </div>
+      ${bms.length>1?`<div style="margin-bottom:10px">
+        <div style="font-size:9px;color:var(--dm);font-family:var(--mo);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Bookmakers (${bms.length})</div>
+        ${bms.slice().sort((a,b)=>b.odds-a.odds).slice(0,6).map((b,bi)=>`<div class="om-bm-row"><span style="flex:1;font-size:11px">${esc(b.bookmaker||b.name||'?')}</span><span style="font-family:var(--mo);font-weight:700;color:${bi===0?'var(--gr)':'var(--mu)'}">${b.odds}</span>${bi===0?'<span style="background:rgba(0,255,157,.15);color:var(--gr);border-radius:3px;font-size:9px;font-family:var(--mo);padding:1px 5px;font-weight:700">BEST</span>':''}</div>`).join('')}
+      </div>`:''}
+      <div style="margin-bottom:8px">
+        ${ssRow('Valeur cote',subs.odds_value)}
+        ${ssRow('Stabilite',subs.stability)}
+        ${ssRow('Consensus bookmakers',subs.consensus)}
+        ${ssRow('Plausibilite',subs.plausibility)}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px">
+        <span style="font-size:10px;color:var(--dm)">&#9888;&#65039; Aucun gain garanti.</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${bookieLinkHtml()}
+          <button class="copy-btn" onclick="event.stopPropagation();copyTeamNames(this)" data-home="${esc(o.home_team||'')}" data-away="${esc(o.away_team||'')}">&#128203; Copier</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function applyScanFilters() {
+  const grid = document.getElementById('scan-cards-grid');
+  const countEl = document.getElementById('scan-count');
+  if(!grid) return;
+  let filtered = _scanAllOpps.filter(o => {
+    const tot = (o.score&&o.score.total)||0;
+    if(tot < _scanScoreFilter) return false;
+    if(!matchesSportFilter(o.sport||o._sport||'', liveSportFilter)) return false;
+    return computeDirection(o).direction === 'play';
+  });
+  filtered.sort((a,b) => {
+    const tA = a.start_time ? new Date(a.start_time).getTime() : Infinity;
+    const tB = b.start_time ? new Date(b.start_time).getTime() : Infinity;
+    if(Math.abs(tA-tB) > 3600000) return tA - tB;
+    return ((b.score&&b.score.total)||0) - ((a.score&&a.score.total)||0);
+  });
+  if(countEl) countEl.textContent = filtered.length;
+  if(!filtered.length) {
+    grid.innerHTML = '<div class="empty" style="padding:28px"><div class="empty-i">&#128269;</div><div class="empty-t">Aucune carte JOUER pour ce filtre</div><div class="empty-s">Elargissez les criteres ou relancez le scan.</div></div>';
+    return;
+  }
+  grid.innerHTML = filtered.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('');
+}
