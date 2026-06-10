@@ -277,7 +277,7 @@ a{color:var(--neon);text-decoration:none}
 #news-ticker-scroll-box::-webkit-scrollbar-track{background:transparent}
 #news-ticker-scroll-box::-webkit-scrollbar-thumb{background:rgba(0,212,255,.25);border-radius:4px}
 #news-ticker-list{position:relative;top:auto;left:auto;right:auto}
-#news-ticker-list.auto-scroll{animation:tickerScrollUp 32s linear infinite}
+#news-ticker-list.auto-scroll{} /* scroll JS actif */
 #news-ticker-list.paused{animation-play-state:paused}
 @keyframes tickerScrollUp{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
 .ticker-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
@@ -907,6 +907,7 @@ function setScanMode(mode,el){
 //  SPORT FILTER
 // ═══════════════════════════════════════════════
 let liveSportFilter='all', liveSportSet=new Set(['all']);
+let _scanAllOpps=[], _scanScoreFilter=65, _scanDirFilter='all';
 function setScanSport(el){
   const sport=el.dataset.sport||'all';
   if(sport==='all'){liveSportSet=new Set(['all']);}
@@ -1116,6 +1117,7 @@ function renderScanResults(opps, cnt, cacheAge) {
     cnt.innerHTML = '<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité détectée</div><div class="empty-s">Essayez le mode Complet ou un autre sport.</div></div>';
     return;
   }
+  _scanAllOpps = opps; // stocker pour les filtres
 
   const sPortCount = {};
   opps.forEach(o => { const s=getSportLabel(o.sport||''); sPortCount[s]=(sPortCount[s]||0)+1; });
@@ -2096,10 +2098,8 @@ function getTickerStyle(sport) {
 let tickerPaused = false;
 function tickerToggle() {
   tickerPaused = !tickerPaused;
-  const list = document.getElementById('news-ticker-list');
   const btn = document.getElementById('ticker-pause-btn');
-  list?.classList.toggle('paused', tickerPaused);
-  if (btn) btn.textContent = tickerPaused ? '▶ Play' : '⏸ Pause';
+  if (btn) btn.textContent = tickerPaused ? '&#9654; Play' : '&#9208; Pause';
 }
 
 async function loadTicker() {
@@ -2192,8 +2192,30 @@ async function loadTicker() {
     inner.innerHTML = html;
     if (clone) clone.innerHTML = html;
 
-    const list = document.getElementById('news-ticker-list');
-    if (list) list.classList.add('auto-scroll');
+    // Scroll JS — permet scroll manuel + auto
+    const tickerBox = document.getElementById('news-ticker-scroll-box');
+    const tickerList = document.getElementById('news-ticker-list');
+    if(tickerList) tickerList.classList.remove('auto-scroll');
+    let tickerScrollTimer = null;
+    let tickerUserScrolling = false;
+    function startTickerAutoScroll() {
+      if(tickerScrollTimer) clearInterval(tickerScrollTimer);
+      tickerScrollTimer = setInterval(function(){
+        if(!tickerPaused && !tickerUserScrolling && tickerBox) {
+          tickerBox.scrollTop += 1;
+          if(tickerBox.scrollTop + tickerBox.clientHeight >= tickerBox.scrollHeight - 10) {
+            tickerBox.scrollTop = 0;
+          }
+        }
+      }, 80);
+    }
+    startTickerAutoScroll();
+    if(tickerBox) {
+      tickerBox.addEventListener('mouseenter', function(){ tickerUserScrolling=true; });
+      tickerBox.addEventListener('mouseleave', function(){ tickerUserScrolling=false; });
+      tickerBox.addEventListener('touchstart', function(){ tickerUserScrolling=true; },{passive:true});
+      tickerBox.addEventListener('touchend',   function(){ setTimeout(function(){tickerUserScrolling=false;},2000); });
+    }
 
     // Drag scroll
     const box = document.getElementById('news-ticker-scroll-box');
