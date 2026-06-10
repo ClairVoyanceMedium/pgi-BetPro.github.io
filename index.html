@@ -2472,9 +2472,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
   }).catch(()=>{});
 });
-</script>
-</body>
-</html>function renderDirectionCard(o, i, containerId) {
+
+function renderDirectionCard(o, i, containerId) {
   const s = o.score || {};
   const tot = s.total || 0;
   const res = computeDirection(o);
@@ -2559,3 +2558,8 @@ function applyScanFilters() {
   }
   grid.innerHTML = filtered.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('');
 }
+
+
+</script>
+</body>
+</html>
