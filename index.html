@@ -517,12 +517,11 @@ a{color:var(--neon);text-decoration:none}
   <div class="ph"><div class="pt">&#127919; Analyse manuelle</div><div class="ps">Entrez un match ou chargez une liste.</div></div>
   <div class="card">
     <div class="ct">Entrer un match</div>
+    <div class="fgrp" style="margin-bottom:12px"><label>Rencontre</label><input type="text" id="m-matchup" placeholder="ex: PSG vs Marseille · Alcaraz - Djokovic · McGregor contre Chandler"></div>
     <div class="fg">
-      <div class="fgrp"><label>Domicile</label><input type="text" id="m-home" placeholder="ex: Arsenal, PSG…"></div>
-      <div class="fgrp"><label>Extérieur</label><input type="text" id="m-away" placeholder="ex: Chelsea, Lyon…"></div>
-      <div class="fgrp"><label>Compétition (opt.)</label><input type="text" id="m-comp" placeholder="ex: Premier League"></div>
-      <div class="fgrp"><label>Date (opt.)</label><input type="text" id="m-date" placeholder="2026-04-25"></div>
+      <div class="fgrp"><label>Compétition (opt., aide à cibler)</label><input type="text" id="m-comp" placeholder="ex: Premier League"></div>
     </div>
+    <div class="info">Collez la rencontre telle quelle — foot, tennis, MMA, peu importe le sport. La <strong>prochaine</strong> confrontation à venir entre les deux est recherchée automatiquement ; les rencontres passées sont ignorées.</div>
     <div class="fgrp" style="margin-bottom:14px"><label>Marchés</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="m-markets-wrap">
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="h2h" checked style="width:auto"> 1X2</label>
@@ -629,7 +628,7 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ RÉSULTATS ═══════════════ -->
 <section class="sec" id="s-results">
-  <div class="ph"><div class="pt">&#128202; Résultats sauvegardés</div></div>
+  <div class="ph"><div class="pt">&#128202; Historique des opportunités détectées</div><div class="ps">Chaque carte identifiée par le Scan, l'Analyse ciblée ou la Recherche par cote est archivée ici (150 plus récentes), la plus récente en premier. C'est un journal, pas une prédiction — utile pour repasser sur ce qui a été détecté.</div></div>
   <div class="bg" style="margin-bottom:14px">
     <button class="btn bs" onclick="loadResults()">&#128260; Actualiser</button>
     <button class="btn" onclick="clearResults()" style="background:var(--reb);color:var(--re);border:1px solid rgba(239,68,68,.25)">&#128465; Vider</button>
@@ -1518,7 +1517,85 @@ function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am
 //  ANALYSE MANUELLE
 // ═══════════════════════════════════════════════
 function getCheckedMarkets(){return[...document.querySelectorAll('#m-markets-wrap input:checked')].map(c=>c.value);}
-async function doManualAnalyze(){const home=document.getElementById('m-home').value.trim(),away=document.getElementById('m-away').value.trim();if(!home||!away){toast('Entrez les deux équipes','err');return;}const btn=document.getElementById('mbtn');btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Analyse…';document.getElementById('manual-res').innerHTML='<div class="ls"><div class="sp"></div><p>Analyse…</p></div>';try{const d=await api('/api/analyze-match','POST',{matches:[{home,away,competition:document.getElementById('m-comp').value.trim()||null,date:document.getElementById('m-date').value.trim()||null,markets:getCheckedMarkets()}],mode:'deep'});document.getElementById('manual-res').innerHTML=renderManualResults(d.results||[]);toast('Analyse terminée','ok');}catch(e){document.getElementById('manual-res').innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}btn.disabled=false;btn.innerHTML='🎯 Analyser ce match';}
+
+// ─── Analyse manuelle : parsing texte libre + recherche de la prochaine rencontre reelle ───
+function normTeam(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+function teamsMatch(input,real){
+  const a=normTeam(input),b=normTeam(real);
+  if(!a||!b) return false;
+  if(a===b||b.includes(a)||a.includes(b)) return true;
+  const aw=a.split(' ').filter(w=>w.length>=4),bw=new Set(b.split(' ').filter(w=>w.length>=4));
+  return aw.some(w=>bw.has(w));
+}
+function parseMatchupText(text){
+  const seps=[' vs. ',' vs ',' v ',' contre ',' against ',' - ',' – ',' — '];
+  const t=' '+text.trim()+' ', low=t.toLowerCase();
+  for(const sep of seps){
+    const idx=low.indexOf(sep);
+    if(idx>-1){
+      const team1=t.slice(0,idx).trim(),team2=t.slice(idx+sep.length).trim();
+      if(team1&&team2) return[team1,team2];
+    }
+  }
+  return null;
+}
+async function findUpcomingFixture(team1,team2){
+  const leagues=[...new Set(SCAN_LEAGUES_BY_MODE.standard.map(l=>l.sport))].map(sport=>({sport,market:'h2h'}));
+  const now=Date.now(), allGames=[], chunk=6;
+  for(let i=0;i<leagues.length;i+=chunk){
+    const batch=leagues.slice(i,i+chunk);
+    const results=await Promise.allSettled(batch.map(({sport,market})=>
+      api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick').then(d=>{
+        const opps=(d.opportunities||[]); opps.forEach(o=>{o._sport=sport;o.sport=sport;}); return opps;
+      }).catch(()=>[])
+    ));
+    results.forEach(r=>{if(r.status==='fulfilled') allGames.push(...r.value);});
+  }
+  const candidates=allGames.filter(o=>{
+    const st=o.start_time?new Date(o.start_time).getTime():null;
+    if(st!=null&&st<now) return false; // on ignore tout ce qui est deja passe
+    const h=o.home_team||'',a=o.away_team||'';
+    return (teamsMatch(team1,h)&&teamsMatch(team2,a))||(teamsMatch(team1,a)&&teamsMatch(team2,h));
+  });
+  if(!candidates.length) return null;
+  candidates.sort((x,y)=>{
+    const tx=x.start_time?new Date(x.start_time).getTime():Infinity,ty=y.start_time?new Date(y.start_time).getTime():Infinity;
+    return tx-ty;
+  });
+  return candidates[0];
+}
+async function doManualAnalyze(){
+  const raw=document.getElementById('m-matchup').value.trim();
+  if(!raw){toast('Entrez la rencontre (ex: PSG vs Marseille)','err');return;}
+  const parsed=parseMatchupText(raw);
+  if(!parsed){toast('Utilisez un séparateur entre les deux : "vs", "-" ou "contre"','err');return;}
+  const[team1,team2]=parsed;
+  const comp=document.getElementById('m-comp').value.trim();
+  const btn=document.getElementById('mbtn');
+  btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Recherche…';
+  document.getElementById('manual-res').innerHTML='<div class="ls"><div class="sp"></div><p>Recherche de la prochaine rencontre entre '+esc(team1)+' et '+esc(team2)+'…</p></div>';
+  try{
+    const fixture=await findUpcomingFixture(team1,team2);
+    if(fixture){
+      const tier=computeDirection(fixture).tier;
+      if(tier==='avoid'){
+        document.getElementById('manual-res').innerHTML=`<div class="empty"><div class="empty-i">&#128269;</div><div class="empty-t">Rencontre trouvée, mais aucun signal fiable</div><div class="empty-s">${esc(fixture.home_team)} vs ${esc(fixture.away_team)}${fixture.start_time?' — '+fmtDate(fixture.start_time):''} — la valeur détectée est insuffisante pour être affichée avec confiance.</div></div>`;
+        toast('Rencontre trouvée, pas de signal fiable','');
+      }else{
+        document.getElementById('manual-res').innerHTML=`<div class="info" style="margin-bottom:10px">&#9989; Rencontre réelle trouvée — cotes bookmakers, prochaine confrontation programmée (le passé est ignoré).</div><div class="opp-grid">${renderDirectionCard(fixture,0,'manual')}</div>`;
+        toast('Rencontre réelle trouvée','ok');
+      }
+    }else{
+      const d=await api('/api/analyze-match','POST',{matches:[{home:team1,away:team2,competition:comp||null,date:null,markets:getCheckedMarkets()}],mode:'deep'});
+      document.getElementById('manual-res').innerHTML='<div class="warn" style="margin-bottom:10px">&#9888;&#65039; Aucune cote réelle trouvée pour ce match dans nos ligues couvertes — analyse IA qualitative ci-dessous (moins fiable qu\'une carte à cote réelle, à prendre comme piste de réflexion, pas comme un signal chiffré).</div>'+renderManualResults(d.results||[]);
+      toast('Analyse IA (pas de cote réelle disponible)','');
+    }
+  }catch(e){
+    document.getElementById('manual-res').innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">${esc(e.message)}</div></div>`;
+    toast('Erreur: '+e.message,'err');
+  }
+  btn.disabled=false;btn.innerHTML='🎯 Analyser ce match';
+}
 function loadFile(){const file=document.getElementById('m-file').files[0];if(!file)return;const r=new FileReader();r.onload=e=>document.getElementById('m-csv').value=e.target.result;r.readAsText(file);}
 async function doCSVAnalyze(){const raw=document.getElementById('m-csv').value.trim();if(!raw){toast('Aucune donnée','err');return;}const matches=raw.split('\n').filter(l=>l.trim()).map(l=>{const p=l.split(';').map(s=>s.trim());return{home:p[0],away:p[1],competition:p[2]||null,date:p[3]||null,markets:getCheckedMarkets()};}).filter(m=>m.home&&m.away);if(!matches.length){toast('Format invalide','err');return;}const btn=document.getElementById('csvbtn');btn.disabled=true;btn.innerHTML=`<span class="sp" style="width:12px;height:12px;border-width:2px"></span> ${matches.length} match(s)…`;document.getElementById('manual-res').innerHTML=`<div class="ls"><div class="sp"></div><p>Analyse de ${matches.length} match(s)…</p></div>`;try{const d=await api('/api/analyze-match','POST',{matches,mode:'deep'});document.getElementById('manual-res').innerHTML=renderManualResults(d.results||[]);toast(matches.length+' analysé(s)','ok');}catch(e){document.getElementById('manual-res').innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}btn.disabled=false;btn.innerHTML='📂 Analyser la liste';}
 function renderManualResults(results){if(!results.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucun résultat</div></div>';return results.map(r=>renderManualCard(r)).join('');}
@@ -1660,7 +1737,7 @@ async function loadUpcoming(){
 //  RÉSULTATS
 // ═══════════════════════════════════════════════
 async function clearResults(){if(!confirm('Vider tous les résultats ?'))return;try{await api('/api/results','DELETE');document.getElementById('res-cnt').innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Résultats vidés</div></div>';toast('Résultats vidés','ok');}catch(e){toast('Erreur: '+e.message,'err');}}
-async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';try{const d=await api('/api/results');if(!d.opportunities?.length){cnt.innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Aucun résultat sauvegardé</div></div>';return;}cnt.innerHTML='<div style="font-family:var(--mo);font-size:10px;color:var(--dm);text-align:right;margin-bottom:9px">'+fmtDT(d.analyzed_at)+'</div>'+renderOpps(d.opportunities);}catch(e){cnt.innerHTML=`<div class="card"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;}}
+async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';try{const d=await api('/api/results');if(!d.opportunities?.length){cnt.innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Aucune opportunité archivée pour l\'instant</div><div class="empty-s">Lancez un Scan ou une Analyse ciblée — les cartes détectées s\'accumuleront ici.</div></div>';return;}const tierCount={diamond:0,strong:0,moderate:0};d.opportunities.forEach(o=>{const t=computeDirection(o).tier;if(tierCount[t]!=null)tierCount[t]++;});cnt.innerHTML=`<div class="sbar"><div class="sdot"></div><span><strong>${d.opportunities.length}</strong> archivée(s) — &#128142; ${tierCount.diamond} · &#9989; ${tierCount.strong} · &#128992; ${tierCount.moderate}</span><span style="margin-left:auto;color:var(--dm)">${fmtDT(d.analyzed_at)}</span></div>`+renderOpps(d.opportunities);}catch(e){cnt.innerHTML=`<div class="card"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;}}
 
 // ═══════════════════════════════════════════════
 //  SETTINGS
@@ -2242,7 +2319,7 @@ let tickerPaused = false;
 function tickerToggle() {
   tickerPaused = !tickerPaused;
   const btn = document.getElementById('ticker-pause-btn');
-  if (btn) btn.textContent = tickerPaused ? '&#9654; Play' : '&#9208; Pause';
+  if (btn) btn.innerHTML = tickerPaused ? '&#9654; Play' : '&#9208; Pause';
 }
 
 async function loadTicker() {
@@ -2632,7 +2709,7 @@ function renderDirectionCard(o, i, containerId) {
   }[tier];
 
   const sport = o.sport || o._sport || '';
-  const ico = sport.includes('soccer')?'&#9917;':sport.includes('basket')?'&#127936;':sport.includes('tennis')?'&#127934;':sport.includes('mma')||sport.includes('box')?'&#129354;':sport.includes('hockey')?'&#127944;':sport.includes('rugby')?'&#127945;':sport.includes('baseball')?'&#9918;':sport.includes('football')?'&#127944;':'&#127942;';
+  const ico = sport.includes('soccer')?'&#9917;':sport.includes('basket')?'&#127936;':sport.includes('tennis')?'&#127934;':sport.includes('mma')||sport.includes('box')?'&#129354;':sport.includes('hockey')?'&#127954;':sport.includes('rugby')?'&#127945;':sport.includes('baseball')?'&#9918;':sport.includes('football')?'&#127944;':'&#127942;';
   const mktLabel = {h2h:'1X2',totals:'O/U',btts:'BTTS',double_chance:'DC',spreads:'HC'}[o.market]||(o.market||'');
   const selDisplay = translateSelection(o.selection, o.market, o.home_team, o.away_team, o.line!=null?o.line:null);
   const bms = o.all_bookmakers||[];
