@@ -69,7 +69,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--hd);font-size:13px;l
   .m-pro-con{grid-template-columns:1fr!important}
   .m-params{grid-template-columns:1fr 1fr!important}
   .tracker-add-form{grid-template-columns:1fr 1fr!important}
-  .bj-cards-grid{grid-template-columns:repeat(4,1fr)!important}
+  .bj-suit-cells{grid-template-columns:repeat(7,1fr)!important}
   .bj-decision-btns{grid-template-columns:1fr 1fr!important}
   .bj-counters{grid-template-columns:1fr 1fr!important}
 }
@@ -363,13 +363,16 @@ a{color:var(--neon);text-decoration:none}
 .bj-conf-low{background:var(--amb);color:var(--am)}
 .bj-conf-med{background:rgba(0,212,255,.1);color:var(--neon)}
 .bj-conf-high{background:var(--grb);color:var(--gr)}
-.bj-cards-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:10px}
+.bj-suit-row{margin-bottom:12px}
+.bj-suit-label{font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mo);font-weight:700}
+.bj-suit-cells{display:grid;grid-template-columns:repeat(13,1fr);gap:5px}
 .bj-card-btn{aspect-ratio:1;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;font-family:var(--hd);user-select:none;-webkit-tap-highlight-color:transparent}
 .bj-card-btn:active{transform:scale(.93)}
 .bj-card-btn:hover{border-color:var(--neon);background:rgba(0,212,255,.06)}
-.bj-card-btn .bjc-main{font-size:20px;font-weight:800;color:var(--tx)}
-.bj-card-btn .bjc-fr{font-size:8px;color:var(--dm);font-family:var(--mo);margin-top:1px}
-.bj-card-btn .bjc-val{font-size:8px;font-family:var(--mo);margin-top:1px;font-weight:700}
+.bj-card-btn .bjc-main{font-size:14px;font-weight:800;color:var(--tx)}
+.bj-card-btn.bj-suit-red .bjc-main{color:#ef4444}
+.bj-card-btn.bj-suit-black .bjc-main{color:var(--tx)}
+.bj-card-btn .bjc-val{font-size:7px;font-family:var(--mo);margin-top:1px;font-weight:700}
 .bj-card-btn.bjc-plus .bjc-val{color:var(--gr)}
 .bj-card-btn.bjc-zero .bjc-val{color:var(--mu)}
 .bj-card-btn.bjc-minus .bjc-val{color:var(--re)}
@@ -4561,7 +4564,12 @@ const _cardsQueuedThisSession = new Map();
 
 function renderDirectionCard(o, i, containerId) {
   const s   = o.score || {};
-  const res = computeDirection(o);
+  // Réutilise le résultat déjà calculé par doLiveScan (mode standard, ou mode
+  // expert si le repli anti-écran-vide a été nécessaire) plutôt que de le
+  // recalculer avec les options par défaut : sinon une carte retenue en mode
+  // expert pouvait être rejetée à l'affichage (recalcul en mode standard),
+  // ce qui produisait un compteur "12 opportunités" avec une grille vide.
+  const res = o._res || computeDirection(o);
 
   if(res.shouldDisplay && res.direction==='play') {
     const _cid = makeBetCardId(o, o.start_time||o.commence_time||new Date().toISOString());
@@ -4949,6 +4957,18 @@ const BJ_CARD_ORDER  = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const BJ_CARD_VALUES = { A:-1, '2':1,'3':1,'4':1,'5':1,'6':1, '7':0,'8':0,'9':0, '10':-1, J:-1, Q:-1, K:-1 };
 const BJ_CARD_FR     = { A:'As', '2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9','10':'10', J:'Valet', Q:'Dame', K:'Roi' };
 const BJ_CARD_BJVALUE= { A:11, '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10, J:10, Q:10, K:10 };
+// Les 4 couleurs — chaque carte du sabot est désormais représentée individuellement
+// (rang + couleur), étalée à l'écran, pour une sélection carte par carte comme
+// demandé ("le as de cœur, puis le 2 de cœur, etc."). La valeur Hi-Lo ne dépend
+// que du rang (la couleur n'influence jamais le comptage).
+const BJ_SUITS = [
+  { key:'hearts',   symbol:'♥', label:'Cœur',   color:'red'   },
+  { key:'diamonds', symbol:'♦', label:'Carreau', color:'red'   },
+  { key:'clubs',    symbol:'♣', label:'Trèfle',  color:'black' },
+  { key:'spades',   symbol:'♠', label:'Pique',   color:'black' },
+];
+const BJ_SUIT_SYMBOL = { hearts:'♥', diamonds:'♦', clubs:'♣', spades:'♠' };
+function bjCardKey(rank, suit){ return rank+'_'+(suit||''); }
 
 const BJ_STORAGE_KEY = 'pgi_bj_session_v1';
 let BJ_STATE = null;
@@ -4962,8 +4982,9 @@ function bjDefaultState() {
     cardsSeen: [],
     redoStack: [],
     correctionsWindow: [],
-    // selectedCards : { [rang]: idDeLaCarteAssociée } — permet de savoir quelle
-    // instance précise de cardsSeen désélectionner quand on reclique sur un rang.
+    // selectedCards : { [rang_couleur]: idDeLaCarteAssociée } — une entrée par
+    // carte précise (ex: "A_hearts") ; permet de savoir quelle instance exacte
+    // de cardsSeen désélectionner quand on reclique sur cette carte précise.
     selectedCards: {},
     audio: { enabled:false, autoValidate:false, pending:[] },
     createdAt: new Date().toISOString(),
@@ -5013,17 +5034,25 @@ function bjNewSession(){
 }
 
 // ── Population UI statique ───────────────────────────────────────────
+// Grille étalée : 4 rangées (une par couleur), 13 cartes par rangée — les 52
+// cartes sont toutes visibles et sélectionnables en permanence, comme demandé.
 function bjPopulateCardsGrid(){
   const grid = document.getElementById('bj-cards-grid');
   if(!grid || grid.dataset.filled) return;
-  grid.innerHTML = BJ_CARD_ORDER.map(c=>{
-    const v = BJ_CARD_VALUES[c];
-    const cls = v>0?'bjc-plus':v<0?'bjc-minus':'bjc-zero';
-    const vTxt = v>0?'+1':v<0?'-1':'0';
-    return `<div class="bj-card-btn ${cls}" data-card="${c}" onclick="bjOnCardClick('${c}', this)">
-      <div class="bjc-main">${c}</div>
-      <div class="bjc-fr">${BJ_CARD_FR[c]}</div>
-      <div class="bjc-val">${vTxt}</div>
+  grid.innerHTML = BJ_SUITS.map(s => {
+    const cells = BJ_CARD_ORDER.map(rank=>{
+      const v = BJ_CARD_VALUES[rank];
+      const cls = v>0?'bjc-plus':v<0?'bjc-minus':'bjc-zero';
+      const vTxt = v>0?'+1':v<0?'-1':'0';
+      const key = bjCardKey(rank, s.key);
+      return `<div class="bj-card-btn bj-suit-${s.color} ${cls}" data-card="${rank}" data-suit="${s.key}" data-cardkey="${key}" onclick="bjOnCardClick('${rank}','${s.key}', this)">
+        <div class="bjc-main">${rank}${s.symbol}</div>
+        <div class="bjc-val">${vTxt}</div>
+      </div>`;
+    }).join('');
+    return `<div class="bj-suit-row">
+      <div class="bj-suit-label">${s.symbol} ${s.label}</div>
+      <div class="bj-suit-cells">${cells}</div>
     </div>`;
   }).join('');
   grid.dataset.filled = '1';
@@ -5047,27 +5076,30 @@ function bjSyncConfigInputs(){
   bjSelectRisk(cfg.risk, true);
 }
 
-// ── Saisie des cartes — sélection persistante par rang ────────────────
-// Comportement demandé : clic sur une carte non sélectionnée = elle est
-// ajoutée au comptage et entourée visuellement ; clic sur une carte déjà
-// sélectionnée = elle est retirée du comptage et la bordure disparaît.
-// Plusieurs cartes de rangs différents peuvent rester sélectionnées en même
-// temps, sans délai ni double-clic requis.
-function bjOnCardClick(card, el){
+// ── Saisie des cartes — sélection persistante, carte par carte (rang+couleur) ──
+// Comportement demandé : clic sur une carte non sélectionnée (ex: As de Cœur) =
+// elle est ajoutée au comptage et entourée visuellement ; clic à nouveau sur
+// cette même carte précise = elle est retirée du comptage et la bordure
+// disparaît. Chaque carte (rang+couleur) a son propre état, donc plusieurs
+// cartes différentes — y compris plusieurs rangs de la même couleur, ou la
+// même valeur dans des couleurs différentes — peuvent rester sélectionnées en
+// même temps, sans délai ni double-clic requis.
+function bjOnCardClick(rank, suit, el){
   if(!BJ_STATE) return;
   if(!BJ_STATE.selectedCards) BJ_STATE.selectedCards = {};
 
-  const existingId = BJ_STATE.selectedCards[card];
+  const key = bjCardKey(rank, suit);
+  const existingId = BJ_STATE.selectedCards[key];
   if(existingId){
     // Désélection : retire précisément cette instance du comptage.
     bjRemoveCard(existingId);
   } else {
-    // Sélection : ajoute une carte et mémorise son id pour pouvoir la
-    // désélectionner exactement au prochain clic sur ce même rang.
-    const entry = { id: 'c'+Date.now()+Math.random().toString(36).slice(2,6), card, source:'manual', at:new Date().toISOString() };
+    // Sélection : ajoute cette carte précise et mémorise son id pour pouvoir la
+    // désélectionner exactement au prochain clic sur cette même carte.
+    const entry = { id: 'c'+Date.now()+Math.random().toString(36).slice(2,6), card:rank, suit, source:'manual', at:new Date().toISOString() };
     BJ_STATE.cardsSeen.push(entry);
     BJ_STATE.redoStack = [];
-    BJ_STATE.selectedCards[card] = entry.id;
+    BJ_STATE.selectedCards[key] = entry.id;
     bjSaveState();
     bjRenderAll();
   }
@@ -5080,15 +5112,15 @@ function bjSyncCardButtonStates(){
   const grid = document.getElementById('bj-cards-grid');
   if(!grid || !BJ_STATE) return;
   grid.querySelectorAll('.bj-card-btn').forEach(btn=>{
-    const card = btn.dataset.card;
-    const isSel = !!(BJ_STATE.selectedCards && BJ_STATE.selectedCards[card]);
+    const key = btn.dataset.cardkey;
+    const isSel = !!(BJ_STATE.selectedCards && BJ_STATE.selectedCards[key]);
     btn.classList.toggle('selected', isSel);
   });
 }
 
-function bjAddCard(card, source){
+function bjAddCard(card, source, suit){
   if(!BJ_STATE || !BJ_CARD_VALUES.hasOwnProperty(card)) return;
-  const entry = { id: 'c'+Date.now()+Math.random().toString(36).slice(2,6), card, source: source||'manual', at: new Date().toISOString() };
+  const entry = { id: 'c'+Date.now()+Math.random().toString(36).slice(2,6), card, suit: suit||null, source: source||'manual', at: new Date().toISOString() };
   BJ_STATE.cardsSeen.push(entry);
   BJ_STATE.redoStack = [];
   bjSaveState();
@@ -5101,9 +5133,10 @@ function bjRemoveCard(id){
   const removed = BJ_STATE.cardsSeen[idx];
   BJ_STATE.cardsSeen.splice(idx,1);
   // Nettoie la sélection persistante si l'instance retirée est celle qui
-  // représentait actuellement ce rang dans la grille.
-  if(BJ_STATE.selectedCards && BJ_STATE.selectedCards[removed.card] === id){
-    delete BJ_STATE.selectedCards[removed.card];
+  // représentait actuellement cette carte précise (rang+couleur) dans la grille.
+  const key = bjCardKey(removed.card, removed.suit);
+  if(BJ_STATE.selectedCards && BJ_STATE.selectedCards[key] === id){
+    delete BJ_STATE.selectedCards[key];
   }
   bjTrackCorrection();
   bjSaveState();
@@ -5113,8 +5146,9 @@ function bjUndo(){
   if(!BJ_STATE || !BJ_STATE.cardsSeen.length){ toast('Aucune carte à annuler','err'); return; }
   const removed = BJ_STATE.cardsSeen.pop();
   BJ_STATE.redoStack.push(removed);
-  if(BJ_STATE.selectedCards && BJ_STATE.selectedCards[removed.card] === removed.id){
-    delete BJ_STATE.selectedCards[removed.card];
+  const key = bjCardKey(removed.card, removed.suit);
+  if(BJ_STATE.selectedCards && BJ_STATE.selectedCards[key] === removed.id){
+    delete BJ_STATE.selectedCards[key];
   }
   bjTrackCorrection();
   bjSaveState();
@@ -5645,7 +5679,11 @@ function bjRenderHistory(){
   const cards = BJ_STATE.cardsSeen;
   if(!cards.length){ wrap.innerHTML = '<div class="bj-hist-empty">Aucune carte enregistrée.</div>'; }
   else {
-    wrap.innerHTML = cards.map(c=>`<span class="bj-hist-chip" title="Cliquer pour supprimer" onclick="bjRemoveCard('${c.id}')">${esc(c.card)}</span>`).join('');
+    wrap.innerHTML = cards.map(c=>{
+      const suitSym = BJ_SUIT_SYMBOL[c.suit] || '';
+      const suitColorStyle = (c.suit==='hearts'||c.suit==='diamonds') ? 'color:#ef4444' : '';
+      return `<span class="bj-hist-chip" title="Cliquer pour supprimer" onclick="bjRemoveCard('${c.id}')">${esc(c.card)}<span style="${suitColorStyle}">${suitSym}</span></span>`;
+    }).join('');
   }
   const total = bjTotalCardsInShoe();
   const fillPct = total ? Math.min(100, Math.round(cards.length/total*100)) : 0;
@@ -5762,7 +5800,7 @@ function bjSelectRisk(risk, silent){
 }
 
 // ── Alias de compatibilité ─────────────────────────────────────────────
-function addCard(card){ bjOnCardClick(card); }
+function addCard(card){ bjAddCard(card); }
 function removeCard(cardId){ bjRemoveCard(cardId); }
 function undoLastCard(){ bjUndo(); }
 function redoCard(){ bjRedo(); }
