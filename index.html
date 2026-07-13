@@ -940,8 +940,9 @@ function cSb(){ document.getElementById('sb').classList.remove('open'); document
 //  SCAN CACHE
 // ═══════════════════════════════════════════════
 const SCAN_CACHE_TTL = 45*60*1000;
-function getScanCache(k){try{const r=localStorage.getItem('pgi_scan_'+k);if(!r)return null;const{data,ts}=JSON.parse(r);if(Date.now()-ts>SCAN_CACHE_TTL){localStorage.removeItem('pgi_scan_'+k);return null;}return{data,age:Math.round((Date.now()-ts)/60000)};}catch(_){return null;}}
-function setScanCache(k,d){try{localStorage.setItem('pgi_scan_'+k,JSON.stringify({data:d,ts:Date.now()}));}catch(_){}}
+const SCAN_CACHE_VERSION = 'v2'; // incrementer a chaque changement de logique de scan/scoring pour invalider les caches obsoletes cote client
+function getScanCache(k){try{const r=localStorage.getItem('pgi_scan_'+SCAN_CACHE_VERSION+'_'+k);if(!r)return null;const{data,ts}=JSON.parse(r);if(Date.now()-ts>SCAN_CACHE_TTL){localStorage.removeItem('pgi_scan_'+SCAN_CACHE_VERSION+'_'+k);return null;}return{data,age:Math.round((Date.now()-ts)/60000)};}catch(_){return null;}}
+function setScanCache(k,d){try{localStorage.setItem('pgi_scan_'+SCAN_CACHE_VERSION+'_'+k,JSON.stringify({data:d,ts:Date.now()}));}catch(_){}}
 function clearScanCache(){try{Object.keys(localStorage).filter(k=>k.startsWith('pgi_scan_')).forEach(k=>localStorage.removeItem(k));}catch(_){}toast('Cache vidé','ok');}
 
 // ═══════════════════════════════════════════════
