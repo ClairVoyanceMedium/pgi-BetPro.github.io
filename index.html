@@ -382,7 +382,6 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni on" data-s="dash"      onclick="go('dash')"    ><span class="ni-i">&#9889;</span>Tableau de bord</div>
     <div class="ni"    data-s="manual"    onclick="go('manual')"  ><span class="ni-i">&#127919;</span>Analyse manuelle</div>
     <div class="ni"    data-s="live"      onclick="go('live')"    ><span class="ni-i">&#128308;</span>Matchs Live / À venir</div>
-    <div class="ni"    data-s="oddsearch" onclick="go('oddsearch')"><span class="ni-i">&#128270;</span>Recherche par cote</div>
     <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats</div>
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie Gagnante</div>
@@ -530,49 +529,6 @@ a{color:var(--neon);text-decoration:none}
     <div class="bg"><button class="btn bp" id="csvbtn" onclick="doCSVAnalyze()">&#128194; Analyser la liste</button></div>
   </div>
   <div id="manual-res"></div>
-</section>
-
-<!-- ═══════════════ RECHERCHE PAR COTE CIBLE ═══════════════ -->
-<section class="sec" id="s-oddsearch">
-  <div class="ph"><div class="pt">&#128270; Recherche par cote cible</div><div class="ps">Demandez une cote précise (ex : 2.00) — l'outil scanne les matchs et ne garde que les sélections proches de votre cible.</div></div>
-  <div class="card">
-    <div class="ct">Paramètres de recherche</div>
-    <div class="fg">
-      <div class="fgrp"><label>Cote cible</label><input type="number" id="os-target" value="2.00" step="0.05" min="1.01" max="20"></div>
-      <div class="fgrp"><label>Tolérance (&#177;)</label>
-        <select id="os-tol">
-          <option value="0.10">&#177; 0.10</option>
-          <option value="0.20" selected>&#177; 0.20</option>
-          <option value="0.30">&#177; 0.30</option>
-          <option value="0.50">&#177; 0.50</option>
-        </select>
-      </div>
-      <div class="fgrp"><label>Sport</label>
-        <select id="os-sport">
-          <option value="all">&#127757; Tous les sports</option>
-          <option value="soccer">&#9917; Football</option>
-          <option value="basketball">&#127936; Basketball</option>
-          <option value="tennis">&#127934; Tennis</option>
-          <option value="icehockey">&#127944; Hockey</option>
-          <option value="baseball">&#9918; Baseball</option>
-          <option value="mma">&#129354; MMA/Boxe</option>
-          <option value="americanfootball">&#127944; NFL</option>
-          <option value="rugby">&#127945; Rugby</option>
-        </select>
-      </div>
-      <div class="fgrp"><label>Score minimum</label>
-        <select id="os-minscore">
-          <option value="0">Tout (0+)</option>
-          <option value="50" selected>&#128992; 50+</option>
-          <option value="65">&#127803; 65+</option>
-          <option value="75">&#127804; 75+ &#11088;</option>
-        </select>
-      </div>
-    </div>
-    <div class="info">Le scan interroge les mêmes ligues que le Scan Live (mode Standard), puis ne garde que les sélections dont la cote tombe dans votre fourchette.</div>
-    <div class="bg"><button class="btn bp" id="os-btn" onclick="doOddsSearch()"><span>&#128270;</span> Rechercher</button></div>
-  </div>
-  <div id="oddsearch-res"></div>
 </section>
 
 <!-- ═══════════════ LIVE ═══════════════ -->
@@ -1003,8 +959,6 @@ const SCAN_LEAGUES_BY_MODE = {
     {sport:'soccer_brazil_campeonato',market:'h2h'},
     // Autres
     {sport:'basketball_nba',market:'h2h'},
-    {sport:'basketball_wnba',market:'h2h'},
-    {sport:'basketball_nba_summer_league',market:'h2h'},
     {sport:'tennis_atp',market:'h2h'},
     {sport:'mma_mixed_martial_arts',market:'h2h'},
     {sport:'icehockey_nhl',market:'h2h'},
@@ -1032,8 +986,6 @@ const SCAN_LEAGUES_BY_MODE = {
     // Basket
     {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'spreads'},
     {sport:'basketball_euroleague',market:'h2h'},
-    {sport:'basketball_wnba',market:'h2h'},{sport:'basketball_wnba',market:'spreads'},
-    {sport:'basketball_nba_summer_league',market:'h2h'},
     // Tennis
     {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
     {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
@@ -1069,9 +1021,6 @@ const SCAN_LEAGUES_BY_MODE = {
     // Basket
     {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'spreads'},
     {sport:'basketball_euroleague',market:'h2h'},
-    {sport:'basketball_wnba',market:'h2h'},{sport:'basketball_wnba',market:'spreads'},
-    {sport:'basketball_nba_summer_league',market:'h2h'},
-    {sport:'basketball_ncaab',market:'h2h'},
     // Tennis
     {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
     {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
@@ -1189,74 +1138,6 @@ function renderScanResults(opps, cnt, cacheAge) {
     <div class="opp-grid">
       ${opps.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('')}
     </div>`;
-}
-
-// ═══════════════════════════════════════════════
-//  RECHERCHE PAR COTE CIBLE
-// ═══════════════════════════════════════════════
-async function doOddsSearch() {
-  const target = parseFloat(document.getElementById('os-target').value);
-  const tol = parseFloat(document.getElementById('os-tol').value);
-  const sportFilter = document.getElementById('os-sport').value;
-  const minScore = parseInt(document.getElementById('os-minscore').value);
-  const btn = document.getElementById('os-btn');
-  const cnt = document.getElementById('oddsearch-res');
-
-  if (!target || target < 1.01) { toast('Cote cible invalide', 'err'); return; }
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="sp" style="width:13px;height:13px;border-width:2px"></span> Recherche…';
-  cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Recherche des cotes proches de '+target.toFixed(2)+'…</p></div>';
-
-  const leagues = SCAN_LEAGUES_BY_MODE.standard;
-  const toScan = sportFilter === 'all' ? leagues : leagues.filter(l => matchesSportFilter(l.sport, sportFilter));
-
-  const allOpps = [];
-  const chunk = 6;
-  for (let i = 0; i < toScan.length; i += chunk) {
-    const batch = toScan.slice(i, i + chunk);
-    const results = await Promise.allSettled(batch.map(({sport, market}) =>
-      api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick&min_score='+minScore).then(d => {
-        const opps = (d.opportunities || []);
-        opps.forEach(o => { o._sport = sport; o.sport = sport; });
-        return opps;
-      }).catch(() => [])
-    ));
-    results.forEach(r => { if (r.status === 'fulfilled') allOpps.push(...r.value); });
-  }
-
-  // Dédoublonner
-  const seen = new Set();
-  const deduped = allOpps.filter(o => {
-    const k = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'')+'|'+(o.selection||'');
-    if (seen.has(k)) return false; seen.add(k); return true;
-  });
-
-  // Ne garder que les sélections dont la cote est proche de la cible
-  const matched = deduped.filter(o => o.odds && Math.abs(o.odds - target) <= tol);
-  matched.forEach(o => { o._dir = computeDirection(o).direction; o._oddsDelta = Math.abs(o.odds - target); });
-  const filtered = matched.filter(o => o._dir === 'play');
-  filtered.sort((a,b) => a._oddsDelta - b._oddsDelta || ((b.score?.total||0) - (a.score?.total||0)));
-
-  renderOddsSearchResults(filtered, cnt, target, tol);
-  loadQuotas();
-
-  btn.disabled = false;
-  btn.innerHTML = '<span>&#128270;</span> Rechercher';
-}
-
-function renderOddsSearchResults(opps, cnt, target, tol) {
-  if (!opps.length) {
-    cnt.innerHTML = '<div class="empty"><div class="empty-i">&#128269;</div><div class="empty-t">Aucune sélection trouvée pour cette cote</div><div class="empty-s">Essayez une tolérance plus large, un autre sport, ou baissez le score minimum.</div></div>';
-    return;
-  }
-  cnt.innerHTML = `
-    <div class="sbar">
-      <div class="sdot"></div>
-      <span><strong>${opps.length}</strong> sélection(s) autour de la cote ${target.toFixed(2)} (&#177;${tol})</span>
-      <span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span>
-    </div>
-    <div class="opp-grid">${opps.map((o,i)=>renderDirectionCard(o,i,'oddsearch-res')).join('')}</div>`;
 }
 
 // ═══════════════════════════════════════════════
@@ -2682,3 +2563,4 @@ function applyScanFilters() {
 </script>
 </body>
 </html>
+
