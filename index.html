@@ -382,6 +382,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni on" data-s="dash"      onclick="go('dash')"    ><span class="ni-i">&#9889;</span>Tableau de bord</div>
     <div class="ni"    data-s="manual"    onclick="go('manual')"  ><span class="ni-i">&#127919;</span>Analyse manuelle</div>
     <div class="ni"    data-s="live"      onclick="go('live')"    ><span class="ni-i">&#128308;</span>Matchs Live / À venir</div>
+    <div class="ni"    data-s="oddsearch" onclick="go('oddsearch')"><span class="ni-i">&#128270;</span>Recherche par cote</div>
     <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats</div>
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie Gagnante</div>
@@ -477,10 +478,12 @@ a{color:var(--neon);text-decoration:none}
     <div class="fg">
       <div class="fgrp"><label>Championnat</label>
         <select id="sel-sport">
-          <optgroup label="&#9917; Football Europe"><option value="soccer_epl">&#127468;&#127463; Premier League</option><option value="soccer_france_ligue1">&#127467;&#127479; Ligue 1</option><option value="soccer_spain_la_liga">&#127466;&#127480; La Liga</option><option value="soccer_germany_bundesliga">&#127465;&#127466; Bundesliga</option><option value="soccer_italy_serie_a">&#127470;&#127481; Serie A</option><option value="soccer_ucl">&#11088; Champions League</option><option value="soccer_uel">&#127995; Europa League</option></optgroup>
-          <optgroup label="&#127936; Basketball"><option value="basketball_nba">&#127936; NBA</option><option value="basketball_euroleague">&#127936; EuroLeague</option></optgroup>
-          <optgroup label="&#127934; Tennis"><option value="tennis_atp">&#127934; ATP Tour</option><option value="tennis_wta">&#127934; WTA Tour</option><option value="tennis_atp_french_open">&#127934; Roland Garros</option></optgroup>
-          <optgroup label="&#127945; Rugby"><option value="rugbyunion_top14">&#127945; Top 14</option><option value="rugbyunion_premiership">&#127945; Premiership</option></optgroup>
+          <optgroup label="&#127942; Coupe du Monde"><option value="soccer_fifa_world_cup">&#127942; Coupe du Monde 2026</option></optgroup>
+          <optgroup label="&#9917; Football Europe"><option value="soccer_epl">&#127468;&#127463; Premier League</option><option value="soccer_france_ligue_one">&#127467;&#127479; Ligue 1</option><option value="soccer_spain_la_liga">&#127466;&#127480; La Liga</option><option value="soccer_germany_bundesliga">&#127465;&#127466; Bundesliga</option><option value="soccer_italy_serie_a">&#127470;&#127481; Serie A</option><option value="soccer_uefa_champs_league">&#11088; Champions League</option><option value="soccer_uefa_europa_league">&#127995; Europa League</option></optgroup>
+          <optgroup label="&#9917; Football Ailleurs"><option value="soccer_usa_mls">&#127482;&#127480; MLS</option><option value="soccer_brazil_campeonato">&#127463;&#127479; Brasileirão</option><option value="soccer_argentina_primera_division">&#127462;&#127479; Primera División</option></optgroup>
+          <optgroup label="&#127936; Basketball"><option value="basketball_nba">&#127936; NBA</option><option value="basketball_wnba">&#127936; WNBA</option><option value="basketball_nba_summer_league">&#127936; NBA Summer League</option><option value="basketball_euroleague">&#127936; EuroLeague</option></optgroup>
+          <optgroup label="&#127934; Tennis"><option value="tennis_atp_wimbledon">&#127934; ATP Wimbledon</option><option value="tennis_wta_wimbledon">&#127934; WTA Wimbledon</option><option value="tennis_atp_canadian_open">&#127934; ATP Canada</option><option value="tennis_wta_canadian_open">&#127934; WTA Canada</option></optgroup>
+          <optgroup label="&#127945; Rugby"><option value="rugbyunion_six_nations">&#127945; Six Nations</option></optgroup>
           <optgroup label="Autres"><option value="icehockey_nhl">&#127944; NHL</option><option value="baseball_mlb">&#9918; MLB</option><option value="americanfootball_nfl">&#127944; NFL</option><option value="mma_mixed_martial_arts">&#129354; MMA/UFC</option></optgroup>
         </select>
       </div>
@@ -529,6 +532,49 @@ a{color:var(--neon);text-decoration:none}
     <div class="bg"><button class="btn bp" id="csvbtn" onclick="doCSVAnalyze()">&#128194; Analyser la liste</button></div>
   </div>
   <div id="manual-res"></div>
+</section>
+
+<!-- ═══════════════ RECHERCHE PAR COTE CIBLE ═══════════════ -->
+<section class="sec" id="s-oddsearch">
+  <div class="ph"><div class="pt">&#128270; Recherche par cote cible</div><div class="ps">Demandez une cote précise (ex : 2.00) — l'outil scanne les matchs et ne garde que les sélections proches de votre cible.</div></div>
+  <div class="card">
+    <div class="ct">Paramètres de recherche</div>
+    <div class="fg">
+      <div class="fgrp"><label>Cote cible</label><input type="number" id="os-target" value="2.00" step="0.05" min="1.01" max="20"></div>
+      <div class="fgrp"><label>Tolérance (&#177;)</label>
+        <select id="os-tol">
+          <option value="0.10">&#177; 0.10</option>
+          <option value="0.20" selected>&#177; 0.20</option>
+          <option value="0.30">&#177; 0.30</option>
+          <option value="0.50">&#177; 0.50</option>
+        </select>
+      </div>
+      <div class="fgrp"><label>Sport</label>
+        <select id="os-sport">
+          <option value="all">&#127757; Tous les sports</option>
+          <option value="soccer">&#9917; Football</option>
+          <option value="basketball">&#127936; Basketball</option>
+          <option value="tennis">&#127934; Tennis</option>
+          <option value="icehockey">&#127944; Hockey</option>
+          <option value="baseball">&#9918; Baseball</option>
+          <option value="mma">&#129354; MMA/Boxe</option>
+          <option value="americanfootball">&#127944; NFL</option>
+          <option value="rugby">&#127945; Rugby</option>
+        </select>
+      </div>
+      <div class="fgrp"><label>Score minimum</label>
+        <select id="os-minscore">
+          <option value="0">Tout (0+)</option>
+          <option value="50" selected>&#128992; 50+</option>
+          <option value="65">&#127803; 65+</option>
+          <option value="75">&#127804; 75+ &#11088;</option>
+        </select>
+      </div>
+    </div>
+    <div class="info">Le scan interroge les mêmes ligues que le Scan Live (mode Standard), puis ne garde que les sélections dont la cote tombe dans votre fourchette.</div>
+    <div class="bg"><button class="btn bp" id="os-btn" onclick="doOddsSearch()"><span>&#128270;</span> Rechercher</button></div>
+  </div>
+  <div id="oddsearch-res"></div>
 </section>
 
 <!-- ═══════════════ LIVE ═══════════════ -->
@@ -926,112 +972,115 @@ function filterScanCards(){document.querySelectorAll('#scan-res [data-sport-key]
 const ALL_SOCCER_LEAGUES = [
   // Ligues nationales actives
   {sport:'soccer_epl',market:'h2h'},{sport:'soccer_epl',market:'totals'},
-  {sport:'soccer_france_ligue1',market:'h2h'},{sport:'soccer_france_ligue1',market:'btts'},
+  {sport:'soccer_france_ligue_one',market:'h2h'},{sport:'soccer_france_ligue_one',market:'btts'},
   {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'h2h'},
   {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_netherlands_eredivisie',market:'h2h'},
   {sport:'soccer_portugal_primeira_liga',market:'h2h'},
   // Coupes Europe
-  {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_uel',market:'h2h'},
-  // Coupe du Monde 2026 — plusieurs clés possibles selon The Odds API
+  {sport:'soccer_uefa_champs_league',market:'h2h'},{sport:'soccer_uefa_europa_league',market:'h2h'},
+  // Coupe du Monde 2026 — The Odds API utilise uniquement soccer_fifa_world_cup
   {sport:'soccer_fifa_world_cup',market:'h2h'},
-  {sport:'soccer_world_cup_2026',market:'h2h'},
   {sport:'soccer_conmebol_copa_america',market:'h2h'},
   {sport:'soccer_concacaf_gold_cup',market:'h2h'},
-  {sport:'soccer_usa_major_league_soccer',market:'h2h'},
-  {sport:'soccer_mls',market:'h2h'},
+  {sport:'soccer_usa_mls',market:'h2h'},
   // Championnats hors-saison mais matchs amicaux/tournois actifs
   {sport:'soccer_brazil_campeonato',market:'h2h'},
   {sport:'soccer_argentina_primera_division',market:'h2h'},
   {sport:'soccer_mexico_ligamx',market:'h2h'},
   {sport:'soccer_japan_j_league',market:'h2h'},
   {sport:'soccer_australia_aleague',market:'h2h'},
-  {sport:'soccer_turkey_super_liga',market:'h2h'},
+  {sport:'soccer_turkey_super_league',market:'h2h'},
 ];
 
 const SCAN_LEAGUES_BY_MODE = {
   eco: [
     // Football prioritaire
     {sport:'soccer_fifa_world_cup',market:'h2h'},
-    {sport:'soccer_world_cup_2026',market:'h2h'},
     {sport:'soccer_epl',market:'h2h'},
-    {sport:'soccer_france_ligue1',market:'h2h'},
-    {sport:'soccer_mls',market:'h2h'},
+    {sport:'soccer_france_ligue_one',market:'h2h'},
+    {sport:'soccer_usa_mls',market:'h2h'},
     {sport:'soccer_brazil_campeonato',market:'h2h'},
     // Autres
     {sport:'basketball_nba',market:'h2h'},
-    {sport:'tennis_atp',market:'h2h'},
+    {sport:'basketball_wnba',market:'h2h'},
+    {sport:'basketball_nba_summer_league',market:'h2h'},
+    {sport:'tennis_atp_wimbledon',market:'h2h'},{sport:'tennis_wta_wimbledon',market:'h2h'},
+    {sport:'tennis_atp_canadian_open',market:'h2h'},
     {sport:'mma_mixed_martial_arts',market:'h2h'},
     {sport:'icehockey_nhl',market:'h2h'},
     {sport:'baseball_mlb',market:'h2h'},
-    {sport:'rugbyunion_top14',market:'h2h'},
+    {sport:'rugbyunion_six_nations',market:'h2h'},
   ],
   standard: [
     // Football — TOUTES compétitions actives juin 2026
     {sport:'soccer_fifa_world_cup',market:'h2h'},
-    {sport:'soccer_world_cup_2026',market:'h2h'},
     {sport:'soccer_conmebol_copa_america',market:'h2h'},
     {sport:'soccer_concacaf_gold_cup',market:'h2h'},
     {sport:'soccer_epl',market:'h2h'},{sport:'soccer_epl',market:'totals'},
-    {sport:'soccer_france_ligue1',market:'h2h'},{sport:'soccer_france_ligue1',market:'btts'},
+    {sport:'soccer_france_ligue_one',market:'h2h'},{sport:'soccer_france_ligue_one',market:'btts'},
     {sport:'soccer_spain_la_liga',market:'h2h'},
     {sport:'soccer_germany_bundesliga',market:'h2h'},
     {sport:'soccer_italy_serie_a',market:'h2h'},
-    {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_uel',market:'h2h'},
-    {sport:'soccer_mls',market:'h2h'},
+    {sport:'soccer_uefa_champs_league',market:'h2h'},{sport:'soccer_uefa_europa_league',market:'h2h'},
+    {sport:'soccer_usa_mls',market:'h2h'},
     {sport:'soccer_brazil_campeonato',market:'h2h'},
     {sport:'soccer_argentina_primera_division',market:'h2h'},
     {sport:'soccer_mexico_ligamx',market:'h2h'},
     {sport:'soccer_netherlands_eredivisie',market:'h2h'},
-    {sport:'soccer_turkey_super_liga',market:'h2h'},
+    {sport:'soccer_turkey_super_league',market:'h2h'},
     // Basket
     {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'spreads'},
     {sport:'basketball_euroleague',market:'h2h'},
+    {sport:'basketball_wnba',market:'h2h'},{sport:'basketball_wnba',market:'spreads'},
+    {sport:'basketball_nba_summer_league',market:'h2h'},
     // Tennis
-    {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
+    {sport:'tennis_atp_wimbledon',market:'h2h'},{sport:'tennis_wta_wimbledon',market:'h2h'},{sport:'tennis_atp_canadian_open',market:'h2h'},{sport:'tennis_wta_canadian_open',market:'h2h'},
     {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
     // MMA / Boxe
     {sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'boxing_boxing',market:'h2h'},
     // Autres
     {sport:'icehockey_nhl',market:'h2h'},
-    {sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'},
+    {sport:'rugbyunion_six_nations',market:'h2h'},
     {sport:'baseball_mlb',market:'h2h'},
     {sport:'americanfootball_nfl',market:'h2h'},
   ],
   complet: [
     // Football complet
     {sport:'soccer_fifa_world_cup',market:'h2h'},
-    {sport:'soccer_world_cup_2026',market:'h2h'},
     {sport:'soccer_conmebol_copa_america',market:'h2h'},
     {sport:'soccer_concacaf_gold_cup',market:'h2h'},
     {sport:'soccer_epl',market:'h2h'},{sport:'soccer_epl',market:'totals'},{sport:'soccer_epl',market:'btts'},
-    {sport:'soccer_france_ligue1',market:'h2h'},{sport:'soccer_france_ligue1',market:'totals'},{sport:'soccer_france_ligue1',market:'btts'},
+    {sport:'soccer_france_ligue_one',market:'h2h'},{sport:'soccer_france_ligue_one',market:'totals'},{sport:'soccer_france_ligue_one',market:'btts'},
     {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_spain_la_liga',market:'totals'},
     {sport:'soccer_germany_bundesliga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'totals'},
     {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_italy_serie_a',market:'totals'},
-    {sport:'soccer_ucl',market:'h2h'},{sport:'soccer_uel',market:'h2h'},
-    {sport:'soccer_mls',market:'h2h'},
+    {sport:'soccer_uefa_champs_league',market:'h2h'},{sport:'soccer_uefa_europa_league',market:'h2h'},
+    {sport:'soccer_usa_mls',market:'h2h'},
     {sport:'soccer_brazil_campeonato',market:'h2h'},
     {sport:'soccer_argentina_primera_division',market:'h2h'},
     {sport:'soccer_mexico_ligamx',market:'h2h'},
     {sport:'soccer_netherlands_eredivisie',market:'h2h'},
     {sport:'soccer_portugal_primeira_liga',market:'h2h'},
-    {sport:'soccer_turkey_super_liga',market:'h2h'},
+    {sport:'soccer_turkey_super_league',market:'h2h'},
     {sport:'soccer_japan_j_league',market:'h2h'},
     {sport:'soccer_australia_aleague',market:'h2h'},
     // Basket
     {sport:'basketball_nba',market:'h2h'},{sport:'basketball_nba',market:'spreads'},
     {sport:'basketball_euroleague',market:'h2h'},
+    {sport:'basketball_wnba',market:'h2h'},{sport:'basketball_wnba',market:'spreads'},
+    {sport:'basketball_nba_summer_league',market:'h2h'},
+    {sport:'basketball_ncaab',market:'h2h'},
     // Tennis
-    {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
+    {sport:'tennis_atp_wimbledon',market:'h2h'},{sport:'tennis_wta_wimbledon',market:'h2h'},{sport:'tennis_atp_canadian_open',market:'h2h'},{sport:'tennis_wta_canadian_open',market:'h2h'},{sport:'tennis_atp_cincinnati_open',market:'h2h'},{sport:'tennis_wta_cincinnati_open',market:'h2h'},
     {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
     // MMA / Boxe
     {sport:'mma_mixed_martial_arts',market:'h2h'},{sport:'boxing_boxing',market:'h2h'},
     // Autres
     {sport:'icehockey_nhl',market:'h2h'},{sport:'icehockey_nhl',market:'totals'},
-    {sport:'rugbyunion_top14',market:'h2h'},{sport:'rugbyunion_premiership',market:'h2h'},
+    {sport:'rugbyunion_six_nations',market:'h2h'},
     {sport:'baseball_mlb',market:'h2h'},
     {sport:'americanfootball_nfl',market:'h2h'},
-    {sport:'handball_champions_league',market:'h2h'},
+    {sport:'handball_germany_bundesliga',market:'h2h'},
     {sport:'aussierules_afl',market:'h2h'},
   ],
 };
@@ -1138,6 +1187,74 @@ function renderScanResults(opps, cnt, cacheAge) {
     <div class="opp-grid">
       ${opps.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('')}
     </div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  RECHERCHE PAR COTE CIBLE
+// ═══════════════════════════════════════════════
+async function doOddsSearch() {
+  const target = parseFloat(document.getElementById('os-target').value);
+  const tol = parseFloat(document.getElementById('os-tol').value);
+  const sportFilter = document.getElementById('os-sport').value;
+  const minScore = parseInt(document.getElementById('os-minscore').value);
+  const btn = document.getElementById('os-btn');
+  const cnt = document.getElementById('oddsearch-res');
+
+  if (!target || target < 1.01) { toast('Cote cible invalide', 'err'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="sp" style="width:13px;height:13px;border-width:2px"></span> Recherche…';
+  cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Recherche des cotes proches de '+target.toFixed(2)+'…</p></div>';
+
+  const leagues = SCAN_LEAGUES_BY_MODE.standard;
+  const toScan = sportFilter === 'all' ? leagues : leagues.filter(l => matchesSportFilter(l.sport, sportFilter));
+
+  const allOpps = [];
+  const chunk = 6;
+  for (let i = 0; i < toScan.length; i += chunk) {
+    const batch = toScan.slice(i, i + chunk);
+    const results = await Promise.allSettled(batch.map(({sport, market}) =>
+      api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick&min_score='+minScore).then(d => {
+        const opps = (d.opportunities || []);
+        opps.forEach(o => { o._sport = sport; o.sport = sport; });
+        return opps;
+      }).catch(() => [])
+    ));
+    results.forEach(r => { if (r.status === 'fulfilled') allOpps.push(...r.value); });
+  }
+
+  // Dédoublonner
+  const seen = new Set();
+  const deduped = allOpps.filter(o => {
+    const k = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'')+'|'+(o.selection||'');
+    if (seen.has(k)) return false; seen.add(k); return true;
+  });
+
+  // Ne garder que les sélections dont la cote est proche de la cible
+  const matched = deduped.filter(o => o.odds && Math.abs(o.odds - target) <= tol);
+  matched.forEach(o => { o._dir = computeDirection(o).direction; o._oddsDelta = Math.abs(o.odds - target); });
+  const filtered = matched.filter(o => o._dir === 'play');
+  filtered.sort((a,b) => a._oddsDelta - b._oddsDelta || ((b.score?.total||0) - (a.score?.total||0)));
+
+  renderOddsSearchResults(filtered, cnt, target, tol);
+  loadQuotas();
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>&#128270;</span> Rechercher';
+}
+
+function renderOddsSearchResults(opps, cnt, target, tol) {
+  if (!opps.length) {
+    cnt.innerHTML = '<div class="empty"><div class="empty-i">&#128269;</div><div class="empty-t">Aucune sélection trouvée pour cette cote</div><div class="empty-s">Essayez une tolérance plus large, un autre sport, ou baissez le score minimum.</div></div>';
+    return;
+  }
+  cnt.innerHTML = `
+    <div class="sbar">
+      <div class="sdot"></div>
+      <span><strong>${opps.length}</strong> sélection(s) autour de la cote ${target.toFixed(2)} (&#177;${tol})</span>
+      <span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span>
+    </div>
+    <div class="opp-grid">${opps.map((o,i)=>renderDirectionCard(o,i,'oddsearch-res')).join('')}</div>`;
 }
 
 // ═══════════════════════════════════════════════
@@ -1386,17 +1503,19 @@ function renderManualCard(r){const ai=r.ai_analysis;if(!ai||ai.error)return`<div
 //  LIVE & UPCOMING — avec direction de pari
 // ═══════════════════════════════════════════════
 const LIVE_ALL_LEAGUES=[
-  {sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue1',market:'h2h'},
+  {sport:'soccer_fifa_world_cup',market:'h2h'},
+  {sport:'soccer_epl',market:'h2h'},{sport:'soccer_france_ligue_one',market:'h2h'},
   {sport:'soccer_spain_la_liga',market:'h2h'},{sport:'soccer_germany_bundesliga',market:'h2h'},
-  {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_ucl',market:'h2h'},
-  {sport:'soccer_uel',market:'h2h'},{sport:'soccer_brasil',market:'h2h'},
-  {sport:'soccer_argentina',market:'h2h'},{sport:'soccer_mls',market:'h2h'},
+  {sport:'soccer_italy_serie_a',market:'h2h'},{sport:'soccer_uefa_champs_league',market:'h2h'},
+  {sport:'soccer_uefa_europa_league',market:'h2h'},{sport:'soccer_brazil_campeonato',market:'h2h'},
+  {sport:'soccer_argentina_primera_division',market:'h2h'},{sport:'soccer_usa_mls',market:'h2h'},
   {sport:'basketball_nba',market:'h2h'},{sport:'basketball_euroleague',market:'h2h'},
-  {sport:'tennis_atp',market:'h2h'},{sport:'tennis_wta',market:'h2h'},
-  {sport:'tennis_atp_french_open',market:'h2h'},{sport:'tennis_wta_french_open',market:'h2h'},
-  {sport:'rugbyunion_top14',market:'h2h'},{sport:'icehockey_nhl',market:'h2h'},
+  {sport:'basketball_wnba',market:'h2h'},{sport:'basketball_nba_summer_league',market:'h2h'},
+  {sport:'tennis_atp_wimbledon',market:'h2h'},{sport:'tennis_wta_wimbledon',market:'h2h'},
+  {sport:'tennis_atp_canadian_open',market:'h2h'},{sport:'tennis_wta_canadian_open',market:'h2h'},
+  {sport:'rugbyunion_six_nations',market:'h2h'},{sport:'icehockey_nhl',market:'h2h'},
   {sport:'baseball_mlb',market:'h2h'},{sport:'mma_mixed_martial_arts',market:'h2h'},
-  {sport:'americanfootball_nfl',market:'h2h'},{sport:'handball_champions_league',market:'h2h'},
+  {sport:'americanfootball_nfl',market:'h2h'},{sport:'handball_germany_bundesliga',market:'h2h'},
 ];
 
 async function loadLive(){
@@ -1405,7 +1524,7 @@ async function loadLive(){
   try{
     let liveMatches=[];
     try{const d=await api('/api/live');liveMatches=(d.live_matches||[]).map(m=>({...m,_sport:m.sport||'soccer'}));}catch(_){}
-    const promises=LIVE_ALL_LEAGUES.slice(0,16).map(({sport,market})=>
+    const promises=LIVE_ALL_LEAGUES.map(({sport,market})=>
       api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick')
         .then(d=>(d.opportunities||[]).map(o=>({...o,_sport:sport,sport:sport,_fromAnalyze:true})))
         .catch(()=>[])
@@ -1480,7 +1599,7 @@ async function loadUpcoming(){
   const cnt=document.getElementById('upcoming-cnt');
   cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement à venir…</p></div>';
   try{
-    const promises=LIVE_ALL_LEAGUES.slice(0,14).map(({sport,market})=>
+    const promises=LIVE_ALL_LEAGUES.map(({sport,market})=>
       api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick')
         .then(d=>(d.opportunities||[]).map(o=>({...o,_sport:sport})))
         .catch(()=>[])
@@ -1917,10 +2036,10 @@ async function lossAutoSearch(forcedOdds){
       {sport:'basketball_euroleague',market:'h2h',prio:1},
     ],
     tennis:[
-      {sport:'tennis_atp',market:'h2h',prio:2},
-      {sport:'tennis_wta',market:'h2h',prio:2},
-      {sport:'tennis_atp_french_open',market:'h2h',prio:2},
-      {sport:'tennis_wta_french_open',market:'h2h',prio:2},
+      {sport:'tennis_atp_wimbledon',market:'h2h',prio:2},
+      {sport:'tennis_wta_wimbledon',market:'h2h',prio:2},
+      {sport:'tennis_atp_canadian_open',market:'h2h',prio:2},
+      {sport:'tennis_wta_canadian_open',market:'h2h',prio:2},
     ],
     mma:[
       {sport:'mma_mixed_martial_arts',market:'h2h',prio:3},
@@ -1928,26 +2047,25 @@ async function lossAutoSearch(forcedOdds){
     ],
     soccer:[
       {sport:'soccer_fifa_world_cup',market:'h2h',prio:4},
-      {sport:'soccer_world_cup_2026',market:'h2h',prio:4},
       {sport:'soccer_epl',market:'h2h',prio:4},
       {sport:'soccer_epl',market:'totals',prio:4},
-      {sport:'soccer_france_ligue1',market:'h2h',prio:4},
-      {sport:'soccer_france_ligue1',market:'btts',prio:4},
+      {sport:'soccer_france_ligue_one',market:'h2h',prio:4},
+      {sport:'soccer_france_ligue_one',market:'btts',prio:4},
       {sport:'soccer_spain_la_liga',market:'h2h',prio:4},
       {sport:'soccer_brazil_campeonato',market:'h2h',prio:4},
-      {sport:'soccer_mls',market:'h2h',prio:4},
+      {sport:'soccer_usa_mls',market:'h2h',prio:4},
     ],
     icehockey:[{sport:'icehockey_nhl',market:'h2h',prio:5},{sport:'icehockey_nhl',market:'totals',prio:5}],
-    rugby:[{sport:'rugbyunion_top14',market:'h2h',prio:5},{sport:'rugbyunion_premiership',market:'h2h',prio:5}],
+    rugby:[{sport:'rugbyunion_six_nations',market:'h2h',prio:5}],
     all:[
       {sport:'basketball_nba',market:'h2h',prio:1},
       {sport:'basketball_nba',market:'spreads',prio:1},
-      {sport:'tennis_atp',market:'h2h',prio:2},
+      {sport:'tennis_atp_wimbledon',market:'h2h',prio:2},
       {sport:'mma_mixed_martial_arts',market:'h2h',prio:3},
       {sport:'soccer_fifa_world_cup',market:'h2h',prio:4},
       {sport:'soccer_epl',market:'h2h',prio:4},
       {sport:'soccer_epl',market:'totals',prio:4},
-      {sport:'soccer_france_ligue1',market:'h2h',prio:4},
+      {sport:'soccer_france_ligue_one',market:'h2h',prio:4},
       {sport:'icehockey_nhl',market:'h2h',prio:5},
       {sport:'baseball_mlb',market:'h2h',prio:5},
     ],
@@ -2108,13 +2226,14 @@ async function loadTicker() {
     const articles = [];
     const leagues = [
       {sport:'soccer_epl', label:'⚽ FOOT', cat:'soccer'},
-      {sport:'soccer_france_ligue1', label:'⚽ FOOT', cat:'soccer'},
-      {sport:'soccer_ucl', label:'⚽ FOOT', cat:'soccer'},
+      {sport:'soccer_france_ligue_one', label:'⚽ FOOT', cat:'soccer'},
+      {sport:'soccer_uefa_champs_league', label:'⚽ FOOT', cat:'soccer'},
       {sport:'soccer_fifa_world_cup', label:'⚽ CDM', cat:'soccer'},
       {sport:'mma_mixed_martial_arts', label:'🥊 MMA', cat:'mma'},
       {sport:'boxing_boxing', label:'🥊 BOXE', cat:'mma'},
       {sport:'basketball_nba', label:'🏀 NBA', cat:'basketball'},
-      {sport:'tennis_atp', label:'🎾 TENNIS', cat:'tennis'},
+      {sport:'basketball_wnba', label:'🏀 WNBA', cat:'basketball'},
+      {sport:'tennis_atp_wimbledon', label:'🎾 TENNIS', cat:'tennis'},
       {sport:'icehockey_nhl', label:'🏒 NHL', cat:'icehockey'},
       {sport:'baseball_mlb', label:'⚾ MLB', cat:'baseball'},
       {sport:'americanfootball_nfl', label:'🏈 NFL', cat:'americanfootball'},
@@ -2563,4 +2682,3 @@ function applyScanFilters() {
 </script>
 </body>
 </html>
-
