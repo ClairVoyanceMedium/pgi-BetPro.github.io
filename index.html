@@ -26,7 +26,8 @@
 @keyframes fa{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pu{0%,100%{opacity:1}50%{opacity:.3}}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--tx);font-family:var(--hd);font-size:13px;line-height:1.55;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+html{overscroll-behavior-y:contain}
+body{background:var(--bg);color:var(--tx);font-family:var(--hd);font-size:13px;line-height:1.55;min-height:100vh;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-font-smoothing:antialiased}
 #app{display:flex;min-height:100vh}
 .sb{width:var(--fw);background:var(--sf);border-right:1px solid var(--bd);position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;z-index:100;transition:transform .3s}
 .sbh{padding:18px 16px 10px;border-bottom:1px solid var(--bd);flex-shrink:0}
@@ -1706,6 +1707,58 @@ const LIVE_ALL_LEAGUES=[
   {sport:'americanfootball_nfl',market:'h2h'},{sport:'handball_germany_bundesliga',market:'h2h'},
 ];
 
+// Correspondance sport interne -> cle ESPN_SPORT_KEYS (cote worker), pour recuperer un vrai score en direct
+const ESPN_LIVE_SPORT_MAP={
+  soccer_epl:'soccer_epl',soccer_france_ligue_one:'soccer_france_ligue_one',soccer_spain_la_liga:'soccer_spain_la_liga',
+  soccer_germany_bundesliga:'soccer_germany_bundesliga',soccer_italy_serie_a:'soccer_italy_serie_a',
+  soccer_uefa_champs_league:'soccer_uefa_champs_league',soccer_fifa_world_cup:'soccer_fifa_world_cup',
+  basketball_nba:'basketball',basketball_wnba:'basketball_wnba',
+  icehockey_nhl:'icehockey',americanfootball_nfl:'americanfootball',baseball_mlb:'baseball',
+  mma_mixed_martial_arts:'mma',
+};
+function espnStatusFr(s){
+  const l=(s||'').toLowerCase();
+  if(l.includes('sched')||l.includes('pre-game')||l.includes('not start'))return 'Programmé';
+  if(l.includes('half'))return 'Mi-temps';
+  if(l.includes('final')||l.includes('full time'))return 'Terminé';
+  if(l.includes('progress')||l.includes('live')||l.includes('in play'))return 'En cours';
+  return s||'';
+}
+async function fetchLiveScoresFor(sports){
+  const espnKeys=[...new Set(sports.map(s=>ESPN_LIVE_SPORT_MAP[s]).filter(Boolean))];
+  const bySport={};
+  await Promise.allSettled(espnKeys.map(k=>
+    api('/api/espn-scores?sport='+enc(k)).then(d=>{bySport[k]=d.scores||[];}).catch(()=>{bySport[k]=[];})
+  ));
+  return bySport;
+}
+function matchLiveScore(m,sport,scoresBySport){
+  const espnKey=ESPN_LIVE_SPORT_MAP[sport];
+  if(!espnKey||!scoresBySport[espnKey])return null;
+  const home=m.home||m.home_team||'',away=m.away||m.away_team||'';
+  const hit=scoresBySport[espnKey].find(ev=>
+    (teamsMatch(home,ev.home_team)&&teamsMatch(away,ev.away_team))||
+    (teamsMatch(home,ev.away_team)&&teamsMatch(away,ev.home_team))
+  );
+  if(!hit)return null;
+  return{home_score:hit.home_score,away_score:hit.away_score,status:hit.status,swapped:teamsMatch(home,hit.away_team)&&teamsMatch(away,hit.home_team)};
+}
+function liveScoreContextNote(m,liveScore){
+  if(m.market!=='h2h'||!liveScore)return '';
+  let hs=liveScore.swapped?liveScore.away_score:liveScore.home_score;
+  let as=liveScore.swapped?liveScore.home_score:liveScore.away_score;
+  hs=parseInt(hs);as=parseInt(as);
+  if(isNaN(hs)||isNaN(as))return '';
+  const home=m.home||m.home_team||'',away=m.away||m.away_team||'';
+  const backsHome=m.selection===home,backsAway=m.selection===away,backsDraw=!backsHome&&!backsAway;
+  let favorable=null;
+  if(backsHome)favorable=hs>as?true:hs<as?false:null;
+  else if(backsAway)favorable=as>hs?true:as<hs?false:null;
+  else if(backsDraw)favorable=hs===as?true:false;
+  if(favorable===true)return '<span style="color:var(--gr);font-weight:700">&#9989; Score actuel favorable au pari pré-match</span>';
+  if(favorable===false)return '<span style="color:var(--re);font-weight:700">&#9888;&#65039; Score actuel défavorable au pari pré-match</span>';
+  return '<span style="color:var(--am)">&#9679; Égalité — situation neutre</span>';
+}
 async function loadLive(){
   const cnt=document.getElementById('live-cnt');
   cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement live (foot + tous sports)…</p></div>';
@@ -1732,31 +1785,55 @@ async function loadLive(){
     });
     if(!combinedLive.length){cnt.innerHTML='<div class="empty"><div class="empty-i">🔴</div><div class="empty-t">Aucun match en direct</div></div>';return;}
 
-    cnt.innerHTML=`<div class="sbar"><div class="sdot" style="background:var(--re);box-shadow:0 0 5px var(--re)"></div><span>${combinedLive.length} match(s) avec direction de pari</span><span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span></div>`;
+    // Scores reels en direct (ESPN) pour tous les sports concernes, pas seulement le foot
+    const sportsPresent=[...new Set(combinedLive.map(m=>m._sport||m.sport||''))];
+    const scoresBySport=await fetchLiveScoresFor(sportsPresent);
+    combinedLive.forEach(m=>{
+      m._liveScore=matchLiveScore(m,m._sport||m.sport||'',scoresBySport);
+      const st=m.start_time||m.commence_time;
+      m._isInPlay=!m._fromAnalyze?true:(st?new Date(st)<=now:false);
+    });
+    combinedLive.sort((a,b)=>{
+      if(a._isInPlay!==b._isInPlay) return a._isInPlay?-1:1; // en cours d'abord
+      const ta=a.start_time||a.commence_time,tb=b.start_time||b.commence_time;
+      return (ta?new Date(ta):0)-(tb?new Date(tb):0);
+    });
+    const nbInPlay=combinedLive.filter(m=>m._isInPlay).length;
+
+    cnt.innerHTML=`<div class="sbar"><div class="sdot" style="background:var(--re);box-shadow:0 0 5px var(--re)"></div><span><strong>${nbInPlay}</strong> en cours · <strong>${combinedLive.length-nbInPlay}</strong> à venir — cotes live actualisées ~90s</span><span style="margin-left:auto;color:var(--dm)">${fmtDT(new Date().toISOString())}</span></div>`;
 
     // Afficher avec direction de pari pour chaque match
     combinedLive.forEach((m, i) => {
       const sport=m._sport||m.sport||'';
       const ico=sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':sport.includes('mma')||sport.includes('box')?'🥊':sport.includes('base')?'⚾':sport.includes('football')?'🏈':'🏆';
       const home=m.home||m.home_team||'?',away=m.away||m.away_team||'?',comp=m.competition||m.sport_title||sport||'';
-      const score=m.score,hasScore=score&&(score.home!=null||score.away!=null);
+      const lsc=m._liveScore;
+      const legacyScore=m.score&&(m.score.home!=null||m.score.away!=null)?m.score:null;
+      const hs=lsc?(lsc.swapped?lsc.away_score:lsc.home_score):(legacyScore?legacyScore.home:null);
+      const as=lsc?(lsc.swapped?lsc.home_score:lsc.away_score):(legacyScore?legacyScore.away:null);
+      const hasScore=hs!=null||as!=null;
+      const liveStatus=lsc?espnStatusFr(lsc.status):(legacyScore?'En cours':'');
       const st=m.start_time||m.commence_time;
       const timeStr=st?fmtDT(st):'🔴 En cours';
+      const statusBadge=m._isInPlay?'<span class="bdg blv">🔴 EN COURS</span>':'<span class="bdg" style="background:var(--amb);color:var(--am)">🕐 BIENTÔT</span>';
 
-      // Calcul direction si données dispo
+      // Calcul direction si données dispo — cote live si le match a deja commence, sinon pre-match
       let dirHtml='';
       if(m._fromAnalyze && m.score && m.odds){
         const {tier,impliedProb,evPct}=computeDirection(m);
         const dirLabel=tier==='diamond'?'💎 TRES FIABLE':tier==='strong'?'✅ JOUER':tier==='moderate'?'🟠 A SURVEILLER':'— Éviter';
         const dirColor=tier==='diamond'||tier==='strong'?'var(--gr)':tier==='moderate'?'var(--am)':'var(--mu)';
         const evClass=evPct>=0?'pos':'neg';
+        const ctxNote=liveScoreContextNote(m,lsc);
+        const oddsTag=m._isInPlay?'<span style="font-size:9px;color:var(--neon);font-family:var(--mo);font-weight:700">&#128225; LIVE</span>':'<span style="font-size:9px;color:var(--dm);font-family:var(--mo)">pré-match</span>';
         dirHtml=`<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-family:var(--mo);font-size:11px;font-weight:700;color:${dirColor}">${dirLabel}</span>
           <span style="font-family:var(--mo);font-size:11px;color:var(--am)">@ ${m.odds}</span>
+          ${oddsTag}
           <span style="font-size:10px;color:var(--mu)">Prob.${impliedProb}%</span>
           <span class="dir-ev ${evClass}" style="font-size:10px;font-family:var(--mo);font-weight:700">EV ${evPct>=0?'+':''}${evPct}%</span>
           <span style="font-size:10px;color:var(--mu);font-family:var(--mo)">${esc(m.selection||'')}</span>
-        </div>`;
+        </div>${ctxNote?`<div style="margin-top:5px;font-size:10px">${ctxNote} <span style="color:var(--dm)">${m._isInPlay?'— cote live, actualisée ~90s':'— cote pré-match'}</span></div>`:''}`;
       }
 
       cnt.innerHTML+=`<div class="live-card">
@@ -1765,13 +1842,15 @@ async function loadLive(){
             <div class="lc-teams">${ico} ${esc(home)} <span style="color:var(--dm)">vs</span> ${esc(away)}</div>
             <div class="lc-meta">
               <span class="bdg bsp">${esc(comp)}</span>
-              <span class="bdg blv">🔴 LIVE</span>
+              ${statusBadge}
+              ${liveStatus?`<span style="font-family:var(--mo);font-size:10px;color:var(--re);font-weight:700">${esc(liveStatus)}</span>`:''}
               ${m.minute?`<span style="font-family:var(--mo);font-size:10px;color:var(--re);font-weight:700">${m.minute}'</span>`:''}
             </div>
             <div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">⏰ ${timeStr}</div>
             ${dirHtml}
+
           </div>
-          ${hasScore?`<div class="lc-score">${score.home??'-'} — ${score.away??'-'}</div>`:''}
+          ${hasScore?`<div class="lc-score">${hs??'-'} — ${as??'-'}</div>`:''}
         </div>
       </div>`;
     });
