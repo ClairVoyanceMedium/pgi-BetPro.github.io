@@ -1519,13 +1519,99 @@ function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am
 function getCheckedMarkets(){return[...document.querySelectorAll('#m-markets-wrap input:checked')].map(c=>c.value);}
 
 // ─── Analyse manuelle : parsing texte libre + recherche de la prochaine rencontre reelle ───
+// ─── Dictionnaire d'abréviations par sport (fusion automatique des collisions, ex: BOS = Celtics+Bruins+Red Sox) ───
+const TEAM_ALIAS_PAIRS = [
+  // FOOTBALL — Ligue 1
+  ['psg','paris saint germain'],['om','marseille'],['ol','lyon'],['ogcn','nice'],['asse','saint etienne'],
+  ['rcl','lens'],['rcs','strasbourg'],['srfc','rennes'],['fcn','nantes'],['mhsc','montpellier'],
+  ['tfc','toulouse'],['sdr','reims'],['aja','auxerre'],['hac','le havre'],['fcl','lorient'],
+  ['sco','angers'],['asm','monaco'],['losc','lille'],['fcm','metz'],['sb29','brest'],
+  // FOOTBALL — Premier League
+  ['mufc','manchester united'],['manu','manchester united'],['mcfc','manchester city'],['mci','manchester city'],
+  ['cfc','chelsea'],['afc','arsenal'],['lfc','liverpool'],['thfc','tottenham'],['spurs','tottenham'],
+  ['nufc','newcastle'],['avfc','aston villa'],['whu','west ham'],['whufc','west ham'],['efc','everton'],
+  ['lcfc','leicester'],['wba','west bromwich'],['cpfc','crystal palace'],['bhafc','brighton'],
+  ['nffc','nottingham forest'],['wafc','wolverhampton'],['safc','sunderland'],['lufc','leeds'],
+  // FOOTBALL — La Liga
+  ['rma','real madrid'],['fcb','barcelona'],['atm','atletico madrid'],['atleti','atletico madrid'],
+  ['sev','sevilla'],['val','valencia'],['rso','real sociedad'],['ath','athletic bilbao'],
+  ['bet','real betis'],['vil','villarreal'],['gir','girona'],['cel','celta vigo'],['rayo','rayo vallecano'],
+  // FOOTBALL — Bundesliga
+  ['fcb','bayern munich'],['bvb','borussia dortmund'],['rbl','rb leipzig'],['b04','bayer leverkusen'],
+  ['sge','eintracht frankfurt'],['vfb','stuttgart'],['bmg','borussia monchengladbach'],['wob','wolfsburg'],
+  ['tsg','hoffenheim'],['svw','werder bremen'],['fcu','union berlin'],['fck','koln'],['fca','augsburg'],
+  ['scf','freiburg'],['m05','mainz'],
+  // FOOTBALL — Serie A
+  ['juve','juventus'],['acm','ac milan'],['inter','inter milan'],['asr','roma'],['ata','atalanta'],
+  ['fio','fiorentina'],['tor','torino'],
+  // FOOTBALL — MLS
+  ['lafc','los angeles fc'],['lag','la galaxy'],['nycfc','new york city fc'],['nyrb','new york red bulls'],
+  ['atlutd','atlanta united'],['imcf','inter miami'],
+  // FOOTBALL — Brésil / Argentine
+  ['fla','flamengo'],['cor','corinthians'],['pal','palmeiras'],['sao','sao paulo'],['spfc','sao paulo'],
+  ['san','santos'],['gre','gremio'],['inter','internacional'],['vas','vasco da gama'],['bot','botafogo'],
+  ['cru','cruzeiro'],['cam','atletico mineiro'],['boc','boca juniors'],['riv','river plate'],
+  ['rac','racing club'],['ind','independiente'],['sl','san lorenzo'],['vel','velez sarsfield'],
+  // FOOTBALL — Pays-Bas / Portugal / Turquie
+  ['psv','psv eindhoven'],['fey','feyenoord'],['slb','benfica'],['fcp','porto'],['spo','sporting'],
+  ['gs','galatasaray'],['fb','fenerbahce'],['bjk','besiktas'],
+  // BASKETBALL — NBA
+  ['atl','atlanta hawks'],['bos','boston celtics'],['bkn','brooklyn nets'],['cha','charlotte hornets'],
+  ['chi','chicago bulls'],['cle','cleveland cavaliers'],['dal','dallas mavericks'],['den','denver nuggets'],
+  ['det','detroit pistons'],['gsw','golden state warriors'],['hou','houston rockets'],['ind','indiana pacers'],
+  ['lac','la clippers'],['lal','los angeles lakers'],['mem','memphis grizzlies'],['mia','miami heat'],
+  ['mil','milwaukee bucks'],['min','minnesota timberwolves'],['nop','new orleans pelicans'],
+  ['nyk','new york knicks'],['okc','oklahoma city thunder'],['orl','orlando magic'],['phi','philadelphia 76ers'],
+  ['phx','phoenix suns'],['por','portland trail blazers'],['sac','sacramento kings'],['sas','san antonio spurs'],
+  ['tor','toronto raptors'],['uta','utah jazz'],['was','washington wizards'],
+  // BASKETBALL — WNBA (15 franchises 2026, Toronto Tempo + Portland Fire inclus)
+  ['atl','atlanta dream'],['chi','chicago sky'],['conn','connecticut sun'],['dal','dallas wings'],
+  ['gsv','golden state valkyries'],['ind','indiana fever'],['lva','las vegas aces'],
+  ['laspks','los angeles sparks'],['min','minnesota lynx'],['nyl','new york liberty'],
+  ['phx','phoenix mercury'],['sea','seattle storm'],['was','washington mystics'],['tor','toronto tempo'],
+  ['por','portland fire'],
+  // ICE HOCKEY — NHL
+  ['ana','anaheim ducks'],['bos','boston bruins'],['buf','buffalo sabres'],['cgy','calgary flames'],
+  ['car','carolina hurricanes'],['chi','chicago blackhawks'],['col','colorado avalanche'],
+  ['cbj','columbus blue jackets'],['dal','dallas stars'],['det','detroit red wings'],['edm','edmonton oilers'],
+  ['fla','florida panthers'],['lak','los angeles kings'],['min','minnesota wild'],['mtl','montreal canadiens'],
+  ['nsh','nashville predators'],['njd','new jersey devils'],['nyi','new york islanders'],
+  ['nyr','new york rangers'],['ott','ottawa senators'],['phi','philadelphia flyers'],['pit','pittsburgh penguins'],
+  ['sjs','san jose sharks'],['sea','seattle kraken'],['stl','st louis blues'],['tbl','tampa bay lightning'],
+  ['tor','toronto maple leafs'],['van','vancouver canucks'],['vgk','vegas golden knights'],
+  ['wsh','washington capitals'],['wpg','winnipeg jets'],['uta','utah hockey club'],
+  // AMERICAN FOOTBALL — NFL
+  ['ari','arizona cardinals'],['atl','atlanta falcons'],['bal','baltimore ravens'],['buf','buffalo bills'],
+  ['car','carolina panthers'],['chi','chicago bears'],['cin','cincinnati bengals'],['cle','cleveland browns'],
+  ['dal','dallas cowboys'],['den','denver broncos'],['det','detroit lions'],['gb','green bay packers'],
+  ['hou','houston texans'],['ind','indianapolis colts'],['jax','jacksonville jaguars'],['kc','kansas city chiefs'],
+  ['lv','las vegas raiders'],['lac','la chargers'],['lar','la rams'],['mia','miami dolphins'],
+  ['min','minnesota vikings'],['ne','new england patriots'],['no','new orleans saints'],['nyg','new york giants'],
+  ['nyj','new york jets'],['phi','philadelphia eagles'],['pit','pittsburgh steelers'],['sf','san francisco 49ers'],
+  ['sea','seattle seahawks'],['tb','tampa bay buccaneers'],['ten','tennessee titans'],['was','washington commanders'],
+  // BASEBALL — MLB
+  ['ari','arizona diamondbacks'],['atl','atlanta braves'],['bal','baltimore orioles'],['bos','boston red sox'],
+  ['chc','chicago cubs'],['cws','chicago white sox'],['cin','cincinnati reds'],['cle','cleveland guardians'],
+  ['col','colorado rockies'],['det','detroit tigers'],['hou','houston astros'],['kc','kansas city royals'],
+  ['laa','los angeles angels'],['lad','los angeles dodgers'],['mia','miami marlins'],['mil','milwaukee brewers'],
+  ['min','minnesota twins'],['nym','new york mets'],['nyy','new york yankees'],['ath','athletics'],
+  ['oak','athletics'],['phi','philadelphia phillies'],['pit','pittsburgh pirates'],['sd','san diego padres'],
+  ['sf','san francisco giants'],['sea','seattle mariners'],['stl','st louis cardinals'],['tb','tampa bay rays'],
+  ['tex','texas rangers'],['tor','toronto blue jays'],['wsh','washington nationals'],
+  // RUGBY — Six Nations
+  ['fra','france'],['eng','angleterre'],['ire','irlande'],['sco','ecosse'],['wal','pays de galles'],['ita','italie'],
+];
+const TEAM_ALIASES = TEAM_ALIAS_PAIRS.reduce((acc,[k,v])=>{const key=k.toLowerCase();if(!acc[key])acc[key]=[];if(!acc[key].includes(v))acc[key].push(v);return acc;},{});
 function normTeam(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
 function teamsMatch(input,real){
   const a=normTeam(input),b=normTeam(real);
   if(!a||!b) return false;
   if(a===b||b.includes(a)||a.includes(b)) return true;
   const aw=a.split(' ').filter(w=>w.length>=4),bw=new Set(b.split(' ').filter(w=>w.length>=4));
-  return aw.some(w=>bw.has(w));
+  if(aw.some(w=>bw.has(w))) return true;
+  const aliases=TEAM_ALIASES[a]; // ex: "psg" -> ["paris saint germain"], "bos" -> plusieurs candidats (Celtics/Bruins/Red Sox)
+  if(aliases) return aliases.some(cand=>b.includes(cand)||cand.includes(b));
+  return false;
 }
 function parseMatchupText(text){
   const seps=[' vs. ',' vs ',' v ',' contre ',' against ',' - ',' – ',' — '];
