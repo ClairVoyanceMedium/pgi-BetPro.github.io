@@ -426,6 +426,7 @@ a{color:var(--neon);text-decoration:none}
         <button class="ssb"    data-sport="mma"              onclick="setScanSport(this)">&#129354; MMA/Boxe</button>
         <button class="ssb"    data-sport="americanfootball" onclick="setScanSport(this)">&#127944; NFL</button>
         <button class="ssb"    data-sport="handball"         onclick="setScanSport(this)">&#129336; Handball</button>
+        <button class="ssb"    data-sport="volleyball"       onclick="setScanSport(this)">&#127952; Volley-ball</button>
       </div>
     </div>
     <div style="margin:0 0 12px">
@@ -496,7 +497,7 @@ a{color:var(--neon);text-decoration:none}
           <optgroup label="&#127936; Basketball"><option value="basketball_nba">&#127936; NBA</option><option value="basketball_wnba">&#127936; WNBA</option><option value="basketball_nba_summer_league">&#127936; NBA Summer League</option><option value="basketball_euroleague">&#127936; EuroLeague</option></optgroup>
           <optgroup label="&#127934; Tennis"><option value="tennis_atp_wimbledon">&#127934; ATP Wimbledon</option><option value="tennis_wta_wimbledon">&#127934; WTA Wimbledon</option><option value="tennis_atp_canadian_open">&#127934; ATP Canada</option><option value="tennis_wta_canadian_open">&#127934; WTA Canada</option></optgroup>
           <optgroup label="&#127945; Rugby"><option value="rugbyunion_six_nations">&#127945; Six Nations</option></optgroup>
-          <optgroup label="Autres"><option value="icehockey_nhl">&#127954; NHL</option><option value="baseball_mlb">&#9918; MLB</option><option value="americanfootball_nfl">&#127944; NFL</option><option value="mma_mixed_martial_arts">&#129354; MMA/UFC</option></optgroup>
+          <optgroup label="Autres"><option value="icehockey_nhl">&#127954; NHL</option><option value="baseball_mlb">&#9918; MLB</option><option value="americanfootball_nfl">&#127944; NFL</option><option value="mma_mixed_martial_arts">&#129354; MMA/UFC</option><option value="volleyball_fivb">&#127952; Volley-ball</option></optgroup>
         </select>
       </div>
       <div class="fgrp"><label>Marché</label>
@@ -571,6 +572,7 @@ a{color:var(--neon);text-decoration:none}
           <option value="mma">&#129354; MMA/Boxe</option>
           <option value="americanfootball">&#127944; NFL</option>
           <option value="rugby">&#127945; Rugby</option>
+          <option value="volleyball">&#127952; Volley-ball</option>
         </select>
       </div>
       <div class="fgrp"><label>Score minimum</label>
@@ -771,6 +773,7 @@ a{color:var(--neon);text-decoration:none}
           <option value="rugby">🏉 Rugby</option>
           <option value="baseball">⚾ Baseball</option>
           <option value="americanfootball">🏈 NFL</option>
+          <option value="volleyball">🏐 Volley-ball</option>
         </select>
       </div>
       <div class="fgrp"><label>Type de pari (opt.)</label>
@@ -1011,7 +1014,7 @@ function setScanSport(el){
   document.querySelectorAll('.ssb').forEach(b=>b.classList.toggle('on',liveSportSet.has('all')?b.dataset.sport==='all':liveSportSet.has(b.dataset.sport||'')));
   if(document.querySelector('.dir-card')||document.querySelector('.oc')){filterScanCards();}
 }
-const LIVE_SPORT_KEYS={soccer:['soccer'],basketball:['basketball','nba'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],handball:['handball']};
+const LIVE_SPORT_KEYS={soccer:['soccer'],basketball:['basketball','nba'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],handball:['handball'],volleyball:['volleyball']};
 function matchesSportFilter(sport,filter){if(filter==='all')return true;const keys=LIVE_SPORT_KEYS[filter]||[filter];return keys.some(k=>(sport||'').toLowerCase().includes(k));}
 function filterScanCards(){document.querySelectorAll('#scan-res [data-sport-key]').forEach(c=>{const sportOk=matchesSportFilter(c.dataset.sportKey||'',liveSportFilter);const tierOk=_scanDirFilter!=='strict'||c.dataset.tier!=='moderate';c.style.display=(sportOk&&tierOk)?'':'none';});}
 function setTierMode(mode,el){_scanDirFilter=mode;document.querySelectorAll('#tiermode-all,#tiermode-strict').forEach(b=>b.classList.remove('on'));el.classList.add('on');filterScanCards();}
@@ -1060,6 +1063,7 @@ const SCAN_LEAGUES_BY_MODE = {
     {sport:'icehockey_nhl',market:'h2h'},
     {sport:'baseball_mlb',market:'h2h'},
     {sport:'rugbyunion_six_nations',market:'h2h'},
+    {sport:'volleyball_fivb',market:'h2h'},
   ],
   standard: [
     // Football — TOUTES compétitions actives juin 2026
@@ -1093,6 +1097,7 @@ const SCAN_LEAGUES_BY_MODE = {
     {sport:'rugbyunion_six_nations',market:'h2h'},
     {sport:'baseball_mlb',market:'h2h'},
     {sport:'americanfootball_nfl',market:'h2h'},
+    {sport:'volleyball_fivb',market:'h2h'},
   ],
   complet: [
     // Football complet
@@ -1132,6 +1137,7 @@ const SCAN_LEAGUES_BY_MODE = {
     {sport:'americanfootball_nfl',market:'h2h'},
     {sport:'handball_germany_bundesliga',market:'h2h'},
     {sport:'aussierules_afl',market:'h2h'},
+    {sport:'volleyball_fivb',market:'h2h'},
   ],
 };
 
@@ -1524,6 +1530,7 @@ function getSportLabel(sport){
   if(sport.includes('hockey')) return '🏒 Hockey';
   if(sport.includes('rugby')) return '🏉 Rugby';
   if(sport.includes('baseball')) return '⚾ Baseball';
+  if(sport.includes('volleyball')) return '🏐 Volley';
   if(sport.includes('football')) return '🏈 NFL';
   return '🏆 Sport';
 }
@@ -1746,6 +1753,7 @@ const LIVE_ALL_LEAGUES=[
   {sport:'baseball_mlb',market:'h2h'},{sport:'mma_mixed_martial_arts',market:'h2h'},
   {sport:'boxing_boxing',market:'h2h'},
   {sport:'americanfootball_nfl',market:'h2h'},{sport:'handball_germany_bundesliga',market:'h2h'},
+  {sport:'volleyball_fivb',market:'h2h'},
 ];
 
 // Correspondance sport interne -> cle ESPN_SPORT_KEYS (cote worker), pour recuperer un vrai score en direct
@@ -1846,7 +1854,7 @@ async function loadLive(){
     // Afficher avec direction de pari pour chaque match
     combinedLive.forEach((m, i) => {
       const sport=m._sport||m.sport||'';
-      const ico=sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':sport.includes('mma')||sport.includes('box')?'🥊':sport.includes('base')?'⚾':sport.includes('football')?'🏈':'🏆';
+      const ico=sport.includes('soccer')?'⚽':sport.includes('basket')?'🏀':sport.includes('tennis')?'🎾':sport.includes('hockey')?'🏒':sport.includes('rugby')?'🏉':sport.includes('mma')||sport.includes('box')?'🥊':sport.includes('volleyball')?'🏐':sport.includes('base')?'⚾':sport.includes('football')?'🏈':'🏆';
       const home=m.home||m.home_team||'?',away=m.away||m.away_team||'?',comp=m.competition||m.sport_title||sport||'';
       const lsc=m._liveScore;
       const legacyScore=m.score&&(m.score.home!=null||m.score.away!=null)?m.score:null;
@@ -2341,7 +2349,7 @@ function lossRender(){
       var amtColor=e.result==='win'?'var(--gr)':e.result==='loss'?'var(--re)':e.result==='pending'?'var(--pu)':'var(--am)';
       var amtStr=e.result==='win'?'+'+(e.amount_won||0).toFixed(2)+'e':e.result==='loss'?'-'+(e.amount_lost||0).toFixed(2)+'e':e.result==='pending'?'⏳ En attente':'Void';
       var manualTag=e.manual_amount?' <span title="Montant saisi manuellement" style="font-size:9px;color:var(--pu)">&#9998;</span>':'';
-      var sl={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL'}[e.sport]||'Sport';
+      var sl={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL',volleyball:'Volley'}[e.sport]||'Sport';
       return '<div class="loss-entry '+(!e.recovered&&e.result==='loss'?'active-loss':'')+'">'
         +'<div style="flex:1;min-width:0">'
         +'<div class="le-match">'+sl+' | '+esc(e.match)+(e.sel?' - '+esc(e.sel):'')+'</div>'
@@ -2490,7 +2498,7 @@ async function lossSearchMatchesSport(cote){ await lossAutoSearch(cote); }
 // ═══════════════════════════════════════════════
 //  STATISTIQUES — 100% derive de Rattrapage Intelligent, aucune saisie separee
 // ═══════════════════════════════════════════════
-const STATS_SPORT_LABELS={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL',all:'Autre/Non precise'};
+const STATS_SPORT_LABELS={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL',volleyball:'Volley',all:'Autre/Non precise'};
 
 // ─── Archive statistiques : independante de Rattrapage Intelligent ───
 // Une fois qu'un pari est resolu (gagne/perdu), il est copie ici. "Tout effacer" dans
@@ -3254,7 +3262,7 @@ function renderDirectionCard(o, i, containerId) {
   }[tier];
 
   const sport = o.sport || o._sport || '';
-  const ico = sport.includes('soccer')?'&#9917;':sport.includes('basket')?'&#127936;':sport.includes('tennis')?'&#127934;':sport.includes('mma')||sport.includes('box')?'&#129354;':sport.includes('hockey')?'&#127954;':sport.includes('rugby')?'&#127945;':sport.includes('baseball')?'&#9918;':sport.includes('football')?'&#127944;':'&#127942;';
+  const ico = sport.includes('soccer')?'&#9917;':sport.includes('basket')?'&#127936;':sport.includes('tennis')?'&#127934;':sport.includes('mma')||sport.includes('box')?'&#129354;':sport.includes('hockey')?'&#127954;':sport.includes('rugby')?'&#127945;':sport.includes('volleyball')?'&#127952;':sport.includes('baseball')?'&#9918;':sport.includes('football')?'&#127944;':'&#127942;';
   const mktLabel = {h2h:'1X2',totals:'O/U',btts:'BTTS',double_chance:'DC',spreads:'HC'}[o.market]||(o.market||'');
   const selDisplay = translateSelection(o.selection, o.market, o.home_team, o.away_team, o.line!=null?o.line:null);
   const bms = o.all_bookmakers||[];
