@@ -69,6 +69,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--hd);font-size:13px;l
   .m-pro-con{grid-template-columns:1fr!important}
   .m-params{grid-template-columns:1fr 1fr!important}
   .tracker-add-form{grid-template-columns:1fr 1fr!important}
+  .stats-charts-grid{grid-template-columns:1fr!important}
 }
 .mn{margin-left:var(--fw);flex:1;padding:26px 30px;max-width:1120px;animation:fa .3s ease}
 .ph{margin-bottom:22px}
@@ -816,7 +817,8 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ STATISTIQUES ═══════════════ -->
 <section class="sec" id="s-stats">
-  <div class="ph"><div class="pt">&#128200; Statistiques</div><div class="ps">100% connecté à Rattrapage Intelligent — aucune saisie séparée. Chaque "Gagné" / "Perdu" met ceci à jour instantanément.</div></div>
+  <div class="ph"><div class="pt">&#128200; Statistiques</div><div class="ps">100% connecté à Rattrapage Intelligent — aucune saisie séparée. Chaque "Gagné" / "Perdu" met ceci à jour instantanément. Ces données sont archivées ici de façon permanente : "Tout effacer" dans Rattrapage Intelligent ne les efface plus — seul le bouton ci-dessous le peut.</div></div>
+  <div style="margin-bottom:14px"><button class="btn" onclick="statsArchiveClearAll()" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25);border-radius:4px">&#128465; Effacer les statistiques (définitif)</button></div>
   <div id="stats-content"></div>
 
   <div class="card" style="margin-top:16px">
@@ -967,7 +969,7 @@ function go(name) {
   if(name==='notes')    { notesLoad(); notesSyncCloud(); notesRender(); }
   if(name==='dash')     { setTimeout(loadTicker, 500); }
   if(name==='methods')  { lossRender(); initMethods(); }
-  if(name==='stats')    { renderStatsPage(); if(!statsChatHistory.length) statsChatWelcome(); }
+  if(name==='stats')    { statsArchiveSyncFromServer().then(renderStatsPage); if(!statsChatHistory.length) statsChatWelcome(); }
   if(name==='settings') { loadSettings(); loadSysStatus(); loadAIStatus(); }
   if(name==='live')     loadLive();
 }
@@ -2167,6 +2169,7 @@ function lossAdd(){
     date:new Date().toISOString(), recovered:false
   });
   lossSave(data);
+  if(result==='win'||result==='loss') statsArchiveSync();
 
   ['loss-match','loss-sel','loss-stake','loss-odds','loss-amount-override'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   
@@ -2198,6 +2201,7 @@ function lossResolvePending(id, result){
   e.manual_amount=manual;
   e.resolved_date=new Date().toISOString();
   lossSave(data);
+  statsArchiveSync();
   toast(result==='win'?'Marque gagne (+'+e.amount_won.toFixed(2)+'e) !':'Marque perdu.', result==='win'?'ok':'');
   lossRender();
   if(result==='loss' && selectedMethod){
@@ -2488,6 +2492,56 @@ async function lossSearchMatchesSport(cote){ await lossAutoSearch(cote); }
 // ═══════════════════════════════════════════════
 const STATS_SPORT_LABELS={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL',all:'Autre/Non precise'};
 
+// ─── Archive statistiques : independante de Rattrapage Intelligent ───
+// Une fois qu'un pari est resolu (gagne/perdu), il est copie ici. "Tout effacer" dans
+// Rattrapage Intelligent ne touche JAMAIS cette archive — seul "Effacer les statistiques"
+// depuis cette page peut la vider.
+const STATS_ARCHIVE_KEY='pgi_stats_archive_v1';
+function statsArchiveLoad(){
+  try{ var raw=localStorage.getItem(STATS_ARCHIVE_KEY); return raw?JSON.parse(raw):{entries:[]}; }
+  catch(_){ return {entries:[]}; }
+}
+function statsArchiveSave(data){
+  try{ localStorage.setItem(STATS_ARCHIVE_KEY, JSON.stringify(data)); }catch(_){}
+  api('/api/notes','PUT',{notes:[{id:'pgi_stats_archive_v1',title:'StatsArchive',body:JSON.stringify(data),updatedAt:new Date().toISOString()}]}).catch(function(){});
+}
+async function statsArchiveSyncFromServer(){
+  try{
+    var d=await api('/api/notes');
+    var note=(d.notes||[]).find(function(n){return n.id==='pgi_stats_archive_v1';});
+    if(note){
+      var parsed=JSON.parse(note.body);
+      var local=statsArchiveLoad();
+      if((parsed.entries||[]).length>(local.entries||[]).length){
+        localStorage.setItem(STATS_ARCHIVE_KEY, JSON.stringify(parsed));
+      }
+    }
+  }catch(_){}
+}
+function statsArchiveSync(){
+  // Copie toute entree resolue (gagne/perdu) de Rattrapage Intelligent qui n'est pas deja archivee.
+  // Idempotent : ne re-copie jamais une entree deja presente (par id), donc ne peut pas ecraser
+  // une donnee archivee meme si elle a ete supprimee cote Rattrapage Intelligent depuis.
+  var archive=statsArchiveLoad();
+  var existingIds={};
+  (archive.entries||[]).forEach(function(e){ existingIds[e.id]=true; });
+  var live=lossLoad();
+  var newOnes=(live.entries||[]).filter(function(e){
+    return (e.result==='win'||e.result==='loss') && !existingIds[e.id];
+  });
+  if(newOnes.length){
+    archive.entries=(archive.entries||[]).concat(newOnes);
+    statsArchiveSave(archive);
+  }
+  return archive;
+}
+function statsArchiveClearAll(){
+  if(!confirm('Effacer DÉFINITIVEMENT toutes les statistiques archivées ? Cette action est irréversible et distincte de Rattrapage Intelligent.')) return;
+  statsArchiveSave({entries:[]});
+  renderStatsPage();
+  toast('Statistiques effacées','ok');
+}
+
 function statsDetectBetType(e){
   if(e.bet_type && e.bet_type!=='auto') return e.bet_type;
   var s=(e.sel||'').toLowerCase();
@@ -2499,7 +2553,8 @@ function statsDetectBetType(e){
 }
 
 function computeStatsData(){
-  var data=lossLoad();
+  statsArchiveSync(); // copie toute nouvelle entree resolue avant de calculer
+  var data=statsArchiveLoad();
   var all=data.entries||[];
   var resolved=all.filter(function(e){return e.result==='win'||e.result==='loss';});
   var wins=resolved.filter(function(e){return e.result==='win';});
