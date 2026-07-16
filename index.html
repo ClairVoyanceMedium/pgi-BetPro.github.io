@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PGI • BetPro</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&family=Syne:wght@800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -388,6 +389,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie Gagnante</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Rattrapage Intelligent</div>
+    <div class="ni"    data-s="stats"     onclick="go('stats')"   ><span class="ni-i">&#128200;</span>Statistiques</div>
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
     <div class="ni"    data-s="install"   onclick="go('install')" ><span class="ni-i">&#128214;</span>Installation</div>
@@ -748,12 +750,13 @@ a{color:var(--neon);text-decoration:none}
       <div class="fgrp"><label>Mise (€)</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="20"></div>
       <div class="fgrp"><label>Cote jouée</label><input type="number" id="loss-odds" min="1.01" step="0.01" placeholder="2.10"></div>
     </div>
-    <div class="fg" style="grid-template-columns:1fr 1fr;margin-bottom:0">
+    <div class="fg" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:0">
       <div class="fgrp"><label>Résultat</label>
         <select id="loss-result">
           <option value="loss">❌ Perdu</option>
           <option value="win">✅ Gagné</option>
           <option value="void">— Remboursé/Void</option>
+          <option value="pending">⏳ En attente (match pas encore joué)</option>
         </select>
       </div>
       <div class="fgrp"><label>Sport</label>
@@ -769,6 +772,17 @@ a{color:var(--neon);text-decoration:none}
           <option value="americanfootball">🏈 NFL</option>
         </select>
       </div>
+      <div class="fgrp"><label>Type de pari (opt.)</label>
+        <select id="loss-type-sel">
+          <option value="auto">Auto-détection</option>
+          <option value="1X2">1X2</option>
+          <option value="Totaux">Totaux (Over/Under)</option>
+          <option value="Handicap">Handicap</option>
+          <option value="BTTS">BTTS</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <div class="fgrp"><label>Montant réel gagné/perdu (opt.)</label><input type="number" id="loss-amount-override" min="0" step="0.01" placeholder="Laisser vide = calcul auto"></div>
     </div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn bp" onclick="lossAdd()">&#43; Enregistrer</button>
@@ -798,6 +812,29 @@ a{color:var(--neon);text-decoration:none}
     <div id="loss-history-list"></div>
   </div>
   <div id="m-tracker-section" style="display:none"></div>
+</section>
+
+<!-- ═══════════════ STATISTIQUES ═══════════════ -->
+<section class="sec" id="s-stats">
+  <div class="ph"><div class="pt">&#128200; Statistiques</div><div class="ps">100% connecté à Rattrapage Intelligent — aucune saisie séparée. Chaque "Gagné" / "Perdu" met ceci à jour instantanément.</div></div>
+  <div id="stats-content"></div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="ct">&#129302; Analyste IA — pose une question sur tes performances</div>
+    <div class="info" style="margin-bottom:12px">Répond uniquement à partir de tes vrais paris enregistrés. Comprend les abréviations (PSG, OM, vs…) et les périodes (aujourd'hui, cette semaine, en mars…).</div>
+    <div id="stats-chat-wrap" style="display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow-y:auto;padding:4px 0;margin-bottom:12px;scroll-behavior:smooth"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="fbtn" onclick="sendStatsQuick('Rapport du jour')">Rapport du jour</button>
+      <button class="fbtn" onclick="sendStatsQuick('Rapport de la semaine')">Rapport semaine</button>
+      <button class="fbtn" onclick="sendStatsQuick('Rapport du mois')">Rapport mois</button>
+      <button class="fbtn" onclick="sendStatsQuick('Quels sont mes points forts et points faibles ?')">Forces/faiblesses</button>
+      <button class="fbtn" onclick="sendStatsQuick('Comment améliorer ma rentabilité ?')">Conseils</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <textarea id="stats-chat-input" placeholder="Ex: comment j'ai fait sur OM vs PSG ? Quel est mon ROI sur le tennis ce mois-ci ?" onkeydown="statsChatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(140,this.scrollHeight)+'px'" style="resize:none;min-height:44px;max-height:140px;overflow-y:auto;flex:1"></textarea>
+      <button class="btn bp" id="stats-chat-btn" onclick="sendStatsChat()" style="align-self:flex-end">&#9654;</button>
+    </div>
+  </div>
 </section>
 
 <!-- ═══════════════ PARAMÈTRES ═══════════════ -->
@@ -930,6 +967,7 @@ function go(name) {
   if(name==='notes')    { notesLoad(); notesSyncCloud(); notesRender(); }
   if(name==='dash')     { setTimeout(loadTicker, 500); }
   if(name==='methods')  { lossRender(); initMethods(); }
+  if(name==='stats')    { renderStatsPage(); if(!statsChatHistory.length) statsChatWelcome(); }
   if(name==='settings') { loadSettings(); loadSysStatus(); loadAIStatus(); }
   if(name==='live')     loadLive();
 }
@@ -2112,25 +2150,55 @@ function lossAdd(){
   var sel=document.getElementById('loss-sel')?.value.trim()||'';
   var result=document.getElementById('loss-result')?.value||'loss';
   var sport=document.getElementById('loss-sport-sel')?.value||'all';
+  var betType=document.getElementById('loss-type-sel')?.value||'auto';
+  var amountOverride=parseFloat(document.getElementById('loss-amount-override')?.value);
+  var hasOverride=!isNaN(amountOverride)&&amountOverride>=0;
 
   if(!match){toast('Renseignez le match','err');return;}
   if(!stake||stake<=0){toast('Mise invalide','err');return;}
   if(!odds||odds<=1){toast('Cote invalide (>1)','err');return;}
 
   var data=lossLoad();
-  var gain=result==='win'?parseFloat(((stake*odds)-stake).toFixed(2)):0;
+  var gain=result==='win'?(hasOverride?amountOverride:parseFloat(((stake*odds)-stake).toFixed(2))):0;
+  var lost=result==='loss'?(hasOverride?amountOverride:stake):0;
   data.entries.unshift({
-    id:Date.now(), match:match, sel:sel, odds:odds, stake:stake, sport:sport,
-    result:result, amount_lost:result==='loss'?stake:0, amount_won:result==='win'?gain:0,
+    id:Date.now(), match:match, sel:sel, odds:odds, stake:stake, sport:sport, bet_type:betType,
+    result:result, amount_lost:lost, amount_won:gain, manual_amount:hasOverride,
     date:new Date().toISOString(), recovered:false
   });
   lossSave(data);
 
-  ['loss-match','loss-sel','loss-stake','loss-odds'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['loss-match','loss-sel','loss-stake','loss-odds','loss-amount-override'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   
-  toast(result==='win'?'Gain enregistre (+'+gain.toFixed(2)+'e)!':'Perte enregistree.', result==='win'?'ok':'');
-  
+  toast(result==='win'?'Gain enregistre (+'+gain.toFixed(2)+'e)!':result==='pending'?'Match enregistre en attente.':'Perte enregistree.', result==='win'?'ok':'');
+
   // Auto-calculer et lancer la recherche si methode selectionnee
+  lossRender();
+  if(result==='loss' && selectedMethod){
+    setTimeout(function(){ lossAutoSearch(); }, 400);
+  }
+}
+
+function lossResolvePending(id, result){
+  var data=lossLoad();
+  var e=data.entries.find(function(x){return x.id===id;});
+  if(!e) return;
+  var autoAmount=result==='win'?parseFloat(((e.stake*e.odds)-e.stake).toFixed(2)):e.stake;
+  var custom=prompt('Montant réel '+(result==='win'?'gagné':'perdu')+' (€) — laisser vide pour le calcul auto ('+autoAmount.toFixed(2)+'€) :');
+  if(custom===null) return; // annulé
+  var amount=autoAmount, manual=false;
+  if(custom.trim()!==''){
+    var parsed=parseFloat(custom.replace(',','.'));
+    if(!isNaN(parsed) && parsed>=0){ amount=parsed; manual=true; }
+    else { toast('Montant invalide, calcul auto utilisé',''); }
+  }
+  e.result=result;
+  e.amount_won=result==='win'?amount:0;
+  e.amount_lost=result==='loss'?amount:0;
+  e.manual_amount=manual;
+  e.resolved_date=new Date().toISOString();
+  lossSave(data);
+  toast(result==='win'?'Marque gagne (+'+e.amount_won.toFixed(2)+'e) !':'Marque perdu.', result==='win'?'ok':'');
   lossRender();
   if(result==='loss' && selectedMethod){
     setTimeout(function(){ lossAutoSearch(); }, 400);
@@ -2265,9 +2333,10 @@ function lossRender(){
     var toShow=filteredEntries;
     if(!toShow.length){ histList.innerHTML='<div style="text-align:center;padding:20px;color:var(--dm);font-size:12px">Aucun pari sur cette periode.</div>'; return; }
     histList.innerHTML=toShow.map(function(e){
-      var icon=e.result==='win'?'OK':e.result==='void'?'-':'PERDU';
-      var amtColor=e.result==='win'?'var(--gr)':e.result==='loss'?'var(--re)':'var(--am)';
-      var amtStr=e.result==='win'?'+'+(e.amount_won||0).toFixed(2)+'e':e.result==='loss'?'-'+(e.amount_lost||0).toFixed(2)+'e':'Void';
+      var icon=e.result==='win'?'OK':e.result==='void'?'-':e.result==='pending'?'...':'PERDU';
+      var amtColor=e.result==='win'?'var(--gr)':e.result==='loss'?'var(--re)':e.result==='pending'?'var(--pu)':'var(--am)';
+      var amtStr=e.result==='win'?'+'+(e.amount_won||0).toFixed(2)+'e':e.result==='loss'?'-'+(e.amount_lost||0).toFixed(2)+'e':e.result==='pending'?'⏳ En attente':'Void';
+      var manualTag=e.manual_amount?' <span title="Montant saisi manuellement" style="font-size:9px;color:var(--pu)">&#9998;</span>':'';
       var sl={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL'}[e.sport]||'Sport';
       return '<div class="loss-entry '+(!e.recovered&&e.result==='loss'?'active-loss':'')+'">'
         +'<div style="flex:1;min-width:0">'
@@ -2279,7 +2348,8 @@ function lossRender(){
         +'<span class="le-date">'+fmtDT(e.date)+'</span>'
         +'</div></div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
-        +'<span style="font-family:var(--mo);font-weight:700;color:'+amtColor+';font-size:13px">'+amtStr+'</span>'
+        +'<span style="font-family:var(--mo);font-weight:700;color:'+amtColor+';font-size:13px">'+amtStr+manualTag+'</span>'
+        +(e.result==='pending'?'<div style="display:flex;gap:4px"><button onclick="lossResolvePending('+e.id+',\'win\')" style="background:var(--grb);color:var(--gr);border:1px solid rgba(0,255,157,.25);border-radius:4px;font-size:9px;padding:3px 6px;cursor:pointer;font-weight:700">✅ Gagné</button><button onclick="lossResolvePending('+e.id+',\'loss\')" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25);border-radius:4px;font-size:9px;padding:3px 6px;cursor:pointer;font-weight:700">❌ Perdu</button></div>':'')
         +'<button onclick="lossDeleteEntry('+e.id+')" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:11px;padding:2px">X</button>'
         +'</div></div>';
     }).join('');
@@ -2412,6 +2482,260 @@ async function lossAutoSearch(forcedOdds){
 // Anciens alias pour compatibilite
 async function lossSearchMatches(targetOdds, customLeagues){ await lossAutoSearch(targetOdds); }
 async function lossSearchMatchesSport(cote){ await lossAutoSearch(cote); }
+
+// ═══════════════════════════════════════════════
+//  STATISTIQUES — 100% derive de Rattrapage Intelligent, aucune saisie separee
+// ═══════════════════════════════════════════════
+const STATS_SPORT_LABELS={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL',all:'Autre/Non precise'};
+
+function statsDetectBetType(e){
+  if(e.bet_type && e.bet_type!=='auto') return e.bet_type;
+  var s=(e.sel||'').toLowerCase();
+  if(/over|under|plus de|moins de|total|o\/u/.test(s)) return 'Totaux';
+  if(/btts|deux equipes marquent|both teams|les 2 marquent/.test(s)) return 'BTTS';
+  if(/handicap|\(-|\(\+/.test(s)) return 'Handicap';
+  if(/nul|draw|match nul/.test(s)) return '1X2 (Nul)';
+  return '1X2';
+}
+
+function computeStatsData(){
+  var data=lossLoad();
+  var all=data.entries||[];
+  var resolved=all.filter(function(e){return e.result==='win'||e.result==='loss';});
+  var wins=resolved.filter(function(e){return e.result==='win';});
+  var losses=resolved.filter(function(e){return e.result==='loss';});
+  var voids=all.filter(function(e){return e.result==='void';});
+  var pending=all.filter(function(e){return e.result==='pending';});
+  var totalBets=resolved.length;
+  var winRate=totalBets>0?Math.round(wins.length/totalBets*100):0;
+  var totalWon=wins.reduce(function(s,e){return s+(e.amount_won||0);},0);
+  var totalLost=losses.reduce(function(s,e){return s+(e.amount_lost||0);},0);
+  var netProfit=totalWon-totalLost;
+  var totalStaked=resolved.reduce(function(s,e){return s+(e.stake||0);},0);
+  var roi=totalStaked>0?(netProfit/totalStaked*100):0;
+  var avgStake=totalBets>0?totalStaked/totalBets:0;
+  var avgOdds=totalBets>0?resolved.reduce(function(s,e){return s+(e.odds||0);},0)/totalBets:0;
+  var biggestWin=wins.reduce(function(m,e){return Math.max(m,e.amount_won||0);},0);
+  var biggestLoss=losses.reduce(function(m,e){return Math.max(m,e.amount_lost||0);},0);
+
+  var chrono=resolved.slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+  var curStreak=0,curType=null,bestWinStreak=0,worstLossStreak=0;
+  chrono.forEach(function(e){
+    if(e.result===curType){curStreak++;}else{curType=e.result;curStreak=1;}
+    if(curType==='win') bestWinStreak=Math.max(bestWinStreak,curStreak);
+    else worstLossStreak=Math.max(worstLossStreak,curStreak);
+  });
+
+  var bySport={};
+  resolved.forEach(function(e){
+    var k=e.sport||'all';
+    if(!bySport[k]) bySport[k]={wins:0,losses:0,staked:0,profit:0};
+    if(e.result==='win'){bySport[k].wins++;bySport[k].profit+=(e.amount_won||0);}
+    else {bySport[k].losses++;bySport[k].profit-=(e.amount_lost||0);}
+    bySport[k].staked+=(e.stake||0);
+  });
+
+  var byType={};
+  resolved.forEach(function(e){
+    var t=statsDetectBetType(e);
+    if(!byType[t]) byType[t]={wins:0,losses:0,staked:0,profit:0};
+    if(e.result==='win'){byType[t].wins++;byType[t].profit+=(e.amount_won||0);}
+    else {byType[t].losses++;byType[t].profit-=(e.amount_lost||0);}
+    byType[t].staked+=(e.stake||0);
+  });
+
+  var cumulative=0;
+  var evolution=chrono.map(function(e){
+    cumulative += e.result==='win'?(e.amount_won||0):-(e.amount_lost||0);
+    return {date:e.date, value:cumulative, match:e.match};
+  });
+
+  return {
+    all:all, resolved:resolved, wins:wins, losses:losses, voids:voids, pending:pending,
+    totalBets:totalBets, winRate:winRate, netProfit:netProfit, roi:roi,
+    avgStake:avgStake, avgOdds:avgOdds, biggestWin:biggestWin, biggestLoss:biggestLoss,
+    bestWinStreak:bestWinStreak, worstLossStreak:worstLossStreak,
+    bySport:bySport, byType:byType, evolution:evolution, sportLabels:STATS_SPORT_LABELS,
+    totalStaked:totalStaked, totalWon:totalWon, totalLost:totalLost,
+  };
+}
+
+let _statCharts={};
+function renderStatsPage(){
+  var s=computeStatsData();
+  var cnt=document.getElementById('stats-content');
+  if(!cnt) return;
+  if(!s.all.length){
+    cnt.innerHTML='<div class="empty"><div class="empty-i">&#128200;</div><div class="empty-t">Aucune donnée pour l\'instant</div><div class="empty-s">Enregistre des paris dans Rattrapage Intelligent (Gagné / Perdu) — les statistiques apparaîtront ici automatiquement, sans rien saisir de plus.</div></div>';
+    return;
+  }
+  var plColor=s.netProfit>=0?'var(--gr)':'var(--re)';
+  var roiColor=s.roi>=0?'var(--gr)':'var(--re)';
+  cnt.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:16px">
+      <div class="tsm-cell"><div class="sv">${s.totalBets}</div><label>Paris résolus</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--gr)">${s.wins.length}</div><label>Gagnés</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--re)">${s.losses.length}</div><label>Perdus</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:${s.winRate>=55?'var(--gr)':s.winRate>=40?'var(--am)':'var(--re)'}">${s.winRate}%</div><label>% Réussite</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:${roiColor}">${s.roi>=0?'+':''}${s.roi.toFixed(1)}%</div><label>ROI global</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:${plColor}">${s.netProfit>=0?'+':''}${s.netProfit.toFixed(2)}€</div><label>Bénéfice net</label></div>
+      <div class="tsm-cell"><div class="sv">${s.avgStake.toFixed(2)}€</div><label>Mise moyenne</label></div>
+      <div class="tsm-cell"><div class="sv">${s.avgOdds.toFixed(2)}</div><label>Cote moyenne</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--gr)">${s.bestWinStreak}</div><label>Meilleure série</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--re)">${s.worstLossStreak}</div><label>Pire série</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--gr)">+${s.biggestWin.toFixed(2)}€</div><label>Plus gros gain</label></div>
+      <div class="tsm-cell"><div class="sv" style="color:var(--re)">-${s.biggestLoss.toFixed(2)}€</div><label>Plus grosse perte</label></div>
+    </div>
+    ${s.pending.length?`<div class="info" style="margin-bottom:14px">&#9203; ${s.pending.length} pari(s) en attente de résultat — pas encore comptabilisés (voir Rattrapage Intelligent pour les résoudre).</div>`:''}
+    <div class="card" style="margin-bottom:14px">
+      <div class="ct">Évolution du profit cumulé</div>
+      <div style="position:relative;height:220px"><canvas id="chart-evolution"></canvas></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px" class="stats-charts-grid">
+      <div class="card"><div class="ct">Répartition Gagné / Perdu</div><div style="position:relative;height:200px"><canvas id="chart-winloss"></canvas></div></div>
+      <div class="card"><div class="ct">Profit par sport</div><div style="position:relative;height:200px"><canvas id="chart-sport"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="ct">Performance par type de pari</div>
+      <div style="position:relative;height:200px"><canvas id="chart-type"></canvas></div>
+    </div>`;
+  renderStatsCharts(s);
+}
+
+function renderStatsCharts(s){
+  if(typeof Chart==='undefined') return;
+  Object.keys(_statCharts).forEach(function(k){ if(_statCharts[k]) _statCharts[k].destroy(); });
+  _statCharts={};
+  var gridColor='rgba(255,255,255,.06)';
+  Chart.defaults.color='#8fa8c4';
+  Chart.defaults.font.family="'JetBrains Mono',monospace";
+  Chart.defaults.font.size=10;
+
+  var evoCtx=document.getElementById('chart-evolution');
+  if(evoCtx){
+    _statCharts.evolution=new Chart(evoCtx,{
+      type:'line',
+      data:{labels:s.evolution.map(function(e){return fmtDT(e.date);}),
+        datasets:[{label:'P&L cumulé (€)',data:s.evolution.map(function(e){return e.value;}),
+          borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,.12)',fill:true,tension:.3,pointRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{grid:{color:gridColor},ticks:{maxTicksLimit:6}},y:{grid:{color:gridColor}}}}
+    });
+  }
+  var wlCtx=document.getElementById('chart-winloss');
+  if(wlCtx){
+    _statCharts.winloss=new Chart(wlCtx,{
+      type:'doughnut',
+      data:{labels:['Gagnés','Perdus'],datasets:[{data:[s.wins.length,s.losses.length],backgroundColor:['#00ff9d','#ef4444'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+    });
+  }
+  var sportCtx=document.getElementById('chart-sport');
+  if(sportCtx){
+    var sportKeys=Object.keys(s.bySport);
+    _statCharts.sport=new Chart(sportCtx,{
+      type:'bar',
+      data:{labels:sportKeys.map(function(k){return s.sportLabels[k]||k;}),
+        datasets:[{label:'Profit (€)',data:sportKeys.map(function(k){return s.bySport[k].profit;}),
+          backgroundColor:sportKeys.map(function(k){return s.bySport[k].profit>=0?'#00ff9d':'#ef4444';})}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{grid:{display:false}},y:{grid:{color:gridColor}}}}
+    });
+  }
+  var typeCtx=document.getElementById('chart-type');
+  if(typeCtx){
+    var typeKeys=Object.keys(s.byType);
+    _statCharts.type=new Chart(typeCtx,{
+      type:'bar',
+      data:{labels:typeKeys,
+        datasets:[
+          {label:'Gagnés',data:typeKeys.map(function(k){return s.byType[k].wins;}),backgroundColor:'#00ff9d'},
+          {label:'Perdus',data:typeKeys.map(function(k){return s.byType[k].losses;}),backgroundColor:'#ef4444'}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+        scales:{x:{grid:{display:false},stacked:true},y:{grid:{color:gridColor},stacked:true}}}
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  ANALYSTE IA — connecte a 100% aux donnees reelles de Rattrapage Intelligent
+// ═══════════════════════════════════════════════
+let statsChatHistory=[];
+function statsChatWelcome(){
+  var wrap=document.getElementById('stats-chat-wrap');
+  if(wrap) wrap.innerHTML='<div class="msg bot"><div class="msg-ico">🤖</div><div><div class="msg-bub">Je suis connecté à tes vrais paris enregistrés dans Rattrapage Intelligent. Demande-moi un rapport, une comparaison, ou pose une question sur un match precis (ex: "comment j\'ai fait sur OM vs PSG ?").</div></div></div>';
+}
+function statsChatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendStatsChat();}}
+function sendStatsQuick(q){document.getElementById('stats-chat-input').value=q;sendStatsChat();}
+function appendStatsMsg(role,text,meta){
+  var wrap=document.getElementById('stats-chat-wrap');
+  var div=document.createElement('div');
+  div.className='msg '+(role==='user'?'user':'bot');
+  div.innerHTML=(role==='user'?'':'<div class="msg-ico">🤖</div>')
+    +'<div><div class="msg-bub">'+esc(text).replace(/\n/g,'<br>')+'</div>'
+    +(meta?'<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">'+esc(meta)+'</div>':'')
+    +'</div>';
+  wrap.appendChild(div);
+  wrap.scrollTop=wrap.scrollHeight;
+}
+function buildStatsContextText(){
+  var s=computeStatsData();
+  var lines=[];
+  lines.push('=== RESUME GLOBAL ===');
+  lines.push('Total paris résolus: '+s.totalBets+' | Gagnés: '+s.wins.length+' | Perdus: '+s.losses.length+' | Taux de réussite: '+s.winRate+'%');
+  lines.push('ROI global: '+s.roi.toFixed(2)+'% | Bénéfice net: '+s.netProfit.toFixed(2)+'€ | Total misé: '+s.totalStaked.toFixed(2)+'€');
+  lines.push('Mise moyenne: '+s.avgStake.toFixed(2)+'€ | Cote moyenne: '+s.avgOdds.toFixed(2));
+  lines.push('Meilleure série de gains: '+s.bestWinStreak+' | Pire série de pertes: '+s.worstLossStreak);
+  lines.push('Plus gros gain: +'+s.biggestWin.toFixed(2)+'€ | Plus grosse perte: -'+s.biggestLoss.toFixed(2)+'€');
+  lines.push('Paris en attente (non résolus): '+s.pending.length+' | Void/remboursés: '+s.voids.length);
+  lines.push('');
+  lines.push('=== PAR SPORT ===');
+  Object.keys(s.bySport).forEach(function(k){
+    var b=s.bySport[k];
+    lines.push((s.sportLabels[k]||k)+': '+b.wins+'G/'+b.losses+'P, profit '+b.profit.toFixed(2)+'€, misé '+b.staked.toFixed(2)+'€');
+  });
+  lines.push('');
+  lines.push('=== PAR TYPE DE PARI ===');
+  Object.keys(s.byType).forEach(function(k){
+    var b=s.byType[k];
+    lines.push(k+': '+b.wins+'G/'+b.losses+'P, profit '+b.profit.toFixed(2)+'€');
+  });
+  lines.push('');
+  lines.push('=== HISTORIQUE DETAILLE (le plus récent en premier, max 300) ===');
+  lines.push('date|sport|match|selection|cote|mise|resultat|gain|perte');
+  s.all.slice(0,300).forEach(function(e){
+    lines.push([e.date, e.sport||'', e.match||'', e.sel||'', e.odds||'', e.stake||'', e.result||'', (e.amount_won||0), (e.amount_lost||0)].join('|'));
+  });
+  return lines.join('\n');
+}
+async function sendStatsChat(){
+  var input=document.getElementById('stats-chat-input'), btn=document.getElementById('stats-chat-btn');
+  var q=input.value.trim();
+  if(!q) return;
+  statsChatHistory.push({role:'user',content:q});
+  appendStatsMsg('user',q);
+  input.value=''; input.style.height='auto';
+  btn.disabled=true; btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
+  var wrap=document.getElementById('stats-chat-wrap');
+  var typing=document.createElement('div');
+  typing.className='msg bot'; typing.id='stats-typing';
+  typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Analyse des données…</div>';
+  wrap.appendChild(typing); wrap.scrollTop=wrap.scrollHeight;
+  try{
+    var d=await api('/api/chat','POST',{
+      messages:statsChatHistory.slice(-10),
+      context:{mode:'stats', extra:buildStatsContextText()}
+    });
+    document.getElementById('stats-typing')?.remove();
+    statsChatHistory.push({role:'assistant',content:d.response||''});
+    appendStatsMsg('bot', d.response||'Pas de réponse.', d.provider&&d.model?d.provider+' · '+d.model:null);
+  }catch(e){
+    document.getElementById('stats-typing')?.remove();
+    appendStatsMsg('bot','❌ Erreur: '+e.message);
+  }
+  btn.disabled=false; btn.innerHTML='▶';
+}
 
 
 // ═══════════════════════════════════════════════
