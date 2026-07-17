@@ -1314,6 +1314,14 @@ function buildWhyBox(o, s, impliedProb, trueProb, evPct) {
   else if(evPct>0) reasons.push("EV marginalement positif (+"+evPct+"%) — pari rentable a long terme si repete avec discipline.");
   else if(evPct<-5) reasons.push("EV negatif ("+evPct+"%) : le marche favorise le bookmaker ici. A eviter sauf signal tres fort par ailleurs.");
 
+  // Mouvement de cote (steam) — si un historique existe
+  if(o.steam){
+    var stMin = o.steam.since_minutes;
+    var stPct = Math.abs(o.steam.pct);
+    if(o.steam.direction==='shortening') reasons.push("Cote en baisse depuis "+stMin+" min (-"+stPct+"%) : l argent du marche semble converger vers cette selection. Signal confirmant, mais pas une garantie.");
+    else reasons.push("Cote en hausse depuis "+stMin+" min (+"+stPct+"%) : le marche s eloigne de cette selection depuis le premier scan. A prendre en compte avant de miser, meme si le prix actuel reste 'value'.");
+  }
+
   // Score global
   if(tot>=85) reasons.push("Score exceptionnel ("+tot+"/100) : tous les indicateurs convergent — valeur cote, consensus bookmakers, stabilite et plausibilite statistique.");
   else if(tot>=75) reasons.push("Fort signal ("+tot+"/100) : bonne convergence des indicateurs quantitatifs. Au-dessus du seuil de confiance recommande (75).");
@@ -1333,7 +1341,8 @@ function buildWhyBox(o, s, impliedProb, trueProb, evPct) {
   // Analyse temporelle
   if(startTime) {
     var hoursUntil = (startTime-now)/3600000;
-    if(hoursUntil<2) reasons.push("Match imminent (dans "+Math.round(hoursUntil*60)+" min) : cote stabilisee. Verifier les compositions officielles annoncees.");
+    if(hoursUntil<0) reasons.push("Match deja commence (il y a "+Math.round(Math.abs(hoursUntil)*60)+" min) : cote potentiellement obsolete si le match est termine. Verifier le statut reel avant de miser.");
+    else if(hoursUntil<2) reasons.push("Match imminent (dans "+Math.round(hoursUntil*60)+" min) : cote stabilisee. Verifier les compositions officielles annoncees.");
     else if(hoursUntil<6) reasons.push("Match dans "+Math.round(hoursUntil)+"h : surveiller les annonces de composition (H-1h) et conditions meteo locales.");
     else if(hoursUntil<24) reasons.push("Match dans "+Math.round(hoursUntil)+"h : temps suffisant pour verifier blessures, suspensions et tendance des cotes sur Oddsportal.");
     else reasons.push("Match dans "+Math.round(hoursUntil/24)+" jour(s) : cote peut encore bouger. Ideal pour un bet early si confiance dans l analyse.");
@@ -1361,7 +1370,7 @@ function buildWhyBox(o, s, impliedProb, trueProb, evPct) {
   else if(bms.length>=2) reasons.push(bms.length+" bookmakers seulement : liquidite limitee. Confirmer manuellement sur Pinnacle.");
 
   if(subs.stability>=15) reasons.push("Stabilite des cotes excellente ("+subs.stability+"/20) : faible dispersion inter-bookmakers, signal de confiance eleve.");
-  if(subs.consensus>=18) reasons.push("Consensus maximal ("+subs.consensus+"/20) : tous les bookmakers s accordent sur cette selection.");
+  if(subs.consensus>=18) reasons.push("Large echantillon de bookmakers ("+subs.consensus+"/20) : comparaison statistiquement plus fiable, meme si les cotes elles-memes peuvent diverger (voir Stabilite).");
   if(subs.odds_value>=18) reasons.push("Valeur cote elevee ("+subs.odds_value+"/25) : cote meilleure que la moyenne du marche.");
 
   // Recommandation finale
@@ -3258,7 +3267,7 @@ function renderDirectionCard(o, i, containerId) {
       <div style="margin-bottom:8px">
         ${ssRow('Valeur cote',subs.odds_value)}
         ${ssRow('Stabilite',subs.stability)}
-        ${ssRow('Consensus bookmakers',subs.consensus)}
+        ${ssRow('Couverture bookmakers',subs.consensus)}
         ${ssRow('Plausibilite',subs.plausibility)}
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px">
