@@ -498,6 +498,7 @@ a{color:var(--neon);text-decoration:none}
         <button class="ssb"    data-sport="mma"              onclick="setScanSport(this)">&#129354; MMA/Boxe</button>
         <button class="ssb"    data-sport="americanfootball" onclick="setScanSport(this)">&#127944; NFL</button>
         <button class="ssb"    data-sport="handball"         onclick="setScanSport(this)">&#129336; Handball</button>
+        <button class="ssb"    data-sport="volleyball"       onclick="setScanSport(this)">&#127952; Volleyball</button>
       </div>
     </div>
     <div style="margin:0 0 12px">
@@ -619,6 +620,7 @@ a{color:var(--neon);text-decoration:none}
           <option value="mma">&#129354; MMA/Boxe</option>
           <option value="americanfootball">&#127944; NFL</option>
           <option value="handball">&#129336; Handball</option>
+          <option value="volleyball">&#127952; Volleyball</option>
         </select>
       </div>
       <div class="fgrp"><label>Date du match (opt.)</label><input type="date" id="m-date" style="color:var(--tx)"></div>
@@ -650,6 +652,7 @@ a{color:var(--neon);text-decoration:none}
         <option value="mma">&#129354; MMA/Boxe</option>
         <option value="americanfootball">&#127944; NFL</option>
         <option value="handball">&#129336; Handball</option>
+        <option value="volleyball">&#127952; Volleyball</option>
       </select>
     </div>
     <div class="bg"><button class="btn bp" id="csvbtn" onclick="doCSVAnalyze()">&#128194; Analyser la liste</button></div>
@@ -839,6 +842,7 @@ a{color:var(--neon);text-decoration:none}
           <option value="baseball">Baseball</option>
           <option value="american">NFL</option>
           <option value="handball">Handball</option>
+          <option value="volleyball">Volleyball</option>
         </select>
       </div>
     </div>
@@ -889,6 +893,7 @@ a{color:var(--neon);text-decoration:none}
           <option value="rugby">🏉 Rugby</option>
           <option value="baseball">⚾ Baseball</option>
           <option value="americanfootball">🏈 NFL</option>
+          <option value="volleyball">🏐 Volleyball</option>
         </select>
       </div>
     </div>
@@ -1166,6 +1171,7 @@ wrangler deploy</pre>
         <option value="baseball">Baseball</option>
         <option value="rugby">Rugby</option>
         <option value="americanfootball">NFL</option>
+        <option value="volleyball">Volleyball</option>
       </select>
       <select id="perf-tier-filter" onchange="loadPerformances()" style="background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:5px 8px;border-radius:4px;font-size:11px;width:auto;outline:none">
         <option value="all">Tous les niveaux</option>
@@ -1428,7 +1434,7 @@ function setScanSport(el){
   document.querySelectorAll('.ssb').forEach(b=>b.classList.toggle('on',liveSportSet.has('all')?b.dataset.sport==='all':liveSportSet.has(b.dataset.sport||'')));
   if(document.querySelector('.dir-card')||document.querySelector('.oc')){filterScanCards();}
 }
-const LIVE_SPORT_KEYS={soccer:['soccer'],basketball:['basketball','nba'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],handball:['handball']};
+const LIVE_SPORT_KEYS={soccer:['soccer'],basketball:['basketball','nba'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],handball:['handball'],volleyball:['volleyball']};
 function matchesSportFilter(sport,filter){if(filter==='all')return true;const keys=LIVE_SPORT_KEYS[filter]||[filter];return keys.some(k=>(sport||'').toLowerCase().includes(k));}
 function filterScanCards(){document.querySelectorAll('#scan-res [data-sport-key]').forEach(c=>{c.style.display=matchesSportFilter(c.dataset.sportKey||'',liveSportFilter)?'':'none';});}
 
@@ -1513,7 +1519,7 @@ function getScanLeaguesByMode(mode) {
 //  MAPPING SPORT → LIGUES ACTIVES (évite les scans disproportionnés)
 // ═══════════════════════════════════════════════
 function bucketActiveSportsByCategory() {
-  const buckets = { soccer:[], basketball:[], tennis:[], icehockey:[], americanfootball:[], baseball:[], rugby:[], mma:[], handball:[] };
+  const buckets = { soccer:[], basketball:[], tennis:[], icehockey:[], americanfootball:[], baseball:[], rugby:[], mma:[], handball:[], volleyball:[] };
   if(!_validSportKeysCache) return buckets;
   _validSportKeysCache.forEach(k => {
     const key = (k||'').toLowerCase();
@@ -1526,6 +1532,7 @@ function bucketActiveSportsByCategory() {
     else if(key.includes('rugby')) buckets.rugby.push(k);
     else if(key.includes('mma') || key.includes('boxing')) buckets.mma.push(k);
     else if(key.indexOf('handball_') === 0) buckets.handball.push(k);
+    else if(key.indexOf('volleyball_') === 0) buckets.volleyball.push(k);
   });
   return buckets;
 }
@@ -1544,10 +1551,19 @@ const SPORT_STATIC_FALLBACK = {
   // ligue handball n'est active à l'instant, le scan handball retourne 0 requête au
   // lieu de cibler une compétition qui pourrait ne plus exister.
   handball: [],
+  // Volleyball : à la date d'ajout de ce sport, The Odds API ne référence encore
+  // AUCUNE clé "volleyball_*" dans son catalogue officiel — donc aucun fallback
+  // statique n'existe (inventer une clé produirait des requêtes systématiquement
+  // vides ou en échec, sans jamais remonter de vraie cote). Le filtre Volleyball
+  // reste 100% dynamique via /api/sports : si The Odds API ajoute un jour des
+  // ligues de volleyball, le scan les détectera automatiquement sans modification
+  // de code. En attendant, le scan Volleyball affichera honnêtement 0 opportunité
+  // plutôt que d'inventer une analyse.
+  volleyball: [],
 };
 
-const SPORT_SCAN_CAPS          = { soccer:15, basketball:6, tennis:6, icehockey:4, americanfootball:3, baseball:3, rugby:4, mma:6, handball:3 };
-const SPORT_SCAN_CAPS_ALL_MODE = { soccer:8,  basketball:2, tennis:3, icehockey:1, americanfootball:1, baseball:1, rugby:1, mma:2, handball:1 };
+const SPORT_SCAN_CAPS          = { soccer:15, basketball:6, tennis:6, icehockey:4, americanfootball:3, baseball:3, rugby:4, mma:6, handball:3, volleyball:3 };
+const SPORT_SCAN_CAPS_ALL_MODE = { soccer:8,  basketball:2, tennis:3, icehockey:1, americanfootball:1, baseball:1, rugby:1, mma:2, handball:1, volleyball:1 };
 
 function getLeaguesForSportFilter(filter, mode) {
   const buckets = bucketActiveSportsByCategory();
@@ -1647,6 +1663,7 @@ function sportFamilyFromKey(sport) {
   if (s.includes('rugby')) return 'rugby';
   if (s.includes('americanfootball') || s.includes('nfl')) return 'americanfootball';
   if (s.includes('handball')) return 'handball';
+  if (s.includes('volleyball') || s.includes('volley')) return 'volleyball';
   return 'other';
 }
 
@@ -2141,6 +2158,16 @@ function getSportDataRules(sport, market) {
       warningText:'Handball : domicile/extérieur et niveau champion déterminants.'
     };
   }
+  if(s.includes('volleyball') || s.includes('volley')) {
+    // Volleyball : format en sets (au meilleur des 5), scoring proche du
+    // handball en termes de variance. Prudence renforcée tant que l'app n'a
+    // pas d'historique réel sur ce sport (voir SPORT_STATIC_FALLBACK).
+    return { ...defaults, varianceLevel:'medium', kellyMultiplier:0.75,
+      minEdge:0.045, minModelProb:0.60, maxOddsHighProbability:2.10,
+      minDataQuality:52,
+      warningText:'Volleyball : format en sets, forme du jour et rotation déterminants.'
+    };
+  }
   return defaults;
 }
 
@@ -2402,6 +2429,11 @@ function getSportReliabilityRules(sport, market) {
   if(s.includes('handball')) {
     rules.varianceFactor = 0.80; rules.minEdge=0.04;
   }
+  if(s.includes('volleyball')) {
+    // Volleyball : peu de données historiques pour l'instant sur cette app,
+    // traité avec la même prudence que le handball (variance modérée).
+    rules.varianceFactor = 0.78; rules.minEdge=0.045;
+  }
   return rules;
 }
 
@@ -2488,6 +2520,7 @@ function getSportFamily(sport) {
   if(s.includes('baseball'))return 'baseball';
   if(s.includes('american')||s.includes('nfl')) return 'americanfootball';
   if(s.includes('hand'))    return 'handball';
+  if(s.includes('volley'))  return 'volleyball';
   return s || 'other';
 }
 
@@ -2601,6 +2634,7 @@ function estimateModelProbabilityV2(o, rules, dqs) {
     basketball_h2h: 0.60, basketball_spreads: 0.52, basketball_totals: 0.54,
     tennis_h2h: 0.62, mma_h2h: 0.58, boxing_h2h: 0.58, icehockey_h2h: 0.52,
     baseball_h2h: 0.54, americanfootball_h2h: 0.56, rugby_h2h: 0.55, handball_h2h: 0.58,
+    volleyball_h2h: 0.60,
   };
   const sportKey = sport.includes('soccer') ? `soccer_${market}`
     : sport.includes('basket') ? `basketball_${market}`
@@ -2612,6 +2646,7 @@ function estimateModelProbabilityV2(o, rules, dqs) {
     : sport.includes('american')||sport.includes('nfl') ? 'americanfootball_h2h'
     : sport.includes('rugby')  ? 'rugby_h2h'
     : sport.includes('hand')   ? 'handball_h2h'
+    : sport.includes('volley') ? 'volleyball_h2h'
     : 'soccer_h2h';
   const prior = sportBasePrior[sportKey] || 0.52;
 
@@ -2659,6 +2694,8 @@ function getSportRiskAdjustment(sport, market, dqs) {
     riskMultiplier = 0.76; maxOddsHP = 2.30;
   } else if(s.includes('hand')) {
     riskMultiplier = 0.82; maxOddsHP = 2.30;
+  } else if(s.includes('volleyball') || s.includes('volley')) {
+    riskMultiplier = 0.76; maxOddsHP = 2.10;
   }
 
   if(dqs < 50) riskMultiplier *= 0.85;
@@ -2688,15 +2725,23 @@ function getSportRiskAdjustment(sport, market, dqs) {
 // palier du dessous, tout en variant réellement carte par carte.
 function computeDisplayConfidence(tier, rs) {
   const clamp01 = t => Math.max(0, Math.min(1, t));
+  // BUG CORRIGÉ : ces bornes étaient restées calées sur les anciens seuils de
+  // determineTier() (84/74) après leur resserrement à 88/78. Résultat : la
+  // quasi-totalité des cartes SOLIDE avaient un rs compris entre le minimum
+  // de passage (58-68 selon le mode) et 78 (nouveau seuil TRÈS SOLIDE), donc
+  // bien au-dessus de l'ancien plancher de bande (55) mais toujours loin de
+  // son plafond (68) — tout se compressait vers ~56-57% affiché. Les bornes
+  // sont maintenant alignées sur les seuils réels (78 et 88) pour étaler la
+  // fiabilité affichée sur toute la plage utile de chaque palier.
   if(tier === 'premium') {
-    const t = clamp01((rs - 84) / (100 - 84));
+    const t = clamp01((rs - 88) / (100 - 88));
     return Math.round(85 + t * 13);
   }
   if(tier === 'solid') {
-    const t = clamp01((rs - 74) / (100 - 74));
+    const t = clamp01((rs - 78) / (88 - 78));
     return Math.round(68 + t * 17);
   }
-  const t = clamp01((rs - 55) / (100 - 55));
+  const t = clamp01((rs - 55) / (78 - 55));
   return Math.round(55 + t * 13);
 }
 
@@ -3664,6 +3709,7 @@ function getSportLabel(sport){
   if(sport.includes('rugby')) return '🏉 Rugby';
   if(sport.includes('baseball')) return '⚾ Baseball';
   if(sport.includes('football')) return '🏈 NFL';
+  if(sport.includes('volley')) return '🏐 Volley';
   return '🏆 Sport';
 }
 
@@ -4499,6 +4545,7 @@ function matchRecoverySportFilter(leagueSport, filter) {
     americanfootball: ['american','americanfootball','nfl'],
     nfl: ['american','americanfootball','nfl'],
     handball: ['handball'],
+    volleyball: ['volleyball','volley'],
   };
   const keys = SPORT_ALIASES[f] || [f];
   return keys.some(k => s.includes(k));
@@ -4773,6 +4820,7 @@ const TICKER_SPORT_COLORS = {
   americanfootball:{bg:'rgba(245,158,11,.15)',color:'var(--am)'},
   baseball:   {bg:'rgba(34,211,165,.15)',color:'var(--gr)'},
   rugby:      {bg:'rgba(167,139,250,.12)',color:'var(--pu)'},
+  volleyball: {bg:'rgba(250,204,21,.15)',color:'#facc15'},
 };
 
 function getTickerStyle(sport) {
