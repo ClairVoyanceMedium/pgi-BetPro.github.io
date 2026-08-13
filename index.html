@@ -404,6 +404,24 @@ a{color:var(--neon);text-decoration:none}
 .bj-deck-confirm{background:var(--amb);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px;margin-bottom:10px;font-size:11px;color:var(--am)}
 .bj-shoe-bar{height:6px;background:var(--bd);border-radius:3px;overflow:hidden;margin:8px 0}
 .bj-shoe-fill{height:100%;background:linear-gradient(90deg,var(--neon),var(--pu));transition:width .3s}
+
+/* ── VRAIES FACES DE CARTES — pips positionnés + figures J/Q/K illustrées ── */
+.bj-card-btn{padding:4px}
+.bj-card-face{position:relative;width:100%;height:100%;background:#fff;border-radius:5px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.bj-suit-red .bj-card-face{color:#d21f3c}
+.bj-suit-black .bj-card-face{color:#1a1a1a}
+.bj-card-face .bjc-corner{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;align-items:center;line-height:1;z-index:2}
+.bj-card-face .bjc-corner .bjc-corner-rank{font-size:9px;font-weight:800;font-family:var(--hd)}
+.bj-card-face .bjc-corner svg{width:7px;height:7px;margin-top:1px}
+.bj-pip-grid{position:absolute;inset:11px 3px 3px 3px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(5,1fr)}
+.bj-pip-grid svg{width:100%;height:100%;padding:1px}
+.bj-pip-cell{display:flex;align-items:center;justify-content:center}
+.bj-pip-cell.pip-r1{grid-row:1}.bj-pip-cell.pip-r2{grid-row:2}.bj-pip-cell.pip-r3{grid-row:3}.bj-pip-cell.pip-r4{grid-row:4}.bj-pip-cell.pip-r5{grid-row:5}
+.bj-pip-cell.pip-c1{grid-column:1}.bj-pip-cell.pip-c2{grid-column:2}.bj-pip-cell.pip-c3{grid-column:3}
+.bj-face-illustration{position:absolute;inset:11px 4px 3px 4px;display:flex;align-items:center;justify-content:center}
+.bj-face-illustration svg{width:100%;height:100%}
+.bj-card-btn.selected .bj-card-face{box-shadow:inset 0 0 0 2px var(--neon)}
+.bj-card-btn .bjc-val{z-index:3}
 </style>
 </head>
 <body>
@@ -461,6 +479,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie Value</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Rattrapage Intelligent</div>
+    <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128012;</span>PMU / Turf France</div>
     <div class="ni"    data-s="blackjack" onclick="go('blackjack')"><span class="ni-i">&#127183;</span>Blackjack Directionnel</div>
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
@@ -927,6 +946,117 @@ a{color:var(--neon);text-decoration:none}
   <div id="m-tracker-section" style="display:none"></div>
 </section>
 
+<!-- ═══════════════ PMU / TURF FRANCE ═══════════════ -->
+<section class="sec" id="s-turf">
+  <div class="ph"><div class="pt">&#128012; PMU / Turf France</div><div class="ps">Section entièrement séparée des paris sportifs — analyse probabiliste, mémoire Benter turf dédiée.</div></div>
+
+  <div class="card" style="padding:12px 14px">
+    <div id="turf-sources-status" style="margin-bottom:8px"></div>
+    <div class="warn" style="margin-bottom:0">&#9888;&#65039; Analyse probabiliste — aucun pari garanti. Ne misez que ce que vous pouvez perdre. Les performances passées ne garantissent pas les résultats futurs.</div>
+  </div>
+
+  <!-- Bloc 1 — Courses à venir -->
+  <div class="card">
+    <div class="ct">&#128012; Courses PMU à venir</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="turf-date-btns">
+      <button class="fbtn" onclick="turfSetDateFilter('now',this)">Maintenant</button>
+      <button class="fbtn on" onclick="turfSetDateFilter('today',this)">Aujourd'hui</button>
+      <button class="fbtn" onclick="turfSetDateFilter('tomorrow',this)">Demain</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="turf-discipline-btns">
+      <button class="fbtn on" onclick="turfSetDisciplineFilter('all',this)">Tous</button>
+      <button class="fbtn" onclick="turfSetDisciplineFilter('trot',this)">Trot</button>
+      <button class="fbtn" onclick="turfSetDisciplineFilter('plat',this)">Plat</button>
+      <button class="fbtn" onclick="turfSetDisciplineFilter('obstacle',this)">Obstacle</button>
+      <button class="fbtn" id="turf-quinte-toggle" onclick="turfToggleQuinteOnly(this)">Quinté+ uniquement</button>
+    </div>
+    <div class="bg" style="margin-bottom:12px">
+      <button class="btn bp" onclick="turfLoadUpcoming()">&#128260; Charger les courses PMU</button>
+    </div>
+    <div id="turf-races-list"></div>
+  </div>
+
+  <!-- Bloc 2/3 — Course sélectionnée + partants -->
+  <div id="turf-race-detail"></div>
+
+  <!-- ═══ RATTRAPAGE PMU INTELLIGENT ═══ -->
+  <div class="card" style="margin-top:18px">
+    <div class="ct">&#127919; Rattrapage PMU intelligent</div>
+    <div class="info" style="margin-bottom:12px">Choisissez le type de pari, l'outil scanne les prochaines courses PMU et propose la <strong>meilleure opportunité réelle</strong> pour vous refaire — jamais de Quinté spéculatif en rattrapage (trop risqué), toujours en mode ultra prudent.</div>
+
+    <div class="fg" style="grid-template-columns:1fr 1fr">
+      <div class="fgrp"><label>Bankroll de récupération (&#8364;)</label><input type="number" id="turf-recovery-bankroll" value="200" min="10" step="10"></div>
+      <div class="fgrp"><label>Période de recherche</label>
+        <select id="turf-recovery-period">
+          <option value="now">Maintenant</option>
+          <option value="today" selected>Aujourd'hui</option>
+          <option value="tomorrow">Demain</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="font-size:10px;font-weight:600;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Type de pari pour le rattrapage</div>
+    <div class="bg" style="margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn bs turf-recov-type-btn on" data-bt="simple_place" onclick="turfSetRecoveryType('simple_place',this)">&#127942; Placé</button>
+      <button class="btn bs turf-recov-type-btn" data-bt="simple_gagnant" onclick="turfSetRecoveryType('simple_gagnant',this)">&#129351; Gagnant</button>
+      <button class="btn bs turf-recov-type-btn" data-bt="quinte_desordre" onclick="turfSetRecoveryType('quinte_desordre',this)">&#128012; Quinté désordre prudent</button>
+      <button class="btn bs turf-recov-type-btn" data-bt="quinte_order" onclick="turfSetRecoveryType('quinte_order',this)">&#127942; Quinté ordre (1 perte max)</button>
+    </div>
+
+    <div class="bg" style="margin-bottom:4px">
+      <button class="btn bp" id="turf-recovery-btn" onclick="turfRunRecoveryScan()">&#128269; Trouver la meilleure solution pour me refaire</button>
+    </div>
+    <div id="turf-recovery-result"></div>
+
+    <div style="height:1px;background:var(--bd);margin:16px 0"></div>
+    <div class="ct" style="border:none;padding-bottom:6px">&#128221; Enregistrer un résultat PMU (pour suivre les pertes actives)</div>
+    <div class="fg" style="grid-template-columns:2fr 1fr 1fr 1fr">
+      <div class="fgrp"><label>Course / cheval</label><input type="text" id="turf-loss-match" placeholder="Vincennes — n°8"></div>
+      <div class="fgrp"><label>Mise (&#8364;)</label><input type="number" id="turf-loss-stake" min="0.5" step="0.5" placeholder="10"></div>
+      <div class="fgrp"><label>Cote</label><input type="number" id="turf-loss-odds" min="1.01" step="0.1" placeholder="4.5"></div>
+      <div class="fgrp"><label>Résultat</label>
+        <select id="turf-loss-result">
+          <option value="loss">&#10060; Perdu</option>
+          <option value="win">&#9989; Gagné</option>
+          <option value="void">— Void</option>
+        </select>
+      </div>
+    </div>
+    <div class="bg"><button class="btn bs" onclick="turfRegisterResult()">&#43; Enregistrer</button></div>
+  </div>
+
+  <!-- Bloc 6 — Chat PMU contextuel -->
+  <div class="card" style="padding:14px">
+    <div class="ct" style="margin-bottom:8px">&#128172; Chat PMU contextuel</div>
+    <div class="fgrp" style="margin-bottom:10px">
+      <label>Bankroll session (&#8364;)</label>
+      <input type="number" id="turf-bankroll-input" value="200" min="10" step="10" style="max-width:160px">
+    </div>
+    <div class="chat-wrap" id="turf-chat-wrap" style="max-height:340px">
+      <div class="msg bot"><div class="msg-ico">&#128012;</div><div><div class="msg-bub">Sélectionnez une course PMU ci-dessus, puis posez vos questions : "gagnant ?", "placé ?", "quinté ordre ?", "je joue le 8 ?", "je viens de perdre, je fais quoi ?"</div></div></div>
+    </div>
+    <div class="chat-input-wrap">
+      <textarea id="turf-chat-input" placeholder="Ex: placé ?" onkeydown="turfChatKey(event)" style="resize:none;min-height:44px;max-height:140px"></textarea>
+      <button class="btn bp" onclick="turfSendChat()" style="flex-shrink:0;align-self:flex-end;padding:10px 14px">&#9654;</button>
+    </div>
+  </div>
+
+  <!-- Bloc 7 — Historique PMU (séparé) -->
+  <div class="card">
+    <div class="ct">&#128202; Historique PMU</div>
+    <div class="bg" style="margin-bottom:10px">
+      <button class="btn bs" onclick="turfLoadHistory()">&#128260; Actualiser</button>
+      <button class="btn bp" onclick="turfAutoUpdateResults()" id="turf-autoupdate-btn" style="border-color:rgba(0,255,157,.3)">&#128257; Mettre à jour automatiquement les résultats PMU</button>
+    </div>
+    <div id="turf-autoupdate-status" style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-bottom:8px"></div>
+    <div id="turf-history-list"></div>
+  </div>
+
+  <div style="text-align:center;font-size:10px;color:var(--dm);line-height:1.7;padding:10px 16px;margin-top:4px">
+    &#9888;&#65039; Analyse probabiliste PMU — aucun gain garanti. Interdit aux mineurs. Jouer comporte des risques : endettement, isolement, dépendance. Pour être aidé : 09 74 75 13 13 (appel non surtaxé).
+  </div>
+</section>
+
 <!-- ═══════════════ BLACKJACK DIRECTIONNEL ═══════════════ -->
 <section class="sec" id="s-blackjack">
   <div class="ph"><div class="pt">&#127183; Blackjack Directionnel</div><div class="ps">Comptage Hi-Lo · Direction claire · Chat contextuel · Aide statistique uniquement</div></div>
@@ -1109,6 +1239,12 @@ wrangler secret put API_FOOTBALL_KEY
 wrangler secret put RESEND_API_KEY
 wrangler secret put EMAIL_TO
 wrangler secret put EMAIL_FROM</pre>
+  </div>
+  <div class="card"><div class="ct">Variables PMU / Turf (toutes optionnelles — aucune clé requise)</div>
+    <pre>wrangler secret put TURF_SOURCE_URL_1
+wrangler secret put TURF_SOURCE_URL_2
+wrangler secret put TURF_CACHE_TTL
+wrangler secret put TURF_ALLOW_MANUAL_MODE</pre>
   </div>
   <div class="card"><div class="ct">Déployer</div>
     <pre>npm install -g wrangler
@@ -1329,6 +1465,7 @@ function go(name) {
   if(name==='perf')     { loadPerformances(); }
   if(name==='live')     loadLive();
   if(name==='blackjack') bjInit();
+  if(name==='turf')     turfInit();
 }
 function tSb(){ document.getElementById('sb').classList.toggle('open'); document.getElementById('ov').classList.toggle('on'); }
 function cSb(){ document.getElementById('sb').classList.remove('open'); document.getElementById('ov').classList.remove('on'); }
@@ -2703,36 +2840,8 @@ function getSportRiskAdjustment(sport, market, dqs) {
   return { riskMultiplier, maxOddsHP };
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  valueBetEngineV2 — moteur central William Benter (v2 + mémoire historique)
-//  Seuils assouplis (juillet 2026) pour que le scan sorte des cartes SOLIDE
-//  quand le signal est correct, sans jamais promettre de gain.
-// ═══════════════════════════════════════════════════════════════════
-// ── computeDisplayConfidence — pourcentage affiché en haut de chaque carte ──
-// BUG CORRIGÉ : l'ancienne formule (par palier) retombait presque toujours sur
-// sa valeur plancher (55%) dès que les seuils du moteur ont été assouplis,
-// car rs/modelProb/edge proches du minimum requis pour un palier donnaient un
-// résultat brut sous 55, aussitôt écrasé par le Math.max(55, ...). Résultat :
-// quasiment toutes les cartes SOLIDE (et beaucoup de TRÈS SOLIDE) affichaient
-// exactement le même pourcentage. Ici, on interpole linéairement le score de
-// fiabilité (rs, 0-100 — qui intègre déjà probabilité modèle, edge, EV,
-// consensus bookmakers et qualité de données) à l'intérieur d'une bande
-// dédiée à chaque palier, sans jamais saturer au même plancher :
-//   SOLIDE      → bande 55-68%
-//   TRÈS SOLIDE → bande 68-85%
-//   TOP PREMIUM → bande 85-98%
-// Chaque palier affiche donc toujours une valeur strictement supérieure au
-// palier du dessous, tout en variant réellement carte par carte.
 function computeDisplayConfidence(tier, rs) {
   const clamp01 = t => Math.max(0, Math.min(1, t));
-  // BUG CORRIGÉ : ces bornes étaient restées calées sur les anciens seuils de
-  // determineTier() (84/74) après leur resserrement à 88/78. Résultat : la
-  // quasi-totalité des cartes SOLIDE avaient un rs compris entre le minimum
-  // de passage (58-68 selon le mode) et 78 (nouveau seuil TRÈS SOLIDE), donc
-  // bien au-dessus de l'ancien plancher de bande (55) mais toujours loin de
-  // son plafond (68) — tout se compressait vers ~56-57% affiché. Les bornes
-  // sont maintenant alignées sur les seuils réels (78 et 88) pour étaler la
-  // fiabilité affichée sur toute la plage utile de chaque palier.
   if(tier === 'premium') {
     const t = clamp01((rs - 88) / (100 - 88));
     return Math.round(85 + t * 13);
@@ -2883,16 +2992,6 @@ function valueBetEngineV2(o, options) {
     tierInfo = determineTier(reliabilityScore);
   }
 
-  // ── Ajustement sportif avancé (module SPORT_MATCH_HIST_KEY) ─────────────
-  // Distinct et additionnel par rapport à getHistoricalAdjustment() ci-dessus,
-  // qui reste inchangé et prioritaire. Ne s'applique qu'à partir de 100
-  // entrées réglées sur cette combinaison précise (sport + compétition +
-  // marché + bookmaker + équipe). Ne peut jamais, à lui seul, faire franchir
-  // un palier de tier : determineTier() exige toujours evSimple/edge/
-  // modelProb/dqs indépendamment satisfaits, donc quelques points de score
-  // de fiabilité ne suffisent jamais seuls à transformer une carte faible en
-  // TOP PREMIUM. Un malus suffisamment fort peut en revanche faire rejeter
-  // la carte, exactement comme l'ajustement historique classique.
   let sportHistAdj = null;
   if (typeof getHistoricalSportAdjustment === 'function') {
     try {
@@ -2945,11 +3044,6 @@ function valueBetEngineV2(o, options) {
   };
 }
 
-// ── computeDirection — wrapper stable utilisé partout dans l'app ──
-// Le mode par défaut est désormais 'standard' (au lieu de 'prudent') pour le
-// scan principal, afin que des cartes sortent réellement quand l'API renvoie
-// des matchs et des cotes. Le rattrapage intelligent force explicitement son
-// propre mode (voir lossAutoSearch) et reste donc inchangé.
 function computeDirection(o, options) {
   const opts = options || { mode: 'standard', bankroll: 200, riskProfile: 'conservateur' };
   const result = (typeof valueBetEngineV2 === 'function') ? valueBetEngineV2(o, opts) : valueBetEngine(o, opts);
@@ -3037,19 +3131,12 @@ async function histKVLoad(filters) {
       total: result.total || 0,
       limit: result.limit ?? (filters && filters.limit) ?? null,
       offset: result.offset ?? (filters && filters.offset) ?? 0,
-      // Le Worker renvoie next_offset (snake_case) — normalisé ici en camelCase
-      // pour le reste du frontend, tout en acceptant aussi nextOffset au cas où.
       nextOffset: (result.next_offset !== undefined ? result.next_offset : result.nextOffset) ?? null,
       has_more: result.has_more ?? null,
     };
   } catch(_) { return { cards:[], total:0, limit:null, offset:0, nextOffset:null, has_more:null }; }
 }
 
-// histKVLoadAll — récupère TOUT l'historique KV, page par page (limit=500),
-// jusqu'à ce qu'il n'y ait plus de page suivante. Protégé contre les boucles
-// infinies (maximum 50 pages, soit jusqu'à 25 000 cartes). Reste compatible
-// même si le Worker ne renvoie ni has_more ni nextOffset : dans ce cas, la
-// page se termine dès que cards.length < limit.
 async function histKVLoadAll(filters) {
   let all = [];
   let offset = 0;
@@ -3119,10 +3206,6 @@ async function saveBetCard(o, engineResult, options) {
     source: (options&&options.source) || 'moteur_reel',
   };
 
-  // Branche l'historique sportif avancé (module optionnel séparé, voir
-  // SPORT_MATCH_HIST_KEY) sur cette nouvelle carte — jamais bloquant : si le
-  // module échoue pour une raison quelconque, la carte principale continue
-  // d'être enregistrée normalement.
   try {
     if(typeof saveSportMatchHistory === 'function') {
       card.sportHistoryId = saveSportMatchHistory({
@@ -3167,10 +3250,6 @@ async function updateBetCardResult(cardId, result, closingOdds) {
     card.closingLineValue = calculateCLV(card.odds, closingOdds);
   }
 
-  // Répercute la résolution sur l'historique sportif avancé lié, si présent —
-  // jamais bloquant. updateSportMatchResult() protège déjà lui-même les
-  // entrées déjà réglées (aucune régression possible vers pending), exactement
-  // comme historyUpdate() côté Worker pour les cartes principales.
   if(card.sportHistoryId && typeof updateSportMatchResult === 'function') {
     try {
       updateSportMatchResult(card.sportHistoryId, {
@@ -3274,13 +3353,7 @@ function calcHistStats(cards, period) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  MODULE OPTIONNEL — HISTORIQUE SPORTIF AVANCÉ (par équipe, compétition,
-//  marché, bookmaker, zone de cote) — Entièrement séparé du système de
-//  cartes principal (HIST_KEY / histLocalLoad / histLocalSave / saveBetCard /
-//  getHistoricalAdjustment, tous inchangés). Persistance double :
-//  localStorage (SPORT_MATCH_HIST_KEY, source de vérité immédiate, jamais
-//  bloquant) + Cloudflare KV en arrière-plan (routes /api/sport-history/*)
-//  pour survivre au nettoyage du navigateur et se partager entre appareils.
+//  MODULE OPTIONNEL — HISTORIQUE SPORTIF AVANCÉ
 // ═══════════════════════════════════════════════════════════════════
 const SPORT_MATCH_HIST_KEY = 'pgi_sport_match_history_v1';
 
@@ -3291,9 +3364,6 @@ function _sportHistSave(arr) {
   try { localStorage.setItem(SPORT_MATCH_HIST_KEY, JSON.stringify(arr)); } catch(_) {}
 }
 
-// Normalise un fragment d'ID : minuscule, accents retirés, tout ce qui n'est
-// pas [a-z0-9_] remplacé par _, doubles underscores réduits, underscores de
-// bord retirés. Utilisée pour construire un ID stable et lisible.
 function _sportHistNormalizeIdPart(s) {
   return String(s||'')
     .toLowerCase()
@@ -3326,8 +3396,6 @@ async function sportHistKVLoad(filters) {
     };
   } catch(_) { return { entries:[], total:0, limit:null, offset:0, nextOffset:null, has_more:null }; }
 }
-// sportHistKVLoadAll — pagine limit=500, offset croissant, max 50 pages
-// (25 000 entrées), même logique de sécurité que histKVLoadAll().
 async function sportHistKVLoadAll(filters) {
   let all = [];
   let offset = 0;
@@ -3345,11 +3413,6 @@ async function sportHistKVLoadAll(filters) {
   }
   return { entries: all, total: all.length, pagesLoaded };
 }
-// mergeSportHistories — fusionne local + remote par id. Une entrée déjà
-// réglée (win/loss/void) l'emporte toujours sur une version encore pending
-// du même id, quelle que soit sa provenance. Sinon, la version la plus
-// récente (updatedAt) gagne ; si aucune des deux n'a d'updatedAt, la version
-// locale est conservée par prudence.
 function mergeSportHistories(local, remote) {
   const map = {};
   (local||[]).forEach(e => { if(e && e.id) map[e.id] = e; });
@@ -3374,8 +3437,6 @@ async function syncSportHistoryLocalToCloud() {
     for(const e of local.slice(0,200)) { await sportHistKVSave(e); }
   } catch(_) {}
 }
-// loadSportHistoryFromCloud — appelée au démarrage (voir DOMContentLoaded).
-// Silencieuse en cas d'échec, ne bloque jamais l'initialisation de l'app.
 async function loadSportHistoryFromCloud() {
   try {
     const remote = await sportHistKVLoadAll();
@@ -3399,10 +3460,6 @@ function saveSportMatchHistory(matchData) {
   const id = matchData.id ? _sportHistNormalizeIdPart(matchData.id) : idParts.filter(Boolean).join('_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
   const existing = entries.find(e => e.id === id);
   if (existing) {
-    // Jamais de doublon ni de recréation localement, mais on renvoie quand
-    // même l'entrée existante vers KV en arrière-plan : si elle a été créée
-    // avant l'ajout des routes /api/sport-history/*, elle serait sinon
-    // orpheline (jamais synchronisée sur Cloudflare).
     sportHistKVSave(existing).catch(() => {});
     return id;
   }
@@ -3433,7 +3490,6 @@ function updateSportMatchResult(id, result) {
   const e = entries[idx];
   const currentStatus = (e.status || 'pending').toLowerCase();
 
-  // Protection : une entrée déjà réglée ne peut jamais revenir en pending
   if (['win', 'loss', 'void'].includes(currentStatus)) return false;
 
   const allowedStatuses = ['win', 'loss', 'void', 'pending'];
@@ -3457,10 +3513,6 @@ function updateSportMatchResult(id, result) {
 
   e.updatedAt = new Date().toISOString();
 
-  // resolvedAt uniquement si vraie résolution — sinon on ne marque jamais
-  // une entrée encore en attente comme réglée (bug corrigé : auparavant
-  // resolvedAt était posé à chaque appel, même pour une simple mise à jour
-  // de cote de clôture sur une entrée toujours pending).
   if (['win', 'loss', 'void'].includes(incomingStatus)) {
     e.resolvedAt = e.updatedAt;
   }
@@ -3510,22 +3562,6 @@ function calcMarketStats(market) { return _sportStatsFor(getSportHistory({ marke
 function calcOddsZoneStats(zone) { return _sportStatsFor(_sportHistLoad().filter(e => getOddsZone(e.oddsDetected) === zone)); }
 function calcBookmakerStats(bookmaker) { return _sportStatsFor(getSportHistory({ bookmaker })); }
 
-// Ajustement basé sur ce futur historique — structure compatible avec
-// getHistoricalAdjustment() mais N'EST PAS appelé par valueBetEngineV2, qui
-// continue d'utiliser exclusivement getHistoricalAdjustment() sur HIST_KEY.
-// Disponible pour une intégration explicite future si tu le souhaites.
-// getHistoricalSportAdjustment — bonus/malus prudent basé sur l'historique
-// sportif avancé (module SPORT_MATCH_HIST_KEY), distinct de
-// getHistoricalAdjustment() (cartes principales). Seuils :
-//   < 100 entrées réglées   : aucun ajustement (status 'insufficient')
-//   100-499, CLV positif    : +1 à +2 points
-//   500+, winRate ET CLV positifs : +3 à +5 points (plafonné)
-//   500+, winRate très négatif OU CLV très négatif : -3 à -8 points
-// "winRate positif" = >=52% (repère neutre au-dessus du hasard) ; "très
-// négatif" = <=35%. "avgCLV positif" = >0% ; "très négatif" = <=-2%.
-// Volontairement conservateur : ne déclenche un bonus que si les DEUX
-// indicateurs sont favorables, mais suffit à un seul indicateur très
-// dégradé pour déclencher un malus (on durcit plus facilement qu'on assouplit).
 function getHistoricalSportAdjustment(context) {
   context = context || {};
   const stats = _sportStatsFor(getSportHistory(context));
@@ -3543,8 +3579,6 @@ function getHistoricalSportAdjustment(context) {
   let reason = `${stats.settled} entrées réglées, réussite ${wr!=null?wr+'%':'—'}, CLV ${clv!=null?(clv>0?'+':'')+clv+'%':'—'}.`;
 
   if(stats.settled < 500) {
-    // Petit échantillon (100-499) : ajustement très léger, seulement si le
-    // CLV est positif (le winRate seul est trop bruyant sur si peu d'entrées).
     if(clv != null && clv > 0) {
       scoreAdjustment = clv > 1 ? 2 : 1;
       status = 'positive';
@@ -3576,9 +3610,6 @@ function getHistoricalSportAdjustment(context) {
   return { status, volume:stats.settled, settled:stats.settled, winRate:wr, avgCLV:clv, scoreAdjustment, reliable:stats.reliable, reason };
 }
 
-// ── calcAdvancedSportHistoryGlobalStats / renderAdvancedSportHistoryStats ──
-// Statistiques globales (toutes catégories confondues) de l'historique
-// sportif avancé, affichées dans un bloc discret sur la page Performances.
 function calcAdvancedSportHistoryGlobalStats() {
   const entries = _sportHistLoad();
   const settled = entries.filter(e => ['win','loss','void'].includes(e.status));
@@ -3741,25 +3772,13 @@ function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am
 
 // ═══════════════════════════════════════════════════════════════════════
 //  ANALYSE MANUELLE — recherche ancrée sur les VRAIES cotes (The Odds API)
-//  Ne fait plus jamais deviner un match par l'IA à partir de simples noms
-//  d'équipes : on interroge les mêmes routes que le scan, on retrouve la
-//  vraie fiche (bonne date, bonnes équipes, vraies cotes), puis on applique
-//  le même moteur William Benter que partout ailleurs dans l'app. Si rien
-//  n'est trouvé, l'outil le dit clairement au lieu d'inventer une analyse.
 // ═══════════════════════════════════════════════════════════════════════
 function getCheckedMarkets(){return[...document.querySelectorAll('#m-markets-wrap input:checked')].map(c=>c.value);}
 
-// Recherche le vrai match dans les cotes réelles pour une paire d'équipes.
-// sportFamily: 'all' ou une catégorie ('soccer','basketball',...).
-// dateStr: 'YYYY-MM-DD' optionnel (heure locale France).
-// Retourne { found:true, opportunities:[...], home, away, sport, competition, start_time }
-// ou { found:false, reason:'...', nearMiss:{...}|null } sans jamais inventer de données.
 async function findRealMatchOpportunities(home, away, sportFamily, dateStr, markets){
   const leagues = getLeaguesForSportFilter(sportFamily && sportFamily!=='all' ? sportFamily : 'all', 'complet');
   const marketsToQuery = (markets && markets.length) ? markets : ['h2h'];
 
-  // On combine chaque ligue avec chaque marché demandé, en dédupliquant les h2h déjà
-  // présents (getLeaguesForSportFilter fournit déjà 'h2h' + marchés foot supplémentaires).
   const queries = [];
   const seenQ = new Set();
   leagues.forEach(l => {
@@ -3785,8 +3804,6 @@ async function findRealMatchOpportunities(home, away, sportFamily, dateStr, mark
     results.forEach(r=>{ if(r.status==='fulfilled') allRawOpps.push(...r.value); });
   }
 
-  // Filtre par correspondance des deux noms d'équipes (dans les deux sens, au cas où
-  // l'utilisateur inverse domicile/extérieur).
   const teamMatches = allRawOpps.filter(o => {
     const h = o.home_team||'', a = o.away_team||'';
     const directMatch  = teamNamesMatch(home,h) && teamNamesMatch(away,a);
@@ -3798,7 +3815,6 @@ async function findRealMatchOpportunities(home, away, sportFamily, dateStr, mark
     return { found:false, reason:`Aucun match "${home} vs ${away}" trouvé dans les cotes actuellement disponibles (ni aujourd'hui, ni à venir). Vérifiez l'orthographe des équipes ou réessayez plus près de la date du match — les bookmakers ne publient généralement les cotes que quelques jours à l'avance.` };
   }
 
-  // Regrouper par match réel (mêmes équipes + même horaire) pour retrouver la bonne rencontre.
   const byMatch = {};
   teamMatches.forEach(o=>{
     const k = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.start_time||o.commence_time||'');
@@ -3815,8 +3831,6 @@ async function findRealMatchOpportunities(home, away, sportFamily, dateStr, mark
     });
     if(withDate.length){ candidateKeys = withDate; }
     else {
-      // Des matchs entre ces équipes existent mais pas à la date demandée — on le dit clairement,
-      // avec la vraie date disponible la plus proche, plutôt que d'inventer une analyse.
       const sorted = candidateKeys.slice().sort((k1,k2)=>{
         const t1 = new Date(byMatch[k1][0].start_time||byMatch[k1][0].commence_time||0).getTime();
         const t2 = new Date(byMatch[k2][0].start_time||byMatch[k2][0].commence_time||0).getTime();
@@ -3833,12 +3847,10 @@ async function findRealMatchOpportunities(home, away, sportFamily, dateStr, mark
     }
   }
 
-  // S'il reste plusieurs rencontres possibles (ex: aucune date fournie, plusieurs confrontations
-  // à venir), on retient la plus proche dans le temps — jamais un match déjà passé.
   const now = Date.now();
   candidateKeys = candidateKeys
     .map(k=>({ k, t: new Date(byMatch[k][0].start_time||byMatch[k][0].commence_time||0).getTime() }))
-    .filter(x=>!dateStr ? (x.t >= now - 3*3600000) : true) // tolère les matchs commencés depuis <3h (live) si pas de date fournie
+    .filter(x=>!dateStr ? (x.t >= now - 3*3600000) : true)
     .sort((a,b)=>a.t-b.t)
     .map(x=>x.k);
 
@@ -3919,8 +3931,6 @@ async function doCSVAnalyze(){
   btn.disabled=false;btn.innerHTML='📂 Analyser la liste';
 }
 
-// Rendu d'un résultat de recherche manuelle — soit un vrai match retrouvé (avec cartes
-// William Benter identiques au reste de l'app), soit un message d'échec honnête.
 function renderManualMatchResult(result, inputCtx){
   if(!result || !result.found){
     return `<div class="card" style="border-color:rgba(245,158,11,.35)">
@@ -4610,9 +4620,6 @@ async function lossAutoSearch(forcedOdds){
       leagueFailReset(sport);
       const opps = d.opportunities||[];
       for(const o of filterOpsByPeriod(opps, periodParams)){
-        // Le rattrapage reste volontairement plus strict que le scan principal
-        // (mode 'standard' du moteur), jamais 'expert' : le mode assoupli
-        // anti-écran-vide du scan ne s'applique jamais ici.
         const res = computeDirection(o, {mode:'standard', bankroll, riskProfile:'conservateur'});
         if(!res.shouldDisplay || res.direction!=='play') continue;
 
@@ -4662,12 +4669,6 @@ async function lossAutoSearch(forcedOdds){
   });
 
   if(!candidates.length){
-    // Important : ce cas n'est PAS un blocage volontaire de l'app — contrairement à la
-    // protection "5 pertes consécutives" ci-dessus, qui est une vraie sécurité anti-poursuite
-    // des pertes. Ici, on dit simplement qu'aucune opportunité TOP PREMIUM/TRÈS SOLIDE réelle
-    // n'est disponible dans les cotes à cet instant précis (marché calme, ou historique
-    // défavorable sur cette combinaison). Le vocabulaire évite donc "bloqué" pour ne pas
-    // laisser croire à une restriction arbitraire de l'outil.
     let msg = 'Aucune opportunité TOP PREMIUM ou TRÈS SOLIDE disponible dans les cotes en ce moment pour ce filtre. Réessayez dans quelques minutes, élargissez la période, ou changez de sport/marché.';
     if(blockedByHistory) msg = 'Le sport ou le marché sélectionné a un historique récent défavorable — aucune carte n\'est proposée par prudence sur cette combinaison précise. D\'autres sports/marchés restent disponibles.';
     if(cnt) cnt.innerHTML = banners + `<div class="warn">&#128269; ${esc(msg)}</div>`;
@@ -4808,7 +4809,7 @@ function selectMethod(id) {
 }
 
 // ═══════════════════════════════════════════════
-//  TICKER — Foot + MMA inclus
+//  TICKER — Foot + MMA + PMU/Turf inclus
 // ═══════════════════════════════════════════════
 const TICKER_SPORT_COLORS = {
   soccer:     {bg:'rgba(34,197,94,.15)',color:'#4ade80'},
@@ -4821,6 +4822,7 @@ const TICKER_SPORT_COLORS = {
   baseball:   {bg:'rgba(34,211,165,.15)',color:'var(--gr)'},
   rugby:      {bg:'rgba(167,139,250,.12)',color:'var(--pu)'},
   volleyball: {bg:'rgba(250,204,21,.15)',color:'#facc15'},
+  turf:       {bg:'rgba(167,255,190,.15)',color:'#7ee8a0'},
 };
 
 function getTickerStyle(sport) {
@@ -4835,9 +4837,27 @@ let tickerAnimFrame = null;
 function tickerToggle() {
   tickerPaused = !tickerPaused;
   const btn = document.getElementById('ticker-pause-btn');
-  // textContent n'interprète jamais les entités HTML (&#9654; etc.) — elles
-  // s'affichaient littéralement à l'écran. On utilise les vrais caractères Unicode.
   if (btn) btn.textContent = tickerPaused ? '▶ Play' : '⏸ Pause';
+}
+
+// getTurfTickerArticles — transforme les prochaines courses PMU (déjà
+// normalisées côté Worker par /api/turf/upcoming) en items de ticker,
+// dans le même format que les articles sportifs. Best-effort : si la
+// source PMU échoue, le ticker continue avec les autres sports sans
+// bloquer ni afficher d'erreur (même philosophie que le reste du ticker).
+async function getTurfTickerArticles() {
+  try {
+    const d = await api('/api/turf/upcoming?date_filter=today');
+    const races = (d.races||[]).slice(0, 6);
+    return races.map(r => ({
+      sport: 'turf',
+      title: `${r.hippodrome} ${r.reunion}${r.race_number} — ${r.race_name||'Course PMU'}`,
+      description: `${r.discipline||''}${r.distance?' · '+r.distance+'m':''}${r.runners_count?' · '+r.runners_count+' partants':''}${r.is_quinte?' · QUINTÉ+':''} · Départ ${r.time||'?'}`,
+      published: new Date().toISOString(),
+      link: '', is_match: true, _label: '&#128012; PMU',
+      _turfRaceId: r.race_id,
+    }));
+  } catch(_) { return []; }
 }
 
 async function loadTicker() {
@@ -4876,13 +4896,15 @@ async function loadTicker() {
   }
   try {
     const sports = 'soccer,mma,basketball,tennis,icehockey,americanfootball,baseball';
-    const [newsData, matchArticles] = await Promise.allSettled([
+    const [newsData, matchArticles, turfArticles] = await Promise.allSettled([
       api('/api/news?sports='+enc(sports)).then(d=>d.news||[]).catch(()=>[]),
-      getMatchArticles()
+      getMatchArticles(),
+      getTurfTickerArticles(),
     ]);
     const newsFromAPI = newsData.status==='fulfilled' ? newsData.value : [];
     const newsFromMatches = matchArticles.status==='fulfilled' ? matchArticles.value : [];
-    const news = [...newsFromAPI, ...newsFromMatches];
+    const newsFromTurf = turfArticles.status==='fulfilled' ? turfArticles.value : [];
+    const news = [...newsFromAPI, ...newsFromMatches, ...newsFromTurf];
     if (!news.length) return;
 
     const inner = document.getElementById('news-ticker-inner');
@@ -4900,7 +4922,8 @@ async function loadTicker() {
       const label = art._label || {
         soccer:'⚽ FOOT', basketball:'🏀 BASKET', tennis:'🎾 TENNIS',
         mma:'🥊 MMA', boxing:'🥊 BOXE', icehockey:'🏒 HOCKEY',
-        americanfootball:'🏈 NFL', baseball:'⚾ MLB', rugby:'🏉 RUGBY'
+        americanfootball:'🏈 NFL', baseball:'⚾ MLB', rugby:'🏉 RUGBY',
+        turf:'🐎 PMU',
       }[art.sport] || '🏆 SPORT';
 
       let dateStr = '';
@@ -4913,13 +4936,15 @@ async function loadTicker() {
       }
 
       const safeLink = (art.link||'').replace(/"/g,'&quot;');
-      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${safeLink}" style="${art.link?'cursor:pointer;':''}">
+      const turfAttr = art._turfRaceId ? ` data-turf-race="${esc(art._turfRaceId)}"` : '';
+      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${safeLink}"${turfAttr} style="${(art.link||art._turfRaceId)?'cursor:pointer;':''}">
         <span class="ticker-sport-badge" style="background:${style.bg};color:${style.color}">${label}</span>
         <div style="flex:1;min-width:0">
           <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${esc(art.title||'')}</div>
           ${art.description?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px;line-height:1.4">${esc(art.description.slice(0,100))}${art.description.length>100?'…':''}</div>`:''}
           ${dateStr?`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px;opacity:.7">📅 ${dateStr}</div>`:''}
           ${art.link?`<div style="font-size:9px;color:var(--neon);font-family:var(--mo);margin-top:2px;opacity:.7">🔗 Lire l'article →</div>`:''}
+          ${art._turfRaceId?`<div style="font-size:9px;color:#7ee8a0;font-family:var(--mo);margin-top:2px;opacity:.85">🐎 Voir la course →</div>`:''}
         </div>
       </div>`;
     };
@@ -4932,7 +4957,7 @@ async function loadTicker() {
 
     const toTranslate = sorted.filter(art => {
       const t = (art.title||'');
-      return t && !/\b(le|la|les|du|des|et|en|au|sur|par|pour|dans|qui|que|est|sont|avec|une|un|de|à)\b/i.test(t);
+      return t && art.sport !== 'turf' && !/\b(le|la|les|du|des|et|en|au|sur|par|pour|dans|qui|que|est|sont|avec|une|un|de|à)\b/i.test(t);
     });
 
     if(toTranslate.length > 0) {
@@ -4985,6 +5010,8 @@ async function loadTicker() {
       container.querySelectorAll('.ticker-item[data-href]').forEach(el => {
         el.addEventListener('click', function(e) {
           const url = this.dataset.href;
+          const turfId = this.dataset.turfRace;
+          if(turfId) { e.stopPropagation(); go('turf'); setTimeout(()=>turfSelectRace(turfId), 300); return; }
           if(url) {
             e.stopPropagation();
             window.open(url, '_blank', 'noopener,noreferrer');
@@ -5246,9 +5273,6 @@ document.addEventListener('DOMContentLoaded', () => {
   lossLoadCloud().then(()=>{
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
   }).catch(()=>{});
-  // Charge d'abord le cloud (fusion locale + KV), puis renvoie vers KV toute
-  // entrée qui n'existait qu'en localStorage (ex: créée avant l'ajout des
-  // routes /api/sport-history/*) — sinon ces entrées restent orphelines.
   loadSportHistoryFromCloud()
     .then(() => syncSportHistoryLocalToCloud())
     .catch(() => {});
@@ -5261,11 +5285,6 @@ const _cardsQueuedThisSession = new Map();
 
 function renderDirectionCard(o, i, containerId) {
   const s   = o.score || {};
-  // Réutilise le résultat déjà calculé par doLiveScan (mode standard, ou mode
-  // expert si le repli anti-écran-vide a été nécessaire) plutôt que de le
-  // recalculer avec les options par défaut : sinon une carte retenue en mode
-  // expert pouvait être rejetée à l'affichage (recalcul en mode standard),
-  // ce qui produisait un compteur "12 opportunités" avec une grille vide.
   const res = o._res || computeDirection(o);
 
   if(res.shouldDisplay && res.direction==='play') {
@@ -5296,9 +5315,6 @@ function renderDirectionCard(o, i, containerId) {
     return `<div style="font-size:9px;color:${color};font-family:var(--mo);margin-top:4px">Ajustement historique : ${label} — ${historicalAdjustment.volume} cartes${roiTxt}${wrTxt}</div>`;
   })();
 
-  // Ligne discrète pour l'historique sportif avancé (module SPORT_MATCH_HIST_KEY,
-  // distinct de l'ajustement historique ci-dessus) — une seule ligne, jamais
-  // surchargée, cohérente avec le style de histBadge.
   const sportHistBadge = (function(){
     if(!sportHistoricalAdjustment) return '';
     if(sportHistoricalAdjustment.status === 'insufficient') {
@@ -5675,16 +5691,15 @@ function renderPerfHistList(cards) {
 //  BLACKJACK DIRECTIONNEL
 //  Comptage Hi-Lo · Direction claire · Stratégie de base · Chat contextuel
 //  Aide statistique et pédagogique uniquement — aucun gain garanti.
+//  VRAIES FACES DE CARTES : pips positionnés (2-10) + figures illustrées
+//  originales pour Valet/Dame/Roi (silhouettes distinctes par rang), au
+//  lieu d'une simple icône de couleur centrale.
 // ═══════════════════════════════════════════════════════════════════════
 
 const BJ_CARD_ORDER  = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const BJ_CARD_VALUES = { A:-1, '2':1,'3':1,'4':1,'5':1,'6':1, '7':0,'8':0,'9':0, '10':-1, J:-1, Q:-1, K:-1 };
 const BJ_CARD_FR     = { A:'As', '2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9','10':'10', J:'Valet', Q:'Dame', K:'Roi' };
 const BJ_CARD_BJVALUE= { A:11, '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10, J:10, Q:10, K:10 };
-// Les 4 couleurs — chaque carte du sabot est désormais représentée individuellement
-// (rang + couleur), étalée à l'écran, pour une sélection carte par carte comme
-// demandé ("le as de cœur, puis le 2 de cœur, etc."). La valeur Hi-Lo ne dépend
-// que du rang (la couleur n'influence jamais le comptage).
 const BJ_SUITS = [
   { key:'hearts',   symbol:'♥', label:'Cœur',   color:'red'   },
   { key:'diamonds', symbol:'♦', label:'Carreau', color:'red'   },
@@ -5692,11 +5707,6 @@ const BJ_SUITS = [
   { key:'spades',   symbol:'♠', label:'Pique',   color:'black' },
 ];
 const BJ_SUIT_SYMBOL = { hearts:'♥', diamonds:'♦', clubs:'♣', spades:'♠' };
-// Vraies icônes vectorielles (SVG) par couleur — remplacent le simple caractère
-// texte ♥♦♣♠ pour un rendu net et identique sur tous les appareils (au lieu de
-// dépendre du glyphe de la police système), et un rendu plus "carte à jouer".
-// fill="currentColor" : l'icône hérite automatiquement du rouge/clair défini
-// par .bj-suit-red / .bj-suit-black sur le bouton parent.
 const BJ_SUIT_ICON_SVG = {
   hearts:   '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>',
   diamonds: '<svg viewBox="0 0 24 24"><polygon points="12,2 21,12 12,22 3,12" fill="currentColor"/></svg>',
@@ -5704,6 +5714,43 @@ const BJ_SUIT_ICON_SVG = {
   spades:   '<svg viewBox="0 0 24 24"><path d="M12 2C9.2 6 3.2 10.3 3.2 14.8a4.8 4.8 0 0 0 8.16 3.42c-.25 2.02-1.2 3.3-2.86 3.78h6.9c-1.66-.48-2.61-1.76-2.86-3.78a4.8 4.8 0 0 0 8.16-3.42C20.8 10.3 14.8 6 12 2z" fill="currentColor"/></svg>',
 };
 function bjCardKey(rank, suit){ return rank+'_'+(suit||''); }
+
+// ── VRAIES FACES DE CARTES ────────────────────────────────────────────
+// Positions des pips (1-indexé, grille 5 lignes x 3 colonnes) par rang —
+// dispositions classiques d'un jeu de cartes français (approximatives,
+// suffisantes à cette taille d'affichage). A = 1 pip central, 10 = 10 pips.
+const BJ_PIP_LAYOUT = {
+  'A':  [[3,2]],
+  '2':  [[1,2],[5,2]],
+  '3':  [[1,2],[3,2],[5,2]],
+  '4':  [[1,1],[1,3],[5,1],[5,3]],
+  '5':  [[1,1],[1,3],[3,2],[5,1],[5,3]],
+  '6':  [[1,1],[1,3],[3,1],[3,3],[5,1],[5,3]],
+  '7':  [[1,1],[1,3],[2,2],[3,1],[3,3],[5,1],[5,3]],
+  '8':  [[1,1],[1,3],[2,2],[3,1],[3,3],[4,2],[5,1],[5,3]],
+  '9':  [[1,1],[1,3],[2,1],[2,3],[3,2],[4,1],[4,3],[5,1],[5,3]],
+  '10': [[1,1],[1,3],[2,1],[2,3],[2,2],[4,2],[4,1],[4,3],[5,1],[5,3]],
+};
+// Figures illustrées originales pour Valet / Dame / Roi — silhouettes
+// distinctes (pas de reproduction d'un jeu de cartes existant) : le Valet
+// est une simple silhouette de profil sans couronne, la Dame porte une
+// couronne pointue avec chevelure, le Roi porte une couronne à 3 pointes
+// avec barbe. currentColor hérite du rouge/noir de la couleur de la carte.
+const BJ_FACE_ART = {
+  J: '<svg viewBox="0 0 40 60"><path d="M20 6c-4 0-7 3-7 7 0 3 1.5 5.5 3.5 6.8L14 24h12l-2.5-4.2C25.5 18.5 27 16 27 13c0-4-3-7-7-7z" fill="currentColor"/><path d="M12 26h16l3 8-2 20H11l-2-20z" fill="currentColor" opacity=".85"/><rect x="17" y="19" width="6" height="6" fill="currentColor" opacity=".6"/></svg>',
+  Q: '<svg viewBox="0 0 40 60"><path d="M20 4l2.2 4.2L27 6l-1 5.2L31 13l-4.2 2.6L29 20l-5-1-1 5-3-4-3 4-1-5-5 1 2.2-4.4L9 13l4.8-1.8L12.8 6l4.8 2.2z" fill="currentColor"/><circle cx="20" cy="20" r="7" fill="currentColor"/><path d="M11 28h18l3 8-2 18H10l-2-18z" fill="currentColor" opacity=".85"/></svg>',
+  K: '<svg viewBox="0 0 40 60"><path d="M10 14l4 6 6-8 6 8 4-6 2 10H8z" fill="currentColor"/><circle cx="20" cy="24" r="7.5" fill="currentColor"/><path d="M13 20c2-2 5-3 7-3s5 1 7 3" stroke="currentColor" stroke-width="1.6" fill="none" opacity=".7"/><path d="M10 32h20l3 8-2 16H9l-2-16z" fill="currentColor" opacity=".85"/></svg>',
+};
+function bjBuildCardFaceInner(rank, suitKey) {
+  const iconSvg = BJ_SUIT_ICON_SVG[suitKey] || '';
+  const corner = `<div class="bjc-corner"><span class="bjc-corner-rank">${rank}</span>${iconSvg}</div>`;
+  if (rank === 'J' || rank === 'Q' || rank === 'K') {
+    return corner + `<div class="bj-face-illustration">${BJ_FACE_ART[rank]}</div>`;
+  }
+  const layout = BJ_PIP_LAYOUT[rank] || [];
+  const pipsHtml = layout.map(([r,c]) => `<div class="bj-pip-cell pip-r${r} pip-c${c}">${iconSvg}</div>`).join('');
+  return corner + `<div class="bj-pip-grid">${pipsHtml}</div>`;
+}
 
 const BJ_STORAGE_KEY = 'pgi_bj_session_v1';
 let BJ_STATE = null;
@@ -5717,9 +5764,6 @@ function bjDefaultState() {
     cardsSeen: [],
     redoStack: [],
     correctionsWindow: [],
-    // selectedCards : { [rang_couleur]: idDeLaCarteAssociée } — une entrée par
-    // carte précise (ex: "A_hearts") ; permet de savoir quelle instance exacte
-    // de cardsSeen désélectionner quand on reclique sur cette carte précise.
     selectedCards: {},
     audio: { enabled:false },
     createdAt: new Date().toISOString(),
@@ -5769,8 +5813,10 @@ function bjNewSession(){
 }
 
 // ── Population UI statique ───────────────────────────────────────────
-// Grille étalée : 4 rangées (une par couleur), 13 cartes par rangée — les 52
-// cartes sont toutes visibles et sélectionnables en permanence, comme demandé.
+// Grille étalée : 4 rangées (une par couleur), 13 cartes par rangée —
+// chaque bouton affiche maintenant la VRAIE face de la carte (pips
+// positionnés pour 2-10, figure illustrée pour Valet/Dame/Roi, gros pip
+// central pour l'As) au lieu d'une simple icône générique de couleur.
 function bjPopulateCardsGrid(){
   const grid = document.getElementById('bj-cards-grid');
   if(!grid || grid.dataset.filled) return;
@@ -5780,9 +5826,9 @@ function bjPopulateCardsGrid(){
       const cls = v>0?'bjc-plus':v<0?'bjc-minus':'bjc-zero';
       const vTxt = v>0?'+1':v<0?'-1':'0';
       const key = bjCardKey(rank, s.key);
+      const faceInner = bjBuildCardFaceInner(rank, s.key);
       return `<div class="bj-card-btn bj-suit-${s.color} ${cls}" data-card="${rank}" data-suit="${s.key}" data-cardkey="${key}" onclick="bjOnCardClick('${rank}','${s.key}', this)">
-        <div class="bjc-rank">${rank}</div>
-        <div class="bjc-suit-icon">${BJ_SUIT_ICON_SVG[s.key]}</div>
+        <div class="bj-card-face">${faceInner}</div>
         <div class="bjc-val">${vTxt}</div>
       </div>`;
     }).join('');
@@ -5811,14 +5857,7 @@ function bjSyncConfigInputs(){
   bjSelectRisk(cfg.risk, true);
 }
 
-// ── Saisie des cartes — sélection persistante, carte par carte (rang+couleur) ──
-// Comportement demandé : clic sur une carte non sélectionnée (ex: As de Cœur) =
-// elle est ajoutée au comptage et entourée visuellement ; clic à nouveau sur
-// cette même carte précise = elle est retirée du comptage et la bordure
-// disparaît. Chaque carte (rang+couleur) a son propre état, donc plusieurs
-// cartes différentes — y compris plusieurs rangs de la même couleur, ou la
-// même valeur dans des couleurs différentes — peuvent rester sélectionnées en
-// même temps, sans délai ni double-clic requis.
+// ── Saisie des cartes — sélection persistante, carte par carte ──────
 function bjOnCardClick(rank, suit, el){
   if(!BJ_STATE) return;
   if(!BJ_STATE.selectedCards) BJ_STATE.selectedCards = {};
@@ -5826,11 +5865,8 @@ function bjOnCardClick(rank, suit, el){
   const key = bjCardKey(rank, suit);
   const existingId = BJ_STATE.selectedCards[key];
   if(existingId){
-    // Désélection : retire précisément cette instance du comptage.
     bjRemoveCard(existingId);
   } else {
-    // Sélection : ajoute cette carte précise et mémorise son id pour pouvoir la
-    // désélectionner exactement au prochain clic sur cette même carte.
     const entry = { id: 'c'+Date.now()+Math.random().toString(36).slice(2,6), card:rank, suit, source:'manual', at:new Date().toISOString() };
     BJ_STATE.cardsSeen.push(entry);
     BJ_STATE.redoStack = [];
@@ -5841,8 +5877,6 @@ function bjOnCardClick(rank, suit, el){
   if(el){ el.classList.remove('bj-flash'); void el.offsetWidth; el.classList.add('bj-flash'); }
 }
 
-// Met à jour l'état visuel "selected" de chaque bouton de carte selon
-// BJ_STATE.selectedCards — appelé après chaque rendu pour rester synchronisé.
 function bjSyncCardButtonStates(){
   const grid = document.getElementById('bj-cards-grid');
   if(!grid || !BJ_STATE) return;
@@ -5867,8 +5901,6 @@ function bjRemoveCard(id){
   if(idx<0) return;
   const removed = BJ_STATE.cardsSeen[idx];
   BJ_STATE.cardsSeen.splice(idx,1);
-  // Nettoie la sélection persistante si l'instance retirée est celle qui
-  // représentait actuellement cette carte précise (rang+couleur) dans la grille.
   const key = bjCardKey(removed.card, removed.suit);
   if(BJ_STATE.selectedCards && BJ_STATE.selectedCards[key] === id){
     delete BJ_STATE.selectedCards[key];
@@ -5893,17 +5925,10 @@ function bjRedo(){
   if(!BJ_STATE || !BJ_STATE.redoStack.length){ toast('Rien à rétablir','err'); return; }
   const card = BJ_STATE.redoStack.pop();
   BJ_STATE.cardsSeen.push(card);
-
-  // BUG CORRIGÉ : le redo remettait la carte dans le comptage Hi-Lo mais ne
-  // rétablissait jamais son état visuel "sélectionné" (selectedCards), donc le
-  // bouton réapparaissait décompté sans être entouré. On restaure ici l'entrée
-  // selectedCards pour cette carte précise (rang+couleur) exactement comme au
-  // moment de sa sélection d'origine.
   if(!BJ_STATE.selectedCards) BJ_STATE.selectedCards = {};
   if(card.suit){
     BJ_STATE.selectedCards[bjCardKey(card.card, card.suit)] = card.id;
   }
-
   bjSaveState();
   bjRenderAll();
 }
@@ -6111,7 +6136,7 @@ function getBlackjackDecision(state){
   };
 }
 
-// ── Stratégie de base — tables complètes (dealer stand soft17, 4-8 decks, DAS) ──
+// ── Stratégie de base — tables complètes ──────────────────────────────
 const BJ_DEALER_COLS = ['2','3','4','5','6','7','8','9','10','A'];
 
 const BJ_HARD_STRATEGY = {
@@ -6289,32 +6314,21 @@ const BJ_WORD_MAP = {
   'dame':'Q','reine':'Q','queen':'Q',
   'roi':'K','king':'K',
 };
-// Mots de couleur (FR/EN) — nécessaires depuis le passage à la grille de 52
-// cartes individuelles, pour identifier précisément QUELLE carte basculer.
 const BJ_SUIT_WORD_MAP = {
   'coeur':'hearts','cœur':'hearts','coeurs':'hearts','cœurs':'hearts','heart':'hearts','hearts':'hearts',
   'carreau':'diamonds','carreaux':'diamonds','diamond':'diamonds','diamonds':'diamonds','diamant':'diamonds','diamants':'diamonds',
   'trefle':'clubs','trèfle':'clubs','trefles':'clubs','trèfles':'clubs','club':'clubs','clubs':'clubs',
   'pique':'spades','piques':'spades','spade':'spades','spades':'spades',
 };
-// Mots de liaison à ignorer entre le rang et la couleur ("dix DE cœur", "ten OF hearts").
 const BJ_FILLER_WORDS = new Set(['de',"d'",'du','des','of','the','la','le','les','un','une','a','à']);
 
 function bjNormalizeWord(w){
   w = (w||'').toLowerCase().trim().replace(/[.,!?]/g,'');
-  // Tolère les élisions parlées ("l'as de pique", "d'as" mal découpé) qui,
-  // sinon, empêchaient de reconnaître le rang car le mot ne correspondait
-  // plus exactement à une entrée de BJ_WORD_MAP.
   w = w.replace(/^[a-zàâäéèêëïîôöùûüç]['’]/i, '');
   if(/^(10|[2-9])$/.test(w)) return w;
   return BJ_WORD_MAP[w] || null;
 }
 
-// parseAudioCardsWithSuit — reconnaît des paires (rang, couleur) complètes dans
-// la phrase entendue (ex: "dix de cœur", "as de pique", "ten of hearts"), en
-// sautant les mots de liaison. Retourne aussi les rangs entendus SANS couleur
-// claire (unmatchedRanks), pour lesquels on ne peut pas savoir laquelle des 4
-// cartes basculer — dans ce cas on ne devine jamais, on informe juste l'utilisateur.
 function parseAudioCardsWithSuit(transcript){
   const words = (transcript||'').toLowerCase()
     .replace(/dealer|croupier|carte|card/g,' ')
@@ -6344,15 +6358,8 @@ function bjToggleAudio(){
   BJ_RECOGNITION.lang = 'fr-FR';
   BJ_RECOGNITION.continuous = true;
   BJ_RECOGNITION.interimResults = false;
-  // Sensibilité accrue : on demande plusieurs hypothèses de transcription par
-  // énoncé (maxAlternatives) — si la meilleure ne donne pas une carte propre,
-  // on essaie les suivantes avant d'abandonner (voir bjHandleAudioResult).
   BJ_RECOGNITION.maxAlternatives = 5;
   BJ_RECOGNITION.onresult = (e)=>{
-    // Traite TOUS les résultats finaux nouveaux depuis le dernier événement
-    // (e.resultIndex → e.results.length), pas seulement le tout dernier :
-    // sinon, deux cartes annoncées coup sur coup pouvaient s'écraser l'une
-    // l'autre et une carte entendue était silencieusement perdue.
     for(let i = e.resultIndex; i < e.results.length; i++){
       const result = e.results[i];
       if(!result.isFinal) continue;
@@ -6360,9 +6367,6 @@ function bjToggleAudio(){
     }
   };
   BJ_RECOGNITION.onerror = (e)=>{
-    // Erreurs transitoires (silence, réseau) : onend relance déjà l'écoute
-    // automatiquement, rien à faire de plus. Seules les erreurs bloquantes
-    // (micro refusé/indisponible) doivent prévenir l'utilisateur explicitement.
     const err = e && e.error;
     if(err === 'not-allowed' || err === 'service-not-allowed' || err === 'audio-capture'){
       toast('🎙 Micro indisponible ou accès refusé','err');
@@ -6386,13 +6390,6 @@ function bjStopAudio(){
   const btn = document.getElementById('bj-audio-btn'); if(btn) btn.textContent = "🎙 Activer l'écoute audio";
 }
 
-// bjHandleAudioResult — AUCUNE intervention humaine : dès qu'une carte précise
-// (rang + couleur) est reconnue, elle est immédiatement basculée (sélectionnée
-// si elle ne l'était pas, désélectionnée si elle l'était déjà) exactement comme
-// un clic manuel sur cette carte — pas de file d'attente, pas de bouton "Valider".
-// Reçoit maintenant le résultat de reconnaissance complet (toutes alternatives)
-// et essaie chacune d'elles jusqu'à trouver une carte reconnue proprement, pour
-// ne jamais passer à côté d'une carte réellement annoncée.
 function bjHandleAudioResult(result){
   let best = null;
   const nAlt = result && result.length ? result.length : 0;
@@ -6578,6 +6575,426 @@ function calculateTrueCount(){ return bjCalculateTrueCount().trueCount; }
 function estimateConfidence(){ return bjEstimateConfidence(); }
 function suggestBet(){ const tc = bjCalculateTrueCount().trueCount; return bjSuggestBet(tc, BJ_STATE ? BJ_STATE.config.risk : 'prudent'); }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  PGI • BetPro — MODULE PMU / TURF FRANCE (frontend)
+//  Entièrement séparé du système sport et du blackjack. Toutes les
+//  fonctions sont préfixées "turf". Rattrapage PMU intelligent : scanne
+//  les courses à venir et propose la meilleure carte selon le type de
+//  pari choisi (placé/gagnant/quinté), via /api/turf/recovery/scan.
+// ═══════════════════════════════════════════════════════════════════════
+
+let TURF_SELECTED_RACE = null;
+let TURF_UPCOMING_CACHE = [];
+let turfRecoveryType = 'simple_place';
+
+async function turfInit() {
+  await turfLoadSources();
+  await turfLoadUpcoming();
+  turfLoadHistory();
+}
+
+async function turfLoadSources() {
+  const el = document.getElementById('turf-sources-status');
+  if (!el) return;
+  try {
+    const d = await api('/api/turf/sources');
+    const active = d.sources.find(s => s.id === d.active_source);
+    const srcCount = active?.sources_configured ? ` (${active.sources_configured} source(s) en rotation)` : '';
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-size:10px;font-family:var(--mo)">
+      <div style="width:7px;height:7px;border-radius:50%;background:${active?.status==='disponible'?'var(--gr)':'var(--re)'}"></div>
+      <span>Source active : ${esc(active?.label||d.active_source)}${srcCount} — secours : ${esc(d.fallback_source)}</span>
+    </div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="font-size:10px;color:var(--re)">Sources indisponibles : ${esc(e.message)}</div>`;
+  }
+}
+
+// ── Bloc 1 — Courses à venir ──────────────────────────────────────────
+let turfDateFilter = 'today';
+function turfSetDateFilter(val, el) {
+  turfDateFilter = val;
+  document.querySelectorAll('#turf-date-btns .fbtn').forEach(b => b.classList.remove('on'));
+  el?.classList.add('on');
+  turfLoadUpcoming();
+}
+
+let turfDisciplineFilter = 'all', turfQuinteOnly = false;
+function turfSetDisciplineFilter(val, el) {
+  turfDisciplineFilter = val;
+  document.querySelectorAll('#turf-discipline-btns .fbtn').forEach(b => { if(b.id!=='turf-quinte-toggle') b.classList.remove('on'); });
+  el?.classList.add('on');
+  turfLoadUpcoming();
+}
+function turfToggleQuinteOnly(el) {
+  turfQuinteOnly = !turfQuinteOnly;
+  el?.classList.toggle('on', turfQuinteOnly);
+  turfLoadUpcoming();
+}
+function turfApplyRaceFilters(races) {
+  return races.filter(r => {
+    if (turfDisciplineFilter !== 'all' && r.discipline !== turfDisciplineFilter) return false;
+    if (turfQuinteOnly && !r.is_quinte) return false;
+    return true;
+  });
+}
+
+async function turfLoadUpcoming() {
+  const cnt = document.getElementById('turf-races-list');
+  if (!cnt) return;
+  cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Chargement des courses PMU…</p></div>';
+  try {
+    const d = await api('/api/turf/upcoming?date_filter=' + enc(turfDateFilter));
+    TURF_UPCOMING_CACHE = d.races || [];
+    if (!TURF_UPCOMING_CACHE.length) {
+      const diag = d.diagnostic || {};
+      cnt.innerHTML = `<div class="empty"><div class="empty-i">🐎</div><div class="empty-t">Aucune course PMU trouvée</div>
+        <div class="empty-s">${esc(diag.raison_si_vide || 'Aucune donnée disponible pour cette période.')}</div></div>`;
+      return;
+    }
+    const filtered = turfApplyRaceFilters(TURF_UPCOMING_CACHE);
+    if (!filtered.length) {
+      cnt.innerHTML = `<div class="empty"><div class="empty-i">🐎</div><div class="empty-t">Aucune course ne correspond à ces filtres</div></div>`;
+      return;
+    }
+    cnt.innerHTML = `<div class="sbar"><div class="sdot"></div><span>${filtered.length} course(s) — source: ${esc((d.sources_used||[]).join(', ')||'—')}</span></div>`
+      + filtered.map(r => turfRenderRaceCard(r)).join('');
+  } catch (e) {
+    cnt.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
+  }
+}
+
+function turfRenderRaceCard(r) {
+  const discIco = { trot: '🐴', plat: '🏇', obstacle: '🚧' }[r.discipline] || '🐎';
+  return `<div class="dir-card" style="border:1px solid var(--bd);cursor:pointer" onclick="turfSelectRace('${esc(r.race_id)}')">
+    <div class="dir-body" style="padding:10px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="dir-match">${discIco} ${esc(r.hippodrome)} — ${esc(r.reunion)}${esc(r.race_number)}</div>
+        ${r.is_quinte ? '<span class="bdg bca">QUINTÉ+</span>' : ''}
+      </div>
+      <div style="font-size:11px;color:var(--mu);margin-top:2px">${esc(r.race_name||'')}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+        <span class="bdg bsr">${r.time||'?'}</span>
+        <span class="bdg bsp">${esc(r.discipline)}</span>
+        ${r.distance?`<span class="bdg bsr">${r.distance}m</span>`:''}
+        ${r.runners_count?`<span class="bdg bmk">${r.runners_count} partants</span>`:''}
+        <span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Data: ${r.data_quality_score}%</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Bloc 2/3 — Sélection d'une course + partants ──────────────────────
+async function turfSelectRace(raceId) {
+  TURF_SELECTED_RACE = raceId;
+  const detailEl = document.getElementById('turf-race-detail');
+  if (!detailEl) return;
+  detailEl.innerHTML = '<div class="ls"><div class="sp"></div><p>Chargement de la course…</p></div>';
+  detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const d = await api('/api/turf/race?race_id=' + enc(raceId));
+    if (!d.ok) { detailEl.innerHTML = `<div class="warn">⚠ ${esc(d.error||'Course indisponible')}</div>`; return; }
+    turfRenderRaceDetail(d);
+    turfAppendChatMsg('bot', `Course sélectionnée : ${d.hippodrome} — ${d.race_name||''}. Pose-moi une question (ex: "gagnant ?", "placé ?", "je joue le 8 ?").`);
+  } catch (e) {
+    detailEl.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
+  }
+}
+
+function turfRenderRaceDetail(d) {
+  const el = document.getElementById('turf-race-detail');
+  const runnersHtml = (d.runners||[]).map(r => `
+    <tr${r.is_non_partant?' style="opacity:.4"':''}>
+      <td style="font-family:var(--mo);font-weight:700">${r.number}</td>
+      <td>${esc(r.name)}${r.is_non_partant?' <span class="bdg" style="background:var(--reb);color:var(--re)">NP</span>':''}</td>
+      <td style="font-size:10px">${esc(r.jockey_driver||'—')}</td>
+      <td style="font-size:10px">${esc(r.trainer||'—')}</td>
+      <td style="font-size:10px;font-family:var(--mo)">${esc(r.music||'—')}</td>
+      <td style="font-family:var(--mo);color:var(--am)">${r.odds!=null?r.odds:'—'}</td>
+    </tr>`).join('');
+
+  el.innerHTML = `<div class="card">
+    <div class="ct">${esc(d.hippodrome)} — ${esc(d.race_name||'')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      <span class="bdg bsp">${esc(d.discipline)}</span>
+      ${d.distance?`<span class="bdg bsr">${d.distance}m</span>`:''}
+      ${d.corde?`<span class="bdg bsr">Corde ${esc(d.corde)}</span>`:''}
+      ${d.terrain?`<span class="bdg bsr">Terrain ${esc(d.terrain)}</span>`:''}
+      ${d.is_quinte?'<span class="bdg bca">QUINTÉ+</span>':''}
+      <span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Data: ${d.data_quality_score}%</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tracker-table"><thead><tr><th>N°</th><th>Cheval</th><th>Jockey/Driver</th><th>Entraîneur</th><th>Musique</th><th>Cote</th></tr></thead>
+      <tbody>${runnersHtml}</tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Boutons rapides</div>
+    <div class="bg" style="flex-wrap:wrap">
+      <button class="btn bp" onclick="turfAskQuick('should_play')">Dois-je jouer cette course ?</button>
+      <button class="btn bs" onclick="turfAskQuick('winner')">Cheval gagnant</button>
+      <button class="btn bs" onclick="turfAskQuick('place')">Cheval placé</button>
+      <button class="btn bs" onclick="turfAskQuick('quinte_order')">Quinté ordre</button>
+      <button class="btn bs" onclick="turfAskQuick('quinte_desordre')">Quinté désordre</button>
+      <button class="btn bs" onclick="turfAskQuick('quinte_speculative')">Quinté spéculatif</button>
+      <button class="btn bs" onclick="turfAskQuick('outsider')">Outsider value</button>
+      <button class="btn bs" onclick="turfAskQuick('avoid')">Favori à éviter</button>
+    </div>
+  </div>
+  <div id="turf-analysis-result"></div>`;
+}
+
+// ── Bloc 4/5 — Boutons rapides + affichage de l'analyse ───────────────
+async function turfAskQuick(questionType) {
+  if (!TURF_SELECTED_RACE) { toast('Sélectionnez d\'abord une course', 'err'); return; }
+  const resEl = document.getElementById('turf-analysis-result');
+  if (resEl) resEl.innerHTML = '<div class="ls"><div class="sp"></div><p>Analyse en cours…</p></div>';
+  try {
+    const d = await api('/api/turf/ask', 'POST', {
+      race_id: TURF_SELECTED_RACE, question_type: questionType,
+      bankroll: turfGetBankroll(), risk_profile: 'prudent',
+    });
+    turfRenderAskResult(d);
+    turfAppendChatMsg('bot', d.answer || 'Réponse indisponible.');
+  } catch (e) {
+    if (resEl) resEl.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
+  }
+}
+
+function turfGetBankroll() {
+  return parseFloat(document.getElementById('turf-bankroll-input')?.value || '200') || 200;
+}
+
+function turfRenderAskResult(d) {
+  const el = document.getElementById('turf-analysis-result');
+  if (!el) return;
+  if (!d.ok) { el.innerHTML = `<div class="warn">⚠ ${esc(d.error||'Analyse indisponible')}</div>`; return; }
+
+  const recoColor = { favorable:'var(--gr)', 'placé fiable':'var(--gr)', 'outsider value':'var(--am)', 'jouable':'var(--gr)',
+    'jouable seulement placé':'var(--am)', 'trop risqué':'var(--re)', 'favori surcoté':'var(--re)', 'à éviter':'var(--re)',
+    'course à passer':'var(--re)' }[d.recommendation] || 'var(--neon)';
+
+  el.innerHTML = `<div class="card" style="border-color:${recoColor}">
+    <div class="ct">Analyse</div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px">${esc(d.answer||'')}</div>
+    ${d.recommendation?`<span class="bdg" style="background:${recoColor}22;color:${recoColor};border:1px solid ${recoColor}55">${esc(d.recommendation)}</span>`:''}
+    ${d.confidence!=null?`<div style="margin-top:8px;font-family:var(--mo);font-size:20px;font-weight:700;color:${recoColor}">${d.confidence}%</div>`:''}
+    ${(d.reasons||[]).length?`<div style="margin-top:10px">${d.reasons.map(r=>`<div style="font-size:11px;color:var(--mu);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">• ${esc(r)}</div>`).join('')}</div>`:''}
+    ${d.stake_recommended?`<div style="margin-top:8px;font-size:11px;color:var(--gr)">Mise conseillée : ${d.stake_recommended}€</div>`:''}
+    <div style="font-size:10px;color:var(--dm);margin-top:10px;font-style:italic">${(d.warnings||[]).join(' ')}</div>
+  </div>`;
+}
+
+// ── Bloc 6 — Chat PMU contextuel ───────────────────────────────────────
+function turfAppendChatMsg(role, text) {
+  const wrap = document.getElementById('turf-chat-wrap');
+  if (!wrap) return;
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const ico = role === 'user' ? '👤' : '🐎';
+  div.innerHTML = `<div class="msg-ico">${ico}</div><div><div class="msg-bub">${esc(text).replace(/\n/g,'<br>')}</div></div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function turfDetectQuestionType(text) {
+  const q = text.toLowerCase();
+  const horseMatch = q.match(/\b(\d{1,2})\b/);
+  if (/quint[ée].*ordre|ordre.*quint/.test(q)) return { type: 'quinte_order' };
+  if (/quint[ée].*(d[ée]sordre|d[ée]sordonn)/.test(q)) return { type: 'quinte_desordre' };
+  if (/quint[ée].*sp[ée]cul/.test(q)) return { type: 'quinte_speculative' };
+  if (/gagnant/.test(q)) return { type: 'winner' };
+  if (/plac[ée]/.test(q)) return { type: 'place' };
+  if (/outsider/.test(q)) return { type: 'outsider' };
+  if (/[ée]viter|surcot[ée]|dangereux/.test(q)) return { type: 'avoid' };
+  if (/dois.je jouer|jouer cette course|passer/.test(q)) return { type: 'should_play' };
+  if (/perdu|rattrapage|r[ée]cup[ée]r/.test(q)) return { type: 'recovery' };
+  if (horseMatch && /jou|avis|pens|mise|parie/.test(q)) return { type: 'horse_opinion', horse_number: parseInt(horseMatch[1], 10) };
+  return { type: 'custom' };
+}
+
+async function turfSendChat() {
+  const input = document.getElementById('turf-chat-input');
+  const q = input.value.trim();
+  if (!q) return;
+  if (!TURF_SELECTED_RACE) { toast('Sélectionnez d\'abord une course PMU', 'err'); return; }
+  turfAppendChatMsg('user', q);
+  input.value = '';
+  const detected = turfDetectQuestionType(q);
+  try {
+    const d = await api('/api/turf/ask', 'POST', {
+      race_id: TURF_SELECTED_RACE, question_type: detected.type, horse_number: detected.horse_number,
+      question: q, bankroll: turfGetBankroll(), risk_profile: 'prudent',
+    });
+    turfRenderAskResult(d);
+    turfAppendChatMsg('bot', d.answer || 'Je n\'ai pas pu répondre à cette question sur la course sélectionnée.');
+  } catch (e) {
+    turfAppendChatMsg('bot', '❌ Erreur : ' + e.message);
+  }
+}
+function turfChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); turfSendChat(); } }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  RATTRAPAGE PMU INTELLIGENT — scanne les courses à venir et propose la
+//  MEILLEURE opportunité pour le type de pari choisi (placé/gagnant/
+//  quinté). Le Quinté spéculatif n'est jamais proposé en rattrapage
+//  (règle explicite : jamais de quinté agressif en rattrapage).
+// ═══════════════════════════════════════════════════════════════════════
+function turfSetRecoveryType(bt, el) {
+  turfRecoveryType = bt;
+  document.querySelectorAll('.turf-recov-type-btn').forEach(b => b.classList.remove('on'));
+  el?.classList.add('on');
+}
+
+async function turfRunRecoveryScan() {
+  const btn = document.getElementById('turf-recovery-btn');
+  const resEl = document.getElementById('turf-recovery-result');
+  const bankroll = parseFloat(document.getElementById('turf-recovery-bankroll')?.value || '200') || 200;
+  const dateFilter = document.getElementById('turf-recovery-period')?.value || 'today';
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Recherche…'; }
+  resEl.innerHTML = '<div class="ls"><div class="sp"></div><p>Scan des prochaines courses PMU en cours (peut prendre quelques secondes)…</p></div>';
+
+  try {
+    const d = await api('/api/turf/recovery/scan', 'POST', { bet_type: turfRecoveryType, bankroll, date_filter: dateFilter });
+
+    if (d.blocked) {
+      resEl.innerHTML = `<div class="warn" style="color:var(--re)">&#128683; ${esc(d.message)}</div>`;
+      toast('Rattrapage PMU non disponible pour ce choix', 'err');
+      return;
+    }
+    if (!d.opportunities || !d.opportunities.length) {
+      resEl.innerHTML = `<div class="warn">&#128269; ${esc(d.message||'Aucune opportunité de rattrapage disponible actuellement.')}</div>`;
+      toast('Aucune opportunité pour l\'instant', '');
+      return;
+    }
+
+    const betTypeLabels = { simple_place:'Placé', simple_gagnant:'Gagnant', quinte_desordre:'Quinté désordre prudent', quinte_order:'Quinté ordre' };
+    let html = `<div class="sbar"><div class="sdot" style="background:var(--gr)"></div>
+      <span><strong>${d.opportunities.length}</strong> opportunité(s) — ${esc(betTypeLabels[d.bet_type]||d.bet_type)} · ${d.races_scanned||0} course(s) scannée(s)</span>
+    </div>`;
+
+    d.opportunities.forEach(o => {
+      const isQuinte = d.bet_type === 'quinte_desordre' || d.bet_type === 'quinte_order';
+      const selDisplay = isQuinte
+        ? (d.bet_type === 'quinte_order' ? `Ordre : ${o.order.join(' - ')}` : `Bases ${o.bases.join(', ')} + complément ${o.complement.join(', ')}`)
+        : `N°${o.horse} ${esc(o.name||'')} @ ${o.odds||'?'}`;
+      html += `<div class="live-card" style="margin-bottom:8px">
+        <div class="lc-head">
+          <div style="flex:1">
+            <div class="lc-teams">🐎 ${esc(o.hippodrome)} — ${esc(o.race_name||'')}</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+              <span class="bdg bsr">${o.time||'?'}</span>
+              <span class="bdg bmk">${esc(betTypeLabels[o.bet_type]||o.bet_type)}</span>
+            </div>
+            <div style="margin-top:8px;font-family:var(--mo);font-size:13px;font-weight:700;color:var(--am)">${selDisplay}</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:6px">
+              <div style="text-align:center;background:var(--sf2);border-radius:4px;padding:4px">
+                <div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--neon)">${o.confidence}%</div>
+                <div style="font-size:8px;color:var(--dm)">Confiance</div>
+              </div>
+              <div style="text-align:center;background:rgba(0,255,157,.07);border:1px solid rgba(0,255,157,.2);border-radius:4px;padding:4px">
+                <div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--gr)">${o.stake_recommended}€</div>
+                <div style="font-size:8px;color:var(--dm)">Mise conseillée</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:8px 12px;border-top:1px solid var(--bd)">
+          <button class="btn bs" style="font-size:10px" onclick="turfSelectRace('${esc(o.race_id)}')">Voir la course</button>
+        </div>
+      </div>`;
+    });
+
+    html += `<div style="font-size:10px;color:var(--dm);text-align:center;margin-top:10px;font-style:italic">${esc(d.disclaimer||'Analyse probabiliste — aucun pari garanti.')}</div>`;
+    resEl.innerHTML = html;
+    toast(d.opportunities.length + ' opportunité(s) de rattrapage trouvée(s)', 'ok');
+  } catch (e) {
+    resEl.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
+    toast('Erreur: ' + e.message, 'err');
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = '&#128269; Trouver la meilleure solution pour me refaire'; }
+}
+
+async function turfRegisterResult() {
+  const match = document.getElementById('turf-loss-match')?.value.trim();
+  const stake = parseFloat(document.getElementById('turf-loss-stake')?.value);
+  const odds = parseFloat(document.getElementById('turf-loss-odds')?.value);
+  const result = document.getElementById('turf-loss-result')?.value || 'loss';
+
+  if (!match) { toast('Renseignez la course/le cheval', 'err'); return; }
+  if (!stake || stake <= 0) { toast('Mise invalide', 'err'); return; }
+
+  // Extraction best-effort du numéro de cheval et de l'hippodrome depuis le
+  // texte libre (ex: "Vincennes — n°8") pour que la mémoire Benter turf
+  // puisse segmenter correctement — reste facultatif, la saisie fonctionne
+  // même sans ce format précis (juste moins précis pour la mémoire).
+  const horseMatch = match.match(/n[°o]?\s*(\d{1,2})/i);
+  const hippodrome = match.split(/[—-]/)[0].trim() || null;
+
+  try {
+    await api('/api/turf/recovery/register-loss', 'POST', {
+      match, stake, odds: odds||null, result,
+      horse: horseMatch ? horseMatch[1] : null,
+      hippodrome, bet_type: 'simple_gagnant',
+    });
+    toast(result === 'win' ? 'Gain enregistré — mémoire Benter turf mise à jour' : result === 'void' ? 'Void enregistré' : 'Perte enregistrée — mémoire Benter turf mise à jour', result==='loss'?'':'ok');
+    ['turf-loss-match','turf-loss-stake','turf-loss-odds'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    turfLoadHistory();
+  } catch (e) {
+    toast('Erreur: ' + e.message, 'err');
+  }
+}
+
+// ── Mise à jour automatique des résultats PMU en attente ──────────────
+// Pendant de updatePendingBetResults() côté sport : interroge la source
+// d'arrivées et règle les paris pending quand une correspondance fiable
+// est trouvée. Ne devine jamais un résultat — un pari sans hippodrome/
+// numéro de cheval clairement identifié reste en attente avec la raison
+// exacte affichée. Chaque résolution alimente directement la mémoire
+// Benter turf (getTurfHistoricalAdjustment) pour les analyses futures.
+async function turfAutoUpdateResults() {
+  const btn = document.getElementById('turf-autoupdate-btn');
+  const statusEl = document.getElementById('turf-autoupdate-status');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="sp" style="width:11px;height:11px;border-width:2px"></span> Vérification…'; }
+  if (statusEl) statusEl.textContent = 'Interrogation de la source de résultats PMU…';
+  try {
+    const d = await api('/api/turf/history/auto-update', 'POST');
+    if (statusEl) {
+      statusEl.innerHTML = `${esc(d.message||'')} (${d.checked||0} pari(s) en attente vérifié(s))`;
+    }
+    toast(d.updated > 0 ? `${d.updated} résultat(s) PMU mis à jour — mémoire enrichie` : 'Aucun résultat confirmé pour le moment', d.updated>0?'ok':'');
+    if (d.updated > 0) { turfLoadHistory(); turfLoadSources(); }
+  } catch (e) {
+    if (statusEl) statusEl.textContent = 'Erreur : ' + e.message;
+    toast('Erreur: ' + e.message, 'err');
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = '&#128257; Mettre à jour automatiquement les résultats PMU'; }
+}
+
+// ── Bloc 7 — Historique PMU (séparé du sport) ─────────────────────────
+async function turfLoadHistory() {
+  const cnt = document.getElementById('turf-history-list');
+  if (!cnt) return;
+  cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';
+  try {
+    const d = await api('/api/turf/history/list?limit=100');
+    if (!d.entries?.length) { cnt.innerHTML = '<div class="empty"><div class="empty-i">🐎</div><div class="empty-t">Aucun pari PMU enregistré</div></div>'; return; }
+    cnt.innerHTML = d.entries.map(e => `<div class="live-card">
+      <div class="lc-head">
+        <div style="flex:1">
+          <div class="lc-teams">${esc(e.hippodrome||e.match||'?')} — n°${esc(e.horse||'?')} ${esc(e.betType||'')}</div>
+          <div class="lc-meta">
+            <span class="bdg bsp">${esc(e.discipline||'')}</span>
+            <span class="bdg bsr">${e.odds||'?'} @</span>
+            <span class="bdg" style="background:${e.status==='win'?'var(--grb)':e.status==='loss'?'var(--reb)':'rgba(78,106,138,.15)'};color:${e.status==='win'?'var(--gr)':e.status==='loss'?'var(--re)':'var(--mu)'}">${esc(e.status||'pending')}</span>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+  } catch (e) {
+    cnt.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
+  }
+}
 </script>
 </body>
 </html>
