@@ -1466,6 +1466,7 @@ function go(name) {
   if(name==='live')     loadLive();
   if(name==='blackjack') bjInit();
   if(name==='turf')     turfInit();
+  else                  turfStopAutoRefresh();
 }
 function tSb(){ document.getElementById('sb').classList.toggle('open'); document.getElementById('ov').classList.toggle('on'); }
 function cSb(){ document.getElementById('sb').classList.remove('open'); document.getElementById('ov').classList.remove('on'); }
@@ -6586,11 +6587,34 @@ function suggestBet(){ const tc = bjCalculateTrueCount().trueCount; return bjSug
 let TURF_SELECTED_RACE = null;
 let TURF_UPCOMING_CACHE = [];
 let turfRecoveryType = 'simple_place';
+let TURF_REFRESH_INTERVAL = null;
+const TURF_REFRESH_MS = 30000; // 30s — cotes et courses à venir actualisées en continu tant que l'onglet PMU est ouvert
 
 async function turfInit() {
   await turfLoadSources();
   await turfLoadUpcoming();
   turfLoadHistory();
+  turfStartAutoRefresh();
+}
+
+// ── Auto-actualisation temps réel ──────────────────────────────────────
+// Tant que la section PMU reste affichée : la liste des courses à venir
+// et, si une course est sélectionnée, ses cotes sont rechargées en continu
+// (sans jamais réinitialiser le panneau d'analyse déjà affiché). L'intervalle
+// s'arrête automatiquement dès qu'on quitte l'onglet PMU pour ne jamais
+// tourner inutilement en arrière-plan.
+function turfStartAutoRefresh() {
+  if (TURF_REFRESH_INTERVAL) clearInterval(TURF_REFRESH_INTERVAL);
+  TURF_REFRESH_INTERVAL = setInterval(turfAutoRefreshTick, TURF_REFRESH_MS);
+}
+function turfStopAutoRefresh() {
+  if (TURF_REFRESH_INTERVAL) { clearInterval(TURF_REFRESH_INTERVAL); TURF_REFRESH_INTERVAL = null; }
+}
+async function turfAutoRefreshTick() {
+  const sectionOn = document.getElementById('s-turf')?.classList.contains('on');
+  if (!sectionOn) { turfStopAutoRefresh(); return; }
+  await turfLoadUpcoming(true);
+  if (TURF_SELECTED_RACE) await turfRefreshRaceOdds();
 }
 
 async function turfLoadSources() {
@@ -6638,12 +6662,12 @@ function turfApplyRaceFilters(races) {
   });
 }
 
-async function turfLoadUpcoming() {
+async function turfLoadUpcoming(silent) {
   const cnt = document.getElementById('turf-races-list');
   if (!cnt) return;
-  cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Chargement des courses PMU…</p></div>';
+  if (!silent) cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Chargement des courses PMU…</p></div>';
   try {
-    const d = await api('/api/turf/upcoming?date_filter=' + enc(turfDateFilter));
+    const d = await api('/api/turf/upcoming?date_filter=' + enc(turfDateFilter) + '&_t=' + Date.now());
     TURF_UPCOMING_CACHE = d.races || [];
     if (!TURF_UPCOMING_CACHE.length) {
       const diag = d.diagnostic || {};
@@ -6656,10 +6680,10 @@ async function turfLoadUpcoming() {
       cnt.innerHTML = `<div class="empty"><div class="empty-i">🐎</div><div class="empty-t">Aucune course ne correspond à ces filtres</div></div>`;
       return;
     }
-    cnt.innerHTML = `<div class="sbar"><div class="sdot"></div><span>${filtered.length} course(s) — source: ${esc((d.sources_used||[]).join(', ')||'—')}</span></div>`
+    cnt.innerHTML = `<div class="sbar"><div class="live-dot"></div><span><strong>${filtered.length}</strong> course(s) — source: ${esc((d.sources_used||[]).join(', ')||'—')}</span><span style="margin-left:auto;font-size:9px;color:var(--dm);font-family:var(--mo)">&#128260; Actualisation auto · ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span></div>`
       + filtered.map(r => turfRenderRaceCard(r)).join('');
   } catch (e) {
-    cnt.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
+    if (!silent) cnt.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;
   }
 }
 
@@ -6703,17 +6727,21 @@ async function turfSelectRace(raceId) {
 function turfRenderRaceDetail(d) {
   const el = document.getElementById('turf-race-detail');
   const runnersHtml = (d.runners||[]).map(r => `
-    <tr${r.is_non_partant?' style="opacity:.4"':''}>
+    <tr data-runner-num="${esc(String(r.number))}"${r.is_non_partant?' style="opacity:.4"':''}>
       <td style="font-family:var(--mo);font-weight:700">${r.number}</td>
       <td>${esc(r.name)}${r.is_non_partant?' <span class="bdg" style="background:var(--reb);color:var(--re)">NP</span>':''}</td>
       <td style="font-size:10px">${esc(r.jockey_driver||'—')}</td>
       <td style="font-size:10px">${esc(r.trainer||'—')}</td>
       <td style="font-size:10px;font-family:var(--mo)">${esc(r.music||'—')}</td>
-      <td style="font-family:var(--mo);color:var(--am)">${r.odds!=null?r.odds:'—'}</td>
+      <td class="turf-odds-cell" style="font-family:var(--mo);color:var(--am)">${r.odds!=null?r.odds:'—'}</td>
     </tr>`).join('');
 
   el.innerHTML = `<div class="card">
-    <div class="ct">${esc(d.hippodrome)} — ${esc(d.race_name||'')}</div>
+    <div class="ct" style="display:flex;align-items:center;gap:8px">
+      <span>${esc(d.hippodrome)} — ${esc(d.race_name||'')}</span>
+      <span class="live-dot" style="margin-left:auto"></span>
+      <span id="turf-odds-updated" style="font-size:9px;color:var(--dm);font-family:var(--mo);font-weight:400;text-transform:none;letter-spacing:0">cotes en direct</span>
+    </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
       <span class="bdg bsp">${esc(d.discipline)}</span>
       ${d.distance?`<span class="bdg bsr">${d.distance}m</span>`:''}
@@ -6723,7 +6751,7 @@ function turfRenderRaceDetail(d) {
       <span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Data: ${d.data_quality_score}%</span>
     </div>
     <div style="overflow-x:auto">
-      <table class="tracker-table"><thead><tr><th>N°</th><th>Cheval</th><th>Jockey/Driver</th><th>Entraîneur</th><th>Musique</th><th>Cote</th></tr></thead>
+      <table class="tracker-table" id="turf-runners-table"><thead><tr><th>N°</th><th>Cheval</th><th>Jockey/Driver</th><th>Entraîneur</th><th>Musique</th><th>Cote</th></tr></thead>
       <tbody>${runnersHtml}</tbody></table>
     </div>
   </div>
@@ -6741,6 +6769,28 @@ function turfRenderRaceDetail(d) {
     </div>
   </div>
   <div id="turf-analysis-result"></div>`;
+}
+
+// ── Rafraîchissement des cotes uniquement (temps réel) ─────────────────
+// Appelée en continu tant qu'une course reste sélectionnée : recharge les
+// cotes depuis la source PMU et met à jour uniquement les cellules
+// concernées dans le tableau déjà affiché — ne touche jamais au panneau
+// d'analyse (#turf-analysis-result) ni au chat, pour ne pas effacer ce que
+// l'utilisateur est en train de lire.
+async function turfRefreshRaceOdds() {
+  if (!TURF_SELECTED_RACE) return;
+  try {
+    const d = await api('/api/turf/race?race_id=' + enc(TURF_SELECTED_RACE) + '&_t=' + Date.now());
+    if (!d.ok) return; // échec silencieux — l'affichage existant reste inchangé plutôt que de casser la page
+    (d.runners||[]).forEach(r => {
+      const row = document.querySelector(`#turf-runners-table tr[data-runner-num="${CSS.escape(String(r.number))}"]`);
+      if (!row) return;
+      const oddsCell = row.querySelector('.turf-odds-cell');
+      if (oddsCell) oddsCell.textContent = r.odds != null ? r.odds : '—';
+    });
+    const updatedEl = document.getElementById('turf-odds-updated');
+    if (updatedEl) updatedEl.textContent = 'cotes actualisées à ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  } catch (_) { /* échec silencieux — nouvelle tentative au prochain tick */ }
 }
 
 // ── Bloc 4/5 — Boutons rapides + affichage de l'analyse ───────────────
