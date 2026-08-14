@@ -1010,8 +1010,26 @@ a{color:var(--neon);text-decoration:none}
 
     <div style="height:1px;background:var(--bd);margin:16px 0"></div>
     <div class="ct" style="border:none;padding-bottom:6px">&#128221; Enregistrer un résultat PMU (pour suivre les pertes actives)</div>
-    <div class="fg" style="grid-template-columns:2fr 1fr 1fr 1fr">
+    <div class="fg" style="grid-template-columns:2fr 1.35fr 1fr 1fr 1fr">
       <div class="fgrp"><label>Course / cheval</label><input type="text" id="turf-loss-match" placeholder="Vincennes — n°8"></div>
+      <div class="fgrp"><label>Type de pari PMU</label>
+        <select id="turf-loss-bet-type">
+          <option value="simple_place" selected>Simple placé</option>
+          <option value="simple_gagnant">Simple gagnant</option>
+          <option value="couple_place">Couplé placé</option>
+          <option value="couple_gagnant">Couplé gagnant</option>
+          <option value="deux_sur_quatre">2 sur 4</option>
+          <option value="trio">Trio</option>
+          <option value="multi">Multi</option>
+          <option value="tierce_ordre">Tiercé ordre</option>
+          <option value="tierce_desordre">Tiercé désordre</option>
+          <option value="quarte_ordre">Quarté+ ordre</option>
+          <option value="quarte_desordre">Quarté+ désordre</option>
+          <option value="quinte_ordre">Quinté+ ordre</option>
+          <option value="quinte_desordre">Quinté+ désordre</option>
+          <option value="autre_pmu">Autre pari PMU</option>
+        </select>
+      </div>
       <div class="fgrp"><label>Mise (&#8364;)</label><input type="number" id="turf-loss-stake" min="0.5" step="0.5" placeholder="10"></div>
       <div class="fgrp"><label>Cote</label><input type="number" id="turf-loss-odds" min="1.01" step="0.1" placeholder="4.5"></div>
       <div class="fgrp"><label>Résultat</label>
@@ -1329,6 +1347,7 @@ wrangler deploy</pre>
   </div>
 
   <!-- Stats globales -->
+  <div id="universal-ledger-stats" style="margin-bottom:12px"></div>
   <div id="perf-global-stats" style="margin-bottom:12px"></div>
 
   <!-- Stats par tier -->
@@ -4849,16 +4868,41 @@ function tickerToggle() {
 async function getTurfTickerArticles() {
   try {
     const d = await api('/api/turf/upcoming?date_filter=today');
-    const races = (d.races||[]).slice(0, 6);
-    return races.map(r => ({
+    const now = Date.now();
+    const allRaces = d.races||[];
+    // Afficher d'abord les courses réellement à venir. Le Worker v5 fournit
+    // start_time en ISO ; le repli date+heure garde la compatibilité avec v4.
+    let races = allRaces.filter(r => {
+      if (r.start_time) return new Date(r.start_time).getTime() >= now - 5*60000;
+      if (r.date && r.time) {
+        // Worker v4 exposait r.time en UTC sans le préciser.
+        const t = new Date(`${r.date}T${r.time}:00Z`).getTime();
+        return Number.isFinite(t) && t >= now - 5*60000;
+      }
+      return true;
+    }).slice(0, 8);
+    // Si toutes les courses sont terminées, montrer les dernières courses du
+    // jour avec une indication claire au lieu de faire disparaître le PMU.
+    const completedFallback = !races.length;
+    if (completedFallback) races = allRaces.slice(-3).reverse();
+    return races.map(r => {
+      const displayTime = r.start_time
+        ? new Date(r.start_time).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'})
+        : (r.date&&r.time ? new Date(`${r.date}T${r.time}:00Z`).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'}) : (r.time||'?'));
+      return ({
       sport: 'turf',
       title: `${r.hippodrome} ${r.reunion}${r.race_number} — ${r.race_name||'Course PMU'}`,
-      description: `${r.discipline||''}${r.distance?' · '+r.distance+'m':''}${r.runners_count?' · '+r.runners_count+' partants':''}${r.is_quinte?' · QUINTÉ+':''} · Départ ${r.time||'?'}`,
-      published: new Date().toISOString(),
+      description: `${completedFallback?'Terminée · ':''}${r.discipline||''}${r.distance?' · '+r.distance+'m':''}${r.runners_count?' · '+r.runners_count+' partants':''}${r.is_quinte?' · QUINTÉ+':''} · Départ ${displayTime}`,
+      published: r.start_time || new Date().toISOString(),
       link: '', is_match: true, _label: '&#128012; PMU',
       _turfRaceId: r.race_id,
-    }));
-  } catch(_) { return []; }
+      _priority: -1,
+      });
+    });
+  } catch(e) {
+    console.warn('Ticker PMU indisponible:', e && e.message ? e.message : e);
+    return [{sport:'turf',title:'Courses PMU temporairement indisponibles',description:'La source PMU sera interrogée à nouveau au prochain chargement.',published:new Date().toISOString(),link:'',is_match:false,_label:'&#128012; PMU',_priority:-1}];
+  }
 }
 
 async function loadTicker() {
@@ -4913,8 +4957,8 @@ async function loadTicker() {
     if (!inner) return;
 
     const sorted = [...news].sort((a,b) => {
-      const priA = ['soccer','mma','boxing'].includes(a.sport) ? 0 : (a.priority||2);
-      const priB = ['soccer','mma','boxing'].includes(b.sport) ? 0 : (b.priority||2);
+      const priA = a._priority != null ? a._priority : (['soccer','mma','boxing'].includes(a.sport) ? 0 : (a.priority||2));
+      const priB = b._priority != null ? b._priority : (['soccer','mma','boxing'].includes(b.sport) ? 0 : (b.priority||2));
       return priA - priB || new Date(b.published||0) - new Date(a.published||0);
     });
 
@@ -5504,6 +5548,7 @@ async function loadPerformances() {
   const cards = getPerfCards();
   const stats = calcHistStats(cards, 'all');
 
+  loadUniversalLedgerStats();
   renderPerfGlobal(stats, cards.length);
   renderAdvancedSportHistoryStats();
   renderPerfByTier(cards);
@@ -5517,6 +5562,26 @@ async function loadPerformances() {
     const pageLabel = pagesLoaded > 0 ? ` · ${pagesLoaded} page(s) KV chargée(s) · ${remoteCount} carte(s)` : '';
     syncEl.textContent = 'Dernière sync : ' + fmtDT(new Date().toISOString()) + pageLabel;
   }
+}
+
+async function loadUniversalLedgerStats() {
+  const el=document.getElementById('universal-ledger-stats'); if(!el)return;
+  const days={today:1,'7d':7,'30d':30,'90d':90,all:36500}[_perfPeriod]||3650;
+  try {
+    const d=await api('/api/ledger/stats?period_days='+days);
+    if(!d.ok){el.innerHTML='<div class="info">La base historique D1 sera active dès que le binding BET_DB sera ajouté.</div>';return;}
+    const seg=d.segments||[];
+    const sport=seg.filter(x=>x.universe==='SPORT');
+    const pmu=seg.filter(x=>x.universe==='PMU');
+    const sum=a=>({n:a.reduce((s,x)=>s+(x.total||0),0),w:a.reduce((s,x)=>s+(x.wins||0),0),l:a.reduce((s,x)=>s+(x.losses||0),0),p:a.reduce((s,x)=>s+(Number(x.roi||0)*(x.total||0)),0)});
+    const S=sum(sport),P=sum(pmu),fmt=x=>x.n?((x.p/x.n)>=0?'+':'')+(x.p/x.n).toFixed(1)+'%':'—';
+    el.innerHTML=`<div class="card"><div class="ct">Historique universel D1 — tous sports et tous paris PMU</div><div class="strat-summary">
+      <div class="ss-cell"><div class="sv" style="color:var(--neon)">${S.n}</div><label>Paris sportifs réglés</label></div>
+      <div class="ss-cell"><div class="sv" style="color:var(--gr)">${P.n}</div><label>Paris PMU réglés</label></div>
+      <div class="ss-cell"><div class="sv">${fmt(S)}</div><label>ROI sports pondéré</label></div>
+      <div class="ss-cell"><div class="sv">${fmt(P)}</div><label>ROI PMU pondéré</label></div></div>
+      <div style="font-size:10px;color:var(--dm)">${seg.length} segment(s) distinct(s) par sport, marché et type de pari. Les apprentissages ne sont jamais mélangés.</div></div>`;
+  }catch(e){el.innerHTML='<div class="info">Historique D1 non encore relié : '+esc(e.message)+'</div>';}
 }
 
 function mergeHistories(local, remote) {
@@ -6970,6 +7035,7 @@ async function turfRegisterResult() {
   const stake = parseFloat(document.getElementById('turf-loss-stake')?.value);
   const odds = parseFloat(document.getElementById('turf-loss-odds')?.value);
   const result = document.getElementById('turf-loss-result')?.value || 'loss';
+  const betType = document.getElementById('turf-loss-bet-type')?.value || 'simple_place';
 
   if (!match) { toast('Renseignez la course/le cheval', 'err'); return; }
   if (!stake || stake <= 0) { toast('Mise invalide', 'err'); return; }
@@ -6985,7 +7051,7 @@ async function turfRegisterResult() {
     await api('/api/turf/recovery/register-loss', 'POST', {
       match, stake, odds: odds||null, result,
       horse: horseMatch ? horseMatch[1] : null,
-      hippodrome, bet_type: 'simple_gagnant',
+      hippodrome, bet_type: betType,
     });
     toast(result === 'win' ? 'Gain enregistré — mémoire Benter turf mise à jour' : result === 'void' ? 'Void enregistré' : 'Perte enregistrée — mémoire Benter turf mise à jour', result==='loss'?'':'ok');
     ['turf-loss-match','turf-loss-stake','turf-loss-odds'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
