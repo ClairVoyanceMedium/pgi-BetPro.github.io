@@ -479,7 +479,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie Value</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Rattrapage Intelligent</div>
-    <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128012;</span>PMU / Turf France</div>
+    <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128014;</span>PMU / Turf France</div>
     <div class="ni"    data-s="blackjack" onclick="go('blackjack')"><span class="ni-i">&#127183;</span>Blackjack Directionnel</div>
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
@@ -560,16 +560,16 @@ a{color:var(--neon);text-decoration:none}
   </div>
   <div id="scan-res"></div>
 
-  <!-- TICKER — foot + MMA inclus -->
+  <!-- TICKER — couverture équilibrée de tous les sports + PMU -->
   <div id="news-ticker-wrap" style="margin:16px 0 4px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <div class="live-dot"></div>
-        <span style="font-family:var(--hd);font-size:11px;font-weight:700;color:var(--mu)">INFOS SPORT EN DIRECT</span>
+        <span style="font-family:var(--hd);font-size:11px;font-weight:700;color:var(--mu)">FLUX MULTISPORTS + PMU</span>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <button id="ticker-pause-btn" onclick="tickerToggle()" style="background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:5px;color:var(--neon);font-size:9px;font-family:var(--mo);padding:3px 8px;cursor:pointer">&#9208; Pause</button>
-        <span id="ticker-source" style="font-size:9px;color:var(--dm);font-family:var(--mo)">ESPN</span>
+        <span id="ticker-source" style="font-size:9px;color:var(--dm);font-family:var(--mo)">Chargement…</span>
       </div>
     </div>
     <div id="news-ticker-scroll-box">
@@ -650,6 +650,8 @@ a{color:var(--neon);text-decoration:none}
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="h2h" checked style="width:auto"> 1X2</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="totals" checked style="width:auto"> Over/Under 2.5</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="btts" checked style="width:auto"> BTTS</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="double_chance" checked style="width:auto"> Double Chance</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="spreads" checked style="width:auto"> Handicap</label>
       </div>
     </div>
     <div class="bg"><button class="btn bp" id="mbtn" onclick="doManualAnalyze()">&#127919; Rechercher le vrai match &amp; analyser</button></div>
@@ -948,7 +950,7 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ PMU / TURF FRANCE ═══════════════ -->
 <section class="sec" id="s-turf">
-  <div class="ph"><div class="pt">&#128012; PMU / Turf France</div><div class="ps">Section entièrement séparée des paris sportifs — analyse probabiliste, mémoire Benter turf dédiée.</div></div>
+  <div class="ph"><div class="pt">&#128014; PMU / Turf France</div><div class="ps">Section entièrement séparée des paris sportifs — analyse probabiliste, mémoire Benter turf dédiée.</div></div>
 
   <div class="card" style="padding:12px 14px">
     <div id="turf-sources-status" style="margin-bottom:8px"></div>
@@ -957,7 +959,7 @@ a{color:var(--neon);text-decoration:none}
 
   <!-- Bloc 1 — Courses à venir -->
   <div class="card">
-    <div class="ct">&#128012; Courses PMU à venir</div>
+    <div class="ct">&#128014; Courses PMU à venir</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="turf-date-btns">
       <button class="fbtn" onclick="turfSetDateFilter('now',this)">Maintenant</button>
       <button class="fbtn on" onclick="turfSetDateFilter('today',this)">Aujourd'hui</button>
@@ -999,7 +1001,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="bg" style="margin-bottom:14px;flex-wrap:wrap">
       <button class="btn bs turf-recov-type-btn on" data-bt="simple_place" onclick="turfSetRecoveryType('simple_place',this)">&#127942; Placé</button>
       <button class="btn bs turf-recov-type-btn" data-bt="simple_gagnant" onclick="turfSetRecoveryType('simple_gagnant',this)">&#129351; Gagnant</button>
-      <button class="btn bs turf-recov-type-btn" data-bt="quinte_desordre" onclick="turfSetRecoveryType('quinte_desordre',this)">&#128012; Quinté désordre prudent</button>
+      <button class="btn bs turf-recov-type-btn" data-bt="quinte_desordre" onclick="turfSetRecoveryType('quinte_desordre',this)">&#128014; Quinté désordre prudent</button>
       <button class="btn bs turf-recov-type-btn" data-bt="quinte_order" onclick="turfSetRecoveryType('quinte_order',this)">&#127942; Quinté ordre (1 perte max)</button>
     </div>
 
@@ -1051,7 +1053,7 @@ a{color:var(--neon);text-decoration:none}
       <input type="number" id="turf-bankroll-input" value="200" min="10" step="10" style="max-width:160px">
     </div>
     <div class="chat-wrap" id="turf-chat-wrap" style="max-height:340px">
-      <div class="msg bot"><div class="msg-ico">&#128012;</div><div><div class="msg-bub">Sélectionnez une course PMU ci-dessus, puis posez vos questions : "gagnant ?", "placé ?", "quinté ordre ?", "je joue le 8 ?", "je viens de perdre, je fais quoi ?"</div></div></div>
+      <div class="msg bot"><div class="msg-ico">&#128014;</div><div><div class="msg-bub">Sélectionnez une course PMU ci-dessus, puis posez vos questions : "gagnant ?", "placé ?", "quinté ordre ?", "je joue le 8 ?", "je viens de perdre, je fais quoi ?"</div></div></div>
     </div>
     <div class="chat-input-wrap">
       <textarea id="turf-chat-input" placeholder="Ex: placé ?" onkeydown="turfChatKey(event)" style="resize:none;min-height:44px;max-height:140px"></textarea>
@@ -1399,6 +1401,7 @@ wrangler deploy</pre>
   </div>
 </div>
 <script>
+const NO_RELIABLE_CARD_MESSAGE = 'Aucune carte n’est fiable pour l’instant.';
 // ═══════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════
@@ -1568,13 +1571,13 @@ function isValidSportKey(sport) {
 // ═══════════════════════════════════════════════
 //  SCAN MODE
 // ═══════════════════════════════════════════════
-const SCAN_MODES={eco:{maxLeagues:12,markets:1},standard:{maxLeagues:25,markets:2},complet:{maxLeagues:999,markets:3}};
+const SCAN_MODES={eco:{maxLeagues:12,markets:1},standard:{maxLeagues:25,markets:2},complet:{maxLeagues:999,markets:5}};
 let currentScanMode='standard';
 function setScanMode(mode,el){
   currentScanMode=mode;
   ['eco','standard','complet'].forEach(m=>document.getElementById('smode-'+m)?.classList.remove('on'));
   el?.classList.add('on');
-  const desc={eco:'Éco — Top 12 ligues, 1 marché. Cache 45min.',standard:'Standard — Couverture large, 2 marchés. Cache 45min.',complet:'Complet — Tout. Sans cache.'}[mode]||'';
+  const desc={eco:'Éco — Top 12 ligues, 1 marché. Cache 45min.',standard:'Standard — Couverture large, 2 marchés. Cache 45min.',complet:'Complet — les 5 marchés du site. Sans cache.'}[mode]||'';
   const el2=document.getElementById('smode-desc');if(el2)el2.textContent=desc;
 }
 
@@ -1619,7 +1622,7 @@ const FOOTBALL_LEAGUES_FALLBACK = [
 ];
 let FOOTBALL_LEAGUES = FOOTBALL_LEAGUES_FALLBACK.slice();
 
-const FOOTBALL_EXTRA_MARKETS_BY_MODE = { eco: [], standard: ['totals'], complet: ['totals','btts'] };
+const FOOTBALL_EXTRA_MARKETS_BY_MODE = { eco: [], standard: ['totals'], complet: ['totals','spreads','btts','double_chance'] };
 function getFootballScanEntries(mode) {
   const extra = FOOTBALL_EXTRA_MARKETS_BY_MODE[mode] || [];
   const entries = [];
@@ -2067,7 +2070,7 @@ function renderScanResults(opps, cnt, cacheAge, diag) {
     else reason = 'les seuils du moteur (probabilité, edge, EV, qualité de données) ont rejeté tous les signaux disponibles — essayez le mode Complet, un autre sport, ou élargissez la période.';
     cnt.innerHTML = `<div class="empty">
       <div class="empty-i">🔍</div>
-      <div class="empty-t">Aucune opportunité détectée</div>
+      <div class="empty-t">${esc(NO_RELIABLE_CARD_MESSAGE)}</div>
       <div class="empty-s" style="text-align:left;max-width:440px;margin:10px auto 0">
         <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;font-family:var(--mo);font-size:11px;line-height:2">
           <div>Requêtes lancées&nbsp;: <strong>${d.requestsLaunched||0}</strong></div>
@@ -3785,7 +3788,7 @@ async function doAnalyze(){
 }
 
 function renderOpps(opps){
-  if(!opps?.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">Aucune opportunité</div><div class="empty-s">Essayez un autre sport ou abaissez le score minimal.</div></div>';
+  if(!opps?.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">'+esc(NO_RELIABLE_CARD_MESSAGE)+'</div><div class="empty-s">Le moteur s’abstient tant que les cotes, l’historique et la validation hors échantillon ne sont pas suffisants.</div></div>';
   return '<div class="opp-grid">'+opps.map((o,i)=>renderDirectionCard(o,i,'main')).join('')+'</div>';
 }
 function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am)':'var(--re)';return`<div class="ssr"><span class="ssl">${l}</span><div class="sst"><div class="ssf" style="width:${n}%;background:${c}"></div></div><span class="ssv">${n}</span></div>`;}
@@ -4689,10 +4692,10 @@ async function lossAutoSearch(forcedOdds){
   });
 
   if(!candidates.length){
-    let msg = 'Aucune opportunité TOP PREMIUM ou TRÈS SOLIDE disponible dans les cotes en ce moment pour ce filtre. Réessayez dans quelques minutes, élargissez la période, ou changez de sport/marché.';
-    if(blockedByHistory) msg = 'Le sport ou le marché sélectionné a un historique récent défavorable — aucune carte n\'est proposée par prudence sur cette combinaison précise. D\'autres sports/marchés restent disponibles.';
+    let msg = NO_RELIABLE_CARD_MESSAGE + ' Les cotes ou la validation statistique ne suffisent pas pour ce filtre.';
+    if(blockedByHistory) msg = NO_RELIABLE_CARD_MESSAGE + ' L’historique récent de cette combinaison sport/marché impose l’abstention.';
     if(cnt) cnt.innerHTML = banners + `<div class="warn">&#128269; ${esc(msg)}</div>`;
-    toast('Aucune opportunité disponible pour l\'instant','');
+    toast(NO_RELIABLE_CARD_MESSAGE,'');
     return;
   }
 
@@ -4829,7 +4832,7 @@ function selectMethod(id) {
 }
 
 // ═══════════════════════════════════════════════
-//  TICKER — Foot + MMA + PMU/Turf inclus
+//  TICKER — couverture équilibrée de tous les sports + PMU/Turf
 // ═══════════════════════════════════════════════
 const TICKER_SPORT_COLORS = {
   soccer:     {bg:'rgba(34,197,94,.15)',color:'#4ade80'},
@@ -4841,9 +4844,68 @@ const TICKER_SPORT_COLORS = {
   americanfootball:{bg:'rgba(245,158,11,.15)',color:'var(--am)'},
   baseball:   {bg:'rgba(34,211,165,.15)',color:'var(--gr)'},
   rugby:      {bg:'rgba(167,139,250,.12)',color:'var(--pu)'},
+  handball:   {bg:'rgba(56,189,248,.15)',color:'#7dd3fc'},
   volleyball: {bg:'rgba(250,204,21,.15)',color:'#facc15'},
   turf:       {bg:'rgba(167,255,190,.15)',color:'#7ee8a0'},
 };
+
+const TICKER_SPORT_ORDER = [
+  'soccer', 'mma', 'basketball', 'turf', 'tennis', 'rugby',
+  'icehockey', 'baseball', 'americanfootball', 'handball', 'volleyball',
+];
+const TICKER_LABELS = {
+  soccer:'⚽ FOOT', mma:'🥊 MMA/BOXE', basketball:'🏀 BASKET', turf:'🐎 PMU',
+  tennis:'🎾 TENNIS', rugby:'🏉 RUGBY', icehockey:'🏒 HOCKEY',
+  baseball:'⚾ BASEBALL', americanfootball:'🏈 NFL', handball:'🤾 HANDBALL',
+  volleyball:'🏐 VOLLEY',
+};
+
+function tickerCategory(sport) {
+  const value = String(sport || '').toLowerCase();
+  if (value.includes('turf') || value.includes('pmu') || value.includes('horse')) return 'turf';
+  if (value.includes('americanfootball') || value.includes('nfl')) return 'americanfootball';
+  if (value.includes('icehockey') || value.includes('hockey')) return 'icehockey';
+  if (value.includes('basket')) return 'basketball';
+  if (value.includes('tennis')) return 'tennis';
+  if (value.includes('rugby')) return 'rugby';
+  if (value.includes('baseball')) return 'baseball';
+  if (value.includes('handball')) return 'handball';
+  if (value.includes('volley')) return 'volleyball';
+  if (value.includes('mma') || value.includes('boxing') || value.includes('boxe')) return 'mma';
+  if (value.includes('soccer') || value === 'football' || value.includes('football_')) return 'soccer';
+  return value || 'sport';
+}
+
+// Un tour par catégorie avant de passer au deuxième élément. Ainsi le PMU
+// reste visible sans repousser le football, le MMA et les autres sports sous
+// plusieurs écrans. Les doublons et les flux surabondants sont plafonnés.
+function buildBalancedTickerItems(sportItems, turfItems, maxItems = 44) {
+  const buckets = new Map();
+  const seen = new Set();
+  for (const item of [...(sportItems || []), ...(turfItems || [])]) {
+    const title = String(item?.title || '').trim();
+    if (!title) continue;
+    const category = tickerCategory(item.sport);
+    const fingerprint = `${category}|${title}`.toLocaleLowerCase('fr');
+    if (seen.has(fingerprint)) continue;
+    seen.add(fingerprint);
+    const normalized = { ...item, sport: category };
+    if (!buckets.has(category)) buckets.set(category, []);
+    if (buckets.get(category).length < 4) buckets.get(category).push(normalized);
+  }
+
+  const extraCategories = [...buckets.keys()].filter(cat => !TICKER_SPORT_ORDER.includes(cat)).sort();
+  const order = [...TICKER_SPORT_ORDER, ...extraCategories];
+  const balanced = [];
+  for (let round = 0; round < 4 && balanced.length < maxItems; round++) {
+    for (const category of order) {
+      const item = buckets.get(category)?.[round];
+      if (item) balanced.push(item);
+      if (balanced.length >= maxItems) break;
+    }
+  }
+  return balanced;
+}
 
 function getTickerStyle(sport) {
   for (const [key,style] of Object.entries(TICKER_SPORT_COLORS)) {
@@ -4854,6 +4916,8 @@ function getTickerStyle(sport) {
 
 let tickerPaused = false;
 let tickerAnimFrame = null;
+let tickerLoadSequence = 0;
+const tickerScrollState = { position:0, userScrolling:false, lastTouch:0 };
 function tickerToggle() {
   tickerPaused = !tickerPaused;
   const btn = document.getElementById('ticker-pause-btn');
@@ -4880,7 +4944,7 @@ async function getTurfTickerArticles() {
         return Number.isFinite(t) && t >= now - 5*60000;
       }
       return true;
-    }).slice(0, 8);
+    }).slice(0, 4);
     // Si toutes les courses sont terminées, montrer les dernières courses du
     // jour avec une indication claire au lieu de faire disparaître le PMU.
     const completedFallback = !races.length;
@@ -4894,82 +4958,71 @@ async function getTurfTickerArticles() {
       title: `${r.hippodrome} ${r.reunion}${r.race_number} — ${r.race_name||'Course PMU'}`,
       description: `${completedFallback?'Terminée · ':''}${r.discipline||''}${r.distance?' · '+r.distance+'m':''}${r.runners_count?' · '+r.runners_count+' partants':''}${r.is_quinte?' · QUINTÉ+':''} · Départ ${displayTime}`,
       published: r.start_time || new Date().toISOString(),
-      link: '', is_match: true, _label: '&#128012; PMU',
+      link: '', is_match: true, _label: '🐎 PMU',
       _turfRaceId: r.race_id,
-      _priority: -1,
       });
     });
   } catch(e) {
     console.warn('Ticker PMU indisponible:', e && e.message ? e.message : e);
-    return [{sport:'turf',title:'Courses PMU temporairement indisponibles',description:'La source PMU sera interrogée à nouveau au prochain chargement.',published:new Date().toISOString(),link:'',is_match:false,_label:'&#128012; PMU',_priority:-1}];
+    return [];
+  }
+}
+
+async function getSportTickerArticles() {
+  const sports = 'soccer,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
+  try {
+    const data = await api('/api/ticker?sports='+enc(sports));
+    return { items:data.items||[], meta:data };
+  } catch (tickerError) {
+    // Compatibilité avec un Worker plus ancien pendant un déploiement en deux
+    // temps. Le nouveau Worker v15 doit normalement répondre à /api/ticker.
+    try {
+      const legacy = await api('/api/news?sports='+enc(sports));
+      return { items:legacy.news||[], meta:legacy };
+    } catch (_) {
+      console.warn('Ticker multisports indisponible:', tickerError && tickerError.message ? tickerError.message : tickerError);
+      return { items:[], meta:{ degraded:true, sports_available:[] } };
+    }
   }
 }
 
 async function loadTicker() {
-  async function getMatchArticles() {
-    const articles = [];
-    const leagues = [
-      {sport:'soccer_epl', label:'⚽ FOOT', cat:'soccer'},
-      {sport:'soccer_france_ligue1', label:'⚽ FOOT', cat:'soccer'},
-      {sport:'soccer_ucl', label:'⚽ FOOT', cat:'soccer'},
-      {sport:'soccer_fifa_world_cup', label:'⚽ CDM', cat:'soccer'},
-      {sport:'mma_mixed_martial_arts', label:'🥊 MMA', cat:'mma'},
-      {sport:'boxing_boxing', label:'🥊 BOXE', cat:'mma'},
-      {sport:'basketball_nba', label:'🏀 NBA', cat:'basketball'},
-      {sport:'tennis_atp', label:'🎾 TENNIS', cat:'tennis'},
-      {sport:'icehockey_nhl', label:'🏒 NHL', cat:'icehockey'},
-      {sport:'baseball_mlb', label:'⚾ MLB', cat:'baseball'},
-      {sport:'americanfootball_nfl', label:'🏈 NFL', cat:'americanfootball'},
-    ];
-    const results = await Promise.allSettled(
-      leagues.map(({sport, label, cat}) =>
-        api('/api/analyze?sport='+enc(sport)+'&market=h2h&mode=quick')
-          .then(d => (d.opportunities||[]).slice(0,3).map(o => ({
-            sport: cat,
-            title: o.home_team+' vs '+o.away_team,
-            description: (o.selection||'?')+' @ '+o.odds+' — Score: '+(o.score&&o.score.total||0)+'/100 — '+(o.score&&o.score.signal||''),
-            published: o.start_time || new Date().toISOString(),
-            link: '',
-            is_match: true,
-            _label: label,
-          })))
-          .catch(()=>[])
-      )
-    );
-    results.forEach(r => { if(r.status==='fulfilled') articles.push(...r.value); });
-    return articles;
-  }
+  const loadSequence = ++tickerLoadSequence;
   try {
-    const sports = 'soccer,mma,basketball,tennis,icehockey,americanfootball,baseball';
-    const [newsData, matchArticles, turfArticles] = await Promise.allSettled([
-      api('/api/news?sports='+enc(sports)).then(d=>d.news||[]).catch(()=>[]),
-      getMatchArticles(),
+    const [sportResult, turfResult] = await Promise.allSettled([
+      getSportTickerArticles(),
       getTurfTickerArticles(),
     ]);
-    const newsFromAPI = newsData.status==='fulfilled' ? newsData.value : [];
-    const newsFromMatches = matchArticles.status==='fulfilled' ? matchArticles.value : [];
-    const newsFromTurf = turfArticles.status==='fulfilled' ? turfArticles.value : [];
-    const news = [...newsFromAPI, ...newsFromMatches, ...newsFromTurf];
-    if (!news.length) return;
+    if (loadSequence !== tickerLoadSequence) return;
+    const sportPayload = sportResult.status==='fulfilled' ? sportResult.value : {items:[],meta:{degraded:true}};
+    const newsFromSports = sportPayload.items || [];
+    const newsFromTurf = turfResult.status==='fulfilled' ? turfResult.value : [];
+    const news = buildBalancedTickerItems(newsFromSports, newsFromTurf);
 
     const inner = document.getElementById('news-ticker-inner');
     const clone = document.getElementById('news-ticker-clone');
+    const source = document.getElementById('ticker-source');
     if (!inner) return;
 
-    const sorted = [...news].sort((a,b) => {
-      const priA = a._priority != null ? a._priority : (['soccer','mma','boxing'].includes(a.sport) ? 0 : (a.priority||2));
-      const priB = b._priority != null ? b._priority : (['soccer','mma','boxing'].includes(b.sport) ? 0 : (b.priority||2));
-      return priA - priB || new Date(b.published||0) - new Date(a.published||0);
-    });
+    const sportCategories = new Set(news.filter(item => tickerCategory(item.sport) !== 'turf').map(item => tickerCategory(item.sport)));
+    const hasTurf = news.some(item => tickerCategory(item.sport) === 'turf');
+    const degraded = !!sportPayload.meta?.degraded;
+    if (source) source.textContent = news.length
+      ? `${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${degraded?' · flux partiel':''}`
+      : 'Flux momentanément indisponible';
+    if (!news.length) {
+      if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
+      tickerAnimFrame = null;
+      inner.innerHTML = '<div class="ticker-item"><span class="ticker-sport-badge" style="background:rgba(78,106,138,.15);color:var(--mu)">INFO</span><div class="ticker-title">Les flux multisports et PMU seront interrogés de nouveau au prochain chargement.</div></div>';
+      if (clone) clone.innerHTML = '';
+      return;
+    }
+
+    const sorted = news;
 
     const renderItem = (art) => {
       const style = getTickerStyle(art.sport||'');
-      const label = art._label || {
-        soccer:'⚽ FOOT', basketball:'🏀 BASKET', tennis:'🎾 TENNIS',
-        mma:'🥊 MMA', boxing:'🥊 BOXE', icehockey:'🏒 HOCKEY',
-        americanfootball:'🏈 NFL', baseball:'⚾ MLB', rugby:'🏉 RUGBY',
-        turf:'🐎 PMU',
-      }[art.sport] || '🏆 SPORT';
+      const label = art._label || TICKER_LABELS[tickerCategory(art.sport)] || '🏆 SPORT';
 
       let dateStr = '';
       if (art.published) {
@@ -4980,15 +5033,19 @@ async function loadTicker() {
         } catch(_) {}
       }
 
-      const safeLink = (art.link||'').replace(/"/g,'&quot;');
+      let safeLink = '';
+      try {
+        const parsedLink = new URL(String(art.link||''), window.location.href);
+        if (parsedLink.protocol === 'https:' || parsedLink.protocol === 'http:') safeLink = parsedLink.href.replace(/"/g,'&quot;');
+      } catch (_) {}
       const turfAttr = art._turfRaceId ? ` data-turf-race="${esc(art._turfRaceId)}"` : '';
-      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${safeLink}"${turfAttr} style="${(art.link||art._turfRaceId)?'cursor:pointer;':''}">
+      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${safeLink}"${turfAttr} style="${(safeLink||art._turfRaceId)?'cursor:pointer;':''}">
         <span class="ticker-sport-badge" style="background:${style.bg};color:${style.color}">${label}</span>
         <div style="flex:1;min-width:0">
           <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${esc(art.title||'')}</div>
           ${art.description?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px;line-height:1.4">${esc(art.description.slice(0,100))}${art.description.length>100?'…':''}</div>`:''}
           ${dateStr?`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px;opacity:.7">📅 ${dateStr}</div>`:''}
-          ${art.link?`<div style="font-size:9px;color:var(--neon);font-family:var(--mo);margin-top:2px;opacity:.7">🔗 Lire l'article →</div>`:''}
+          ${safeLink?`<div style="font-size:9px;color:var(--neon);font-family:var(--mo);margin-top:2px;opacity:.7">🔗 Lire l'article →</div>`:''}
           ${art._turfRaceId?`<div style="font-size:9px;color:#7ee8a0;font-family:var(--mo);margin-top:2px;opacity:.85">🐎 Voir la course →</div>`:''}
         </div>
       </div>`;
@@ -5034,16 +5091,17 @@ async function loadTicker() {
     if(tickerList) tickerList.classList.remove('auto-scroll');
 
     const TICKER_SPEED = 0.50;
-    let tickerScrollPos = 0;
-    let tickerUserScrolling = false;
-    let tickerLastTouch = 0;
+    tickerScrollState.position = 0;
+    tickerScrollState.userScrolling = false;
+    tickerScrollState.lastTouch = 0;
+    if (tickerBox) tickerBox.scrollTop = 0;
 
     function tickerAnimate() {
-      if(!tickerPaused && !tickerUserScrolling && tickerBox) {
-        tickerScrollPos += TICKER_SPEED;
-        const maxScroll = tickerBox.scrollHeight - tickerBox.clientHeight;
-        if(tickerScrollPos >= maxScroll) tickerScrollPos = 0;
-        tickerBox.scrollTop = tickerScrollPos;
+      if(!tickerPaused && !tickerScrollState.userScrolling && tickerBox) {
+        tickerScrollState.position += TICKER_SPEED;
+        const loopHeight = inner.scrollHeight;
+        if(loopHeight > 0 && tickerScrollState.position >= loopHeight) tickerScrollState.position -= loopHeight;
+        tickerBox.scrollTop = tickerScrollState.position;
       }
       tickerAnimFrame = requestAnimationFrame(tickerAnimate);
     }
@@ -5069,26 +5127,26 @@ async function loadTicker() {
 
     if(tickerBox && !tickerBox._tickerInit) {
       tickerBox._tickerInit = true;
-      tickerBox.addEventListener('mouseenter', () => { tickerUserScrolling = true; });
+      tickerBox.addEventListener('mouseenter', () => { tickerScrollState.userScrolling = true; });
       tickerBox.addEventListener('mouseleave', () => {
-        tickerScrollPos = tickerBox.scrollTop;
-        tickerUserScrolling = false;
+        tickerScrollState.position = tickerBox.scrollTop;
+        tickerScrollState.userScrolling = false;
       });
       tickerBox.addEventListener('touchstart', () => {
-        tickerUserScrolling = true;
-        tickerLastTouch = Date.now();
+        tickerScrollState.userScrolling = true;
+        tickerScrollState.lastTouch = Date.now();
       }, {passive:true});
       tickerBox.addEventListener('touchend', () => {
-        tickerLastTouch = Date.now();
+        tickerScrollState.lastTouch = Date.now();
         setTimeout(() => {
-          if(Date.now() - tickerLastTouch >= 1800) {
-            tickerScrollPos = tickerBox.scrollTop;
-            tickerUserScrolling = false;
+          if(Date.now() - tickerScrollState.lastTouch >= 1800) {
+            tickerScrollState.position = tickerBox.scrollTop;
+            tickerScrollState.userScrolling = false;
           }
         }, 2000);
       });
       tickerBox.addEventListener('scroll', () => {
-        if(tickerUserScrolling) tickerScrollPos = tickerBox.scrollTop;
+        if(tickerScrollState.userScrolling) tickerScrollState.position = tickerBox.scrollTop;
       }, {passive:true});
     }
   } catch(e) { console.warn('Ticker error:', e); }
