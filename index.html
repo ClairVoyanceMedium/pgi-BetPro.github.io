@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- PGI BetPro HTML v8.0 — cartes de preuves + tickers D1 multisports -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -3787,6 +3788,22 @@ async function doAnalyze(){
   btn.disabled=false;btn.innerHTML='<span>⚡</span> Analyser';
 }
 
+function evidencePct(v){const n=Number(v);return Number.isFinite(n)?(n*100).toFixed(1)+'%':'—';}
+function renderProfessionalEvidence(e){
+  if(!e)return'';
+  const rows=[
+    ['Partants actifs',e.runners_active],['Places payées',e.paid_places],['Non-partants',Array.isArray(e.non_runners)?(e.non_runners.join(', ')||'Aucun'):null],
+    ['Cote contrôlée',e.odds],['Probabilité modèle',e.model_probability!=null?evidencePct(e.model_probability):null],
+    ['Probabilité conservatrice',e.conservative_probability!=null?evidencePct(e.conservative_probability):null],
+    ['Probabilité marché',e.market_probability!=null?evidencePct(e.market_probability):null],['Edge conservatrice',e.edge_conservative!=null?evidencePct(e.edge_conservative):null],
+    ['EV conservatrice',e.expected_value!=null?evidencePct(e.expected_value):null],['Échantillon validation',e.validation_size],
+    ['Historique entité',e.historical_samples],['Bookmakers',e.bookmakers],['Fraîcheur données',e.data_age_minutes!=null?Number(e.data_age_minutes).toFixed(1)+' min':null],
+    ['Qualité données',e.data_quality_score!=null?e.data_quality_score+'/100':null],['Départ',e.start_time?fmtDT(e.start_time):null],
+  ].filter(([,v])=>v!==null&&v!==undefined&&v!=='');
+  if(!rows.length)return'';
+  return `<div style="margin-top:10px;padding:10px;border:1px solid rgba(0,212,255,.18);border-radius:6px;background:rgba(0,212,255,.035)"><div style="font-size:9px;color:var(--neon);font-family:var(--mo);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Preuves de validation</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:5px">${rows.map(([l,v])=>`<div style="background:var(--sf2);border-radius:4px;padding:5px 7px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase">${esc(l)}</div><div style="font-size:10px;color:var(--tx);font-family:var(--mo);margin-top:2px">${esc(String(v))}</div></div>`).join('')}</div></div>`;
+}
+
 function renderOpps(opps){
   if(!opps?.length)return'<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">'+esc(NO_RELIABLE_CARD_MESSAGE)+'</div><div class="empty-s">Le moteur s’abstient tant que les cotes, l’historique et la validation hors échantillon ne sont pas suffisants.</div></div>';
   return '<div class="opp-grid">'+opps.map((o,i)=>renderDirectionCard(o,i,'main')).join('')+'</div>';
@@ -4975,7 +4992,7 @@ async function getSportTickerArticles() {
     return { items:data.items||[], meta:data };
   } catch (tickerError) {
     // Compatibilité avec un Worker plus ancien pendant un déploiement en deux
-    // temps. Le nouveau Worker v15 doit normalement répondre à /api/ticker.
+    // temps. Le Worker v16 répond à /api/ticker avec un secours D1 natif.
     try {
       const legacy = await api('/api/news?sports='+enc(sports));
       return { items:legacy.news||[], meta:legacy };
@@ -5007,8 +5024,9 @@ async function loadTicker() {
     const sportCategories = new Set(news.filter(item => tickerCategory(item.sport) !== 'turf').map(item => tickerCategory(item.sport)));
     const hasTurf = news.some(item => tickerCategory(item.sport) === 'turf');
     const degraded = !!sportPayload.meta?.degraded;
+    const completeMultisport = sportCategories.size >= 10;
     if (source) source.textContent = news.length
-      ? `${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${degraded?' · flux partiel':''}`
+      ? `${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
       : 'Flux momentanément indisponible';
     if (!news.length) {
       if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
@@ -5044,6 +5062,7 @@ async function loadTicker() {
         <div style="flex:1;min-width:0">
           <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${esc(art.title||'')}</div>
           ${art.description?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px;line-height:1.4">${esc(art.description.slice(0,100))}${art.description.length>100?'…':''}</div>`:''}
+          ${art.source?`<div style="font-size:8px;color:var(--dm);font-family:var(--mo);margin-top:2px;opacity:.65">Source : ${esc(art.source)}</div>`:''}
           ${dateStr?`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px;opacity:.7">📅 ${dateStr}</div>`:''}
           ${safeLink?`<div style="font-size:9px;color:var(--neon);font-family:var(--mo);margin-top:2px;opacity:.7">🔗 Lire l'article →</div>`:''}
           ${art._turfRaceId?`<div style="font-size:9px;color:#7ee8a0;font-family:var(--mo);margin-top:2px;opacity:.85">🐎 Voir la course →</div>`:''}
@@ -5059,7 +5078,7 @@ async function loadTicker() {
 
     const toTranslate = sorted.filter(art => {
       const t = (art.title||'');
-      return t && art.sport !== 'turf' && !/\b(le|la|les|du|des|et|en|au|sur|par|pour|dans|qui|que|est|sont|avec|une|un|de|à)\b/i.test(t);
+      return t && art.sport !== 'turf' && !art.is_status && !/\b(le|la|les|du|des|et|en|au|sur|par|pour|dans|qui|que|est|sont|avec|une|un|de|à)\b/i.test(t);
     });
 
     if(toTranslate.length > 0) {
@@ -5504,6 +5523,7 @@ function renderDirectionCard(o, i, containerId) {
       ${warning?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:5px;padding:6px 10px;font-size:10px;color:var(--am);margin-bottom:6px">&#9888; ${esc(warning)}</div>`:''}
       ${histBadge}
       ${sportHistBadge}
+      ${renderProfessionalEvidence(o.card_evidence)}
       ${stakeNote}
     </div>
 
@@ -6849,6 +6869,9 @@ async function turfSelectRace(raceId) {
 
 function turfRenderRaceDetail(d) {
   const el = document.getElementById('turf-race-detail');
+  const activeRunners=(d.runners||[]).filter(r=>!r.is_non_partant).length;
+  const nonRunners=(d.runners||[]).filter(r=>r.is_non_partant).length;
+  const paidPlaces=activeRunners>=8?3:(activeRunners>=4?2:1);
   const runnersHtml = (d.runners||[]).map(r => `
     <tr data-runner-num="${esc(String(r.number))}"${r.is_non_partant?' style="opacity:.4"':''}>
       <td style="font-family:var(--mo);font-weight:700">${r.number}</td>
@@ -6871,6 +6894,9 @@ function turfRenderRaceDetail(d) {
       ${d.corde?`<span class="bdg bsr">Corde ${esc(d.corde)}</span>`:''}
       ${d.terrain?`<span class="bdg bsr">Terrain ${esc(d.terrain)}</span>`:''}
       ${d.is_quinte?'<span class="bdg bca">QUINTÉ+</span>':''}
+      <span class="bdg bmk">${activeRunners} partants actifs</span>
+      ${nonRunners?`<span class="bdg" style="background:var(--reb);color:var(--re)">${nonRunners} non-partant(s)</span>`:''}
+      <span class="bdg bsr">${paidPlaces} place(s) payée(s)</span>
       <span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Data: ${d.data_quality_score}%</span>
     </div>
     <div style="overflow-x:auto">
@@ -6942,7 +6968,7 @@ function turfRenderAskResult(d) {
   if (!el) return;
   if (!d.ok) { el.innerHTML = `<div class="warn">⚠ ${esc(d.error||'Analyse indisponible')}</div>`; return; }
 
-  const recoColor = { favorable:'var(--gr)', 'placé fiable':'var(--gr)', 'outsider value':'var(--am)', 'jouable':'var(--gr)',
+  const recoColor = { favorable:'var(--gr)', 'placé fiable':'var(--gr)', 'carte validée':'var(--gr)', 'carte placé validée':'var(--gr)', 'carte gagnant validée':'var(--gr)', 'outsider value':'var(--am)', 'jouable':'var(--gr)',
     'jouable seulement placé':'var(--am)', 'trop risqué':'var(--re)', 'favori surcoté':'var(--re)', 'à éviter':'var(--re)',
     'course à passer':'var(--re)' }[d.recommendation] || 'var(--neon)';
 
@@ -6950,7 +6976,8 @@ function turfRenderAskResult(d) {
     <div class="ct">Analyse</div>
     <div style="font-size:13px;font-weight:700;margin-bottom:8px">${esc(d.answer||'')}</div>
     ${d.recommendation?`<span class="bdg" style="background:${recoColor}22;color:${recoColor};border:1px solid ${recoColor}55">${esc(d.recommendation)}</span>`:''}
-    ${d.confidence!=null?`<div style="margin-top:8px;font-family:var(--mo);font-size:20px;font-weight:700;color:${recoColor}">${d.confidence}%</div>`:''}
+    ${d.confidence!=null?`<div style="margin-top:8px;font-family:var(--mo);font-size:20px;font-weight:700;color:${recoColor}">${d.confidence}%</div><div style="font-size:9px;color:var(--dm)">${esc(d.confidence_label||'Probabilité conservatrice')}</div>`:''}
+    ${renderProfessionalEvidence(d.evidence)}
     ${(d.reasons||[]).length?`<div style="margin-top:10px">${d.reasons.map(r=>`<div style="font-size:11px;color:var(--mu);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">• ${esc(r)}</div>`).join('')}</div>`:''}
     ${d.stake_recommended?`<div style="margin-top:8px;font-size:11px;color:var(--gr)">Mise conseillée : ${d.stake_recommended}€</div>`:''}
     <div style="font-size:10px;color:var(--dm);margin-top:10px;font-style:italic">${(d.warnings||[]).join(' ')}</div>
@@ -7063,13 +7090,14 @@ async function turfRunRecoveryScan() {
             <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:6px">
               <div style="text-align:center;background:var(--sf2);border-radius:4px;padding:4px">
                 <div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--neon)">${o.confidence}%</div>
-                <div style="font-size:8px;color:var(--dm)">Confiance</div>
+                <div style="font-size:8px;color:var(--dm)">${esc(o.confidence_label||'Probabilité conservatrice')}</div>
               </div>
               <div style="text-align:center;background:rgba(0,255,157,.07);border:1px solid rgba(0,255,157,.2);border-radius:4px;padding:4px">
                 <div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--gr)">${o.stake_recommended}€</div>
                 <div style="font-size:8px;color:var(--dm)">Mise conseillée</div>
               </div>
             </div>
+            ${renderProfessionalEvidence(o.evidence)}
           </div>
         </div>
         <div style="padding:8px 12px;border-top:1px solid var(--bd)">
