@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PGI BetPro HTML v8.0 — cartes de preuves + tickers D1 multisports -->
+<!-- PGI BetPro HTML v8.1 — tickers multisports traduits et défilement fluide -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -277,7 +277,7 @@ a{color:var(--neon);text-decoration:none}
 .note-saved{background:var(--grb);color:var(--gr)}.note-unsaved{background:var(--pub);color:var(--pu)}
 
 /* ── NEWS TICKER — plus rapide ── */
-#news-ticker-scroll-box{height:270px;overflow-y:scroll;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:smooth;-webkit-overflow-scrolling:touch;cursor:grab}
+#news-ticker-scroll-box{height:270px;overflow-y:scroll;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;will-change:scroll-position;cursor:grab}
 #news-ticker-scroll-box:active{cursor:grabbing}
 #news-ticker-scroll-box::-webkit-scrollbar{width:4px}
 #news-ticker-scroll-box::-webkit-scrollbar-track{background:transparent}
@@ -4871,10 +4871,10 @@ const TICKER_SPORT_ORDER = [
   'icehockey', 'baseball', 'americanfootball', 'handball', 'volleyball',
 ];
 const TICKER_LABELS = {
-  soccer:'⚽ FOOT', mma:'🥊 MMA/BOXE', basketball:'🏀 BASKET', turf:'🐎 PMU',
-  tennis:'🎾 TENNIS', rugby:'🏉 RUGBY', icehockey:'🏒 HOCKEY',
-  baseball:'⚾ BASEBALL', americanfootball:'🏈 NFL', handball:'🤾 HANDBALL',
-  volleyball:'🏐 VOLLEY',
+  soccer:'⚽ FOOTBALL', mma:'🥊 MMA / BOXE', basketball:'🏀 BASKETBALL', turf:'🐎 PMU',
+  tennis:'🎾 TENNIS', rugby:'🏉 RUGBY', icehockey:'🏒 HOCKEY SUR GLACE',
+  baseball:'⚾ BASEBALL', americanfootball:'🏈 FOOTBALL US', handball:'🤾 HANDBALL',
+  volleyball:'🏐 VOLLEY-BALL',
 };
 
 function tickerCategory(sport) {
@@ -4891,6 +4891,81 @@ function tickerCategory(sport) {
   if (value.includes('mma') || value.includes('boxing') || value.includes('boxe')) return 'mma';
   if (value.includes('soccer') || value === 'football' || value.includes('football_')) return 'soccer';
   return value || 'sport';
+}
+
+// Glossaire déterministe appliqué avant ET après la traduction IA. Il empêche
+// les traductions littérales erronées comme « panier de basket » et distingue
+// toujours le football européen du football américain.
+const TICKER_FRENCH_SPORT_NAMES = {
+  soccer:'football', mma:'MMA et boxe', basketball:'basketball', turf:'courses hippiques PMU',
+  tennis:'tennis', rugby:'rugby', icehockey:'hockey sur glace', baseball:'baseball',
+  americanfootball:'football américain et NFL', handball:'handball', volleyball:'volley-ball',
+};
+const TICKER_TRANSLATION_CACHE_KEY = 'pgi_ticker_translations_v3';
+const TICKER_TRANSLATION_CACHE_MAX = 240;
+
+function tickerFrenchSportName(sport) {
+  const category = tickerCategory(sport);
+  return TICKER_FRENCH_SPORT_NAMES[category] || 'sport';
+}
+
+function normalizeTickerFrenchText(text, sport) {
+  let value = String(text || '').trim();
+  if (!value) return '';
+  const category = tickerCategory(sport);
+
+  value = value
+    .replace(/\bpanier(?:s)?\s+(?:de\s+)?basket(?:-?ball)?\b/gi, 'basketball')
+    .replace(/\bbasket[ -]?ball\b/gi, 'basketball')
+    .replace(/\bhockey\s+(?:de|sur\s+la)\s+glace\b/gi, 'hockey sur glace')
+    .replace(/\bvolley\s*ball\b/gi, 'volley-ball')
+    .replace(/\bbase[ -]?ball\b/gi, 'baseball')
+    .replace(/\bfootball\s+américain\s+américain\b/gi, 'football américain')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1');
+
+  if (category === 'soccer') {
+    value = value.replace(/\bsoccer\b/gi, 'football');
+  } else if (category === 'basketball') {
+    value = value.replace(/\bjeu\s+de\s+basket\b/gi, 'basketball');
+  } else if (category === 'americanfootball') {
+    value = value
+      .replace(/\bfootball\s+US\b/gi, 'football américain')
+      .replace(/\bfootball américain\s*\/\s*NFL\b/gi, 'NFL');
+  } else if (category === 'icehockey') {
+    value = value.replace(/\bice hockey\b/gi, 'hockey sur glace');
+  } else if (category === 'mma') {
+    value = value.replace(/\bboxing\b/gi, 'boxe');
+  } else if (category === 'volleyball') {
+    value = value.replace(/\bvolleyball\b/gi, 'volley-ball');
+  }
+  return value.trim();
+}
+
+function tickerTranslationFingerprint(art) {
+  const input = [tickerCategory(art?.sport), art?.title || '', art?.description || ''].join('|');
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function tickerReadTranslationCache() {
+  try {
+    const cache = JSON.parse(localStorage.getItem(TICKER_TRANSLATION_CACHE_KEY) || '{}');
+    return cache && typeof cache === 'object' && !Array.isArray(cache) ? cache : {};
+  } catch (_) { return {}; }
+}
+
+function tickerWriteTranslationCache(cache) {
+  try {
+    const entries = Object.entries(cache || {})
+      .sort((a,b) => Number(b[1]?.at || 0) - Number(a[1]?.at || 0))
+      .slice(0, TICKER_TRANSLATION_CACHE_MAX);
+    localStorage.setItem(TICKER_TRANSLATION_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
+  } catch (_) {}
 }
 
 // Un tour par catégorie avant de passer au deuxième élément. Ainsi le PMU
@@ -4934,11 +5009,12 @@ function getTickerStyle(sport) {
 let tickerPaused = false;
 let tickerAnimFrame = null;
 let tickerLoadSequence = 0;
-const tickerScrollState = { position:0, userScrolling:false, lastTouch:0 };
+const tickerScrollState = { position:0, userScrolling:false, lastTouch:0, lastFrame:0 };
 function tickerToggle() {
   tickerPaused = !tickerPaused;
+  tickerScrollState.lastFrame = 0;
   const btn = document.getElementById('ticker-pause-btn');
-  if (btn) btn.textContent = tickerPaused ? '▶ Play' : '⏸ Pause';
+  if (btn) btn.textContent = tickerPaused ? '▶ Reprendre' : '⏸ Pause';
 }
 
 // getTurfTickerArticles — transforme les prochaines courses PMU (déjà
@@ -5037,10 +5113,82 @@ async function loadTicker() {
     }
 
     const sorted = news;
+    sorted.forEach((art,i) => { art._id = 'tk'+i; });
+
+    // Seules les actualités ESPN ont besoin d'une traduction. Les affiches D1
+    // contiennent surtout des noms propres et ne doivent jamais être réécrites.
+    // Le cache stabilise les libellés et évite une nouvelle requête à chaque
+    // retour sur le tableau de bord.
+    const translationCache = tickerReadTranslationCache();
+    const cacheMaxAge = 30 * 86400000;
+    const toTranslate = [];
+    for (const art of sorted) {
+      if (art.sport === 'turf' || art.is_status || art.is_match || String(art.source||'').toUpperCase() !== 'ESPN') continue;
+      const cacheKey = tickerTranslationFingerprint(art);
+      const cached = translationCache[cacheKey];
+      if (cached && Date.now() - Number(cached.at||0) < cacheMaxAge) {
+        art._translatedTitle = normalizeTickerFrenchText(cached.title || art.title, art.sport);
+        art._translatedDescription = normalizeTickerFrenchText(cached.description || art.description, art.sport);
+      } else {
+        art._translationCacheKey = cacheKey;
+        toTranslate.push(art);
+      }
+    }
+
+    if (toTranslate.length) {
+      try {
+        const blocks = toTranslate.map(art => [
+          `SPORT: ${tickerFrenchSportName(art.sport)}`,
+          `TITRE: ${art.title || ''}`,
+          `DESCRIPTION: ${art.description || ''}`,
+        ].join('\n')).join('\n---\n');
+        const resp = await api('/api/chat', 'POST', {
+          messages: [{role:'user', content:
+`Traduis ces actualités sportives en français naturel, précis et concis.
+Le champ SPORT fixe obligatoirement le contexte.
+
+GLOSSAIRE OBLIGATOIRE :
+soccer = football ; basketball = basketball, jamais « panier de basket » ;
+american football = football américain ou NFL ; ice hockey = hockey sur glace ;
+boxing = boxe ; baseball = baseball ; volleyball = volley-ball.
+
+Conserve exactement les noms de clubs, équipes, joueurs, compétitions et lieux.
+Ne traduis jamais un nom propre. N'invente aucune information.
+Pour chaque bloc, réponds exactement sous cette forme :
+TITRE: traduction
+DESCRIPTION: traduction
+Sépare les blocs uniquement par --- et ne donne aucun commentaire.
+
+${blocks}`}]
+        });
+        if (loadSequence !== tickerLoadSequence) return;
+        const rawTranslation = String(resp.response || resp.content || '')
+          .replace(/```(?:text|plaintext)?/gi,'').replace(/```/g,'').trim();
+        const translatedBlocks = rawTranslation ? rawTranslation.split(/\s*\n?---\n?\s*/) : [];
+        translatedBlocks.forEach((block, i) => {
+          const art = toTranslate[i];
+          if (!art) return;
+          const titleMatch = block.match(/(?:^|\n)\s*TITRE\s*:\s*([^\n]+)/i);
+          const descriptionMatch = block.match(/(?:^|\n)\s*DESCRIPTION\s*:\s*([\s\S]*)$/i);
+          const translatedTitle = normalizeTickerFrenchText(titleMatch?.[1] || art.title, art.sport);
+          const translatedDescription = normalizeTickerFrenchText(descriptionMatch?.[1] || art.description, art.sport);
+          art._translatedTitle = translatedTitle;
+          art._translatedDescription = translatedDescription;
+          translationCache[art._translationCacheKey] = {
+            title:translatedTitle, description:translatedDescription, at:Date.now(),
+          };
+        });
+        tickerWriteTranslationCache(translationCache);
+      } catch (translationError) {
+        console.warn('Traduction ticker indisponible:', translationError && translationError.message ? translationError.message : translationError);
+      }
+    }
 
     const renderItem = (art) => {
       const style = getTickerStyle(art.sport||'');
       const label = art._label || TICKER_LABELS[tickerCategory(art.sport)] || '🏆 SPORT';
+      const displayTitle = normalizeTickerFrenchText(art._translatedTitle || art.title || '', art.sport);
+      const displayDescription = normalizeTickerFrenchText(art._translatedDescription || art.description || '', art.sport);
 
       let dateStr = '';
       if (art.published) {
@@ -5060,8 +5208,8 @@ async function loadTicker() {
       return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${safeLink}"${turfAttr} style="${(safeLink||art._turfRaceId)?'cursor:pointer;':''}">
         <span class="ticker-sport-badge" style="background:${style.bg};color:${style.color}">${label}</span>
         <div style="flex:1;min-width:0">
-          <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${esc(art.title||'')}</div>
-          ${art.description?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px;line-height:1.4">${esc(art.description.slice(0,100))}${art.description.length>100?'…':''}</div>`:''}
+          <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${esc(displayTitle)}</div>
+          ${displayDescription?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px;line-height:1.4">${esc(displayDescription.slice(0,100))}${displayDescription.length>100?'…':''}</div>`:''}
           ${art.source?`<div style="font-size:8px;color:var(--dm);font-family:var(--mo);margin-top:2px;opacity:.65">Source : ${esc(art.source)}</div>`:''}
           ${dateStr?`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px;opacity:.7">📅 ${dateStr}</div>`:''}
           ${safeLink?`<div style="font-size:9px;color:var(--neon);font-family:var(--mo);margin-top:2px;opacity:.7">🔗 Lire l'article →</div>`:''}
@@ -5070,54 +5218,29 @@ async function loadTicker() {
       </div>`;
     };
 
-    sorted.forEach((art,i) => { art._id = 'tk'+i; });
-
     const html = sorted.map(renderItem).join('');
     inner.innerHTML = html;
     if (clone) clone.innerHTML = html;
-
-    const toTranslate = sorted.filter(art => {
-      const t = (art.title||'');
-      return t && art.sport !== 'turf' && !art.is_status && !/\b(le|la|les|du|des|et|en|au|sur|par|pour|dans|qui|que|est|sont|avec|une|un|de|à)\b/i.test(t);
-    });
-
-    if(toTranslate.length > 0) {
-      try {
-        const texts = toTranslate.map(a => a.title).join('\n---\n');
-        const resp = await api('/api/chat', 'POST', {
-          messages: [{role:'user', content: 'Traduis chaque titre en français sportif concis. Réponds UNIQUEMENT les traductions séparées par "---", même ordre, sans numéros.\n\n' + texts}]
-        });
-        const translated = (resp.response||'').split('---').map(s=>s.trim()).filter(Boolean);
-        translated.forEach((tr, i) => {
-          if(toTranslate[i]) toTranslate[i]._translated = tr;
-        });
-        [inner, clone].forEach(container => {
-          if(!container) return;
-          toTranslate.forEach(art => {
-            if(!art._translated) return;
-            container.querySelectorAll('.ticker-title').forEach(el => {
-              if(el.textContent.trim() === (art.title||'').trim()) {
-                el.textContent = art._translated;
-              }
-            });
-          });
-        });
-      } catch(_) {}
-    }
 
     const tickerBox = document.getElementById('news-ticker-scroll-box');
     const tickerList = document.getElementById('news-ticker-list');
     if(tickerList) tickerList.classList.remove('auto-scroll');
 
-    const TICKER_SPEED = 0.50;
+    // Vitesse indépendante du taux de rafraîchissement de l'écran. L'ancien
+    // incrément fixe accélérait sur un écran 120 Hz et saccadait à 30 Hz.
+    const TICKER_SPEED_PX_PER_SECOND = 30;
     tickerScrollState.position = 0;
     tickerScrollState.userScrolling = false;
     tickerScrollState.lastTouch = 0;
+    tickerScrollState.lastFrame = 0;
     if (tickerBox) tickerBox.scrollTop = 0;
 
-    function tickerAnimate() {
+    function tickerAnimate(frameTime) {
+      const previousFrame = tickerScrollState.lastFrame || frameTime;
+      const elapsedMs = Math.min(64, Math.max(0, frameTime - previousFrame));
+      tickerScrollState.lastFrame = frameTime;
       if(!tickerPaused && !tickerScrollState.userScrolling && tickerBox) {
-        tickerScrollState.position += TICKER_SPEED;
+        tickerScrollState.position += TICKER_SPEED_PX_PER_SECOND * (elapsedMs / 1000);
         const loopHeight = inner.scrollHeight;
         if(loopHeight > 0 && tickerScrollState.position >= loopHeight) tickerScrollState.position -= loopHeight;
         tickerBox.scrollTop = tickerScrollState.position;
@@ -5125,7 +5248,7 @@ async function loadTicker() {
       tickerAnimFrame = requestAnimationFrame(tickerAnimate);
     }
     if(tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
-    tickerAnimate();
+    tickerAnimFrame = requestAnimationFrame(tickerAnimate);
 
     function setupTickerClicks(container) {
       if(!container) return;
@@ -5150,6 +5273,7 @@ async function loadTicker() {
       tickerBox.addEventListener('mouseleave', () => {
         tickerScrollState.position = tickerBox.scrollTop;
         tickerScrollState.userScrolling = false;
+        tickerScrollState.lastFrame = 0;
       });
       tickerBox.addEventListener('touchstart', () => {
         tickerScrollState.userScrolling = true;
@@ -5161,6 +5285,7 @@ async function loadTicker() {
           if(Date.now() - tickerScrollState.lastTouch >= 1800) {
             tickerScrollState.position = tickerBox.scrollTop;
             tickerScrollState.userScrolling = false;
+            tickerScrollState.lastFrame = 0;
           }
         }, 2000);
       });
