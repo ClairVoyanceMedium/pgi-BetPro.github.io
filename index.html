@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PGI BetPro HTML v9 — tickers multisports + maturité de collecte professionnelle -->
+<!-- PGI BetPro HTML v10 — v9 intégral + HKJC ST/HV/CH WIN/PLACE -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -100,6 +100,7 @@ textarea{min-height:80px;font-size:11px;font-family:var(--mo)}
 .bdg{font-size:9px;font-family:var(--mo);padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block}
 .bsp{background:rgba(56,232,255,.1);color:#7ae8ff}.bmk{background:var(--pub);color:var(--pu)}
 .bsr{background:rgba(100,116,139,.12);color:#94a3b8}.bca{background:var(--amb);color:var(--am)}
+.bgr{background:var(--grb);color:var(--gr)}.bgo{background:var(--amb);color:var(--am)}
 .blv{background:var(--reb);color:var(--re);animation:pu 1.5s ease infinite}
 .oc{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:9px;transition:border-color .2s;cursor:pointer}
 .oc.xp{border-color:var(--neon);box-shadow:0 0 0 1px rgba(0,212,255,.1)}
@@ -481,6 +482,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie Value</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Rattrapage Intelligent</div>
     <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128014;</span>PMU / Turf France</div>
+    <div class="ni"    data-s="hkjc"      onclick="go('hkjc')"    ><span class="ni-i">&#127464;&#127475;</span>HKJC Hong Kong</div>
     <div class="ni"    data-s="blackjack" onclick="go('blackjack')"><span class="ni-i">&#127183;</span>Blackjack Directionnel</div>
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
@@ -1101,6 +1103,37 @@ a{color:var(--neon);text-decoration:none}
   </div>
 </section>
 
+<!-- ═══════════════ HKJC HONG KONG ═══════════════ -->
+<section class="sec" id="s-hkjc">
+  <div class="ph"><div class="pt">&#127464;&#127475; HKJC Hong Kong</div><div class="ps">Sha Tin · Happy Valley · Conghua — Simple Gagnant et Simple Placé séparés, value et calibration par piste.</div></div>
+  <div class="card" style="padding:12px 14px">
+    <div id="hkjc-status"><div class="ls"><div class="sp"></div><p>État HKJC en attente…</p></div></div>
+    <div class="warn" style="margin:10px 0 0">&#9888;&#65039; Le moteur peut conclure qu’aucune sélection n’est fiable. Il s’agit d’une aide probabiliste : aucun gain n’est garanti.</div>
+  </div>
+  <div class="card">
+    <div class="ct">&#128205; Hippodrome et marché</div>
+    <div class="bg" id="hkjc-track-buttons" style="margin-bottom:10px;flex-wrap:wrap">
+      <button class="fbtn on" data-track="ST" onclick="hkjcSetTrack('ST',this)">Sha Tin</button>
+      <button class="fbtn" data-track="HV" onclick="hkjcSetTrack('HV',this)">Happy Valley</button>
+      <button class="fbtn" data-track="CH" onclick="hkjcSetTrack('CH',this)">Conghua</button>
+    </div>
+    <div class="bg" id="hkjc-market-buttons" style="margin-bottom:10px;flex-wrap:wrap">
+      <button class="fbtn" data-market="WIN" onclick="hkjcSetMarket('WIN',this)">&#129351; Simple Gagnant</button>
+      <button class="fbtn on" data-market="PLACE" onclick="hkjcSetMarket('PLACE',this)">&#127942; Simple Placé</button>
+      <button class="btn bp" onclick="hkjcLoad()">&#128260; Actualiser</button>
+    </div>
+    <div id="hkjc-races"></div>
+  </div>
+  <div class="card">
+    <div class="ct">&#129504; Cartes décisionnelles HKJC</div>
+    <div id="hkjc-verdict" class="info" style="margin-bottom:10px">Chargement de la calibration…</div>
+    <div id="hkjc-cards"></div>
+  </div>
+  <div style="text-align:center;font-size:10px;color:var(--dm);line-height:1.7;padding:10px 16px">
+    Données actives dans D1, archives longues dans R2. Les modèles ST, HV et CH et les marchés WIN/PLACE ne sont jamais mélangés. Jouer comporte un risque de perte.
+  </div>
+</section>
+
 <!-- ═══════════════ BLACKJACK DIRECTIONNEL ═══════════════ -->
 <section class="sec" id="s-blackjack">
   <div class="ph"><div class="pt">&#127183; Blackjack Directionnel</div><div class="ps">Comptage Hi-Lo · Direction claire · Chat contextuel · Aide statistique uniquement</div></div>
@@ -1511,6 +1544,8 @@ function go(name) {
   if(name==='perf')     { loadPerformances(); }
   if(name==='live')     loadLive();
   if(name==='blackjack') bjInit();
+  if(name==='hkjc')     hkjcInit();
+  else                  hkjcStopAutoRefresh();
   if(name==='turf')     turfInit();
   else                  turfStopAutoRefresh();
 }
@@ -6891,6 +6926,43 @@ function calculateRunningCount(){ return bjCalculateRunningCount(); }
 function calculateTrueCount(){ return bjCalculateTrueCount().trueCount; }
 function estimateConfidence(){ return bjEstimateConfidence(); }
 function suggestBet(){ const tc = bjCalculateTrueCount().trueCount; return bjSuggestBet(tc, BJ_STATE ? BJ_STATE.config.risk : 'prudent'); }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PGI • BetPro — HKJC HONG KONG (frontend)
+// ═══════════════════════════════════════════════════════════════════════
+let hkjcTrack='ST',hkjcMarket='PLACE',hkjcTimer=null,hkjcLoaded=false;
+function hkjcHongKongDate(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(_){return new Date().toISOString().slice(0,10);}}
+function hkjcPct(v){const n=Number(v);return Number.isFinite(n)?(n*100).toFixed(1)+' %':'—';}
+function hkjcNum(v,d=2){const n=Number(v);return Number.isFinite(n)?n.toFixed(d):'—';}
+function hkjcDateTime(v){if(!v)return'—';try{return new Date(v).toLocaleString('fr-FR',{timeZone:'Asia/Hong_Kong',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' HK';}catch(_){return esc(v);}}
+function hkjcSetTrack(track,btn){hkjcTrack=track;document.querySelectorAll('#hkjc-track-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcLoad();}
+function hkjcSetMarket(market,btn){hkjcMarket=market;document.querySelectorAll('#hkjc-market-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcLoad();}
+async function hkjcInit(){if(!hkjcLoaded){hkjcLoaded=true;await hkjcLoad();}hkjcStopAutoRefresh();hkjcTimer=setInterval(()=>{if(document.getElementById('s-hkjc')?.classList.contains('on'))hkjcLoad(true);},60000);}
+function hkjcStopAutoRefresh(){if(hkjcTimer){clearInterval(hkjcTimer);hkjcTimer=null;}}
+async function hkjcLoad(silent=false){
+  const statusEl=document.getElementById('hkjc-status'),racesEl=document.getElementById('hkjc-races'),cardsEl=document.getElementById('hkjc-cards'),verdictEl=document.getElementById('hkjc-verdict');
+  if(!statusEl||!racesEl||!cardsEl)return;
+  if(!silent){racesEl.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des réunions HKJC…</p></div>';cardsEl.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des probabilités '+esc(hkjcMarket)+'…</p></div>';}
+  const date=hkjcHongKongDate();
+  try{
+    const [status,races,pred]=await Promise.all([api('/api/hkjc/status'),api('/api/hkjc/races?date='+enc(date)+'&track='+enc(hkjcTrack)),api('/api/hkjc/predictions?date='+enc(date)+'&track='+enc(hkjcTrack)+'&market='+enc(hkjcMarket))]);
+    const c=status.counts||{},active=Number(c.active_models||0);
+    statusEl.innerHTML='<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center"><span class="bdg '+(active?'bgr':'bgo')+'">Modèles actifs : '+active+'</span><span class="bdg bsp">Réunions : '+Number(c.meetings||0)+'</span><span class="bdg bsp">Courses : '+Number(c.races||0)+'</span><span class="bdg bsp">Snapshots : '+Number(c.odds_snapshots||0)+'</span><span class="bdg bsp">Résultats : '+Number(c.results||0)+'</span><span class="bdg '+(status.bindings?.r2?'bgr':'bgo')+'">R2 '+(status.bindings?.r2?'connecté':'absent')+'</span></div><div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:7px">Source '+esc(status.source||'HKJC')+' · modèle '+esc(status.model_version||'—')+' · contrôle automatique toutes les 60 secondes sur cet écran.</div>';
+    hkjcRenderRaces(races.races||[],racesEl);verdictEl.className=pred.bets?.length?'info':'warn';verdictEl.textContent=pred.verdict||'Aucune sélection fiable actuellement.';hkjcRenderCards(pred.cards||[],cardsEl);
+  }catch(e){const msg='<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ HKJC : '+esc(e.message)+'</div><div style="font-size:10px;color:var(--dm);margin-top:6px">Erreur isolée : les autres sports et le PMU France continuent de fonctionner.</div></div>';if(!silent){racesEl.innerHTML=msg;cardsEl.innerHTML='';}}
+}
+function hkjcRenderRaces(races,el){
+  if(!races.length){el.innerHTML='<div class="empty"><div class="empty-i">🐎</div><div class="empty-t">Aucune réunion '+esc(hkjcTrack)+' chargée pour aujourd’hui</div><div style="font-size:10px;color:var(--dm);margin-top:5px">La collecte incrémentale conservera les prochaines réunions disponibles.</div></div>';return;}
+  el.innerHTML=races.map(r=>'<div class="live-card" onclick="hkjcShowRace(\''+esc(r.race_id)+'\')" style="cursor:pointer"><div class="lc-head"><div style="flex:1"><div class="lc-teams">'+esc(r.racecourse_name||r.racecourse_code)+' — Course '+esc(r.race_number)+'</div><div class="lc-meta"><span class="bdg bsp">'+hkjcDateTime(r.race_time)+'</span><span class="bdg">'+esc(r.surface||'surface inconnue')+'</span><span class="bdg">'+esc(r.distance||'—')+' m</span><span class="bdg bgo">'+Number(r.field_size||0)+' partants · '+Number(r.paid_places||0)+' places</span></div><div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(r.going||'going non disponible')+' · '+esc(r.class||'classe non disponible')+'</div></div></div></div>').join('');
+}
+async function hkjcShowRace(raceId){try{const d=await api('/api/hkjc/race?race_id='+enc(raceId));if(!d.ok)throw new Error(d.error||'Course introuvable');const list=(d.runners||[]).map(h=>'n°'+esc(h.horse_number)+' '+esc(h.horse_name)+' · corde '+esc(h.draw??'—')+' · '+esc(h.jockey_name||'jockey inconnu')).join('\n');alert((d.race.racecourse_name||d.race.racecourse_code)+' — Course '+d.race.race_number+'\n'+d.race.field_size+' partants, '+d.race.paid_places+' places rémunérées\n\n'+list);}catch(e){toast('HKJC : '+e.message,'err');}}
+function hkjcMetric(label,value){return'<div style="background:var(--bg2);border:1px solid var(--bd);padding:8px;border-radius:6px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase">'+label+'</div><div style="font-family:var(--mo);font-weight:700;margin-top:3px">'+value+'</div></div>';}
+function hkjcRenderCards(cards,el){
+  if(!cards.length){el.innerHTML='<div class="empty"><div class="empty-i">🧠</div><div class="empty-t">Aucune prédiction HKJC exploitable actuellement</div><div style="font-size:10px;color:var(--dm);margin-top:5px">Le moteur attend des partants, des règles de places, des cotes et une calibration suffisante.</div></div>';return;}
+  el.innerHTML=cards.map(c=>{const bet=c.decision==='BET',value=bet?'VALUE POSITIVE':Number(c.edge)>0?'VALUE FAIBLE':'PAS DE VALUE',color=bet?'var(--gr)':Number(c.edge)>0?'var(--go)':'var(--re)',label=c.market==='WIN'?'PROBABILITÉ GAGNANT':'PROBABILITÉ PLACÉ';let reasons=[];try{reasons=JSON.parse(c.reasons||'[]');}catch(_){}
+    return '<div class="card" style="border-left:3px solid '+color+';margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><div class="ct" style="margin:0;border:0;padding:0">'+esc(c.racecourse_code)+' R'+esc(c.race_number)+' · n°'+esc(c.horse_number)+' '+esc(c.horse_name)+'</div><div style="font-size:10px;color:var(--dm);margin-top:4px">'+hkjcDateTime(c.race_time)+' · '+Number(c.field_size||0)+' partants · '+Number(c.paid_places||0)+' places rémunérées</div></div><span class="bdg" style="background:'+color+'22;color:'+color+'">'+(bet?'BET':'NO BET')+'</span></div><div class="fg" style="grid-template-columns:repeat(4,minmax(110px,1fr));margin-top:12px">'+hkjcMetric('Cote',hkjcNum(c.odds,2))+hkjcMetric('Probabilité modèle',hkjcPct(c.model_probability))+hkjcMetric('Probabilité marché',hkjcPct(c.market_probability))+hkjcMetric(label,hkjcPct(c.calibrated_probability))+hkjcMetric('Fair odds',hkjcNum(c.fair_odds,2))+hkjcMetric('Edge',hkjcPct(c.edge))+hkjcMetric('Expected Value',hkjcPct(c.expected_value))+hkjcMetric('Confiance',esc(c.confidence||'LOW'))+'</div><div style="margin-top:10px"><span class="bdg" style="background:'+color+'22;color:'+color+'">'+value+'</span><span style="font-size:9px;color:var(--dm);margin-left:7px">Qualité données '+hkjcPct(c.data_quality_score)+'</span></div>'+(reasons.length?'<div style="font-size:9px;color:var(--dm);margin-top:7px">Filtre : '+reasons.map(esc).join(' · ')+'</div>':'')+'<div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(c.place_rules||'')+'</div></div>';
+  }).join('');
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 //  PGI • BetPro — MODULE PMU / TURF FRANCE (frontend)
