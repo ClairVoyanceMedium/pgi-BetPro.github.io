@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PGI BetPro HTML v21 — interface intégrale multisports + PMU + HKJC ST/HV/CH, cartes décisionnelles en français -->
+<!-- PGI BetPro HTML v22 — Live Scan borné + tickers multisports résilients, interface intégrale PMU/HKJC -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -1479,12 +1479,43 @@ const WORKER_URL = 'https://pgi-betpro.peritoregroupindustries.workers.dev';
 // Toute action sensible (écriture KV, résultats, secrets) doit être validée côté Worker.
 const AUTH_TOKEN = 'PgiBetProWinMoney';
 
-async function api(path, method='GET', body=null) {
-  const opts = { method, headers:{ 'Authorization':'Bearer '+AUTH_TOKEN, 'Content-Type':'application/json' } };
+// Toutes les requêtes d'interface sont bornées. Une API externe lente ne peut
+// donc plus laisser un bouton, le ticker ou un écran bloqué indéfiniment.
+// Le quatrième argument est additif : tous les anciens appels restent valides.
+async function api(path, method='GET', body=null, requestOptions={}) {
+  const timeoutMs = Math.min(120000, Math.max(1000, Number(requestOptions.timeoutMs)||35000));
+  const controller = new AbortController();
+  const externalSignal = requestOptions.signal || null;
+  let timedOut = false;
+  const abortFromExternal = () => controller.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) controller.abort();
+    else externalSignal.addEventListener('abort', abortFromExternal, {once:true});
+  }
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+  const opts = {
+    method,
+    signal: controller.signal,
+    headers:{ 'Authorization':'Bearer '+AUTH_TOKEN, 'Content-Type':'application/json' }
+  };
   if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(WORKER_URL+path, opts);
-  if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.error||'HTTP '+r.status); }
-  return r.json();
+  try {
+    const r = await fetch(WORKER_URL+path, opts);
+    if (!r.ok) {
+      const e=await r.json().catch(()=>({}));
+      throw new Error(e.error||'HTTP '+r.status);
+    }
+    return await r.json();
+  } catch (error) {
+    if (controller.signal.aborted) {
+      if (timedOut) throw new Error(`Délai dépassé après ${Math.round(timeoutMs/1000)} s`);
+      throw new Error('Requête annulée');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    if (externalSignal) externalSignal.removeEventListener('abort', abortFromExternal);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -2012,7 +2043,17 @@ function buildBalancedScanCards(allDeduped, sportFilterVal) {
   return selected.slice(0, 18);
 }
 
+let liveScanAbortController = null;
+let liveScanRunSequence = 0;
+
 async function doLiveScan() {
+  // Une relance annule proprement une éventuelle ancienne exécution orpheline.
+  if (liveScanAbortController) liveScanAbortController.abort();
+  const scanRun = ++liveScanRunSequence;
+  const scanController = new AbortController();
+  liveScanAbortController = scanController;
+  const scanDeadlineMs = 75000;
+  const scanDeadlineTimer = setTimeout(() => scanController.abort(), scanDeadlineMs);
   const btn = document.getElementById('scan-btn');
   const cnt = document.getElementById('scan-res');
   btn.className = 'scan-main-btn scanning';
@@ -2046,6 +2087,8 @@ async function doLiveScan() {
     const allOpps = [];
     let totalGamesReceived = 0;
     let totalOppsBeforeFilter = 0;
+    let completedRequests = 0;
+    let timedOutRequests = 0;
     const _dateParams = (typeof getScanDateParams==='function') ? getScanDateParams() : {};
     const _dateKey   = Object.keys(_dateParams).length ? '_'+JSON.stringify(_dateParams) : '';
     const cacheKey   = 'scan_'+currentScanMode+'_'+liveSportFilter+_dateKey;
@@ -2060,16 +2103,25 @@ async function doLiveScan() {
     // Fetch en parallèle — maximum 6 à la fois pour éviter la saturation
     const chunk = 6;
     for (let i = 0; i < toScanSafe.length; i += chunk) {
+      if (scanController.signal.aborted) break;
       const batch = toScanSafe.slice(i, i+chunk);
       const results = await Promise.allSettled(batch.map(({sport,market}) =>
-        (()=>{const _qd=getScanDateParams();const _qs=Object.keys(_qd).map(k=>'&'+enc(k)+'='+enc(_qd[k])).join('');return api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick'+_qs);})().then(d => {
+        (()=>{const _qd=getScanDateParams();const _qs=Object.keys(_qd).map(k=>'&'+enc(k)+'='+enc(_qd[k])).join('');return api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick'+_qs,'GET',null,{timeoutMs:20000,signal:scanController.signal});})().then(d => {
+          completedRequests++;
           leagueFailReset(sport);
           totalGamesReceived += (d.games_count||0);
           totalOppsBeforeFilter += (d.opportunities_before_filter != null ? d.opportunities_before_filter : (d.opportunities||[]).length);
           const opps = (d.opportunities||[]);
           opps.forEach(o => { o._sport = sport; o.sport = sport; });
           return opps;
-        }).catch(()=>{ leagueFailRecord(sport); return []; })
+        }).catch(error=>{
+          const message=String(error?.message||error||'');
+          // Un délai réseau ou l'échéance globale n'est pas une preuve que la
+          // ligue est invalide : ne jamais la bannir du prochain scan.
+          if (/Délai dépassé/i.test(message)) timedOutRequests++;
+          else if (/Paramètres invalides|HTTP 422|Marché non compatible/i.test(message)) leagueFailRecord(sport);
+          return [];
+        })
       ));
       results.forEach(r => { if(r.status==='fulfilled') allOpps.push(...r.value); });
     }
@@ -2112,6 +2164,9 @@ async function doLiveScan() {
       dedupedOpportunities: allDeduped.length,
       displayedCards: filtered.length,
       rejectedByEngine: Math.max(0, allDeduped.length - filtered.length),
+      completedRequests,
+      timedOutRequests,
+      deadlineReached: scanController.signal.aborted,
       bySport: bySportDiag,
     };
 
@@ -2123,10 +2178,16 @@ async function doLiveScan() {
     cnt.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ Erreur pendant le scan : ${esc(e.message || String(e))}</div></div>`;
     toast('Erreur scan: '+(e.message||String(e)), 'err');
   } finally {
-    btn.className = 'scan-main-btn ready';
-    document.getElementById('scan-btn-ico').textContent = '🔴';
-    document.getElementById('scan-btn-txt').textContent = 'RELANCER LE SCAN';
-    btn.disabled = false;
+    clearTimeout(scanDeadlineTimer);
+    if (scanRun === liveScanRunSequence) {
+      liveScanAbortController = null;
+      btn.className = 'scan-main-btn ready';
+      document.getElementById('scan-btn-ico').textContent = '🔴';
+      document.getElementById('scan-btn-txt').textContent = 'RELANCER LE SCAN';
+      btn.disabled = false;
+      // Le ticker demeure un flux indépendant et se remet à jour après le scan.
+      setTimeout(loadTicker, 100);
+    }
   }
 }
 
@@ -2134,7 +2195,8 @@ function renderScanResults(opps, cnt, cacheAge, diag) {
   if (!opps?.length) {
     const d = diag || {};
     let reason;
-    if(!d.requestsLaunched) reason = 'aucune requête n\'a pu être lancée (sport invalide ou clés Odds API indisponibles).';
+    if(d.deadlineReached) reason = `le scan a atteint sa limite de sécurité ; ${d.completedRequests||0} requête(s) ont répondu et ${d.timedOutRequests||0} ont dépassé le délai. Vous pouvez relancer sans recharger la page.`;
+    else if(!d.requestsLaunched) reason = 'aucune requête n\'a pu être lancée (sport invalide ou clés Odds API indisponibles).';
     else if(!d.gamesReceived) reason = 'aucun match n\'a été retourné par l\'API pour cette sélection (hors saison, ou aucune rencontre programmée dans la période choisie).';
     else if(!d.rawOpportunities) reason = 'des matchs existent mais aucun bookmaker n\'a publié de cote exploitable pour ce marché actuellement.';
     else reason = 'les seuils du moteur (probabilité, edge, EV, qualité de données) ont rejeté tous les signaux disponibles — essayez le mode Complet, un autre sport, ou élargissez la période.';
@@ -2144,6 +2206,8 @@ function renderScanResults(opps, cnt, cacheAge, diag) {
       <div class="empty-s" style="text-align:left;max-width:440px;margin:10px auto 0">
         <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;font-family:var(--mo);font-size:11px;line-height:2">
           <div>Requêtes lancées&nbsp;: <strong>${d.requestsLaunched||0}</strong></div>
+          <div>Requêtes terminées&nbsp;: <strong>${d.completedRequests||0}</strong></div>
+          <div>Délais dépassés&nbsp;: <strong>${d.timedOutRequests||0}</strong></div>
           <div>Matchs reçus&nbsp;: <strong>${d.gamesReceived||0}</strong></div>
           <div>Opportunités brutes reçues&nbsp;: <strong>${d.rawOpportunities||0}</strong></div>
           <div>Rejetées par le moteur&nbsp;: <strong>${d.rejectedByEngine||0}</strong></div>
@@ -5089,6 +5153,29 @@ function tickerToggle() {
   if (btn) btn.textContent = tickerPaused ? '▶ Reprendre' : '⏸ Pause';
 }
 
+const TICKER_EMERGENCY_SPORTS = [
+  ['⚽ FOOTBALL','Football'],['🥊 MMA','MMA'],['🏀 BASKETBALL','Basketball'],
+  ['🎾 TENNIS','Tennis'],['🏉 RUGBY','Rugby'],['🏒 HOCKEY','Hockey sur glace'],
+  ['⚾ BASEBALL','Baseball'],['🏈 FOOTBALL US','Football américain'],
+  ['🤾 HANDBALL','Handball'],['🏐 VOLLEY','Volley-ball'],['🐎 PMU','PMU Turf']
+];
+
+// Les badges ne disparaissent jamais : avant la première réponse, ou si un
+// fournisseur est momentanément lent, l'interface affiche l'état de veille.
+function renderTickerSafetyFallback(message='Connexion aux flux en cours…', force=false) {
+  const inner=document.getElementById('news-ticker-inner');
+  const clone=document.getElementById('news-ticker-clone');
+  const source=document.getElementById('ticker-source');
+  if(!inner)return;
+  if(!force && inner.querySelector('.ticker-item'))return;
+  const html=TICKER_EMERGENCY_SPORTS.map(([label,sport])=>
+    `<div class="ticker-item ticker-safety"><span class="ticker-sport-badge" style="background:rgba(0,212,255,.10);color:var(--neon)">${label}</span><div style="flex:1;min-width:0"><div class="ticker-title">${esc(sport)} · surveillance active</div><div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px">${esc(message)}</div></div></div>`
+  ).join('');
+  inner.innerHTML=html;
+  if(clone)clone.innerHTML=html;
+  if(source)source.textContent='10 sports + PMU · connexion sécurisée';
+}
+
 // getTurfTickerArticles — transforme les prochaines courses PMU (déjà
 // normalisées côté Worker par /api/turf/upcoming) en items de ticker,
 // dans le même format que les articles sportifs. Best-effort : si la
@@ -5096,7 +5183,7 @@ function tickerToggle() {
 // bloquer ni afficher d'erreur (même philosophie que le reste du ticker).
 async function getTurfTickerArticles() {
   try {
-    const d = await api('/api/turf/upcoming?date_filter=today');
+    const d = await api('/api/turf/upcoming?date_filter=today','GET',null,{timeoutMs:10000});
     const now = Date.now();
     const allRaces = d.races||[];
     // Afficher d'abord les courses réellement à venir. Le Worker v5 fournit
@@ -5136,13 +5223,13 @@ async function getTurfTickerArticles() {
 async function getSportTickerArticles() {
   const sports = 'soccer,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
   try {
-    const data = await api('/api/ticker?sports='+enc(sports));
+    const data = await api('/api/ticker?sports='+enc(sports),'GET',null,{timeoutMs:12000});
     return { items:data.items||[], meta:data };
   } catch (tickerError) {
     // Compatibilité avec un Worker plus ancien pendant un déploiement en deux
     // temps. Le Worker v16 répond à /api/ticker avec un secours D1 natif.
     try {
-      const legacy = await api('/api/news?sports='+enc(sports));
+      const legacy = await api('/api/news?sports='+enc(sports),'GET',null,{timeoutMs:12000});
       return { items:legacy.news||[], meta:legacy };
     } catch (_) {
       console.warn('Ticker multisports indisponible:', tickerError && tickerError.message ? tickerError.message : tickerError);
@@ -5153,6 +5240,7 @@ async function getSportTickerArticles() {
 
 async function loadTicker() {
   const loadSequence = ++tickerLoadSequence;
+  renderTickerSafetyFallback('Connexion aux flux en cours…');
   try {
     const [sportResult, turfResult] = await Promise.allSettled([
       getSportTickerArticles(),
@@ -5179,8 +5267,7 @@ async function loadTicker() {
     if (!news.length) {
       if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
       tickerAnimFrame = null;
-      inner.innerHTML = '<div class="ticker-item"><span class="ticker-sport-badge" style="background:rgba(78,106,138,.15);color:var(--mu)">INFO</span><div class="ticker-title">Les flux multisports et PMU seront interrogés de nouveau au prochain chargement.</div></div>';
-      if (clone) clone.innerHTML = '';
+      renderTickerSafetyFallback('Aucune affiche publiée actuellement · collecte toujours active', true);
       return;
     }
 
@@ -5232,7 +5319,7 @@ DESCRIPTION: traduction
 Sépare les blocs uniquement par --- et ne donne aucun commentaire.
 
 ${blocks}`}]
-        });
+        }, {timeoutMs:8000});
         if (loadSequence !== tickerLoadSequence) return;
         const rawTranslation = String(resp.response || resp.content || '')
           .replace(/```(?:text|plaintext)?/gi,'').replace(/```/g,'').trim();
@@ -5365,7 +5452,14 @@ ${blocks}`}]
         if(tickerScrollState.userScrolling) tickerScrollState.position = tickerBox.scrollTop;
       }, {passive:true});
     }
-  } catch(e) { console.warn('Ticker error:', e); }
+  } catch(e) {
+    console.warn('Ticker error:', e);
+    if(loadSequence===tickerLoadSequence){
+      const source=document.getElementById('ticker-source');
+      if(source)source.textContent='Flux différé · nouvel essai automatique';
+      renderTickerSafetyFallback('Source momentanément lente · nouvel essai automatique', false);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -5611,6 +5705,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadQuotas();
   ttsInit();
   loadTicker();
+  setInterval(loadTicker,5*60*1000);
   loadProfessionalMaturity();
   setInterval(loadProfessionalMaturity,10*60*1000);
   loadValidSportKeys();
