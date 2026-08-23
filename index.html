@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PGI BetPro HTML v8.1 — tickers multisports traduits et défilement fluide -->
+<!-- PGI BetPro HTML v9 — tickers multisports + maturité de collecte professionnelle -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -579,6 +579,29 @@ a{color:var(--neon);text-decoration:none}
         <div id="news-ticker-clone"></div>
       </div>
     </div>
+  </div>
+
+  <!-- PILOTAGE DE MATURITÉ — lecture seule, alimentée par D1 + R2 -->
+  <div id="maturity-panel" class="card" style="margin:14px 0 4px;border-color:rgba(0,212,255,.22);background:linear-gradient(135deg,rgba(0,212,255,.055),rgba(167,139,250,.035))">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div>
+        <div class="ct" style="margin:0">Maturité professionnelle</div>
+        <div id="maturity-checked" style="font:9px var(--mo);color:var(--dm);margin-top:3px">Contrôle D1, R2 et modèles…</div>
+      </div>
+      <div id="maturity-health" style="font:800 11px var(--mo);padding:5px 9px;border:1px solid var(--bd);border-radius:6px;color:var(--dm)">VÉRIFICATION</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:7px;margin-top:11px">
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">ÉVÉNEMENTS</div><div id="maturity-events" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COTES ARCHIVÉES</div><div id="maturity-odds" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COURSES PMU</div><div id="maturity-pmu" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">MODÈLES ACTIFS</div><div id="maturity-models" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px;font:9px var(--mo);color:var(--mu)"><span id="maturity-pmu-label">PMU : construction</span><span id="maturity-pmu-value">0 / 500</span></div>
+      <div style="height:6px;background:rgba(255,255,255,.06);border-radius:9px;overflow:hidden;margin-top:5px"><div id="maturity-pmu-bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--neon),var(--pu));transition:width .5s"></div></div>
+    </div>
+    <div id="maturity-decision" style="font:10px var(--mo);color:var(--am);line-height:1.5;margin-top:10px">Aucune carte n’est fiable pour l’instant.</div>
+    <div id="maturity-storage" style="font:9px var(--mo);color:var(--dm);line-height:1.5;margin-top:5px">R2 : vérification de la mémoire multi-années…</div>
   </div>
 
   <div style="height:1px;background:var(--bd);margin:22px 0"></div>
@@ -1482,7 +1505,7 @@ function go(name) {
   cSb();
   if(name==='results')  loadResults();
   if(name==='notes')    { notesLoad(); notesSyncCloud(); notesRender(); }
-  if(name==='dash')     { setTimeout(loadTicker, 500); }
+  if(name==='dash')     { setTimeout(loadTicker, 500); setTimeout(loadProfessionalMaturity, 700); }
   if(name==='methods')  { lossRender(); initMethods(); }
   if(name==='settings') { loadSettings(); loadSysStatus(); loadAIStatus(); }
   if(name==='perf')     { loadPerformances(); }
@@ -5507,6 +5530,29 @@ async function initStatusBadges() {
   } catch(_) {}
 }
 
+let maturityLoading=false;
+async function loadProfessionalMaturity(){
+  if(maturityLoading)return;
+  const panel=document.getElementById('maturity-panel');if(!panel)return;
+  maturityLoading=true;
+  const nf=new Intl.NumberFormat('fr-FR');
+  try{
+    const s=await api('/api/maturity/status'),eventRows=Array.isArray(s.collection?.events)?s.collection.events:[],eventCount=eventRows.reduce((n,r)=>n+Number(r.events||0),0),health=Number(s.health?.score||0),status=String(s.health?.status||'INDISPONIBLE'),pmuRaces=Number(s.pmu?.detailed_races||0),target=Math.max(1,Number(s.pmu?.target_races||500)),percent=Math.min(100,Math.round(pmuRaces*100/target)),r2=s.r2||{};
+    const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+    set('maturity-checked','Dernier contrôle : '+new Date(s.checked_at||Date.now()).toLocaleString('fr-FR'));
+    set('maturity-events',nf.format(eventCount));set('maturity-odds',nf.format(Number(s.collection?.odds_snapshots||0)));set('maturity-pmu',nf.format(pmuRaces));set('maturity-models',nf.format(Number(s.benter?.active_models||0)));
+    set('maturity-pmu-label','PMU : '+String(s.pmu?.stage||'construction').toLowerCase()+' · rapports placés '+nf.format(Number(s.pmu?.official_place_dividends||0)));
+    set('maturity-pmu-value',nf.format(pmuRaces)+' / '+nf.format(target));
+    const bar=document.getElementById('maturity-pmu-bar');if(bar)bar.style.width=percent+'%';
+    const badge=document.getElementById('maturity-health');if(badge){badge.textContent=status+' · '+Math.round(health)+'/100';badge.style.color=health>=90?'var(--gr)':health>=70?'var(--am)':'var(--re)';badge.style.borderColor=health>=90?'rgba(31,209,132,.35)':health>=70?'rgba(255,190,74,.35)':'rgba(255,86,106,.35)';}
+    set('maturity-decision',s.benter?.decision_status||s.policy?.no_card_message||'Aucune carte n’est fiable pour l’instant.');
+    set('maturity-storage','Mémoire : D1 actif compact + R2 multi-années · liaison '+(r2.binding_configured?'OK':'ABSENTE')+' · relecture '+(r2.reader_configured?'OK':'ABSENTE')+' · archive '+(r2.archive_caught_up?'à jour':'en rattrapage')+'.');
+  }catch(e){
+    const badge=document.getElementById('maturity-health');if(badge){badge.textContent='CONTRÔLE INDISPONIBLE';badge.style.color='var(--re)';}
+    const checked=document.getElementById('maturity-checked');if(checked)checked.textContent='Le tableau de maturité sera disponible après déploiement du Worker v18.2.';
+  }finally{maturityLoading=false;}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   bookieApply();
   notesLoad();
@@ -5516,6 +5562,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadQuotas();
   ttsInit();
   loadTicker();
+  loadProfessionalMaturity();
+  setInterval(loadProfessionalMaturity,10*60*1000);
   loadValidSportKeys();
   lossLoadCloud().then(()=>{
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
