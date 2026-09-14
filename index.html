@@ -598,7 +598,7 @@ a{color:var(--neon);text-decoration:none}
   <div id="maturity-panel" class="card" style="margin:14px 0 4px;border-color:rgba(0,212,255,.22);background:linear-gradient(135deg,rgba(0,212,255,.055),rgba(167,139,250,.035))">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div>
-        <div class="ct" style="margin:0">Maturité professionnelle</div>
+        <div class="ct" style="margin:0">Collecte et validation</div>
         <div id="maturity-checked" style="font:9px var(--mo);color:var(--dm);margin-top:3px">Contrôle D1, R2 et modèles…</div>
       </div>
       <div id="maturity-health" style="font:800 11px var(--mo);padding:5px 9px;border:1px solid var(--bd);border-radius:6px;color:var(--dm)">VÉRIFICATION</div>
@@ -607,7 +607,7 @@ a{color:var(--neon);text-decoration:none}
       <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">ÉVÉNEMENTS</div><div id="maturity-events" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
       <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COTES ARCHIVÉES</div><div id="maturity-odds" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
       <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COURSES PMU</div><div id="maturity-pmu" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
-      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">MODÈLES ACTIFS</div><div id="maturity-models" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">SEGMENTS SPORTS ACTIFS</div><div id="maturity-models" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
     </div>
     <div style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;gap:8px;font:9px var(--mo);color:var(--mu)"><span id="maturity-pmu-label">PMU : construction</span><span id="maturity-pmu-value">0 / 500</span></div>
@@ -615,6 +615,9 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div id="maturity-decision" style="font:10px var(--mo);color:var(--am);line-height:1.5;margin-top:10px">Aucune carte n’est fiable pour l’instant.</div>
     <div id="maturity-storage" style="font:9px var(--mo);color:var(--dm);line-height:1.5;margin-top:5px">R2 : vérification de la mémoire multi-années…</div>
+    <div id="maturity-summary" style="font:11px var(--mo);line-height:1.65;margin-top:12px;white-space:pre-wrap"></div>
+    <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--neon)">Détail des contrôles et des quotas</summary><div id="maturity-details" style="font:11px var(--mo);line-height:1.65;margin-top:12px;color:var(--tx)"></div></details>
+    <button type="button" id="maturity-export" onclick="exportCollectionDiagnostic()" disabled style="margin-top:12px;padding:9px 12px;border:1px solid var(--bd);border-radius:7px;background:transparent;color:var(--tx)">Télécharger le diagnostic</button>
   </div>
 
   <div style="height:1px;background:var(--bd);margin:22px 0"></div>
@@ -5673,26 +5676,79 @@ async function initStatusBadges() {
   } catch(_) {}
 }
 
-let maturityLoading=false;
+let maturityLoading=false,collectionDiagnostic=null;
+function collectionDiagnosticText(s){
+  const n=v=>Number.isFinite(Number(v))?new Intl.NumberFormat('fr-FR').format(Number(v)):'inconnu';
+  const date=v=>v&&Number.isFinite(Date.parse(v))?new Date(v).toLocaleString('fr-FR',{timeZone:'Europe/Paris'}):'non disponible';
+  const state=v=>({collecting:'données reçues',partial:'collecte partielle',unavailable:'source en erreur',incomplete:'collecte incomplète',not_published:'aucune réunion détectée au dernier passage',unknown:'non vérifié',success:'terminé sans erreur déclarée',error:'erreur',running:'en cours'})[v]||'non vérifié';
+  const lines=['PGI BetPro : diagnostic de collecte','Données contrôlées le '+date(s.checked_at)+' (heure de Paris)', 'Totaux historiques relevés le '+date(s.volume_checked_at||s.checked_at)+' (actualisation toutes les six heures).','Score technique : '+n(s.health?.score)+'/100. Ce score ne mesure pas la fiabilité des paris.'];
+  const components=s.health?.score_components;
+  if(Array.isArray(components)){
+    const penalties=components.filter(x=>Number(x.penalty)>0);
+    lines.push('Causes du score :');
+    for(const x of penalties)lines.push('• '+x.label+' : −'+n(x.penalty)+' points'+(x.state==='no_successful_data'?' ; aucune collecte avec données et sans erreur enregistrée':x.state==='stale'?' ; dernière collecte avec données et sans erreur il y a '+Number(x.age_hours).toFixed(1)+' h':'')+'.');
+    if(!penalties.length)lines.push('Aucune pénalité technique enregistrée.');
+  }else lines.push('Détail du score indisponible dans ce Worker.');
+  for(const warning of s.health?.warnings||[])lines.push('• '+String(warning));
+  lines.push('', 'PMU Placé : '+n(s.pmu?.official_place_dividends)+' dividendes officiels après course.');
+  lines.push('Cotes Placé pré-course vérifiées : '+(s.pmu?.verified_pre_race_place_quotes==null?'non mesurées dans cette version':n(s.pmu.verified_pre_race_place_quotes))+'.');
+  lines.push('Source Placé configurée : '+(typeof s.pmu?.place_feed_configured==='boolean'?(s.pmu.place_feed_configured?'oui ; réception à vérifier':'non'):'non vérifié')+'.');
+  lines.push('Le seuil de 500 courses mesure le volume ; il ne valide aucun modèle à lui seul.');
+  lines.push('', 'Modèles :');
+  if(Array.isArray(s.models_by_family))for(const f of s.models_by_family)lines.push(({SPORT:'Multisports',PMU:'PMU',HKJC:'Hong Kong (tranches de calibration)'})[f.family]+' : '+n(f.active_models)+' actifs sur '+n(f.models)+'.');
+  else lines.push('Multisports : '+n(s.benter?.active_models)+' segments actifs. PMU et HKJC : non détaillés dans ce Worker.');
+  lines.push('Un modèle marqué actif reste soumis aux filtres de chaque carte.');
+  const hk=s.hkjc;
+  lines.push('', 'HONG KONG');
+  if(hk){lines.push('Programmes : '+n(hk.races)+' courses ; '+state(hk.source_status)+'.');lines.push('Dernier contrôle de source : '+date(hk.last_source_check)+'.');lines.push('Cotes : '+n(hk.odds_snapshots)+' observations, dont '+n(hk.verified_odds_snapshots)+' avec provenance pré-course v30 ; dernière observation : '+date(hk.last_odds)+'.');lines.push('Résultats : '+n(hk.results)+' partants, '+n(hk.resolved_races)+' courses ; dernier résultat : '+date(hk.last_result)+'.');}
+  else lines.push('Courses : '+n(s.coverage?.hkjc_races)+' ; source : '+state(s.coverage?.hkjc_source)+'. Détail des cotes/résultats indisponible.');
+  lines.push('', 'Dernières tentatives de collecte :');
+  const labels={pmu_snapshot:'Programmes PMU',pmu_results:'Résultats PMU',sports_snapshot:'Cotes multisports',sports_results:'Résultats multisports',hkjc_racecards:'Programmes HKJC',hkjc_odds:'Cotes HKJC',hkjc_results:'Résultats HKJC'};
+  const runs=s.collection?.latest_attempts;
+  for(const [type,label]of Object.entries(labels)){const r=Array.isArray(runs)?runs.find(x=>x.collector_type===type):null;lines.push(label+' : '+(r?state(r.status)+' ; '+date(r.finished_at||r.started_at)+' ; vus '+n(r.items_seen)+' ; écritures '+n(r.items_written)+' ; erreurs '+n(r.error_count)+(r.reason?' ; '+r.reason:''):'aucune tentative disponible dans le diagnostic')+'.');}
+  lines.push('Une exécution sans donnée peut correspondre à une attente ou à un report de budget.');
+  const q=s.quotas;lines.push('', 'QUOTAS API');
+  if(q?.available){lines.push(n(q.keys_total)+' clés : '+n(q.keys_available)+' disponibles, '+n(q.keys_exhausted)+' épuisées, '+n(q.keys_unknown)+' non vérifiées, '+n(q.keys_invalid)+' invalides, '+n(q.keys_cooldown)+' temporisées.');lines.push('Crédits confirmés restants : '+n(q.remaining)+' ; période : '+String(q.period||'inconnue')+'.');lines.push('Budget du jour restant : '+n(q.monthly_budget?.remaining_today)+' ; dernière réponse fournisseur : '+date(q.last_fetch_at)+'.');}
+  else lines.push('Quotas non disponibles dans ce diagnostic.');
+  lines.push('', 'ARCHIVES','Dernier archivage : '+date(s.r2?.last_archive)+'.','Dernière relecture : '+date(s.r2?.last_replay)+'.', 'Archive à jour : '+(s.r2?.archive_caught_up===true?'oui':s.r2?.archive_caught_up===false?'non confirmé':'inconnu')+'.');
+  return lines.join('\n');
+}
+function exportCollectionDiagnostic(){
+  if(!collectionDiagnostic)return;
+  const url=URL.createObjectURL(new Blob([collectionDiagnosticText(collectionDiagnostic)],{type:'text/plain;charset=utf-8'}));
+  const link=document.createElement('a');link.href=url;link.download='PGI-BetPro-Diagnostic-'+new Date().toISOString().slice(0,10)+'.txt';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 async function loadProfessionalMaturity(){
-  if(maturityLoading)return;
+  if(maturityLoading||document.hidden)return;
   const panel=document.getElementById('maturity-panel');if(!panel)return;
   maturityLoading=true;
   const nf=new Intl.NumberFormat('fr-FR');
   try{
-    const s=await api('/api/maturity/status'),eventRows=Array.isArray(s.collection?.events)?s.collection.events:[],eventCount=eventRows.reduce((n,r)=>n+Number(r.events||0),0),health=Number(s.health?.score||0),status=String(s.health?.status||'INDISPONIBLE'),pmuRaces=Number(s.pmu?.detailed_races||0),target=Math.max(1,Number(s.pmu?.target_races||500)),percent=Math.min(100,Math.round(pmuRaces*100/target)),r2=s.r2||{};
+    const s=await api('/api/maturity/status');if(!s?.ok||!s.health)throw new Error('Diagnostic incomplet');
+    collectionDiagnostic=s;
+    const eventRows=Array.isArray(s.collection?.events)?s.collection.events:[],eventCount=eventRows.reduce((n,r)=>n+Number(r.events||0),0),health=Number(s.health.score),status=String(s.health.status||'INDISPONIBLE'),pmuRaces=Number(s.pmu?.detailed_races||0),target=Math.max(1,Number(s.pmu?.target_races||500)),percent=Math.min(100,Math.round(pmuRaces*100/target)),r2=s.r2||{};
     const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
-    set('maturity-checked','Dernier contrôle : '+new Date(s.checked_at||Date.now()).toLocaleString('fr-FR'));
+    set('maturity-checked','État : '+(s.checked_at?new Date(s.checked_at).toLocaleString('fr-FR'):'date inconnue')+' · compteurs : '+(s.volume_checked_at?new Date(s.volume_checked_at).toLocaleString('fr-FR'):'date du contrôle')+'.');
     set('maturity-events',nf.format(eventCount));set('maturity-odds',nf.format(Number(s.collection?.odds_snapshots||0)));set('maturity-pmu',nf.format(pmuRaces));set('maturity-models',nf.format(Number(s.benter?.active_models||0)));
-    set('maturity-pmu-label','PMU : '+String(s.pmu?.stage||'construction').toLowerCase()+' · rapports placés '+nf.format(Number(s.pmu?.official_place_dividends||0)));
-    set('maturity-pmu-value',nf.format(pmuRaces)+' / '+nf.format(target));
+    set('maturity-pmu-label','PMU : '+String(s.pmu?.stage||'construction').toLowerCase());
+    set('maturity-pmu-value',nf.format(pmuRaces)+' / '+nf.format(target)+' courses');
     const bar=document.getElementById('maturity-pmu-bar');if(bar)bar.style.width=percent+'%';
     const badge=document.getElementById('maturity-health');if(badge){badge.textContent=status+' · '+Math.round(health)+'/100';badge.style.color=health>=90?'var(--gr)':health>=70?'var(--am)':'var(--re)';badge.style.borderColor=health>=90?'rgba(31,209,132,.35)':health>=70?'rgba(255,190,74,.35)':'rgba(255,86,106,.35)';}
-    set('maturity-decision',s.benter?.decision_status||s.policy?.no_card_message||'Aucune carte n’est fiable pour l’instant.');
-    set('maturity-storage','Mémoire : D1 actif compact + R2 multi-années · liaison '+(r2.binding_configured?'OK':'ABSENTE')+' · relecture '+(r2.reader_configured?'OK':'ABSENTE')+' · archive '+(r2.archive_caught_up?'à jour':'en rattrapage')+'.');
+    set('maturity-decision',s.benter?.active_models>0?'Multisports : segments actifs, admissibilité contrôlée carte par carte.':'Multisports : aucun segment Benter actif actuellement.');
+    set('maturity-storage','Mémoire : D1 + R2 · liaison '+(r2.binding_configured?'configurée':'absente')+' · lecteur '+(r2.reader_configured?'configuré':'absent')+' · archive '+(r2.archive_caught_up?'à jour':'à vérifier')+'.');
+    const summary=[];
+    for(const cause of s.health?.score_components||[])if(cause.penalty>0)summary.push(cause.label+' : −'+cause.penalty+' points.');
+    for(const warning of s.health?.warnings||[])summary.push(String(warning));
+    summary.push('PMU Placé : '+nf.format(Number(s.pmu?.official_place_dividends||0))+' dividendes après course ; '+(s.pmu?.verified_pre_race_place_quotes==null?'cotes pré-course non mesurées':nf.format(s.pmu.verified_pre_race_place_quotes)+' cotes pré-course vérifiées')+'.');
+    if(s.hkjc)summary.push('Hong Kong : '+nf.format(s.hkjc.races)+' courses, '+nf.format(s.hkjc.odds_snapshots)+' cotes, '+nf.format(s.hkjc.resolved_races)+' courses avec résultats.');
+    else summary.push('Hong Kong : détail indisponible dans ce Worker.');
+    summary.push('Le volume de courses ne suffit pas à valider un modèle.');
+    set('maturity-summary',summary.join('\n'));
+    const details=document.getElementById('maturity-details');if(details){details.textContent=collectionDiagnosticText(s);details.style.whiteSpace='pre-wrap';}
+    const button=document.getElementById('maturity-export');if(button)button.disabled=false;
   }catch(e){
     const badge=document.getElementById('maturity-health');if(badge){badge.textContent='CONTRÔLE INDISPONIBLE';badge.style.color='var(--re)';}
-    const checked=document.getElementById('maturity-checked');if(checked)checked.textContent='Le tableau de maturité sera disponible après déploiement du Worker v18.2.';
+    const checked=document.getElementById('maturity-checked');if(checked)checked.textContent=collectionDiagnostic?'Actualisation impossible. Dernier état : '+new Date(collectionDiagnostic.checked_at).toLocaleString('fr-FR')+' · compteurs : '+new Date(collectionDiagnostic.volume_checked_at||collectionDiagnostic.checked_at).toLocaleString('fr-FR')+'.':'Actualisation impossible. Aucun diagnostic reçu.';
   }finally{maturityLoading=false;}
 }
 
@@ -5707,7 +5763,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadTicker();
   setInterval(loadTicker,5*60*1000);
   loadProfessionalMaturity();
-  setInterval(loadProfessionalMaturity,10*60*1000);
+  setInterval(loadProfessionalMaturity,15*60*1000);
   loadValidSportKeys();
   lossLoadCloud().then(()=>{
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
