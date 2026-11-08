@@ -5678,10 +5678,12 @@ async function initStatusBadges() {
 
 let maturityLoading=false,collectionDiagnostic=null;
 function collectionDiagnosticText(s){
-  const n=v=>Number.isFinite(Number(v))?new Intl.NumberFormat('fr-FR').format(Number(v)):'inconnu';
+  const n=v=>v===null||v===undefined||v===''?'non mesuré':Number.isFinite(Number(v))?new Intl.NumberFormat('fr-FR').format(Number(v)):'inconnu';
   const date=v=>v&&Number.isFinite(Date.parse(v))?new Date(v).toLocaleString('fr-FR',{timeZone:'Europe/Paris'}):'non disponible';
   const state=v=>({collecting:'données reçues',partial:'collecte partielle',unavailable:'source en erreur',incomplete:'collecte incomplète',not_published:'aucune réunion détectée au dernier passage',unknown:'non vérifié',success:'terminé sans erreur déclarée',error:'erreur',running:'en cours'})[v]||'non vérifié';
-  const lines=['PGI BetPro : diagnostic de collecte','Données contrôlées le '+date(s.checked_at)+' (heure de Paris)', 'Totaux historiques relevés le '+date(s.volume_checked_at||s.checked_at)+' (actualisation toutes les six heures).','Score technique : '+n(s.health?.score)+'/100. Ce score ne mesure pas la fiabilité des paris.'];
+  const lines=['PGI BetPro : diagnostic de collecte','Données contrôlées le '+date(s.checked_at)+' (heure de Paris)', 'Totaux historiques relevés le '+date(s.volume_checked_at||s.checked_at)+' (actualisation au maximum deux fois par jour).','Score technique : '+n(s.health?.score)+'/100. Ce score ne mesure pas la fiabilité des paris.'];
+  if(s.collection?.historical_stats_deferred)lines.push('Mode économie D1 : certains totaux de cotes et de prédictions ne sont plus recalculés par balayage intégral. Non mesuré ne signifie pas zéro.');
+  if(s.diagnostic_stale)lines.push('Dernier diagnostic conservé en cache, potentiellement ancien.');
   const components=s.health?.score_components;
   if(Array.isArray(components)){
     const penalties=components.filter(x=>Number(x.penalty)>0);
@@ -5724,12 +5726,12 @@ async function loadProfessionalMaturity(){
   maturityLoading=true;
   const nf=new Intl.NumberFormat('fr-FR');
   try{
-    const s=await api('/api/maturity/status');if(!s?.ok||!s.health)throw new Error('Diagnostic incomplet');
+    const s=await api('/api/maturity/status');if(!s?.ok||!s.health)throw new Error(s?.error||'Diagnostic incomplet');
     collectionDiagnostic=s;
     const eventRows=Array.isArray(s.collection?.events)?s.collection.events:[],eventCount=eventRows.reduce((n,r)=>n+Number(r.events||0),0),health=Number(s.health.score),status=String(s.health.status||'INDISPONIBLE'),pmuRaces=Number(s.pmu?.detailed_races||0),target=Math.max(1,Number(s.pmu?.target_races||500)),percent=Math.min(100,Math.round(pmuRaces*100/target)),r2=s.r2||{};
     const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
     set('maturity-checked','État : '+(s.checked_at?new Date(s.checked_at).toLocaleString('fr-FR'):'date inconnue')+' · compteurs : '+(s.volume_checked_at?new Date(s.volume_checked_at).toLocaleString('fr-FR'):'date du contrôle')+'.');
-    set('maturity-events',nf.format(eventCount));set('maturity-odds',nf.format(Number(s.collection?.odds_snapshots||0)));set('maturity-pmu',nf.format(pmuRaces));set('maturity-models',nf.format(Number(s.benter?.active_models||0)));
+    set('maturity-events',nf.format(eventCount));set('maturity-odds',s.collection?.odds_snapshots==null?'—':nf.format(Number(s.collection.odds_snapshots)));set('maturity-pmu',nf.format(pmuRaces));set('maturity-models',nf.format(Number(s.benter?.active_models||0)));
     set('maturity-pmu-label','PMU : '+String(s.pmu?.stage||'construction').toLowerCase());
     set('maturity-pmu-value',nf.format(pmuRaces)+' / '+nf.format(target)+' courses');
     const bar=document.getElementById('maturity-pmu-bar');if(bar)bar.style.width=percent+'%';
@@ -5748,6 +5750,7 @@ async function loadProfessionalMaturity(){
     const button=document.getElementById('maturity-export');if(button)button.disabled=false;
   }catch(e){
     const badge=document.getElementById('maturity-health');if(badge){badge.textContent='CONTRÔLE INDISPONIBLE';badge.style.color='var(--re)';}
+    const details=document.getElementById('maturity-details');if(details){details.textContent='Erreur de diagnostic : '+String(e?.message||e).slice(0,240);details.style.whiteSpace='pre-wrap';}
     const checked=document.getElementById('maturity-checked');if(checked)checked.textContent=collectionDiagnostic?'Actualisation impossible. Dernier état : '+new Date(collectionDiagnostic.checked_at).toLocaleString('fr-FR')+' · compteurs : '+new Date(collectionDiagnostic.volume_checked_at||collectionDiagnostic.checked_at).toLocaleString('fr-FR')+'.':'Actualisation impossible. Aucun diagnostic reçu.';
   }finally{maturityLoading=false;}
 }
@@ -5761,9 +5764,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadQuotas();
   ttsInit();
   loadTicker();
-  setInterval(loadTicker,5*60*1000);
+  setInterval(()=>{if(!document.hidden && document.getElementById('s-dash')?.classList.contains('on'))loadTicker();},10*60*1000);
   loadProfessionalMaturity();
-  setInterval(loadProfessionalMaturity,15*60*1000);
+  setInterval(()=>{if(!document.hidden && document.getElementById('s-dash')?.classList.contains('on'))loadProfessionalMaturity();},60*60*1000);
   loadValidSportKeys();
   lossLoadCloud().then(()=>{
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
@@ -7151,7 +7154,7 @@ function hkjcNum(v,d=2){const n=Number(v);return Number.isFinite(n)?n.toFixed(d)
 function hkjcDateTime(v){if(!v)return'—';try{return new Date(v).toLocaleString('fr-FR',{timeZone:'Asia/Hong_Kong',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' HK';}catch(_){return esc(v);}}
 function hkjcSetTrack(track,btn){hkjcTrack=track;document.querySelectorAll('#hkjc-track-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcLoad();}
 function hkjcSetMarket(market,btn){hkjcMarket=market;document.querySelectorAll('#hkjc-market-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcLoad();}
-async function hkjcInit(){if(!hkjcLoaded){hkjcLoaded=true;await hkjcLoad();}hkjcStopAutoRefresh();hkjcTimer=setInterval(()=>{if(document.getElementById('s-hkjc')?.classList.contains('on'))hkjcLoad(true);},60000);}
+async function hkjcInit(){if(!hkjcLoaded){hkjcLoaded=true;await hkjcLoad();}hkjcStopAutoRefresh();hkjcTimer=setInterval(()=>{if(!document.hidden && document.getElementById('s-hkjc')?.classList.contains('on'))hkjcLoad(true);},60000);}
 function hkjcStopAutoRefresh(){if(hkjcTimer){clearInterval(hkjcTimer);hkjcTimer=null;}}
 async function hkjcLoad(silent=false){
   const statusEl=document.getElementById('hkjc-status'),racesEl=document.getElementById('hkjc-races'),cardsEl=document.getElementById('hkjc-cards'),verdictEl=document.getElementById('hkjc-verdict');
@@ -7190,12 +7193,14 @@ let TURF_SELECTED_RACE = null;
 let TURF_UPCOMING_CACHE = [];
 let turfRecoveryType = 'simple_place';
 let TURF_REFRESH_INTERVAL = null;
-const TURF_REFRESH_MS = 30000; // 30s — cotes et courses à venir actualisées en continu tant que l'onglet PMU est ouvert
+const TURF_REFRESH_MS = 30000; // cadence de contrôle légère ; appels réseau adaptatifs, uniquement onglet actif
+let TURF_LAST_AUTO_REFRESH = 0, TURF_REFRESH_RUNNING = false;
 
 async function turfInit() {
   await turfLoadSources();
   await turfLoadUpcoming();
   turfLoadHistory();
+  TURF_LAST_AUTO_REFRESH=Date.now();
   turfStartAutoRefresh();
 }
 
@@ -7215,8 +7220,20 @@ function turfStopAutoRefresh() {
 async function turfAutoRefreshTick() {
   const sectionOn = document.getElementById('s-turf')?.classList.contains('on');
   if (!sectionOn) { turfStopAutoRefresh(); return; }
-  await turfLoadUpcoming(true);
-  if (TURF_SELECTED_RACE) await turfRefreshRaceOdds();
+  if (document.hidden || TURF_REFRESH_RUNNING) return;
+  // Une course consultée garde des cotes actualisées à la minute.
+  // Sans sélection, trois minutes suffisent pour actualiser les programmes.
+  const minimumInterval = TURF_SELECTED_RACE ? 60000 : 180000;
+  const now = Date.now();
+  if (now - TURF_LAST_AUTO_REFRESH < minimumInterval) return;
+  TURF_LAST_AUTO_REFRESH = now;
+  TURF_REFRESH_RUNNING = true;
+  try {
+    await turfLoadUpcoming(true);
+    if (TURF_SELECTED_RACE) await turfRefreshRaceOdds();
+  } finally {
+    TURF_REFRESH_RUNNING = false;
+  }
 }
 
 async function turfLoadSources() {
