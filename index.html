@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PGI BetPro HTML v22 — Live Scan borné + tickers multisports résilients, interface intégrale PMU/HKJC -->
+<!-- PGI BetPro HTML v23 — HKJC date Paris, états fiables, anti-quota — Live Scan borné + tickers multisports résilients, interface intégrale PMU/HKJC -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -1129,11 +1129,13 @@ a{color:var(--neon);text-decoration:none}
     <div class="bg" id="hkjc-track-buttons" style="margin-bottom:10px;flex-wrap:wrap">
       <button class="fbtn on" data-track="ST" onclick="hkjcSetTrack('ST',this)">Sha Tin</button>
       <button class="fbtn" data-track="HV" onclick="hkjcSetTrack('HV',this)">Happy Valley</button>
-      <button class="fbtn" data-track="CH" onclick="hkjcSetTrack('CH',this)">Conghua</button>
+      <button class="fbtn" data-track="CH" onclick="hkjcSetTrack('CH',this)">Conghua (entraînement)</button>
     </div>
     <div class="bg" id="hkjc-market-buttons" style="margin-bottom:10px;flex-wrap:wrap">
       <button class="fbtn" data-market="WIN" onclick="hkjcSetMarket('WIN',this)">&#129351; Simple Gagnant</button>
       <button class="fbtn on" data-market="PLACE" onclick="hkjcSetMarket('PLACE',this)">&#127942; Simple Placé</button>
+      <label for="hkjc-date-filter" style="font-size:11px;color:var(--dm);margin-left:8px">Date de réunion</label>
+      <input id="hkjc-date-filter" aria-label="Date de réunion HKJC" type="date" onchange="hkjcSetDate(this.value)" style="background:var(--bg2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:7px 9px;font-size:11px">
       <button class="btn bp" onclick="hkjcLoad()">&#128260; Actualiser</button>
     </div>
     <div id="hkjc-races"></div>
@@ -7148,25 +7150,136 @@ function suggestBet(){ const tc = bjCalculateTrueCount().trueCount; return bjSug
 //  PGI • BetPro — HKJC HONG KONG (frontend)
 // ═══════════════════════════════════════════════════════════════════════
 let hkjcTrack='ST',hkjcMarket='PLACE',hkjcTimer=null,hkjcLoaded=false;
-function hkjcHongKongDate(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(_){return new Date().toISOString().slice(0,10);}}
-function hkjcPct(v){const n=Number(v);return Number.isFinite(n)?(n*100).toFixed(1)+' %':'—';}
-function hkjcNum(v,d=2){const n=Number(v);return Number.isFinite(n)?n.toFixed(d):'—';}
+let hkjcSelectedDate='',hkjcInFlight=false,hkjcPendingReload=false,hkjcLastRefresh=0,hkjcRetryAfter=0;
+// Affichage par défaut sur la date de Paris : à 17h en France, Hong Kong est
+// déjà au lendemain. L'utilisateur garde accès à la réunion du jour français.
+function hkjcParisDate(){
+  try {
+    const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+    return p.year+'-'+p.month+'-'+p.day;
+  } catch(_) { return new Date().toISOString().slice(0,10); }
+}
+function hkjcHongKongDate(){
+  try {
+    const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+    return p.year+'-'+p.month+'-'+p.day;
+  } catch(_) { return new Date().toISOString().slice(0,10); }
+}
+function hkjcDefaultMeetingDate(){
+  const today=hkjcParisDate(),base=new Date(today+'T12:00:00Z');
+  // Réunions HKJC régulières le mercredi et le dimanche. En l'absence
+  // de réunion aujourd'hui, proposer la prochaine date probable au lieu
+  // d'afficher automatiquement une journée sans courses.
+  for(let offset=0;offset<7;offset++){
+    const d=new Date(base.getTime()+offset*86400000),weekday=d.getUTCDay();
+    if(weekday===0||weekday===3)return d.toISOString().slice(0,10);
+  }
+  return today;
+}
+function hkjcInitDate(){
+  if(!hkjcSelectedDate)hkjcSelectedDate=hkjcDefaultMeetingDate();
+  const input=document.getElementById('hkjc-date-filter');
+  if(input&&input.value!==hkjcSelectedDate)input.value=hkjcSelectedDate;
+  return hkjcSelectedDate;
+}
+function hkjcSetDate(v){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(v||'')))return;
+  hkjcSelectedDate=v;hkjcRetryAfter=0;hkjcLoad();
+}
+function hkjcOfficialLinks(date=hkjcInitDate()){
+  const dateArg=encodeURIComponent(date.replace(/-/g,'/'));
+  const track=(hkjcTrack==='HV'?'HV':'ST');
+  const official='https://racing.hkjc.com/en-us/local/information/';
+  const entries=official+'entries?racedate='+dateArg+'&Racecourse='+track;
+  const results=official+'localresults?racedate='+dateArg+'&Racecourse='+track;
+  return '<div style="font-size:10px;color:var(--dm);margin:9px 0;line-height:1.7">'
+    +'Réunion consultée : <strong>'+esc(date)+'</strong> · '+'<a href="'+entries+'" target="_blank" rel="noopener noreferrer" style="text-decoration:underline">Programme officiel HKJC</a>'
+    +' · <a href="'+results+'" target="_blank" rel="noopener noreferrer" style="text-decoration:underline">Résultats officiels</a>'
+    +'</div>';
+}
+function hkjcPct(v){const n=Number(v);return v==null?'—':Number.isFinite(n)?(n*100).toFixed(1)+' %':'—';}
+function hkjcNum(v,d=2){const n=Number(v);return v==null?'—':Number.isFinite(n)?n.toFixed(d):'—';}
 function hkjcDateTime(v){if(!v)return'—';try{return new Date(v).toLocaleString('fr-FR',{timeZone:'Asia/Hong_Kong',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' HK';}catch(_){return esc(v);}}
-function hkjcSetTrack(track,btn){hkjcTrack=track;document.querySelectorAll('#hkjc-track-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcLoad();}
-function hkjcSetMarket(market,btn){hkjcMarket=market;document.querySelectorAll('#hkjc-market-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcLoad();}
-async function hkjcInit(){if(!hkjcLoaded){hkjcLoaded=true;await hkjcLoad();}hkjcStopAutoRefresh();hkjcTimer=setInterval(()=>{if(!document.hidden && document.getElementById('s-hkjc')?.classList.contains('on'))hkjcLoad(true);},60000);}
+function hkjcSetTrack(track,btn){hkjcTrack=track;document.querySelectorAll('#hkjc-track-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcRetryAfter=0;hkjcLoad();}
+function hkjcSetMarket(market,btn){hkjcMarket=market;document.querySelectorAll('#hkjc-market-buttons .fbtn').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');hkjcRetryAfter=0;hkjcLoad();}
+async function hkjcInit(){
+  hkjcInitDate();
+  if(!hkjcLoaded){hkjcLoaded=true;await hkjcLoad();}
+  hkjcStopAutoRefresh();
+  hkjcTimer=setInterval(()=>{
+    if(document.hidden||!document.getElementById('s-hkjc')?.classList.contains('on'))return;
+    if(Date.now()<hkjcRetryAfter||hkjcInFlight||Date.now()-hkjcLastRefresh<300000)return;
+    hkjcLoad(true);
+  },60000);
+}
 function hkjcStopAutoRefresh(){if(hkjcTimer){clearInterval(hkjcTimer);hkjcTimer=null;}}
+function hkjcResponse(result){
+  if(result.status!=='fulfilled')throw result.reason||new Error('Réponse non reçue');
+  const d=result.value;
+  if(!d||d.ok===false)throw new Error(d?.error||'Source HKJC temporairement indisponible');
+  return d;
+}
+function hkjcErrorMessage(e){
+  const m=String(e?.message||e||'Erreur inconnue');
+  if(/exceeded D1|row read limit|rows read|D1.*quota|quota.*D1/i.test(m))return 'Quota de lecture Cloudflare D1 épuisé. Les courses ne sont pas absentes : leur consultation dans BetPro est temporairement bloquée.';
+  return m;
+}
 async function hkjcLoad(silent=false){
+  if(hkjcInFlight){hkjcPendingReload=true;return;}
+  hkjcInFlight=true;hkjcLastRefresh=Date.now();
   const statusEl=document.getElementById('hkjc-status'),racesEl=document.getElementById('hkjc-races'),cardsEl=document.getElementById('hkjc-cards'),verdictEl=document.getElementById('hkjc-verdict');
-  if(!statusEl||!racesEl||!cardsEl)return;
-  if(!silent){racesEl.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des réunions HKJC…</p></div>';cardsEl.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des probabilités '+esc(hkjcMarket)+'…</p></div>';}
-  const date=hkjcHongKongDate();
-  try{
-    const [status,races,pred]=await Promise.all([api('/api/hkjc/status'),api('/api/hkjc/races?date='+enc(date)+'&track='+enc(hkjcTrack)),api('/api/hkjc/predictions?date='+enc(date)+'&track='+enc(hkjcTrack)+'&market='+enc(hkjcMarket))]);
-    const c=status.counts||{},active=Number(c.active_models||0);
-    statusEl.innerHTML='<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center"><span class="bdg '+(active?'bgr':'bgo')+'">Modèles actifs : '+active+'</span><span class="bdg bsp">Réunions : '+Number(c.meetings||0)+'</span><span class="bdg bsp">Courses : '+Number(c.races||0)+'</span><span class="bdg bsp">Snapshots : '+Number(c.odds_snapshots||0)+'</span><span class="bdg bsp">Résultats : '+Number(c.results||0)+'</span><span class="bdg '+(status.bindings?.r2?'bgr':'bgo')+'">R2 '+(status.bindings?.r2?'connecté':'absent')+'</span></div><div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:7px">Source '+esc(status.source||'HKJC')+' · modèle '+esc(status.model_version||'—')+' · contrôle automatique toutes les 60 secondes sur cet écran.</div>';
-    hkjcRenderRaces(races.races||[],racesEl);verdictEl.className=pred.bets?.length?'info':'warn';verdictEl.textContent=pred.verdict||'Aucune sélection fiable actuellement.';hkjcRenderCards(pred.cards||[],cardsEl);
-  }catch(e){const msg='<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ HKJC : '+esc(e.message)+'</div><div style="font-size:10px;color:var(--dm);margin-top:6px">Erreur isolée : les autres sports et le PMU France continuent de fonctionner.</div></div>';if(!silent){racesEl.innerHTML=msg;cardsEl.innerHTML='';}}
+  if(!statusEl||!racesEl||!cardsEl){hkjcInFlight=false;return;}
+  const date=hkjcInitDate(),links=hkjcOfficialLinks(date);
+  if(!silent){racesEl.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement de la réunion du '+esc(date)+'…</p></div>';cardsEl.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des probabilités '+esc(hkjcMarket)+'…</p></div>';}
+  try {
+    if(hkjcTrack==='CH'){
+      statusEl.innerHTML='<div class="info">Conghua est suivi pour les entraînements. Aucune réunion publique locale n’est garantie pour cette piste sans flux agréé.</div>';
+      racesEl.innerHTML=links+'<div class="info">Sélectionne Sha Tin ou Happy Valley pour les réunions HKJC locales.</div>';
+      cardsEl.innerHTML='<div class="info">Prédictions non disponibles pour la piste d’entraînement Conghua.</div>';
+      verdictEl.textContent='Aucune réunion publique locale confirmée pour Conghua.';
+      return;
+    }
+    // Un service peut échouer sans masquer les réponses valides des autres.
+    const [rs,rr,rp]=await Promise.allSettled([
+      api('/api/hkjc/status'),
+      api('/api/hkjc/races?date='+enc(date)+'&track='+enc(hkjcTrack)),
+      api('/api/hkjc/predictions?date='+enc(date)+'&track='+enc(hkjcTrack)+'&market='+enc(hkjcMarket))
+    ]);
+    let hadErrors=false,quotaError=false;
+    try{
+      const status=hkjcResponse(rs),c=status.counts||{},active=Number(c.active_models||0);
+      const display=(key)=>c[key]==null?'Indisponible':Number(c[key]).toLocaleString('fr-FR');
+      statusEl.innerHTML='<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">'
+       +'<span class="bdg '+(active?'bgr':'bgo')+'">Modèles actifs : '+display('active_models')+'</span>'
+       +'<span class="bdg bsp">Réunions enregistrées : '+display('meetings')+'</span>'
+       +'<span class="bdg bsp">Courses enregistrées : '+display('races')+'</span>'
+       +'<span class="bdg bsp">Cotes enregistrées : '+display('odds_snapshots')+'</span>'
+       +'<span class="bdg bsp">Résultats enregistrés : '+display('results')+'</span></div>';
+    }catch(e){hadErrors=true;const msg=hkjcErrorMessage(e);quotaError=quotaError||msg.includes('Quota de lecture');statusEl.innerHTML='<div class="warn">État des collectes non vérifiable : '+esc(msg)+'</div>';}
+    try{
+      const races=hkjcResponse(rr);
+      racesEl.innerHTML=links;
+      if(Array.isArray(races.races)&&races.races.length){
+        const raceResults=document.createElement('div');racesEl.appendChild(raceResults);hkjcRenderRaces(races.races,raceResults);
+      }else{
+        racesEl.innerHTML+= '<div class="info">Aucune course enregistrée dans BetPro pour cette date et cette piste. Vérifie le programme officiel avant de conclure à l’absence de réunion.</div>';
+      }
+    }catch(e){hadErrors=true;const msg=hkjcErrorMessage(e);quotaError=quotaError||msg.includes('Quota de lecture');racesEl.innerHTML=links+'<div class="warn">Données de réunion non accessibles : '+esc(msg)+'</div>';}
+    try{
+      const pred=hkjcResponse(rp);
+      verdictEl.className=pred.bets?.length?'info':'warn';
+      verdictEl.textContent=pred.verdict||'Aucune sélection fiable actuellement.';
+      hkjcRenderCards(pred.cards||[],cardsEl);
+    }catch(e){hadErrors=true;const msg=hkjcErrorMessage(e);quotaError=quotaError||msg.includes('Quota de lecture');verdictEl.className='warn';verdictEl.textContent='Prédictions non disponibles : '+msg;cardsEl.innerHTML='<div class="warn">Aucune probabilité ne peut être certifiée pour cette réunion tant que les données manquent.</div>';}
+    if(hadErrors)hkjcRetryAfter=Date.now()+(quotaError?1800000:600000);
+    else hkjcRetryAfter=0;
+  }catch(e){
+    hkjcRetryAfter=Date.now()+600000;
+    const msg=esc(hkjcErrorMessage(e));
+    statusEl.innerHTML='<div class="warn">Diagnostic HKJC momentanément inaccessible : '+msg+'</div>';
+    racesEl.innerHTML=links+'<div class="warn">Données non accessibles : '+msg+'</div>';
+    cardsEl.innerHTML='<div class="warn">Aucune prédiction confirmée.</div>';
+  }finally{hkjcInFlight=false;if(hkjcPendingReload){hkjcPendingReload=false;hkjcLoad();}}
 }
 function hkjcRenderRaces(races,el){
   if(!races.length){el.innerHTML='<div class="empty"><div class="empty-i">🐎</div><div class="empty-t">Aucune réunion '+esc(hkjcTrack)+' chargée pour aujourd’hui</div><div style="font-size:10px;color:var(--dm);margin-top:5px">La collecte incrémentale conservera les prochaines réunions disponibles.</div></div>';return;}
