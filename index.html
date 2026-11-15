@@ -5320,11 +5320,11 @@ const TICKER_SPORT_COLORS = {
 };
 
 const TICKER_SPORT_ORDER = [
-  'soccer', 'mma', 'basketball', 'turf', 'tennis', 'rugby',
+  'soccer', 'boxing', 'mma', 'basketball', 'turf', 'tennis', 'rugby',
   'icehockey', 'baseball', 'americanfootball', 'handball', 'volleyball',
 ];
 const TICKER_LABELS = {
-  soccer:'⚽ FOOTBALL', mma:'🥊 MMA / BOXE', basketball:'🏀 BASKETBALL', turf:'🐎 PMU',
+  soccer:'⚽ FOOTBALL', boxing:'🥊 BOXE', mma:'🥋 MMA', basketball:'🏀 BASKETBALL', turf:'🐎 PMU',
   tennis:'🎾 TENNIS', rugby:'🏉 RUGBY', icehockey:'🏒 HOCKEY SUR GLACE',
   baseball:'⚾ BASEBALL', americanfootball:'🏈 FOOTBALL US', handball:'🤾 HANDBALL',
   volleyball:'🏐 VOLLEY-BALL',
@@ -5341,7 +5341,8 @@ function tickerCategory(sport) {
   if (value.includes('baseball')) return 'baseball';
   if (value.includes('handball')) return 'handball';
   if (value.includes('volley')) return 'volleyball';
-  if (value.includes('mma') || value.includes('boxing') || value.includes('boxe')) return 'mma';
+  if (value.includes('boxing') || value.includes('boxe')) return 'boxing';
+  if (value.includes('mma')) return 'mma';
   if (value.includes('soccer') || value === 'football' || value.includes('football_')) return 'soccer';
   return value || 'sport';
 }
@@ -5350,7 +5351,7 @@ function tickerCategory(sport) {
 // les traductions littérales erronées comme « panier de basket » et distingue
 // toujours le football européen du football américain.
 const TICKER_FRENCH_SPORT_NAMES = {
-  soccer:'football', mma:'MMA et boxe', basketball:'basketball', turf:'courses hippiques PMU',
+  soccer:'football', boxing:'boxe', mma:'arts martiaux mixtes (MMA)', basketball:'basketball', turf:'courses hippiques PMU',
   tennis:'tennis', rugby:'rugby', icehockey:'hockey sur glace', baseball:'baseball',
   americanfootball:'football américain et NFL', handball:'handball', volleyball:'volley-ball',
 };
@@ -5387,12 +5388,70 @@ function normalizeTickerFrenchText(text, sport) {
       .replace(/\bfootball américain\s*\/\s*NFL\b/gi, 'NFL');
   } else if (category === 'icehockey') {
     value = value.replace(/\bice hockey\b/gi, 'hockey sur glace');
-  } else if (category === 'mma') {
+  } else if (category === 'boxing') {
     value = value.replace(/\bboxing\b/gi, 'boxe');
+  } else if (category === 'mma') {
+    value = value.replace(/\bmixed martial arts\b/gi, 'MMA').replace(/\bboxing\b/gi,'boxe');
   } else if (category === 'volleyball') {
     value = value.replace(/\bvolleyball\b/gi, 'volley-ball');
   }
   return value.trim();
+}
+
+
+// Les pays participant aux rencontres internationales sont affichés en français.
+// Les noms de clubs, joueurs et combattants restent des noms propres inchangés.
+const TICKER_FRENCH_COUNTRIES={
+  'Albania':'Albanie','Armenia':'Arménie','Austria':'Autriche','Belarus':'Biélorussie',
+  'Belgium':'Belgique','Bosnia and Herzegovina':'Bosnie-Herzégovine',
+  'Croatia':'Croatie','Czech Republic':'République tchèque','Czechia':'Tchéquie',
+  'Denmark':'Danemark','England':'Angleterre','Finland':'Finlande','France':'France',
+  'Georgia':'Géorgie','Germany':'Allemagne','Greece':'Grèce','Hungary':'Hongrie',
+  'Iceland':'Islande','Ireland':'Irlande','Israel':'Israël','Italy':'Italie',
+  'Latvia':'Lettonie','Lithuania':'Lituanie','Montenegro':'Monténégro',
+  'Netherlands':'Pays-Bas','North Macedonia':'Macédoine du Nord','Northern Ireland':'Irlande du Nord',
+  'Norway':'Norvège','Poland':'Pologne','Portugal':'Portugal','Romania':'Roumanie',
+  'San Marino':'Saint-Marin','Scotland':'Écosse','Serbia':'Serbie',
+  'Slovakia':'Slovaquie','Slovenia':'Slovénie','Spain':'Espagne',
+  'Sweden':'Suède','Switzerland':'Suisse','Turkey':'Turquie',
+  'Ukraine':'Ukraine','Wales':'Pays de Galles','United States':'États-Unis'
+};
+function tickerFrenchMatchTitle(art){
+  const category=tickerCategory(art.sport);
+  const nationMatch=category==='soccer' && /(?:international|nations|euro|world_cup)/i.test(String(art.sport_key||'')+' '+String(art.description||''));
+  const translate=team=>{
+    const name=String(team||'').trim();
+    return nationMatch?(TICKER_FRENCH_COUNTRIES[name]||name):name;
+  };
+  const home=translate(art.home_name),away=translate(art.away_name);
+  if(home&&away)return home+' contre '+away;
+  return normalizeTickerFrenchText(art.title||'',art.sport).replace(/\s+-\s+/,' contre ');
+}
+// Traductions locales fidèles pour quelques titres ESPN au format répétitif.
+// Les autres titres doivent recevoir une vraie traduction avant publication.
+function tickerOfflineFrenchNews(art){
+  const s=String(art?.title||'').trim(),subject=tickerFrenchSportName(art?.sport);
+  let m=s.match(/^(.+?)\s+(?:face|faces)\s+(.+?)\s+on\s+(\d+)-game win streak$/i);
+  if(m)return `${m[1]} affronte ${m[2]} après ${m[3]} victoires consécutives`;
+  m=s.match(/^(.+?)\s+take(?:s)? on\s+(.+?)\s+on\s+(\d+)-game skid$/i);
+  if(m)return `${m[1]} affronte ${m[2]} après ${m[3]} défaites consécutives`;
+  m=s.match(/^(.+?)\s+and\s+(.+?)\s+face off in conference matchup$/i);
+  if(m)return `${m[1]} et ${m[2]} s'affrontent dans leur conférence`;
+  m=s.match(/^(.+?)\s+(?:vs\.?|versus)\s+(.+?)$/i);
+  if(m)return `${m[1]} contre ${m[2]}`;
+  m=s.match(/^(.+?)\s+(?:hosts|host)\s+(.+?)$/i);
+  if(m)return `${m[1]} reçoit ${m[2]}`;
+  if(/Sunday's fantasy basketball adds and bets to make in the NBA/i.test(s))
+    return 'NBA : sélections fantasy et paris à examiner ce dimanche';
+  return null;
+}
+function tickerHasFrenchArticleTitle(art){
+  if(art?.is_match||art?._turfRaceId)return true;
+  const title=String(art?._translatedTitle||'').trim();
+  if(!title||title.toLocaleLowerCase('fr')===String(art?.title||'').trim().toLocaleLowerCase('fr'))return false;
+  // Détecte une traduction restée massivement en anglais.
+  if(/\b(?:faces|face off|win streak|skid|take on|against|preview|breaking|ranking|players to watch|recap)\b/i.test(title))return false;
+  return true;
 }
 
 function tickerTranslationFingerprint(art) {
@@ -5529,6 +5588,8 @@ function betproTickerFutureMatches(items){
     ids.add(x.event_id);return true;
   }).map(x=>{
     const clean={...x};
+    if(/^boxing(?:_|$)/i.test(String(clean.sport_key||'')))clean.sport='boxing';
+    else if(/^mma(?:_|$)/i.test(String(clean.sport_key||'')))clean.sport='mma';
     if(clean.market_consensus?.status==='ok'){
       const checked=Date.parse(clean.market_consensus.last_odds_at||''),start=Date.parse(clean.event_start_at),maxAge=start-now<=86400000?21600000:86400000;
       if(!Number.isFinite(checked)||checked>now+30000||now-checked>maxAge)clean.market_consensus=null;
@@ -5574,7 +5635,7 @@ async function getTurfTickerArticles(){
 }
 
 async function getSportTickerArticles(){
-  const sports='soccer,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
+  const sports='soccer,boxing,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
   const local=betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE));
   try{
     const data=await api('/api/ticker?sports='+enc(sports),'GET',null,{timeoutMs:14000});
@@ -5644,7 +5705,7 @@ async function loadTicker() {
     const sportCategories = new Set(news.filter(item => tickerCategory(item.sport) !== 'turf').map(item => tickerCategory(item.sport)));
     const hasTurf = news.some(item => tickerCategory(item.sport) === 'turf');
     const degraded = !!sportPayload.meta?.degraded;
-    const completeMultisport = sportCategories.size >= 10;
+    const completeMultisport = sportCategories.size >= 11;
     if (source) source.textContent = news.length
       ? `${news.filter(x=>x.is_match).length} rencontres · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
       : 'Flux momentanément indisponible';
@@ -5673,10 +5734,18 @@ async function loadTicker() {
         art._translatedTitle = normalizeTickerFrenchText(cached.title || art.title, art.sport);
         art._translatedDescription = normalizeTickerFrenchText(cached.description || art.description, art.sport);
       } else {
-        art._translationCacheKey = cacheKey;
-        toTranslate.push(art);
+        const offline=tickerOfflineFrenchNews(art);
+        if(offline){
+          art._translatedTitle=offline;
+          art._translatedDescription='';
+          translationCache[cacheKey]={title:offline,description:'',at:Date.now()};
+        } else {
+          art._translationCacheKey=cacheKey;
+          toTranslate.push(art);
+        }
       }
     }
+    tickerWriteTranslationCache(translationCache);
 
     if (toTranslate.length) {
       try {
@@ -5713,8 +5782,9 @@ ${blocks}`}]
           if (!art) return;
           const titleMatch = block.match(/(?:^|\n)\s*TITRE\s*:\s*([^\n]+)/i);
           const descriptionMatch = block.match(/(?:^|\n)\s*DESCRIPTION\s*:\s*([\s\S]*)$/i);
-          const translatedTitle = normalizeTickerFrenchText(titleMatch?.[1] || art.title, art.sport);
-          const translatedDescription = normalizeTickerFrenchText(descriptionMatch?.[1] || art.description, art.sport);
+          if(!titleMatch?.[1]?.trim())return;
+          const translatedTitle = normalizeTickerFrenchText(titleMatch[1], art.sport);
+          const translatedDescription = normalizeTickerFrenchText(descriptionMatch?.[1] || '', art.sport);
           art._translatedTitle = translatedTitle;
           art._translatedDescription = translatedDescription;
           translationCache[art._translationCacheKey] = {
@@ -5730,8 +5800,8 @@ ${blocks}`}]
     const renderItem = (art) => {
       const style = getTickerStyle(art.sport||'');
       const label = art._label || TICKER_LABELS[tickerCategory(art.sport)] || '🏆 SPORT';
-      const displayTitle = normalizeTickerFrenchText(art._translatedTitle || art.title || '', art.sport);
-      const displayDescription = normalizeTickerFrenchText(art._translatedDescription || art.description || '', art.sport);
+      const displayTitle = art.is_match&&!art._turfRaceId ? tickerFrenchMatchTitle(art) : normalizeTickerFrenchText(art._translatedTitle || art.title || '', art.sport);
+      const displayDescription = normalizeTickerFrenchText((art.is_match||art._turfRaceId)?(art.description||''):(art._translatedDescription||''), art.sport);
       const marketLine = tickerMatchMarketHtml(art);
 
       let dateStr = '';
@@ -5766,7 +5836,10 @@ ${blocks}`}]
       </div>`;
     };
 
-    const html = sorted.map(renderItem).join('');
+    // Conserver toutes les rencontres; un article ESPN sans titre français
+    // reste en réserve jusqu'à traduction vérifiable, sans titre anglais affiché.
+    const visibleItems=sorted.filter(tickerHasFrenchArticleTitle);
+    const html = visibleItems.map(renderItem).join('');
     inner.innerHTML = html;
     if (clone) clone.innerHTML = html;
 
