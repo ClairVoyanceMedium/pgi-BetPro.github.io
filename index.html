@@ -5438,10 +5438,10 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 76) {
   const buckets=new Map();
   for(const [category,group] of groups){
     let entries;
-    if(group.matches.length&&group.articles.length){
-      // Deux véritables articles restent visibles parmi six rencontres.
-      entries=[group.matches[0],group.articles[0],group.matches[1],group.articles[1],...group.matches.slice(2,6)].filter(Boolean);
-    }else entries=(group.matches.length?group.matches:group.articles).slice(0,8);
+    if(group.matches.length){
+      // Rencontres prioritaires pour chaque sport, articles conservés en complément.
+      entries=[...group.matches.slice(0,7),...group.articles.slice(0,1)];
+    }else entries=group.articles.slice(0,8);
     buckets.set(category,entries);
   }
   const extraCategories=[...buckets.keys()].filter(x=>!TICKER_SPORT_ORDER.includes(x)).sort();
@@ -5513,59 +5513,87 @@ function renderTickerSafetyFallback(message='Actualisation des actualités sport
 // dans le même format que les articles sportifs. Best-effort : si la
 // source PMU échoue, le ticker continue avec les autres sports sans
 // bloquer ni afficher d'erreur (même philosophie que le reste du ticker).
-async function getTurfTickerArticles() {
-  try {
-    const d = await api('/api/turf/upcoming?date_filter=today','GET',null,{timeoutMs:10000});
-    const now = Date.now();
-    const allRaces = d.races||[];
-    // Afficher d'abord les courses réellement à venir. Le Worker v5 fournit
-    // start_time en ISO ; le repli date+heure garde la compatibilité avec v4.
-    let races = allRaces.filter(r => {
-      if (r.start_time) return new Date(r.start_time).getTime() >= now - 5*60000;
-      if (r.date && r.time) {
-        // Worker v4 exposait r.time en UTC sans le préciser.
-        const t = new Date(`${r.date}T${r.time}:00Z`).getTime();
-        return Number.isFinite(t) && t >= now - 5*60000;
-      }
-      return true;
-    }).slice(0, 4);
-    // Si toutes les courses sont terminées, montrer les dernières courses du
-    // jour avec une indication claire au lieu de faire disparaître le PMU.
-    const completedFallback = !races.length;
-    if (completedFallback) races = allRaces.slice(-3).reverse();
-    return races.map(r => {
-      const displayTime = r.start_time
-        ? new Date(r.start_time).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'})
-        : (r.date&&r.time ? new Date(`${r.date}T${r.time}:00Z`).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'}) : (r.time||'?'));
-      return ({
-      sport: 'turf',
-      title: `${r.hippodrome} ${r.reunion}${r.race_number} — ${r.race_name||'Course PMU'}`,
-      description: `${completedFallback?'Terminée · ':''}${r.discipline||''}${r.distance?' · '+r.distance+'m':''}${r.runners_count?' · '+r.runners_count+' partants':''}${r.is_quinte?' · QUINTÉ+':''} · Départ ${displayTime}`,
-      published: r.start_time || new Date().toISOString(),
-      link: '', is_match: true, _label: '🐎 PMU',
-      _turfRaceId: r.race_id,
-      });
+// Secours local sans consommation D1 : le dernier calendrier vérifié est conservé
+// si un fournisseur ou le quota Cloudflare devient temporairement indisponible.
+const BETPRO_TICKER_FIXTURES_STORE='pgi_betpro_ticker_fixtures_v125';
+const BETPRO_TICKER_TURF_STORE='pgi_betpro_ticker_turf_v125';
+function betproTickerReadLocal(key){
+  try { const o=JSON.parse(localStorage.getItem(key)||'null');
+    return o&&Array.isArray(o.items)?o.items:[]; }catch(_){return [];}
+}
+function betproTickerFutureMatches(items){
+  const now=Date.now(),ids=new Set();
+  return (Array.isArray(items)?items:[]).filter(x=>{
+    const start=Date.parse(x?.event_start_at||'');
+    if(!x?.is_match||!x.event_id||!x.home_name||!x.away_name||!Number.isFinite(start)||start<=now+120000||ids.has(x.event_id))return false;
+    ids.add(x.event_id);return true;
+  }).map(x=>{
+    const clean={...x};
+    if(clean.market_consensus?.status==='ok'){
+      const checked=Date.parse(clean.market_consensus.last_odds_at||''),start=Date.parse(clean.event_start_at),maxAge=start-now<=86400000?21600000:86400000;
+      if(!Number.isFinite(checked)||checked>now+30000||now-checked>maxAge)clean.market_consensus=null;
+    }
+    return clean;
+  }).slice(0,100);
+}
+function betproTickerSaveLocal(key,items){
+  try{localStorage.setItem(key,JSON.stringify({items,at:new Date().toISOString()}));}catch(_){}
+}
+async function getTurfTickerArticles(){
+  const fetchDay=async(dateFilter)=>{
+    const response=await api('/api/turf/upcoming?date_filter='+enc(dateFilter),'GET',null,{timeoutMs:11000});
+    return Array.isArray(response?.races)?response.races:[];
+  };
+  const now=Date.now();
+  try{
+    let races=await fetchDay('today');
+    races=races.filter(r=>{
+      const time=Date.parse(r.start_time||'');
+      if(Number.isFinite(time))return time>=now-300000;
+      if(r.date&&r.time){const alt=Date.parse(`${r.date}T${r.time}:00Z`);return Number.isFinite(alt)&&alt>=now-300000;}
+      return false;
+    }).sort((a,b)=>Date.parse(a.start_time||0)-Date.parse(b.start_time||0));
+    // Une fois les courses du jour terminées, publier celles de demain,
+    // jamais d'anciennes courses présentées comme de prochaines épreuves.
+    if(!races.length){
+      races=(await fetchDay('tomorrow')).filter(r=>Number.isFinite(Date.parse(r.start_time||''))&&Date.parse(r.start_time)>now).sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time));
+    }
+    const selected=races.slice(0,8),items=selected.map(r=>{
+      const time=Date.parse(r.start_time||'');
+      const displayTime=Number.isFinite(time)?new Date(time).toLocaleString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):String(r.time||'');
+      return {sport:'turf',title:`${r.hippodrome} ${r.reunion}${r.race_number} — ${r.race_name||'Course PMU'}`,
+        description:[r.discipline||'',r.distance?r.distance+' m':'',r.runners_count?r.runners_count+' partants':'',r.is_quinte?'QUINTÉ+':'','Départ '+displayTime].filter(Boolean).join(' · '),
+        published:r.start_time||new Date().toISOString(),link:'',is_match:true,_label:'🐎 PMU',_turfRaceId:r.race_id};
     });
-  } catch(e) {
-    console.warn('Ticker PMU indisponible:', e && e.message ? e.message : e);
-    return [];
+    if(items.length)betproTickerSaveLocal(BETPRO_TICKER_TURF_STORE,items);
+    return items.length?items:betproTickerReadLocal(BETPRO_TICKER_TURF_STORE).filter(x=>Date.parse(x.published||'')>now-300000).slice(0,8);
+  }catch(e){
+    console.warn('Ticker PMU : reprise du dernier calendrier enregistré.',e?.message||e);
+    return betproTickerReadLocal(BETPRO_TICKER_TURF_STORE).filter(x=>Date.parse(x.published||'')>now-300000).slice(0,8);
   }
 }
 
-async function getSportTickerArticles() {
-  const sports = 'soccer,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
-  try {
-    const data = await api('/api/ticker?sports='+enc(sports),'GET',null,{timeoutMs:12000});
-    return { items:data.items||[], meta:data };
-  } catch (tickerError) {
-    // Compatibilité avec un Worker plus ancien pendant un déploiement en deux
-    // temps. Le Worker v16 répond à /api/ticker avec un secours D1 natif.
-    try {
-      const legacy = await api('/api/news?sports='+enc(sports),'GET',null,{timeoutMs:12000});
-      return { items:legacy.news||[], meta:legacy };
-    } catch (_) {
-      console.warn('Ticker multisports indisponible:', tickerError && tickerError.message ? tickerError.message : tickerError);
-      return { items:[], meta:{ degraded:true, sports_available:[] } };
+async function getSportTickerArticles(){
+  const sports='soccer,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
+  const local=betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE));
+  try{
+    const data=await api('/api/ticker?sports='+enc(sports),'GET',null,{timeoutMs:14000});
+    const incoming=Array.isArray(data?.items)?data.items:[];
+    const matches=betproTickerFutureMatches(incoming.filter(x=>x?.is_match));
+    const unique=new Set(matches.map(x=>String(x.event_id)));
+    const restored=local.filter(x=>!unique.has(String(x.event_id)));
+    const combined=[...matches,...restored].sort((a,b)=>Date.parse(a.event_start_at)-Date.parse(b.event_start_at));
+    if(combined.length)betproTickerSaveLocal(BETPRO_TICKER_FIXTURES_STORE,combined);
+    return{items:[...combined,...incoming.filter(x=>!x?.is_match&&!x?.is_status)],
+      meta:{...data,fixtures_visible:combined.length,fixtures_from_local:restored.length}};
+  }catch(error){
+    // La panne de l'API principale ne transforme plus le flux en simples titres.
+    try{
+      const legacy=await api('/api/news?sports='+enc(sports),'GET',null,{timeoutMs:11000});
+      return{items:[...local,...(legacy.news||[])],meta:{...legacy,degraded:true,fixtures_from_local:local.length}};
+    }catch(_){
+      console.warn('Ticker multisports temporairement indisponible:',error?.message||error);
+      return{items:local,meta:{degraded:true,fixtures_from_local:local.length}};
     }
   }
 }
@@ -5618,7 +5646,7 @@ async function loadTicker() {
     const degraded = !!sportPayload.meta?.degraded;
     const completeMultisport = sportCategories.size >= 10;
     if (source) source.textContent = news.length
-      ? `${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
+      ? `${news.filter(x=>x.is_match).length} rencontres · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
       : 'Flux momentanément indisponible';
     if (!news.length) {
       if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
