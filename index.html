@@ -199,12 +199,13 @@ a{color:var(--neon);text-decoration:none}
 .scan-main-btn.ready:hover{transform:translateY(-2px);box-shadow:0 6px 32px rgba(239,68,68,.55)}
 .scan-main-btn.scanning{background:rgba(239,68,68,.2);color:var(--tx);border:1px solid rgba(239,68,68,.4);cursor:not-allowed}
 /* Deux moteurs visuellement distincts et indépendants. */
-.betpro-dual-scan{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.betpro-dual-scan{display:flex;flex-direction:column;gap:11px}
 .betpro-dual-scan .scan-main-btn{min-width:0;min-height:60px;font-size:12px;line-height:1.4;padding:12px 10px}
 .scan-main-btn.classic-ready{background:linear-gradient(135deg,#b5a3ff,#8e70f1);color:#140d27;box-shadow:0 4px 22px rgba(167,139,250,.32)}
 .scan-main-btn.classic-ready:hover{transform:translateY(-2px);box-shadow:0 6px 30px rgba(167,139,250,.5)}
 .scan-main-btn.classic-ready:disabled{opacity:.7}
-.scan-main-btn.engine-selected{outline:2px solid #e9dcff;outline-offset:2px}
+.scan-main-btn.engine-selected{outline:none;box-shadow:0 0 0 2px #68479b,0 4px 22px rgba(167,139,250,.25)}
+.scan-main-btn.ready.engine-selected{box-shadow:0 0 0 2px #7f3038,0 4px 22px rgba(239,68,68,.25)}
 .classic-engine-mode{font:600 10px var(--mo);color:#d8c9ff;margin-top:10px;line-height:1.6}
 .classic-card{border:1px solid rgba(167,139,250,.33);background:var(--sf);border-radius:8px;overflow:hidden;margin-bottom:10px}
 .classic-card .classic-head{background:rgba(167,139,250,.11);padding:8px 13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -217,7 +218,8 @@ a{color:var(--neon);text-decoration:none}
 .classic-card .classic-label{color:#c0cadf;font:600 9px var(--mo);margin-top:3px}
 .classic-engine-switch{padding:8px 13px;min-width:145px;font-weight:800;color:#eadfff;border:1px solid rgba(167,139,250,.5);background:rgba(167,139,250,.09);border-radius:7px;cursor:pointer}
 .classic-engine-switch.benter{color:#ffcece;border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08)}
-.classic-engine-switch.on{outline:2px solid currentColor;outline-offset:1px}
+.classic-engine-switch.on{outline:none;box-shadow:0 0 0 2px #68479b}
+.classic-engine-switch.benter.on{box-shadow:0 0 0 2px #7f3038}
 @media(max-width:480px){.betpro-dual-scan{gap:7px}.betpro-dual-scan .scan-main-btn{font-size:10.5px;padding:10px 5px;min-height:59px}.classic-card .classic-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .scan-radar{width:22px;height:22px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rotateScan .6s linear infinite}
 .bk-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;font-family:var(--hd);font-weight:700;cursor:pointer;border:none;transition:all .2s}
@@ -609,11 +611,11 @@ a{color:var(--neon);text-decoration:none}
       </div>
     </div>
     <div class="betpro-dual-scan" role="group" aria-label="Sélectionner la stratégie du Scan Live">
-      <button class="scan-main-btn ready" id="scan-btn" onclick="setBetProEngine('benter');doLiveScan()" aria-label="Lancer le Scan Live Benter">
-        <span id="scan-btn-ico">&#128308;</span><span id="scan-btn-txt">SCAN LIVE BENTER</span>
-      </button>
       <button class="scan-main-btn classic-ready" id="scan-classic-btn" onclick="setBetProEngine('classic');doClassicScan()" aria-label="Lancer le Scan Live Classique">
         <span id="scan-classic-ico">&#128995;</span><span id="scan-classic-txt">SCAN LIVE CLASSIQUE</span>
+      </button>
+      <button class="scan-main-btn ready" id="scan-btn" onclick="setBetProEngine('benter');doLiveScan()" aria-label="Lancer le Scan Live Benter">
+        <span id="scan-btn-ico">&#128308;</span><span id="scan-btn-txt">SCAN LIVE BENTER</span>
       </button>
     </div>
     <div class="classic-engine-mode" id="scan-engine-indicator" role="status">Mode actuel : Classique. Cotes internationales, sans apprentissage Benter.</div>
@@ -4368,39 +4370,91 @@ function setBetProEngine(engine){
 function betproClassicPct(value){const v=Number(value);return Number.isFinite(v)&&v>=0&&v<=1?(v*100).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %':'—';}
 function betproClassicDate(value){const d=new Date(value||'');return Number.isFinite(d.getTime())?d.toLocaleString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Date non disponible';}
 function betproClassicSportIcon(sport){const x=String(sport||'').toLowerCase();return x.includes('soccer')?'⚽':x.includes('basket')?'🏀':x.includes('tennis')?'🎾':x.includes('hockey')?'🏒':x.includes('baseball')?'⚾':x.includes('handball')?'🤾':x.includes('volley')?'🏐':x.includes('rugby')?'🏉':x.includes('mma')||x.includes('box')?'🥊':x.includes('americanfootball')?'🏈':'🏆';}
-function betproClassicCard(match,idx){
-  const c=match.consensus||{},ok=c.status==='ok',home=String(match.home_name||match.home||'?'),away=String(match.away_name||match.away||'?');
-  const score=match.score||null,hasLiveScore=!!score&&(score.home!=null||score.away!=null);
-  const label=String(match.competition||match.sport||'Rencontre'),start=betproClassicDate(match.start_time||match.event_start_at);
-  const fav=ok?String(c.favorite||''):'';
-  const quality=ok?String(c.quality||'modéré'):'';
-  const confidence=ok&&c.consensus_score!=null?Math.min(100,Math.max(0,Math.round(Number(c.consensus_score)))):null;
-  const v=match.classic_value||null;
-  const valueDetails=ok&&v&&Number(v.best_price)>1?`<div style="margin-top:8px;padding:8px 9px;border:1px solid rgba(167,139,250,.22);background:rgba(167,139,250,.06);border-radius:6px">
-     <div class="classic-subtext">Meilleure cote disponible : <strong style="color:#eddfff">${Number(v.best_price).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> · ${esc(v.best_bookmaker||'source inconnue')}</div>
-     <div class="classic-subtext">EV théorique du favori : <strong style="color:${Number(v.estimated_ev_pct)>=0?'#afffd4':'#ffb5b5'}">${Number(v.estimated_ev_pct).toLocaleString('fr-FR',{maximumFractionDigits:1})} %</strong> · ${v.positive_value?'Cote potentiellement intéressante':'Aucune surcote robuste confirmée'}</div>
-     ${v.arbitrage_theoretical?'<div class="classic-subtext" style="color:#ffdb88">Arbitrage mathématique théorique, sous réserve de disponibilité, frais et limites.</div>':''}
-     <div class="classic-subtext" style="font-size:9px">EV calculée à partir des mêmes cotes. Ne constitue pas une validation indépendante ni une promesse de gain.</div>
-    </div>`:'';
-  const marketHtml=ok?`<div style="font:700 12px var(--hd);color:#e9d5ff;margin:9px 0 4px">Favori bookmakers : ${esc(fav)} <span style="font:800 17px var(--mo);color:#b9ffc9">${betproClassicPct(c.probability)}</span></div>
-    <div class="classic-stats">
-      <div class="classic-stat"><div class="classic-value">${betproClassicPct(c.home_probability)}</div><div class="classic-label">${esc(home)}</div></div>
-      ${c.draw_probability!=null?`<div class="classic-stat"><div class="classic-value">${betproClassicPct(c.draw_probability)}</div><div class="classic-label">Match nul</div></div>`:''}
-      <div class="classic-stat"><div class="classic-value">${betproClassicPct(c.away_probability)}</div><div class="classic-label">${esc(away)}</div></div>
-      <div class="classic-stat"><div class="classic-value">${esc(Number(c.median_market_odds||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}))}</div><div class="classic-label">Cote médiane du favori</div></div>
-    </div><div class="classic-subtext" style="margin-top:8px">${Number(c.bookmakers)||0} bookmakers indépendants · Accord ${Number(c.agreement)||0}/${Number(c.bookmakers)||0} · Consensus ${esc(quality)}${confidence!==null?' · Indice de cohérence '+confidence+'/100':''}</div>
-    <div class="classic-subtext">Dernière cote : ${esc(betproClassicDate(c.last_odds_at))} · Probabilités de marché corrigées de la marge, non validées par Benter.</div>${valueDetails}`:
-  '<div class="classic-subtext" style="margin-top:10px">Aucun favori fiable disponible sur ce marché actuellement. La rencontre reste affichée sans estimation inventée.</div>';
-  const liveBadge=match.is_live?'<span class="bdg blv">LIVE</span>':'';
-  return `<div class="classic-card" data-sport="${esc(match.sport||'')}" data-engine="classic">
-    <div class="classic-head"><span class="classic-title">SCAN LIVE CLASSIQUE</span><span class="bdg bmk">${esc(match.sport_label||'Multi-sports')}</span>${liveBadge}${hasLiveScore?`<span style="margin-left:auto;color:var(--neon);font:800 15px var(--mo)">${esc(String(score.home??'-'))} : ${esc(String(score.away??'-'))}</span>`:''}</div>
-    <div class="classic-body"><div style="font:800 13px var(--hd);color:var(--tx)">${betproClassicSportIcon(match.sport)} ${esc(home)} <span style="color:#9baec7">vs</span> ${esc(away)}</div>
-    <div class="classic-subtext" style="margin-top:4px">${esc(label)} · ${esc(start)} (Paris) ${match.is_live?'· EN COURS':''}</div>${marketHtml}</div></div>`;
+// Carte Classique : mêmes classes, mêmes couleurs et même composition que la
+// carte historique rendue par renderDirectionCard du HTML fourni par l'utilisateur.
+// Aucun passage par computeDirection ou les probabilités du moteur Benter.
+function betproClassicToggleCard(el,evt){
+  if(evt&&evt.target.closest('button,a,input'))return;
+  el.classList.toggle('xp');
+  el.setAttribute('aria-expanded',el.classList.contains('xp')?'true':'false');
 }
+function betproClassicCard(match,idx){
+  const c=match.consensus||{},ind=match.indicative||{},verified=c.status==='ok',oneSource=!verified&&ind.status==='single_source';
+  const quote=verified?c:oneSource?ind:null,hasMarket=!!quote;
+  const home=String(match.home_name||match.home||'?'),away=String(match.away_name||match.away||'?');
+  const competition=String(match.competition||match.sport_label||match.sport||'Rencontre');
+  const score=match.score||null,scoreKnown=!!score&&(score.home!=null||score.away!=null);
+  const isLive=!!match.is_live;
+  const startValue=match.start_time||match.event_start_at;
+  const start=betproClassicDate(startValue),sport=String(match.sport||'');
+  const marketValue=verified?match.classic_value:null;
+  const consistency=verified&&Number.isFinite(Number(c.consensus_score))?Math.max(0,Math.min(95,Math.round(Number(c.consensus_score)))):null;
+  const positiveValue=verified&&!!marketValue?.positive_value;
+  const strong=verified&&positiveValue&&consistency>=75;
+  const tier=strong?'dir-play':'dir-watch';
+  const color=strong?'var(--gr)':'var(--am)';
+  const verdict=strong?'TENDANCE DE MARCHÉ FORTE':verified?'TENDANCE DES BOOKMAKERS':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
+  const headValue=verified&&consistency!==null?consistency+'/100':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
+  const headCaption=verified&&consistency!==null?'cohérence des cotes':oneSource?'cote isolée':'statut';
+  const fav=hasMarket?String(quote.favorite||''):'',prob=hasMarket?betproClassicPct(quote.probability):'';
+  const price=verified?(Number(marketValue?.best_price)>1?Number(marketValue.best_price):Number(c.median_market_odds||0)):Number(ind.market_odds||0);
+  const priceDisplay=Number.isFinite(price)&&price>1?price.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}):null;
+  const quoteRows=Array.isArray(match.bookmaker_quotes)?match.bookmaker_quotes.filter(v=>Number(v.odds)>1).slice(0,8):[];
+  const n=verified?Number(c.bookmakers||0):oneSource?1:0;
+  const marketType=(c.draw_included||quote?.draw_probability!=null||/^(soccer_|handball_)/.test(sport))?'1X2':'Gagnant';
+  const bettingLabel=verified?'Favori estimé par le marché':oneSource?'Tendance d’un bookmaker':scoreKnown?'Score en direct':'Rencontre enregistrée';
+  const chosenLabel=hasMarket?fav:scoreKnown?`${score.home??'–'} – ${score.away??'–'}`:'Match à venir';
+  const oddsBlock=priceDisplay?`<span class="dir-odds">@ ${priceDisplay}</span>`:'';
+  const pBlock=hasMarket?`<span class="dir-prob" style="color:#cdd9e8">Probabilité de marché : ${prob}</span>`:'';
+  const evBlock=positiveValue&&marketValue?`<span class="dir-ev pos">EV théorique +${esc(Number(marketValue.estimated_ev_pct).toLocaleString('fr-FR',{maximumFractionDigits:1}))} %</span>`:'';
+  const details=verified?
+   `Consensus de ${n} bookmaker(s) indépendants. Accord sur le favori : ${Number(c.agreement)||0}/${n}. Les probabilités proviennent des cotes corrigées de la marge, pas du modèle Benter.`:
+   oneSource?`Estimation normalisée tirée d’une seule cote complète (${esc(ind.bookmaker||'opérateur')}). Elle n’est pas confirmée par un second bookmaker.`:
+   `Rencontre enregistrée pour ${esc(start)}. Le score et les cotes ne sont affichés que lorsque des observations réelles existent.`;
+  const probabilities=hasMarket?`<div style="margin:9px 0 10px;display:flex;gap:6px;flex-wrap:wrap">
+    <span class="bdg bsp">${esc(home)} ${betproClassicPct(quote.home_probability)}</span>
+    ${quote.draw_probability!=null?`<span class="bdg bca">Nul ${betproClassicPct(quote.draw_probability)}</span>`:''}
+    <span class="bdg bsp">${esc(away)} ${betproClassicPct(quote.away_probability)}</span>
+  </div>`:'';
+  const bookieDetails=quoteRows.length?`<div style="margin:0 0 10px">
+     <div style="font-size:9px;color:var(--dm);font-family:var(--mo);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Bookmakers (${quoteRows.length})</div>
+     ${quoteRows.map((v,k)=>`<div class="om-bm-row"><span style="flex:1;color:#dce8fa">${esc(v.bookmaker)}</span><span style="font-family:var(--mo);font-weight:700;color:${k===0?'var(--gr)':'#d0d9ec'}">${Number(v.odds).toFixed(2)}</span>${k===0?'<span style="background:rgba(0,255,157,.15);color:var(--gr);border-radius:3px;font-size:9px;font-family:var(--mo);padding:1px 5px;font-weight:700">BEST</span>':''}</div>`).join('')}
+  </div>`:'';
+  const verifiedStats=verified?`<div style="margin-bottom:8px">
+    ${ssRow('Indice de cohérence',consistency??0)}
+    ${ssRow('Accord bookmakers',n?Math.round(100*(Number(c.agreement||0)/n)):0)}
+    ${ssRow('Probabilité du favori',Math.round(Number(c.probability||0)*100))}
+  </div>`:'';
+  const realScore=scoreKnown?`<span class="bdg blv" style="font-weight:800">Score ${esc(String(score.home??'–'))} : ${esc(String(score.away??'–'))}</span>`:'';
+  const footnote=verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
+  return `<div class="dir-card ${tier}" data-engine="classic" data-sport-key="${esc(sport)}" data-tier="${strong?'strong':'moderate'}" role="button" tabindex="0" aria-expanded="false"
+      onclick="betproClassicToggleCard(this,event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();betproClassicToggleCard(this,event)}">
+    <div class="dir-banner"><span style="font-size:10px;font-weight:700">${verdict}</span>
+      <span style="margin-left:auto;font-family:var(--mo);font-size:15px;font-weight:700;color:${color}">${headValue}</span>
+      <span style="font-family:var(--mo);font-size:9px;color:${color};opacity:.75;margin-left:4px">${headCaption}</span></div>
+    <div class="dir-body"><div class="dir-match">${betproClassicSportIcon(sport)} ${esc(home)} <span style="color:var(--dm)">vs</span> ${esc(away)}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px"><span class="bdg bsp">${esc(competition)}</span><span class="bdg bmk">${marketType}</span>
+      <span class="bdg bsr">${esc(start)} (Paris)</span>${isLive?'<span class="bdg blv">EN DIRECT</span>':''}${realScore}</div>
+      <div class="dir-sel"><span class="dir-sel-name">${esc(chosenLabel)}</span>${oddsBlock}${pBlock}${evBlock}</div>
+      <div style="font:500 10px var(--mo);color:#cbd6e9;margin-top:5px">${bettingLabel}</div>
+    </div>
+    <div class="dir-detail"><div style="background:linear-gradient(135deg,rgba(245,158,11,.02),rgba(0,212,255,.03));border:1px solid ${strong?'rgba(0,255,157,.12)':'rgba(245,158,11,.2)'};border-radius:6px;padding:12px;margin-bottom:10px">
+      <div style="font-size:9px;color:#b7c5df;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:var(--mo);font-weight:700">Pourquoi cette tendance ?</div>
+      <div style="font-size:11px;color:#dce6f7;line-height:1.7">${details}</div>
+      ${probabilities}
+      ${verified&&marketValue&&Number.isFinite(Number(marketValue.estimated_ev_pct))?`<div style="font-size:10px;color:#cad5e9">Meilleure cote : ${priceDisplay||'–'} (${esc(marketValue.best_bookmaker||'')}) · EV indicative ${esc(Number(marketValue.estimated_ev_pct).toFixed(1))} %. Calculée avec les mêmes cotes.</div>`:''}
+    </div>${bookieDetails}${verifiedStats}
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px"><span style="font-size:10px;color:#becde3">${footnote}</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${bookieLinkHtml()}<button class="copy-btn" onclick="event.stopPropagation();copyTeamNames(this)" data-home="${esc(home)}" data-away="${esc(away)}">&#128203; Copier</button></div>
+      </div>
+    </div>
+  </div>`;
+}
+
 async function doClassicScan(){
   setBetProEngine('classic');
   const seq=++betProClassicScanSeq,btn=document.getElementById('scan-classic-btn'),cnt=document.getElementById('scan-classic-res');if(!cnt||!btn)return;
-  btn.disabled=true;document.getElementById('scan-classic-txt').textContent='SCAN CLASSIQUE EN COURS…';
+  btn.disabled=true;document.getElementById('scan-classic-txt').textContent='SCAN LIVE CLASSIQUE';
   cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Récupération des rencontres et comparaison des bookmakers internationaux…</p></div>';
   try{
     const dateParams=getScanDateParams(),params=new URLSearchParams({scope:'scan',sport:liveSportFilter,limit:'75',...dateParams});
@@ -4411,7 +4465,7 @@ async function doClassicScan(){
     const warn='<div class="classic-subtext" style="margin-bottom:12px">Analyse indépendante de Benter : consensus bookmaker sans surcote artificielle ni garantie de victoire. Aucune requête Odds API payante ajoutée par ce scan.</div>';
     cnt.innerHTML=`<div class="sbar"><span style="color:#dccaff;font-weight:800">SCAN LIVE CLASSIQUE</span><span>${events.length} rencontre(s) · ${Number(d.with_consensus||0)} consensus vérifiés</span><span style="margin-left:auto">${esc(betproClassicDate(d.generated_at))}</span></div>`+warn+(events.length?'<div class="opp-grid">'+events.map(betproClassicCard).join('')+'</div>':'<div class="empty"><div class="empty-t">Aucune rencontre enregistrée pour cette période</div></div>');
   }catch(e){if(seq===betProClassicScanSeq)cnt.innerHTML='<div class="warn">Scan Classique indisponible : '+esc(e?.message||String(e))+'</div>';}
-  finally{if(seq===betProClassicScanSeq){btn.disabled=false;document.getElementById('scan-classic-txt').textContent='RELANCER SCAN LIVE CLASSIQUE';}}
+  finally{if(seq===betProClassicScanSeq){btn.disabled=false;document.getElementById('scan-classic-txt').textContent='SCAN LIVE CLASSIQUE';}}
 }
 // Les fonctions Benter d'origine sont conservées intégralement et isolées.
 async function loadLive(){if(betProActiveEngine==='benter')return loadLiveBenter();return loadLiveClassic();}
