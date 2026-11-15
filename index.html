@@ -606,11 +606,16 @@ a{color:var(--neon);text-decoration:none}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:7px;margin-top:11px">
       <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">ÉVÉNEMENTS</div><div id="maturity-events" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
       <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COTES ARCHIVÉES</div><div id="maturity-odds" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
-      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COURSES PMU</div><div id="maturity-pmu" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COURSES PMU FRANCE</div><div id="maturity-pmu" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div role="button" tabindex="0" aria-label="Afficher la rubrique Hong Kong HKJC" title="Voir les courses hippiques de Hong Kong" onclick="go('hkjc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('hkjc')}" style="padding:8px;border:1px solid rgba(0,212,255,.35);border-radius:7px;background:rgba(0,212,255,.07);cursor:pointer">
+        <div style="font:8px var(--mo);color:var(--neon)">HONG KONG · HKJC</div>
+        <div id="maturity-hkjc" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div>
+        <div id="maturity-hkjc-odds" style="font:9px var(--mo);color:var(--mu);margin-top:3px">Cotes vérifiées : non mesurées</div>
+      </div>
       <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">SEGMENTS SPORTS ACTIFS</div><div id="maturity-models" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
     </div>
     <div style="margin-top:10px">
-      <div style="display:flex;justify-content:space-between;gap:8px;font:9px var(--mo);color:var(--mu)"><span id="maturity-pmu-label">PMU : construction</span><span id="maturity-pmu-value">0 / 500</span></div>
+      <div style="display:flex;justify-content:space-between;gap:8px;font:9px var(--mo);color:var(--mu)"><span id="maturity-pmu-label">PMU France : construction</span><span id="maturity-pmu-value">0 / 500</span></div>
       <div style="height:6px;background:rgba(255,255,255,.06);border-radius:9px;overflow:hidden;margin-top:5px"><div id="maturity-pmu-bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--neon),var(--pu));transition:width .5s"></div></div>
     </div>
     <div id="maturity-decision" style="font:10px var(--mo);color:var(--am);line-height:1.5;margin-top:10px">Aucune carte n’est fiable pour l’instant.</div>
@@ -5734,7 +5739,10 @@ async function loadProfessionalMaturity(){
     const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
     set('maturity-checked','État : '+(s.checked_at?new Date(s.checked_at).toLocaleString('fr-FR'):'date inconnue')+' · compteurs : '+(s.volume_checked_at?new Date(s.volume_checked_at).toLocaleString('fr-FR'):'date du contrôle')+'.');
     set('maturity-events',nf.format(eventCount));set('maturity-odds',s.collection?.odds_snapshots==null?'—':nf.format(Number(s.collection.odds_snapshots)));set('maturity-pmu',nf.format(pmuRaces));set('maturity-models',nf.format(Number(s.benter?.active_models||0)));
-    set('maturity-pmu-label','PMU : '+String(s.pmu?.stage||'construction').toLowerCase());
+    // Compteurs HKJC indépendants des courses PMU françaises.
+    set('maturity-hkjc',s.hkjc?.races==null?'—':nf.format(Math.max(0,Number(s.hkjc.races)||0)));
+    set('maturity-hkjc-odds',s.hkjc?.verified_odds_snapshots==null?'Cotes vérifiées : non mesurées':'Cotes vérifiées : '+nf.format(Math.max(0,Number(s.hkjc.verified_odds_snapshots)||0)));
+    set('maturity-pmu-label','PMU France : '+String(s.pmu?.stage||'construction').toLowerCase());
     set('maturity-pmu-value',nf.format(pmuRaces)+' / '+nf.format(target)+' courses');
     const bar=document.getElementById('maturity-pmu-bar');if(bar)bar.style.width=percent+'%';
     const badge=document.getElementById('maturity-health');if(badge){badge.textContent=status+' · '+Math.round(health)+'/100';badge.style.color=health>=90?'var(--gr)':health>=70?'var(--am)':'var(--re)';badge.style.borderColor=health>=90?'rgba(31,209,132,.35)':health>=70?'rgba(255,190,74,.35)':'rgba(255,86,106,.35)';}
