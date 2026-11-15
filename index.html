@@ -512,6 +512,26 @@ a{color:var(--neon);text-decoration:none}
 .bookie-extra-link span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bookie-extra-edit{flex:0 0 auto;background:rgba(0,212,255,.06);border:0;color:var(--neon);padding:9px 10px;cursor:pointer;font-size:14px}
 .bookie-extra-edit:hover,.bookie-extra-edit:focus-visible{background:rgba(0,212,255,.15);outline:1px solid var(--neon)}
+/* Scan Live Benter : orange saumon fluo, sans modifier le Classique vert. */
+#scan-btn.scan-main-btn.ready{
+  background:linear-gradient(115deg,#ffb38a 0%,#ff9369 43%,#ff645b 100%)!important;
+  color:#32150b!important;border:1px solid #ff9869!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.16);
+  box-shadow:0 0 0 1px rgba(154,58,37,.65),0 0 17px rgba(255,135,93,.70),0 0 36px rgba(255,106,79,.35)!important;
+}
+#scan-btn.scan-main-btn.ready:hover{
+  transform:translateY(-2px);
+  box-shadow:0 0 0 2px #ae5039,0 0 25px rgba(255,152,91,.90),0 0 46px rgba(255,109,85,.50)!important;
+}
+#scan-btn.scan-main-btn.ready.engine-selected{
+  outline:none!important;border-color:#ffb27b!important;
+  box-shadow:0 0 0 2px #b44b32,0 0 23px rgba(255,151,96,.82),0 0 40px rgba(255,100,80,.45)!important;
+}
+#scan-btn.scan-main-btn.scanning{
+  background:rgba(255,131,95,.18)!important;color:#ffd2b8!important;
+  border:1px solid rgba(255,163,113,.6)!important;cursor:wait;
+}
+#scan-btn.scan-main-btn.ready:focus-visible{outline:2px solid #ffd5a9!important;outline-offset:3px!important}
 @media(prefers-reduced-motion:reduce){#scan-classic-btn.scan-main-btn.classic-ready{transition:none}}
 
 </style>
@@ -650,7 +670,7 @@ a{color:var(--neon);text-decoration:none}
         <span id="scan-classic-ico">&#128994;</span><span id="scan-classic-txt">SCAN LIVE CLASSIQUE</span>
       </button>
       <button class="scan-main-btn ready" id="scan-btn" onclick="setBetProEngine('benter');doLiveScan()" aria-label="Lancer le Scan Live Benter">
-        <span id="scan-btn-ico">&#128308;</span><span id="scan-btn-txt">SCAN LIVE BENTER</span>
+        <span id="scan-btn-ico">&#128992;</span><span id="scan-btn-txt">SCAN LIVE BENTER</span>
       </button>
     </div>
     <div class="classic-engine-mode" id="scan-engine-indicator" role="status">Mode actuel : Classique. Cotes internationales, sans apprentissage Benter.</div>
@@ -700,7 +720,7 @@ a{color:var(--neon);text-decoration:none}
         <div id="maturity-hkjc" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div>
         <div id="maturity-hkjc-odds" style="font:9px var(--mo);color:var(--mu);margin-top:3px">Cotes vérifiées : non mesurées</div>
       </div>
-      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">SEGMENTS SPORTS ACTIFS</div><div id="maturity-models" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">MODÈLES BENTER VALIDÉS</div><div id="maturity-models" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
     </div>
     <div style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;gap:8px;font:9px var(--mo);color:var(--mu)"><span id="maturity-pmu-label">PMU France : construction</span><span id="maturity-pmu-value">0 / 500</span></div>
@@ -2287,7 +2307,7 @@ async function doLiveScan() {
     if (scanRun === liveScanRunSequence) {
       liveScanAbortController = null;
       btn.className = 'scan-main-btn ready';
-      document.getElementById('scan-btn-ico').textContent = '🔴';
+      document.getElementById('scan-btn-ico').textContent = '🟠';
       document.getElementById('scan-btn-txt').textContent = 'RELANCER LE SCAN BENTER';
       btn.disabled = false;
       // Le ticker demeure un flux indépendant et se remet à jour après le scan.
@@ -5408,7 +5428,7 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 76) {
   // Augmente la couverture sans évincer les vrais articles de presse.
   const groups = new Map(),seen=new Set();
   for(const item of [...(sportItems||[]),...(turfItems||[])]) {
-    const title=String(item?.title||'').trim();if(!title)continue;
+    if(item?.is_status)continue;const title=String(item?.title||'').trim();if(!title)continue;
     const category=tickerCategory(item.sport),fp=(category+'|'+title).toLocaleLowerCase('fr');
     if(seen.has(fp))continue;seen.add(fp);
     if(!groups.has(category))groups.set(category,{matches:[],articles:[]});
@@ -5476,18 +5496,16 @@ const TICKER_EMERGENCY_SPORTS = [
 
 // Les badges ne disparaissent jamais : avant la première réponse, ou si un
 // fournisseur est momentanément lent, l'interface affiche l'état de veille.
-function renderTickerSafetyFallback(message='Connexion aux flux en cours…', force=false) {
+function renderTickerSafetyFallback(message='Actualisation des actualités sportives…', force=false) {
   const inner=document.getElementById('news-ticker-inner');
   const clone=document.getElementById('news-ticker-clone');
   const source=document.getElementById('ticker-source');
   if(!inner)return;
-  if(!force && inner.querySelector('.ticker-item'))return;
-  const html=TICKER_EMERGENCY_SPORTS.map(([label,sport])=>
-    `<div class="ticker-item ticker-safety"><span class="ticker-sport-badge" style="background:rgba(0,212,255,.10);color:var(--neon)">${label}</span><div style="flex:1;min-width:0"><div class="ticker-title">${esc(sport)} · surveillance active</div><div class="ticker-meta">${esc(message)}</div></div></div>`
-  ).join('');
+  if(!force&&inner.querySelector('.ticker-item:not(.ticker-safety)'))return;
+  const html=`<div class="ticker-loading" role="status" style="padding:15px;color:#b8cce2;font:11px var(--mo);text-align:center">${esc(message)}</div>`;
   inner.innerHTML=html;
   if(clone)clone.innerHTML=html;
-  if(source)source.textContent='10 sports + PMU · connexion sécurisée';
+  if(source)source.textContent='Flux multisports et PMU';
 }
 
 // getTurfTickerArticles — transforme les prochaines courses PMU (déjà
@@ -5556,7 +5574,7 @@ function tickerMatchMarketHtml(art){
   if(!art?.is_match || art._turfRaceId || tickerCategory(art.sport)==='turf')return '';
   const m=art.market_consensus;
   // Un match reste visible sans consensus; seuls les favoris étayés sont affichés.
-  if(!m || m.status!=='ok' || !['marqué','modéré'].includes(m.quality) || Number(m.probability)<.43) return '';
+  if(!m || m.status!=='ok' || Number(m.bookmakers)<2 || !Number.isFinite(Number(m.probability)) || Number(m.probability)<=0 || Number(m.probability)>1) return '';
   const pct=value=>Number.isFinite(Number(value))?(Math.round(Number(value)*1000)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %':'—';
   const books=Math.max(0,Number(m.bookmakers)||0);
   const providerNames=Array.isArray(m.providers)?m.providers.filter(Boolean).slice(0,4).join(', '):'';
@@ -5565,7 +5583,7 @@ function tickerMatchMarketHtml(art){
   const draw=m.draw_probability==null?'':` · Nul ${pct(m.draw_probability)}`;
   const breakdown=`${esc(home)} ${pct(m.home_probability)}${draw} · ${esc(away)} ${pct(m.away_probability)}`;
   const favorite=String(m.favorite||'Aucun favori identifiable');
-  const quality=m.quality==='marqué'?'favori marqué':m.quality==='modéré'?'favori modéré':'rencontre serrée';
+  const quality=m.quality==='marqué'?'favori marqué':m.quality==='modéré'?'favori modéré':'marché serré, tendance indicative';
   return `<div class="ticker-consensus">
     <span class="ticker-consensus-label">FAVORI SELON LES BOOKMAKERS</span>
     <span class="ticker-consensus-team">${esc(favorite)}</span>
@@ -5605,7 +5623,7 @@ async function loadTicker() {
     if (!news.length) {
       if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
       tickerAnimFrame = null;
-      renderTickerSafetyFallback('Aucune affiche publiée actuellement · collecte toujours active', true);
+      renderTickerSafetyFallback('Flux en cours de mise à jour. Seules les rencontres et actualités vérifiées sont publiées.', true);
       return;
     }
 
@@ -5817,7 +5835,7 @@ ${blocks}`}]
     if(loadSequence===tickerLoadSequence){
       const source=document.getElementById('ticker-source');
       if(source)source.textContent='Flux différé · nouvel essai automatique';
-      renderTickerSafetyFallback('Source momentanément lente · nouvel essai automatique', false);
+      renderTickerSafetyFallback('Flux en cours d’actualisation…', false);
     }
   }
 }
