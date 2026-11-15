@@ -496,11 +496,22 @@ a{color:var(--neon);text-decoration:none}
 .scan-hero{border-color:rgba(255,64,77,.44)}
 .scan-hero .scan-title{color:#ff737c;text-shadow:0 0 11px rgba(255,64,77,.28)}
 .scan-hero .scan-pulse{background:#ff3852;box-shadow:0 0 13px rgba(255,56,82,.78)}
-/* Le bouton Classique doit être violet néon, sans bordure blanche. */
-#scan-classic-btn.scan-main-btn.classic-ready{border:1px solid #ad38ff!important;background:linear-gradient(112deg,#8c00fd 0%,#c42bff 42%,#7f00e8 100%)!important;color:#fff!important;text-shadow:0 0 10px rgba(255,255,255,.34);box-shadow:0 0 0 1px rgba(102,0,194,.85),0 0 16px rgba(156,30,255,.72),0 0 36px rgba(128,0,255,.38)!important}
-#scan-classic-btn.scan-main-btn.classic-ready:hover{transform:translateY(-2px);box-shadow:0 0 0 2px #7514c2,0 0 22px rgba(174,22,255,.85),0 0 45px rgba(137,30,255,.48)!important}
-#scan-classic-btn.scan-main-btn.classic-ready.engine-selected{outline:none!important;border-color:#8721eb!important;box-shadow:0 0 0 2px #6621a9,0 0 20px rgba(180,0,255,.88),0 0 42px rgba(117,20,255,.46)!important}
-#scan-classic-btn.scan-main-btn.classic-ready:disabled{opacity:.84}
+/* Scan Live Classique : vert fluo clair, lumineux, contour vert profond. Benter inchangé. */
+#scan-classic-btn.scan-main-btn.classic-ready{border:1px solid #35d868!important;background:linear-gradient(112deg,#ccff4d 0%,#75ff48 46%,#28f5a2 100%)!important;color:#0b2812!important;text-shadow:0 1px 0 rgba(255,255,255,.3);box-shadow:0 0 0 1px rgba(17,103,49,.78),0 0 16px rgba(98,255,67,.65),0 0 34px rgba(54,255,153,.32)!important}
+#scan-classic-btn.scan-main-btn.classic-ready:hover{transform:translateY(-2px);box-shadow:0 0 0 2px #167a39,0 0 23px rgba(137,255,62,.9),0 0 46px rgba(44,255,156,.46)!important}
+#scan-classic-btn.scan-main-btn.classic-ready.engine-selected{outline:none!important;border-color:#2fe377!important;box-shadow:0 0 0 2px #166d38,0 0 21px rgba(125,255,54,.86),0 0 43px rgba(49,255,144,.42)!important}
+#scan-classic-btn.scan-main-btn.classic-ready:focus-visible{outline:2px solid #e4ff8c!important;outline-offset:3px!important}
+#scan-classic-btn.scan-main-btn.classic-ready:disabled{opacity:.83}
+#live-switch-classic.classic-engine-switch{color:#b9ff80;border-color:rgba(112,255,87,.68);background:rgba(77,255,116,.11)}
+#live-switch-classic.classic-engine-switch.on{outline:none;box-shadow:0 0 0 2px #187a3d,0 0 16px rgba(110,255,99,.42);background:rgba(65,255,95,.18)}
+#live-switch-classic.classic-engine-switch:focus-visible{outline:2px solid #bcff80;outline-offset:2px}
+.bookie-extra-row{display:flex;align-items:stretch;gap:2px;margin-top:3px;min-width:0}
+.bookie-extra-link{display:flex;align-items:center;gap:9px;min-width:0;flex:1;padding:9px 14px;border-left:2px solid rgba(0,212,255,.6);background:rgba(0,212,255,.045);font-weight:700;font-size:11px;color:var(--neon);font-family:var(--hd);text-decoration:none;transition:background .2s}
+.bookie-extra-link:hover,.bookie-extra-link:focus-visible{background:rgba(0,212,255,.13);outline:none}
+.bookie-extra-link.empty{color:#93aac5;border-left-color:#345271}
+.bookie-extra-link span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bookie-extra-edit{flex:0 0 auto;background:rgba(0,212,255,.06);border:0;color:var(--neon);padding:9px 10px;cursor:pointer;font-size:14px}
+.bookie-extra-edit:hover,.bookie-extra-edit:focus-visible{background:rgba(0,212,255,.15);outline:1px solid var(--neon)}
 @media(prefers-reduced-motion:reduce){#scan-classic-btn.scan-main-btn.classic-ready{transition:none}}
 
 </style>
@@ -571,6 +582,8 @@ a{color:var(--neon);text-decoration:none}
       <a id="bookie-sidebar-link" href="https://www.piwi247.com/customer" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:9px;padding:9px 14px;color:var(--neon);font-size:12px;border-left:2px solid var(--neon);background:rgba(0,212,255,.06);text-decoration:none;font-weight:700;font-family:var(--hd);transition:all .2s;flex:1" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'"><span style="font-size:15px">&#127919;</span><span id="bookie-sidebar-name">Piwi247 — Mon compte</span></a>
       <button onclick="bookieEditModal()" title="Modifier le lien" style="background:rgba(0,212,255,.06);border:none;color:var(--neon);cursor:pointer;padding:9px 10px;font-size:14px;transition:background .2s" onmouseover="this.style.background='rgba(0,212,255,.14)'" onmouseout="this.style.background='rgba(0,212,255,.06)'">&#9998;</button>
     </div>
+    <!-- Cinq autres raccourcis, éditables avec un crayon et conservés localement. -->
+    <div id="bookie-extra-links" aria-label="Mes cinq liens personnalisables"></div>
   </div>
   <div class="sbf" id="qfoot"><div style="color:var(--dm);font-size:10px;font-family:var(--mo)">Quotas — chargement…</div></div>
 </nav>
@@ -634,7 +647,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div class="betpro-dual-scan" role="group" aria-label="Sélectionner la stratégie du Scan Live">
       <button class="scan-main-btn classic-ready" id="scan-classic-btn" onclick="setBetProEngine('classic');doClassicScan()" aria-label="Lancer le Scan Live Classique">
-        <span id="scan-classic-ico">&#128995;</span><span id="scan-classic-txt">SCAN LIVE CLASSIQUE</span>
+        <span id="scan-classic-ico">&#128994;</span><span id="scan-classic-txt">SCAN LIVE CLASSIQUE</span>
       </button>
       <button class="scan-main-btn ready" id="scan-btn" onclick="setBetProEngine('benter');doLiveScan()" aria-label="Lancer le Scan Live Benter">
         <span id="scan-btn-ico">&#128308;</span><span id="scan-btn-txt">SCAN LIVE BENTER</span>
@@ -1545,7 +1558,7 @@ wrangler deploy</pre>
 <!-- MODAL BOOKMAKER -->
 <div id="bookie-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center">
   <div style="background:var(--sf);border:1px solid var(--neon);border-radius:10px;padding:24px;width:90%;max-width:400px;box-shadow:0 0 40px rgba(0,212,255,.2)">
-    <div style="font-family:var(--hd);font-size:15px;font-weight:700;color:var(--neon);margin-bottom:16px">&#9998; Modifier le lien bookmaker</div>
+    <div id="bookie-modal-heading" style="font-family:var(--hd);font-size:15px;font-weight:700;color:var(--neon);margin-bottom:16px">&#9998; Modifier le lien bookmaker</div>
     <div class="fgrp" style="margin-bottom:12px">
       <label style="display:block;font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Nom affiché</label>
       <input type="text" id="bookie-modal-name" placeholder="Piwi247" style="width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:8px 11px;color:var(--tx);font-family:var(--hd);font-size:13px;outline:none">
@@ -6032,7 +6045,44 @@ function bookieLoad() {
 }
 
 function bookieSave(name, url) {
-  try { localStorage.setItem(BOOKIE_KEY, JSON.stringify({ name: name.trim(), url: url.trim() })); } catch(_) {}
+  try { localStorage.setItem(BOOKIE_KEY, JSON.stringify({ name: name.trim(), url: url.trim() })); return true; }
+  catch(_) { return false; }
+}
+
+// Cinq autres liens, dans le même navigateur et avec le même crayon que Piwi247.
+const BOOKIE_EXTRA_KEY = 'pgi_bookie_extra_links_v1';
+let bookieEditingSlot = null;
+function bookieValidHttps(value){
+  try{const u=new URL(String(value||''));return u.protocol==='https:'&&!!u.hostname&&!u.username&&!u.password;}
+  catch(_){return false;}
+}
+function bookieExtraLoad(){
+  let stored=[];
+  try{const data=JSON.parse(localStorage.getItem(BOOKIE_EXTRA_KEY)||'[]');if(Array.isArray(data))stored=data;}
+  catch(_){}
+  return Array.from({length:5},(_,i)=>({
+    name:String(stored[i]?.name||'').slice(0,70),
+    url:bookieValidHttps(stored[i]?.url)?String(stored[i].url).slice(0,2048):''
+  }));
+}
+function bookieExtraSave(index,name,url){
+  if(!Number.isInteger(index)||index<0||index>=5)return false;
+  const all=bookieExtraLoad();all[index]={name:name.trim().slice(0,70),url:url.trim().slice(0,2048)};
+  try{localStorage.setItem(BOOKIE_EXTRA_KEY,JSON.stringify(all));return true;}
+  catch(_){return false;}
+}
+function bookieExtraRender(){
+  const target=document.getElementById('bookie-extra-links');if(!target)return;
+  target.innerHTML=bookieExtraLoad().map((item,i)=>{
+    const ready=bookieValidHttps(item.url),label=item.name||(ready?'Lien '+(i+1):'Ajouter un lien '+(i+1));
+    const open=ready?'':' onclick="bookieEditModal('+i+');return false;"';
+    return '<div class="bookie-extra-row">'
+      +'<a class="bookie-extra-link'+(ready?'':' empty')+'" href="'+(ready?esc(item.url):'#')+'"'
+      +open+' target="'+(ready?'_blank':'_self')+'" rel="noopener noreferrer" title="'+esc(label)+'">'
+      +'<span aria-hidden="true">&#128279;</span><span>'+esc(label)+'</span></a>'
+      +'<button class="bookie-extra-edit" type="button" onclick="bookieEditModal('+i+')" aria-label="Modifier le lien '+(i+1)+'" title="Modifier le lien '+(i+1)+'">&#9998;</button>'
+      +'</div>';
+  }).join('');
 }
 
 function bookieApply() {
@@ -6043,6 +6093,7 @@ function bookieApply() {
   if (sidebar) sidebar.href = safeUrl;
   const sName = document.getElementById('bookie-sidebar-name');
   if (sName) sName.textContent = (cfg.name || 'Bookmaker') + ' — Mon compte';
+  bookieExtraRender();
 }
 
 function bookieLinkHtml() {
@@ -6054,29 +6105,35 @@ function bookieLinkHtml() {
     + '&#127919; ' + safeName + '</a>';
 }
 
-function bookieEditModal() {
-  const cfg = bookieLoad();
+function bookieEditModal(slot=null) {
+  bookieEditingSlot=Number.isInteger(slot)&&slot>=0&&slot<5?slot:null;
+  const cfg = bookieEditingSlot===null?bookieLoad():bookieExtraLoad()[bookieEditingSlot];
   const nameEl = document.getElementById('bookie-modal-name');
   const urlEl  = document.getElementById('bookie-modal-url');
-  if (nameEl) nameEl.value = cfg.name;
-  if (urlEl)  urlEl.value  = cfg.url;
+  const titleEl=document.getElementById('bookie-modal-heading');
+  if (nameEl) {nameEl.value = cfg.name||'';nameEl.placeholder=bookieEditingSlot===null?'Piwi247':'Nom du lien '+(bookieEditingSlot+1);}
+  if (urlEl) {urlEl.value=cfg.url||'';urlEl.placeholder='https://exemple.com/mon-compte';}
+  if (titleEl) titleEl.textContent=bookieEditingSlot===null?'✎ Modifier le lien bookmaker':'✎ Modifier le lien personnalisé '+(bookieEditingSlot+1)+'/5';
   const modal = document.getElementById('bookie-modal');
-  if (modal) { modal.style.display = 'flex'; }
+  if (modal) { modal.style.display = 'flex';nameEl?.focus(); }
 }
 
 function bookieModalClose() {
   const modal = document.getElementById('bookie-modal');
   if (modal) modal.style.display = 'none';
+  bookieEditingSlot=null;
 }
 
 function bookieModalSave() {
-  const name = (document.getElementById('bookie-modal-name')?.value || '').trim() || 'Piwi247';
-  const url  = (document.getElementById('bookie-modal-url')?.value  || '').trim();
-  if (!/^https:\/\//i.test(url)) { toast('URL invalide — doit commencer par https://', 'err'); return; }
-  bookieSave(name, url);
+  const slot=bookieEditingSlot;
+  const name = (document.getElementById('bookie-modal-name')?.value || '').trim().slice(0,70) || (slot===null?'Piwi247':'Lien '+(slot+1));
+  const url  = (document.getElementById('bookie-modal-url')?.value || '').trim();
+  if (!bookieValidHttps(url)) { toast('Adresse invalide : URL HTTPS complète requise', 'err'); return; }
+  const saved=slot===null?bookieSave(name,url):bookieExtraSave(slot,name,url);
+  if(!saved){toast('Impossible de sauvegarder le lien dans ce navigateur','err');return;}
   bookieApply();
   bookieModalClose();
-  toast(name + ' sauvegardé ✓', 'ok');
+  toast(name + ' sauvegardé', 'ok');
 }
 
 async function initStatusBadges() {
