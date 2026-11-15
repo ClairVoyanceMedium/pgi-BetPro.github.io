@@ -314,6 +314,17 @@ a{color:var(--neon);text-decoration:none}
 .ticker-item .ticker-sport-badge{align-self:flex-start}
 @media(max-width:768px){.ticker-title{font-size:12.5px}.ticker-description{font-size:11px}.ticker-item{padding:12px 13px}}
 .ticker-match{border-left:2px solid var(--neon);background:rgba(0,212,255,.04)}
+/* Marché multisports : consensus international H2H, sans pronostic fictif. */
+.ticker-consensus{margin-top:8px;padding:9px 11px;border:1px solid rgba(0,212,255,.29);background:rgba(0,212,255,.055);border-radius:7px;line-height:1.65}
+.ticker-consensus-label{font:800 10px var(--mo);letter-spacing:.035em;color:var(--neon);display:inline-block;margin-right:6px}
+.ticker-consensus-team{font:750 12px var(--hd);color:#edfff9}
+.ticker-consensus-figure{font:750 12px var(--mo);color:#a5ffcf}
+.ticker-consensus-breakdown{font:500 10px var(--mo);color:#e0ebf8;margin-top:5px}
+.ticker-consensus-detail{font:500 9px var(--mo);color:#b8cce2;margin-top:4px;overflow-wrap:anywhere}
+.ticker-consensus-unavailable{border-color:rgba(245,158,11,.22);background:rgba(245,158,11,.045)}
+.ticker-consensus-unavailable .ticker-consensus-label{color:#f8cc72}
+@media(max-width:768px){.ticker-consensus{padding:9px}.ticker-consensus-team{font-size:11.5px}.ticker-consensus-breakdown{font-size:10px}}
+
 
 /* ── DIRECTION CARD — cartes avec verdict clair ── */
 .dir-card{background:var(--sf);border-radius:8px;overflow:hidden;margin-bottom:10px;cursor:pointer;transition:all .2s}
@@ -5277,6 +5288,32 @@ async function getSportTickerArticles() {
   }
 }
 
+function tickerMatchMarketHtml(art){
+  if(!art?.is_match || art._turfRaceId || tickerCategory(art.sport)==='turf')return '';
+  const m=art.market_consensus;
+  if(!m || m.status!=='ok'){
+    const reason=String(m?.reason||'Cotes récentes insuffisantes ou collecte momentanément indisponible.');
+    return `<div class="ticker-consensus ticker-consensus-unavailable"><span class="ticker-consensus-label">FAVORI BOOKMAKERS</span><span class="ticker-consensus-detail">${esc(reason)}</span></div>`;
+  }
+  const pct=value=>Number.isFinite(Number(value))?(Math.round(Number(value)*1000)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %':'—';
+  const books=Math.max(0,Number(m.bookmakers)||0);
+  const providerNames=Array.isArray(m.providers)?m.providers.filter(Boolean).slice(0,4).join(', '):'';
+  const observed=Number.isFinite(Date.parse(m.last_odds_at||''))?new Date(m.last_odds_at).toLocaleString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'date inconnue';
+  const home=String(art.home_name||'Domicile'),away=String(art.away_name||'Extérieur');
+  const draw=m.draw_probability==null?'':` · Nul ${pct(m.draw_probability)}`;
+  const breakdown=`${esc(home)} ${pct(m.home_probability)}${draw} · ${esc(away)} ${pct(m.away_probability)}`;
+  const favorite=String(m.favorite||'Aucun favori identifiable');
+  const quality=m.quality==='marqué'?'favori marqué':m.quality==='modéré'?'favori modéré':'rencontre serrée';
+  return `<div class="ticker-consensus">
+    <span class="ticker-consensus-label">FAVORI SELON LES BOOKMAKERS</span>
+    <span class="ticker-consensus-team">${esc(favorite)}</span>
+    <span class="ticker-consensus-figure">${pct(m.probability)}</span>
+    <div class="ticker-consensus-breakdown">${breakdown}</div>
+    <div class="ticker-consensus-detail">${books} bookmaker${books>1?'s':''} indépendant${books>1?'s':''} · ${quality} · cote médiane ${Number(m.median_market_odds||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} · cotations du ${esc(observed)}${providerNames?' · '+esc(providerNames):''}</div>
+    <div class="ticker-consensus-detail">Estimation de marché corrigée de la marge, sans garantie de résultat. Distincte des modèles BetPro.</div>
+  </div>`;
+}
+
 async function loadTicker() {
   const loadSequence = ++tickerLoadSequence;
   renderTickerSafetyFallback('Connexion aux flux en cours…');
@@ -5387,13 +5424,14 @@ ${blocks}`}]
       const label = art._label || TICKER_LABELS[tickerCategory(art.sport)] || '🏆 SPORT';
       const displayTitle = normalizeTickerFrenchText(art._translatedTitle || art.title || '', art.sport);
       const displayDescription = normalizeTickerFrenchText(art._translatedDescription || art.description || '', art.sport);
+      const marketLine = tickerMatchMarketHtml(art);
 
       let dateStr = '';
       if (art.published) {
         try {
           const pub = new Date(art.published);
-          dateStr = pub.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})
-            + ' ' + pub.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+          dateStr = pub.toLocaleDateString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',year:'2-digit'})
+            + ' ' + pub.toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
         } catch(_) {}
       }
 
@@ -5412,7 +5450,8 @@ ${blocks}`}]
           <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${titleHtml}</div>
           ${displayDescription?`<div class="ticker-description">${esc(displayDescription.slice(0,220))}${displayDescription.length>220?'…':''}</div>`:''}
           ${art.source?`<div class="ticker-meta">Source : ${esc(art.source)}</div>`:''}
-          ${dateStr?`<div class="ticker-meta">Publié le ${esc(dateStr)}</div>`:''}
+          ${dateStr?`<div class="ticker-meta">${art.is_match?'Rencontre le':'Publié le'} ${esc(dateStr)} (Paris)</div>`:''}
+          ${marketLine}
           ${frenchArticle?`<div class="ticker-read-links"><a class="ticker-read-primary" href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer" title="Le contenu est traduit par Google Traduction, quand disponible">Lire l'article en français</a><a class="ticker-read-original" href="${esc(originalArticle)}" target="_blank" rel="noopener noreferrer" title="Voir l'article exact dans sa langue d'origine">Article original</a></div>`:''}
           ${art._turfRaceId?`<div class="ticker-meta" style="color:#a8efc0">Voir la course PMU dans BetPro</div>`:''}
         </div>
