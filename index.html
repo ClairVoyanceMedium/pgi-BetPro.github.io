@@ -481,6 +481,28 @@ a{color:var(--neon);text-decoration:none}
 .bj-face-illustration svg{width:100%;height:100%}
 .bj-card-btn.selected .bj-card-face{box-shadow:inset 0 0 0 2px var(--neon)}
 .bj-card-btn .bjc-val{z-index:3}
+
+/* V120 : restaurer l'identité des collectes Benter et la lecture des cinq indicateurs. */
+#maturity-panel{border-color:rgba(0,212,255,.45)!important;background:linear-gradient(130deg,rgba(0,212,255,.075),rgba(11,15,28,.98) 65%,rgba(255,54,64,.035))!important;box-shadow:inset 3px 0 0 rgba(0,212,255,.65),0 0 15px rgba(0,212,255,.08)}
+#maturity-panel .ct{color:#40e8ff!important;font-weight:800!important;text-shadow:0 0 9px rgba(0,212,255,.48);font-size:12px!important;letter-spacing:.05em!important}
+#maturity-panel .maturity-metric-label{color:#38e8ff!important;font-size:9px!important;letter-spacing:.045em;font-weight:800!important;text-shadow:0 0 7px rgba(0,212,255,.35)}
+#maturity-panel .maturity-metric-value{color:#d8f8ff!important;text-shadow:0 0 10px rgba(0,212,255,.25);font-weight:800!important}
+#maturity-panel #maturity-hkjc-odds,#maturity-panel #maturity-checked,#maturity-panel #maturity-storage{color:#bdd1ec!important}
+#maturity-panel #maturity-summary{color:#d7e5fa!important}
+#maturity-panel #maturity-health{box-shadow:0 0 11px rgba(239,68,68,.18);background:rgba(239,68,68,.055)}
+#maturity-panel #maturity-health[data-level=critical]{color:#ff6871!important;border-color:#ff535d!important;box-shadow:0 0 12px rgba(255,83,93,.35);background:rgba(239,68,68,.12)}
+#maturity-panel #maturity-health[data-level=warning]{color:#ffc773!important;border-color:rgba(245,158,11,.6)!important}
+#maturity-panel #maturity-health[data-level=healthy]{color:#00ff9d!important;border-color:rgba(0,255,157,.55)!important;box-shadow:0 0 10px rgba(0,255,157,.14)}
+.scan-hero{border-color:rgba(255,64,77,.44)}
+.scan-hero .scan-title{color:#ff737c;text-shadow:0 0 11px rgba(255,64,77,.28)}
+.scan-hero .scan-pulse{background:#ff3852;box-shadow:0 0 13px rgba(255,56,82,.78)}
+/* Le bouton Classique doit être violet néon, sans bordure blanche. */
+#scan-classic-btn.scan-main-btn.classic-ready{border:1px solid #ad38ff!important;background:linear-gradient(112deg,#8c00fd 0%,#c42bff 42%,#7f00e8 100%)!important;color:#fff!important;text-shadow:0 0 10px rgba(255,255,255,.34);box-shadow:0 0 0 1px rgba(102,0,194,.85),0 0 16px rgba(156,30,255,.72),0 0 36px rgba(128,0,255,.38)!important}
+#scan-classic-btn.scan-main-btn.classic-ready:hover{transform:translateY(-2px);box-shadow:0 0 0 2px #7514c2,0 0 22px rgba(174,22,255,.85),0 0 45px rgba(137,30,255,.48)!important}
+#scan-classic-btn.scan-main-btn.classic-ready.engine-selected{outline:none!important;border-color:#8721eb!important;box-shadow:0 0 0 2px #6621a9,0 0 20px rgba(180,0,255,.88),0 0 42px rgba(117,20,255,.46)!important}
+#scan-classic-btn.scan-main-btn.classic-ready:disabled{opacity:.84}
+@media(prefers-reduced-motion:reduce){#scan-classic-btn.scan-main-btn.classic-ready{transition:none}}
+
 </style>
 </head>
 <body>
@@ -651,21 +673,21 @@ a{color:var(--neon);text-decoration:none}
   <div id="maturity-panel" class="card" style="margin:14px 0 4px;border-color:rgba(0,212,255,.22);background:linear-gradient(135deg,rgba(0,212,255,.055),rgba(167,139,250,.035))">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div>
-        <div class="ct" style="margin:0">Collecte et validation</div>
+        <div class="ct" style="margin:0">Collecte et validation stratégie Benter</div>
         <div id="maturity-checked" style="font:9px var(--mo);color:var(--dm);margin-top:3px">Contrôle D1, R2 et modèles…</div>
       </div>
       <div id="maturity-health" style="font:800 11px var(--mo);padding:5px 9px;border:1px solid var(--bd);border-radius:6px;color:var(--dm)">VÉRIFICATION</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:7px;margin-top:11px">
-      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">ÉVÉNEMENTS</div><div id="maturity-events" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
-      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COTES ARCHIVÉES</div><div id="maturity-odds" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
-      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COURSES PMU FRANCE</div><div id="maturity-pmu" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">ÉVÉNEMENTS</div><div id="maturity-events" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">COTES ARCHIVÉES</div><div id="maturity-odds" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">COURSES PMU FRANCE</div><div id="maturity-pmu" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
       <div role="button" tabindex="0" aria-label="Afficher la rubrique Hong Kong HKJC" title="Voir les courses hippiques de Hong Kong" onclick="go('hkjc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('hkjc')}" style="padding:8px;border:1px solid rgba(0,212,255,.35);border-radius:7px;background:rgba(0,212,255,.07);cursor:pointer">
-        <div style="font:8px var(--mo);color:var(--neon)">HONG KONG · HKJC</div>
-        <div id="maturity-hkjc" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div>
+        <div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">HONG KONG · HKJC</div>
+        <div id="maturity-hkjc" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div>
         <div id="maturity-hkjc-odds" style="font:9px var(--mo);color:var(--mu);margin-top:3px">Cotes vérifiées : non mesurées</div>
       </div>
-      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">SEGMENTS SPORTS ACTIFS</div><div id="maturity-models" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">SEGMENTS SPORTS ACTIFS</div><div id="maturity-models" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
     </div>
     <div style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;gap:8px;font:9px var(--mo);color:var(--mu)"><span id="maturity-pmu-label">PMU France : construction</span><span id="maturity-pmu-value">0 / 500</span></div>
@@ -1414,7 +1436,7 @@ wrangler deploy</pre>
 
 <!-- ═══════════════ NOTES ═══════════════ -->
 <section class="sec" id="s-notes">
-  <div class="ph"><div class="pt">&#128221; Mes Notes</div><div class="ps">Stockées localement + synchronisation cloud</div></div>
+  <div class="ph"><div class="pt">&#128221; Mes Notes</div><div class="ps">Sauvegarde locale immédiate et stockage sur Cloudflare</div></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
     <button onclick="notesNew()" style="font-size:13px;padding:10px 18px;border-radius:4px;border:none;font-family:var(--hd);font-weight:700;cursor:pointer;transition:all .2s;background:linear-gradient(135deg,#ff7043,#ff5722);color:#fff;box-shadow:0 0 16px rgba(255,112,67,.45);display:inline-flex;align-items:center;gap:6px">&#9999;&#65039; Nouvelle note</button>
     <div id="notes-sync-status" style="font-size:10px;font-family:var(--mo);color:var(--dm);display:flex;align-items:center;gap:5px">
@@ -1649,7 +1671,7 @@ function go(name) {
   document.querySelector('[data-s="'+name+'"]')?.classList.add('on');
   cSb();
   if(name==='results')  loadResults();
-  if(name==='notes')    { notesLoad(); notesSyncCloud(); notesRender(); }
+  if(name==='notes')    { notesLoad(); notesRender(); notesSyncCloud(); }
   if(name==='dash')     { setTimeout(loadTicker, 500); setTimeout(loadProfessionalMaturity, 700); }
   if(name==='methods')  { lossRender(); initMethods(); }
   if(name==='settings') { loadSettings(); loadSysStatus(); loadAIStatus(); }
@@ -4283,7 +4305,10 @@ async function loadLiveBenter(){
         const score=m.score,hasScore=score&&(score.home!=null||score.away!=null);
         const st=m.start_time||m.commence_time;
         const diff=st?(new Date(st)-now)/60000:null;
-        const timeLabel=m._isLive?'🔴 En cours':diff!==null&&diff<=0?'🔴 En cours':diff!==null?`dans ${Math.round(diff)}min`:'';
+        const liveMinute=betproLiveMinuteLabel(m);
+        const timeLabel=m._isLive?(liveMinute?liveMinute:'En direct, minute non transmise'):
+          diff!==null&&diff>0?`Début dans ${Math.round(diff)} min`:diff!==null?'Horaire dépassé, statut non confirmé':'Horaire non transmis';
+        const verifiedStart=st&&Number.isFinite(Date.parse(st))?betproClassicDate(st):null;
         cnt.innerHTML+=`<div class="live-card">
           <div class="lc-head">
             <div style="flex:1">
@@ -4291,7 +4316,8 @@ async function loadLiveBenter(){
               <div class="lc-meta">
                 <span class="bdg bsp">${esc(comp)}</span>
                 ${m._isLive?'<span class="bdg blv">🔴 LIVE</span>':''}
-                ${m.minute?`<span style="font-family:var(--mo);font-size:10px;color:var(--re);font-weight:700">${m.minute}'</span>`:''}
+                ${m._isLive&&liveMinute?`<span style="font-family:var(--mo);font-size:10px;color:var(--re);font-weight:700">${esc(liveMinute)}</span>`:''}
+                ${verifiedStart?`<span class="bdg bsr">${esc(verifiedStart)}</span>`:''}
               </div>
               ${timeLabel?`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px">${timeLabel}</div>`:''}
             </div>
@@ -4368,7 +4394,23 @@ function setBetProEngine(engine){
   if(document.getElementById('s-live')?.classList.contains('on')){loadLive();loadUpcoming();}
 }
 function betproClassicPct(value){const v=Number(value);return Number.isFinite(v)&&v>=0&&v<=1?(v*100).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %':'—';}
-function betproClassicDate(value){const d=new Date(value||'');return Number.isFinite(d.getTime())?d.toLocaleString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Date non disponible';}
+function betproClassicDate(value){
+  const d=new Date(value||'');
+  if(!Number.isFinite(d.getTime()))return 'Horaire de coup d’envoi non transmis';
+  return d.toLocaleString('fr-FR',{timeZone:'Europe/Paris',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function betproLiveMinuteLabel(match){
+  const code=String(match?.status||match?.match_status||'').toUpperCase();
+  if(code==='HT')return 'Mi-temps';
+  if(['FT','AET','PEN'].includes(code))return 'Terminé';
+  const raw=match?.minute;
+  if(raw===null||raw===undefined||raw==='')return '';
+  const min=Number(raw);
+  if(!Number.isFinite(min)||min<0||min>200)return '';
+  const extra=Number(match.extra_minute);
+  if(min===0)return 'Coup d’envoi';
+  return String(Math.floor(min))+(Number.isFinite(extra)&&extra>0&&extra<=30?'+'+Math.floor(extra):'')+'e minute';
+}
 function betproClassicSportIcon(sport){const x=String(sport||'').toLowerCase();return x.includes('soccer')?'⚽':x.includes('basket')?'🏀':x.includes('tennis')?'🎾':x.includes('hockey')?'🏒':x.includes('baseball')?'⚾':x.includes('handball')?'🤾':x.includes('volley')?'🏐':x.includes('rugby')?'🏉':x.includes('mma')||x.includes('box')?'🥊':x.includes('americanfootball')?'🏈':'🏆';}
 // Carte Classique : mêmes classes, mêmes couleurs et même composition que la
 // carte historique rendue par renderDirectionCard du HTML fourni par l'utilisateur.
@@ -4379,36 +4421,39 @@ function betproClassicToggleCard(el,evt){
   el.setAttribute('aria-expanded',el.classList.contains('xp')?'true':'false');
 }
 function betproClassicCard(match,idx){
-  const c=match.consensus||{},ind=match.indicative||{},verified=c.status==='ok',oneSource=!verified&&ind.status==='single_source';
-  const quote=verified?c:oneSource?ind:null,hasMarket=!!quote;
+  const c=match.consensus||{},ind=match.indicative||{},verified=c.status==='ok',oneSource=!verified&&ind.status==='single_source',archived=!verified&&ind.status==='historical';
+  const quote=verified?c:(oneSource||archived)?ind:null,hasMarket=!!quote;
   const home=String(match.home_name||match.home||'?'),away=String(match.away_name||match.away||'?');
   const competition=String(match.competition||match.sport_label||match.sport||'Rencontre');
   const score=match.score||null,scoreKnown=!!score&&(score.home!=null||score.away!=null);
   const isLive=!!match.is_live;
   const startValue=match.start_time||match.event_start_at;
-  const start=betproClassicDate(startValue),sport=String(match.sport||'');
+  const start=startValue?betproClassicDate(startValue):(isLive?'En direct · coup d’envoi non transmis':'Horaire à confirmer'),sport=String(match.sport||'');
+  const liveMinute=betproLiveMinuteLabel(match);
   const marketValue=verified?match.classic_value:null;
   const consistency=verified&&Number.isFinite(Number(c.consensus_score))?Math.max(0,Math.min(95,Math.round(Number(c.consensus_score)))):null;
   const positiveValue=verified&&!!marketValue?.positive_value;
-  const strong=verified&&positiveValue&&consistency>=75;
+  const bookmakerAgreement=verified&&Number(c.bookmakers||0)>0?Number(c.agreement||0)/Number(c.bookmakers):0;
+  const strong=verified&&consistency>=75&&Number(c.bookmakers||0)>=3&&bookmakerAgreement>=.66&&Number(c.probability||0)>=(c.draw_included?.42:.52);
   const tier=strong?'dir-play':'dir-watch';
   const color=strong?'var(--gr)':'var(--am)';
-  const verdict=strong?'TENDANCE DE MARCHÉ FORTE':verified?'TENDANCE DES BOOKMAKERS':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
-  const headValue=verified&&consistency!==null?consistency+'/100':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
-  const headCaption=verified&&consistency!==null?'cohérence des cotes':oneSource?'cote isolée':'statut';
+  const verdict=strong?'CONSENSUS BOOKMAKERS FORT':verified?'TENDANCE DES BOOKMAKERS':archived?'ANCIENNES COTES DE MARCHÉ':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
+  const headValue=verified&&consistency!==null?consistency+'/100':archived?'ARCHIVE':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
+  const headCaption=verified&&consistency!==null?'cohérence des cotes':archived?'cote ancienne':oneSource?'cote isolée':'statut';
   const fav=hasMarket?String(quote.favorite||''):'',prob=hasMarket?betproClassicPct(quote.probability):'';
   const price=verified?(Number(marketValue?.best_price)>1?Number(marketValue.best_price):Number(c.median_market_odds||0)):Number(ind.market_odds||0);
   const priceDisplay=Number.isFinite(price)&&price>1?price.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}):null;
   const quoteRows=Array.isArray(match.bookmaker_quotes)?match.bookmaker_quotes.filter(v=>Number(v.odds)>1).slice(0,8):[];
-  const n=verified?Number(c.bookmakers||0):oneSource?1:0;
+  const n=verified?Number(c.bookmakers||0):(oneSource||archived)?Number(ind.source_count||1):0;
   const marketType=(c.draw_included||quote?.draw_probability!=null||/^(soccer_|handball_)/.test(sport))?'1X2':'Gagnant';
-  const bettingLabel=verified?'Favori estimé par le marché':oneSource?'Tendance d’un bookmaker':scoreKnown?'Score en direct':'Rencontre enregistrée';
+  const bettingLabel=verified?'Favori estimé par le marché':archived?'Probabilité déduite d’anciennes cotes, non actualisée':oneSource?'Tendance d’un bookmaker':scoreKnown?'Score en direct':'Rencontre enregistrée';
   const chosenLabel=hasMarket?fav:scoreKnown?`${score.home??'–'} – ${score.away??'–'}`:'Match à venir';
   const oddsBlock=priceDisplay?`<span class="dir-odds">@ ${priceDisplay}</span>`:'';
-  const pBlock=hasMarket?`<span class="dir-prob" style="color:#cdd9e8">Probabilité de marché : ${prob}</span>`:'';
+  const pBlock=hasMarket?`<span class="dir-prob" style="color:#cdd9e8">${archived?'Prob. historique estimée':'Probabilité de marché'} : ${prob}</span>`:'';
   const evBlock=positiveValue&&marketValue?`<span class="dir-ev pos">EV théorique +${esc(Number(marketValue.estimated_ev_pct).toLocaleString('fr-FR',{maximumFractionDigits:1}))} %</span>`:'';
   const details=verified?
    `Consensus de ${n} bookmaker(s) indépendants. Accord sur le favori : ${Number(c.agreement)||0}/${n}. Les probabilités proviennent des cotes corrigées de la marge, pas du modèle Benter.`:
+   archived?`Probabilités tirées des dernières cotes historiques disponibles, observées le ${esc(betproClassicDate(ind.last_odds_at))}. Elles ne reflètent pas nécessairement le marché actuel et ne sont pas validées par Benter.`:
    oneSource?`Estimation normalisée tirée d’une seule cote complète (${esc(ind.bookmaker||'opérateur')}). Elle n’est pas confirmée par un second bookmaker.`:
    `Rencontre enregistrée pour ${esc(start)}. Le score et les cotes ne sont affichés que lorsque des observations réelles existent.`;
   const probabilities=hasMarket?`<div style="margin:9px 0 10px;display:flex;gap:6px;flex-wrap:wrap">
@@ -4426,7 +4471,7 @@ function betproClassicCard(match,idx){
     ${ssRow('Probabilité du favori',Math.round(Number(c.probability||0)*100))}
   </div>`:'';
   const realScore=scoreKnown?`<span class="bdg blv" style="font-weight:800">Score ${esc(String(score.home??'–'))} : ${esc(String(score.away??'–'))}</span>`:'';
-  const footnote=verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
+  const footnote=verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':archived?'Ancienne cote, indicative seulement, susceptible d’avoir changé.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
   return `<div class="dir-card ${tier}" data-engine="classic" data-sport-key="${esc(sport)}" data-tier="${strong?'strong':'moderate'}" role="button" tabindex="0" aria-expanded="false"
       onclick="betproClassicToggleCard(this,event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();betproClassicToggleCard(this,event)}">
     <div class="dir-banner"><span style="font-size:10px;font-weight:700">${verdict}</span>
@@ -4434,7 +4479,7 @@ function betproClassicCard(match,idx){
       <span style="font-family:var(--mo);font-size:9px;color:${color};opacity:.75;margin-left:4px">${headCaption}</span></div>
     <div class="dir-body"><div class="dir-match">${betproClassicSportIcon(sport)} ${esc(home)} <span style="color:var(--dm)">vs</span> ${esc(away)}</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px"><span class="bdg bsp">${esc(competition)}</span><span class="bdg bmk">${marketType}</span>
-      <span class="bdg bsr">${esc(start)} (Paris)</span>${isLive?'<span class="bdg blv">EN DIRECT</span>':''}${realScore}</div>
+      <span class="bdg bsr">${esc(start)}</span>${isLive?'<span class="bdg blv">EN DIRECT</span>':''}${isLive&&liveMinute?`<span class="bdg blv" style="font-weight:800">${esc(liveMinute)}</span>`:''}${realScore}</div>
       <div class="dir-sel"><span class="dir-sel-name">${esc(chosenLabel)}</span>${oddsBlock}${pBlock}${evBlock}</div>
       <div style="font:500 10px var(--mo);color:#cbd6e9;margin-top:5px">${bettingLabel}</div>
     </div>
@@ -4478,8 +4523,21 @@ async function loadLiveClassic(){
   if(seq!==betProClassicLiveSeq)return;
   const direct=lives.status==='fulfilled'?(lives.value?.live_matches||[]):[];
   const matches=scope.status==='fulfilled'?(scope.value?.events||[]):[];
-  const byKey=new Set(matches.map(x=>[x.home_name,x.away_name].join('|').toLowerCase()));
-  const liveExtra=direct.filter(x=>{const key=[x.home,x.away].join('|').toLowerCase();if(byKey.has(key))return false;byKey.add(key);return true;}).map(x=>({home_name:x.home,away_name:x.away,competition:x.competition,sport:x.sport||'soccer',sport_label:'Football',is_live:true,score:x.score,minute:x.minute,consensus:null,start_time:null}));
+  const normalizedKey=(a,b)=>[normTeamName(a),normTeamName(b)].join('|');
+  const liveByKey=new Map(direct.map(x=>[normalizedKey(x.home,x.away),x]));
+  const matchedDirect=new Set();
+  for(const match of matches){
+    const directMatch=liveByKey.get(normalizedKey(match.home_name,match.away_name));
+    if(!directMatch)continue;
+    matchedDirect.add(normalizedKey(directMatch.home,directMatch.away));
+    match.is_live=true;
+    match.score=directMatch.score;
+    match.minute=directMatch.minute;
+    match.extra_minute=directMatch.extra_minute;
+    match.status=directMatch.status;
+    if(directMatch.start_time)match.start_time=directMatch.start_time;
+  }
+  const liveExtra=direct.filter(x=>{const key=normalizedKey(x.home,x.away);if(matchedDirect.has(key))return false;matchedDirect.add(key);return true;}).map(x=>({home_name:x.home,away_name:x.away,competition:x.competition,sport:x.sport||'soccer',sport_label:'Football',is_live:true,score:x.score,minute:x.minute,extra_minute:x.extra_minute,status:x.status,consensus:null,start_time:x.start_time||null}));
   const all=[...liveExtra,...matches];
   cnt.innerHTML=`<div class="sbar"><span style="color:#dfc7ff;font-weight:800">LIVE CLASSIQUE</span><span>${all.length} rencontre(s) disponibles · ${liveExtra.length} live direct(s)</span></div>`+(all.length?'<div class="opp-grid">'+all.map(betproClassicCard).join('')+'</div>':'<div class="info">Pas de rencontre live enregistrée dans les sources actuellement.</div>');
  }catch(e){if(seq===betProClassicLiveSeq)cnt.innerHTML='<div class="warn">Live Classique momentanément indisponible : '+esc(e?.message||String(e))+'</div>';}
@@ -5754,122 +5812,197 @@ ${blocks}`}]
 // ═══════════════════════════════════════════════
 //  NOTES
 // ═══════════════════════════════════════════════
-let notes=[],noteSaveTimer=null;
-function notesLoad(){try{const raw=localStorage.getItem('pgi_notes_v2');notes=raw?JSON.parse(raw):[];}catch(_){notes=[];}}
-function notesSave(){try{localStorage.setItem('pgi_notes_v2',JSON.stringify(notes));}catch(_){}}
+let notes=[],noteSaveTimer=null,notesSyncPromise=null,notesFlushPromise=null,notesDeletedPending=new Set();
 
+function notesReadJson(key, fallback){
+  try {const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback;}
+  catch(_){return fallback;}
+}
+function notesDateMs(note){const n=Date.parse(note?.updatedAt||note?.createdAt||'');return Number.isFinite(n)?n:0;}
+function notesNormalize(raw){
+  if(!raw||typeof raw.id!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(raw.id))return null;
+  const at=new Date().toISOString();
+  return{id:raw.id,title:String(raw.title||''),body:String(raw.body||''),createdAt:raw.createdAt||raw.updatedAt||at,
+    updatedAt:raw.updatedAt||raw.createdAt||at,unsaved:raw.unsaved===true};
+}
+function notesMerge(base, others, removedIds=new Set()){
+  const values=new Map();
+  for(const value of [...(Array.isArray(base)?base:[]),...(Array.isArray(others)?others:[])]){
+    const n=notesNormalize(value);if(!n||removedIds.has(n.id))continue;
+    const prev=values.get(n.id);
+    if(!prev||notesDateMs(n)>notesDateMs(prev)||(notesDateMs(n)===notesDateMs(prev)&&n.unsaved&&!prev.unsaved))values.set(n.id,n);
+  }
+  return[...values.values()].sort((a,b)=>notesDateMs(b)-notesDateMs(a));
+}
+function notesSetStatus(message,kind='neutral'){
+  const lbl=document.getElementById('notes-sync-lbl'),dot=document.getElementById('notes-sync-dot');
+  if(lbl)lbl.textContent=message;
+  if(dot)dot.style.background=kind==='ok'?'var(--gr)':kind==='error'?'var(--re)':kind==='loading'?'var(--am)':'var(--dm)';
+}
+function notesLoad(){
+  const disk=notesReadJson('pgi_notes_v2',[]),backup=notesReadJson('pgi_notes_v2_backup',[]);
+  const deleted=notesReadJson('pgi_notes_v2_deleted',[]);
+  notesDeletedPending=new Set([...(notesDeletedPending||[]),...(Array.isArray(deleted)?deleted:[])]);
+  notes=notesMerge(notes,notesMerge(disk,backup,notesDeletedPending),notesDeletedPending);
+  return notes;
+}
+function notesSave(){
+  const serialized=JSON.stringify(notes);
+  try{
+    localStorage.setItem('pgi_notes_v2_backup',serialized);
+    localStorage.setItem('pgi_notes_v2',serialized);
+    localStorage.setItem('pgi_notes_v2_deleted',JSON.stringify([...notesDeletedPending]));
+    return true;
+  }catch(e){
+    notesSetStatus('Stockage local indisponible, synchronisation serveur requise','error');
+    return false;
+  }
+}
+function notesScheduleSave(){
+  if(noteSaveTimer)clearTimeout(noteSaveTimer);
+  noteSaveTimer=setTimeout(()=>{noteSaveTimer=null;notesFlushDirty().catch(()=>{});},700);
+}
+async function notesFlushDirty(){
+  if(notesFlushPromise)return notesFlushPromise;
+  notesFlushPromise=(async()=>{
+    let attempts=0;
+    try{
+      while(attempts++<15){
+        const pending=notes.filter(x=>x.unsaved).slice(0,20)
+          .map(x=>({id:x.id,title:x.title,body:x.body,createdAt:x.createdAt,updatedAt:x.updatedAt}));
+        const deletions=[...notesDeletedPending].slice(0,50);
+        if(!pending.length&&!deletions.length)return true;
+        notesSetStatus('Sauvegarde sur Cloudflare…','loading');
+        const response=await api('/api/notes','PUT',{notes:pending,deleted_ids:deletions},{timeoutMs:16000});
+        if(!response?.ok||response.saved!==pending.length||response.deleted!==deletions.length)
+          throw new Error(response?.error||'Confirmation de sauvegarde non reçue');
+        for(const saved of pending){
+          const current=notes.find(n=>n.id===saved.id);
+          if(current&&current.updatedAt===saved.updatedAt)current.unsaved=false;
+        }
+        for(const id of deletions)notesDeletedPending.delete(id);
+        notesSave();
+        const active=document.activeElement;
+        const editing=active?.matches?.('.note-title-input,.note-body');
+        if(!editing&&document.getElementById('s-notes')?.classList.contains('on'))notesRender();
+      }
+      return !notes.some(x=>x.unsaved)&&!notesDeletedPending.size;
+    }catch(error){
+      notesSetStatus('Notes conservées localement. Synchronisation à réessayer.','error');
+      return false;
+    }finally{
+      if(!notes.some(x=>x.unsaved)&&!notesDeletedPending.size)notesSetStatus('Sauvegarde Cloudflare confirmée','ok');
+    }
+  })();
+  try{return await notesFlushPromise;}
+  finally{notesFlushPromise=null;}
+}
 async function notesSyncCloud(){
-  try{ if(notes.length) await api('/api/notes','PUT',{notes}); }catch(_){}
+  if(notesSyncPromise)return notesSyncPromise;
+  notesSyncPromise=(async()=>{
+    notesLoad();
+    notesSetStatus('Récupération des notes sur Cloudflare…','loading');
+    try{
+      const result=await api('/api/notes','GET',null,{timeoutMs:18000});
+      if(!result?.ok||!Array.isArray(result.notes))throw Error(result?.error||'Réponse notes invalide');
+      const remoteDeleted=new Set(Array.isArray(result.deleted_ids)?result.deleted_ids:[]);
+      const toExclude=new Set([...notesDeletedPending,...remoteDeleted]);
+      notes=notesMerge(result.notes,notes,toExclude);
+      // Une ancienne version de BetPro pouvait annoncer « sauvegardée » alors que
+      // la note était absente du serveur. Réparer ces notes locales sans les perdre.
+      const byRemoteId=new Map(result.notes.map(n=>[String(n.id),n]));
+      for(const note of notes){
+        const remote=byRemoteId.get(note.id);
+        if(!remote||notesDateMs(note)>notesDateMs(remote)
+          ||(notesDateMs(note)===notesDateMs(remote)&&(note.title!==remote.title||note.body!==remote.body)))note.unsaved=true;
+      }
+      // Les suppressions déjà confirmées sur le serveur n'ont pas à être renvoyées.
+      for(const id of remoteDeleted)notesDeletedPending.delete(id);
+      notesSave();
+      const editing=document.activeElement?.matches?.('.note-title-input,.note-body');
+      if(!editing)notesRender();
+      notesSetStatus(result.storage==='KV'?'Notes retrouvées dans Cloudflare KV':'Notes retrouvées dans Cloudflare D1','ok');
+      if(notes.some(n=>n.unsaved)||notesDeletedPending.size)await notesFlushDirty();
+    }catch(error){
+      // La mémoire locale et son double de secours ne sont jamais écrasés par un GET en échec.
+      notesSetStatus('Cloudflare indisponible. Notes locales préservées.','error');
+      if(notes.some(n=>n.unsaved)||notesDeletedPending.size)notesScheduleSave();
+    }
+  })();
+  try{return await notesSyncPromise;}
+  finally{notesSyncPromise=null;}
 }
 
 function notesRender(){
-  const list=document.getElementById('notes-list');
-  const empty=document.getElementById('notes-empty');
-  const countLbl=document.getElementById('notes-count-lbl');
-  const badge=document.getElementById('notes-badge');
-  if(countLbl) countLbl.textContent=notes.length+' note(s)';
-  if(badge){ badge.textContent=notes.length; badge.style.display=notes.length?'':'none'; }
-  if(!notes.length){ if(list)list.innerHTML=''; if(empty)empty.style.display=''; return; }
-  if(empty) empty.style.display='none';
-  if(!list) return;
-
-  list.innerHTML = notes.map(function(n,i){
-    var createdStr = n.createdAt
-      ? '<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:2px">Creee le '+fmtDT(n.createdAt)+'</div>'
-      : '';
-    var modStr = (n.updatedAt && n.updatedAt !== n.createdAt)
-      ? '<div class="note-mod-date" style="font-size:9px;color:var(--dm);font-family:var(--mo)">Modifiee le '+fmtDT(n.updatedAt)+'</div>'
-      : '';
-    var syncTag = n.unsaved
-      ? '<span class="note-tag note-unsaved note-sync-tag">Non sauvegarde</span>'
-      : '<span class="note-tag note-saved note-sync-tag">Sauvegarde</span>';
-    var nid = n.id;
-    return (
-      '<div class="note-card '+(n.unsaved?'unsaved':'')+'" id="note-'+nid+'">'
+  const list=document.getElementById('notes-list'),empty=document.getElementById('notes-empty');
+  const countLbl=document.getElementById('notes-count-lbl'),badge=document.getElementById('notes-badge');
+  if(countLbl)countLbl.textContent=notes.length+' note(s)';
+  if(badge){badge.textContent=notes.length;badge.style.display=notes.length?'':'none';}
+  if(!notes.length){if(list)list.innerHTML='';if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
+  if(!list)return;
+  list.innerHTML=notes.map(n=>{
+    const nid=n.id;
+    const created=n.createdAt?'<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:2px">Créée le '+fmtDT(n.createdAt)+'</div>':'';
+    const modified=n.updatedAt&&n.updatedAt!==n.createdAt?
+      '<div class="note-mod-date" style="font-size:9px;color:var(--dm);font-family:var(--mo)">Modifiée le '+fmtDT(n.updatedAt)+'</div>':'';
+    const saved=n.unsaved?'<span class="note-tag note-unsaved note-sync-tag">À synchroniser</span>':
+      '<span class="note-tag note-saved note-sync-tag">Sauvegardée</span>';
+    return '<div class="note-card '+(n.unsaved?'unsaved':'')+'" id="note-'+nid+'">'
       +'<input class="note-title-input" value="'+esc(n.title||'')+'" placeholder="Titre..." oninput="noteEdit(\''+nid+'\',\'title\',this.value)">'
       +'<textarea class="note-body" oninput="noteEdit(\''+nid+'\',\'body\',this.value);autoResize(this)">'+esc(n.body||'')+'</textarea>'
-      +'<div class="note-footer">'
-      +'<div class="note-dates">'+createdStr+modStr+'</div>'
-      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
-      +syncTag
+      +'<div class="note-footer"><div class="note-dates">'+created+modified+'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+saved
       +'<button onclick="noteSaveManual(\''+nid+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:linear-gradient(135deg,#ff7043,#ff5722);border:none;border-radius:4px;color:#fff;font-size:10px;font-family:var(--mo);font-weight:700;cursor:pointer">Enregistrer</button>'
       +'<button onclick="notesDeleteById(\''+nid+'\')" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:12px;padding:2px">Suppr.</button>'
-      +'</div></div>'
-      +'</div>'
-    );
+      +'</div></div></div>';
   }).join('');
-  list.querySelectorAll('textarea.note-body').forEach(function(t){ autoResize(t); });
+  list.querySelectorAll('textarea.note-body').forEach(autoResize);
 }
-
-function autoResize(t){ t.style.height='auto'; t.style.height=t.scrollHeight+'px'; }
-
+function autoResize(t){t.style.height='auto';t.style.height=t.scrollHeight+'px';}
 function notesNew(){
-  var now = new Date().toISOString();
-  notes.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),title:'',body:'',createdAt:now,updatedAt:now,unsaved:true});
-  notesRender();
-  setTimeout(function(){ var inp=document.querySelector('.note-title-input'); if(inp) inp.focus(); },100);
+  const now=new Date().toISOString(),id=Date.now().toString(36)+Math.random().toString(36).slice(2,9);
+  notes.unshift({id,title:'',body:'',createdAt:now,updatedAt:now,unsaved:true});
+  notesSave();notesRender();notesScheduleSave();
+  setTimeout(()=>document.querySelector('.note-title-input')?.focus(),100);
 }
-
-function noteEdit(noteId, field, val){
-  var note = notes.find(function(n){ return n.id===noteId; });
-  if(!note) return;
-  note[field] = val;
-  note.updatedAt = new Date().toISOString();
-  if(!note.createdAt) note.createdAt = note.updatedAt;
-  note.unsaved = true;
-  notesSave();
-  var card = document.getElementById('note-'+noteId);
+function noteEdit(noteId,field,val){
+  const note=notes.find(n=>n.id===noteId);if(!note||!['title','body'].includes(field))return;
+  note[field]=val;note.updatedAt=new Date().toISOString();note.unsaved=true;
+  notesSave();notesScheduleSave();
+  const card=document.getElementById('note-'+noteId);
   if(card){
     card.classList.add('unsaved');
-    var tag = card.querySelector('.note-sync-tag');
-    if(tag){ tag.textContent='Non sauvegarde'; tag.className='note-tag note-unsaved note-sync-tag'; }
-    var modEl = card.querySelector('.note-mod-date');
-    if(modEl){ modEl.textContent='Modifiee le '+fmtDT(note.updatedAt); }
-    else {
-      var datesDiv = card.querySelector('.note-dates');
-      if(datesDiv){
-        var d = document.createElement('div');
-        d.className='note-mod-date';
-        d.style.cssText='font-size:9px;color:var(--dm);font-family:var(--mo)';
-        d.textContent='Modifiee le '+fmtDT(note.updatedAt);
-        datesDiv.appendChild(d);
-      }
-    }
+    const tag=card.querySelector('.note-sync-tag');
+    if(tag){tag.textContent='À synchroniser';tag.className='note-tag note-unsaved note-sync-tag';}
+    const modEl=card.querySelector('.note-mod-date');
+    if(modEl)modEl.textContent='Modifiée le '+fmtDT(note.updatedAt);
   }
 }
-
-function noteSaveManual(noteId){
-  var note = notes.find(function(n){ return n.id===noteId; });
-  if(!note){ toast('Note introuvable','err'); return; }
-  var card = document.getElementById('note-'+noteId);
+async function noteSaveManual(noteId){
+  const note=notes.find(n=>n.id===noteId);
+  if(!note){toast('Note introuvable','err');return;}
+  const card=document.getElementById('note-'+noteId);
   if(card){
-    var titleInp = card.querySelector('.note-title-input');
-    var bodyTA   = card.querySelector('.note-body');
-    if(titleInp) note.title = titleInp.value;
-    if(bodyTA)   note.body  = bodyTA.value;
+    const title=card.querySelector('.note-title-input'),body=card.querySelector('.note-body');
+    if(title)note.title=title.value;
+    if(body)note.body=body.value;
   }
-  note.updatedAt = new Date().toISOString();
-  note.unsaved = false;
-  notesSave();
-  api('/api/notes','PUT',{notes:notes}).catch(function(){});
-  if(card){
-    card.classList.remove('unsaved');
-    var tag = card.querySelector('.note-sync-tag');
-    if(tag){ tag.textContent='Sauvegarde'; tag.className='note-tag note-saved note-sync-tag'; }
-    var modEl = card.querySelector('.note-mod-date');
-    if(modEl){ modEl.textContent='Modifiee le '+fmtDT(note.updatedAt); }
-  }
-  toast('Note sauvegardee !','ok');
+  note.updatedAt=new Date().toISOString();note.unsaved=true;
+  const localSaved=notesSave();
+  if(noteSaveTimer){clearTimeout(noteSaveTimer);noteSaveTimer=null;}
+  const synced=await notesFlushDirty();
+  const current=notes.find(n=>n.id===noteId);
+  if(synced&&current&&!current.unsaved)toast('Note enregistrée sur Cloudflare','ok');
+  else toast(localSaved?'Note conservée localement, Cloudflare indisponible':'Sauvegarde impossible, veuillez réessayer','err');
 }
-
 function notesDeleteById(noteId){
-  if(!confirm('Supprimer cette note ?')) return;
-  notes = notes.filter(function(n){ return n.id!==noteId; });
-  notesSave();
-  api('/api/notes','PUT',{notes:notes}).catch(function(){});
-  notesRender();
+  if(!confirm('Supprimer cette note ?'))return;
+  notesDeletedPending.add(noteId);
+  notes=notes.filter(n=>n.id!==noteId);
+  notesSave();notesRender();notesScheduleSave();
 }
-function notesDelete(i){ if(notes[i]) notesDeleteById(notes[i].id); }
+function notesDelete(i){if(notes[i])notesDeleteById(notes[i].id);}
 
 
 const QUICK_QUESTIONS = [
@@ -6024,7 +6157,7 @@ async function loadProfessionalMaturity(){
     set('maturity-pmu-label','PMU France : '+String(s.pmu?.stage||'construction').toLowerCase());
     set('maturity-pmu-value',nf.format(pmuRaces)+' / '+nf.format(target)+' courses');
     const bar=document.getElementById('maturity-pmu-bar');if(bar)bar.style.width=percent+'%';
-    const badge=document.getElementById('maturity-health');if(badge){badge.textContent=status+' · '+Math.round(health)+'/100';badge.style.color=health>=90?'var(--gr)':health>=70?'var(--am)':'var(--re)';badge.style.borderColor=health>=90?'rgba(31,209,132,.35)':health>=70?'rgba(255,190,74,.35)':'rgba(255,86,106,.35)';}
+    const badge=document.getElementById('maturity-health');if(badge){badge.textContent=status+' · '+Math.round(health)+'/100';badge.style.color=health>=90?'var(--gr)':health>=70?'var(--am)':'var(--re)';badge.style.borderColor=health>=90?'rgba(31,209,132,.35)':health>=70?'rgba(255,190,74,.35)':'rgba(255,86,106,.35)';badge.dataset.level=health>=90?'healthy':health>=70?'warning':'critical';}
     set('maturity-decision',s.benter?.active_models>0?'Multisports : segments actifs, admissibilité contrôlée carte par carte.':'Multisports : aucun segment Benter actif actuellement.');
     set('maturity-storage','Mémoire : D1 + R2 · liaison '+(r2.binding_configured?'configurée':'absente')+' · lecteur '+(r2.reader_configured?'configuré':'absent')+' · archive '+(r2.archive_caught_up?'à jour':'à vérifier')+'.');
     const summary=[];
@@ -6048,6 +6181,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bookieApply();
   notesLoad();
   notesRender();
+  notesSyncCloud();
   initStatusBadges();
   initQuickQuestions();
   loadQuotas();
