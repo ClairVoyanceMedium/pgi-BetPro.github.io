@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PGI BetPro HTML v23 — HKJC date Paris, états fiables, anti-quota — Live Scan borné + tickers multisports résilients, interface intégrale PMU/HKJC -->
+<!-- PGI BetPro HTML v24 — HKJC séparé, liens exacts vers articles multisports traduits en français, titres néon et résumés lisibles -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -300,7 +300,19 @@ a{color:var(--neon);text-decoration:none}
 @keyframes tickerScrollUp{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
 .ticker-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
 .ticker-sport-badge{font-size:9px;font-family:var(--mo);font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0;text-transform:uppercase;margin-top:2px}
-.ticker-title{font-size:11px;font-weight:600;color:var(--mu);line-height:1.4}
+/* Le flux reste lisible sur petit écran et en plein soleil. */
+.ticker-title{font-size:13px;font-weight:750;color:var(--neon);line-height:1.5;letter-spacing:.005em;text-shadow:0 0 9px rgba(0,212,255,.18)}
+.ticker-title a{color:inherit!important;text-decoration:none}
+.ticker-title a:hover,.ticker-title a:focus-visible{color:var(--neon2)!important;text-decoration:underline;text-underline-offset:3px}
+.ticker-description{font-size:11px;color:#e0ebf8;font-family:var(--hd);margin-top:4px;line-height:1.6;font-weight:400}
+.ticker-meta{font-size:10px;color:#b8cce2;font-family:var(--mo);margin-top:4px;line-height:1.5}
+.ticker-read-links{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:6px}
+.ticker-read-links a{font:600 10px var(--mo);text-decoration:underline;text-underline-offset:3px}
+.ticker-read-primary{color:var(--neon)}
+.ticker-read-original{color:#b8cce2}
+.ticker-item[role="link"]:hover,.ticker-item[role="link"]:focus-visible{background:rgba(0,212,255,.055);outline:1px solid rgba(0,212,255,.22);outline-offset:-1px}
+.ticker-item .ticker-sport-badge{align-self:flex-start}
+@media(max-width:768px){.ticker-title{font-size:12.5px}.ticker-description{font-size:11px}.ticker-item{padding:12px 13px}}
 .ticker-match{border-left:2px solid var(--neon);background:rgba(0,212,255,.04)}
 
 /* ── DIRECTION CARD — cartes avec verdict clair ── */
@@ -435,36 +447,6 @@ a{color:var(--neon);text-decoration:none}
 .bj-face-illustration svg{width:100%;height:100%}
 .bj-card-btn.selected .bj-card-face{box-shadow:inset 0 0 0 2px var(--neon)}
 .bj-card-btn .bjc-val{z-index:3}
-/* Pilotage BetPro : cinq indicateurs accessibles, couleurs de provenance. */
-.maturity-kpi{
-  appearance:none;-webkit-appearance:none;display:block;width:100%;min-width:0;
-  text-align:left;padding:10px 12px;border:1px solid rgba(0,212,255,.36);
-  border-radius:8px;background:linear-gradient(145deg,rgba(0,212,255,.085),rgba(0,212,255,.023));
-  cursor:pointer;color:var(--tx);font-family:var(--hd);
-  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
-}
-.maturity-kpi:hover,.maturity-kpi:focus-visible{
-  outline:2px solid transparent;border-color:var(--neon);
-  box-shadow:0 0 0 2px rgba(0,212,255,.20),0 0 17px rgba(0,212,255,.13);
-}
-.maturity-kpi-label{
-  display:block;font:800 9px var(--mo);line-height:1.5;letter-spacing:.035em;
-  color:var(--neon);text-shadow:0 0 11px rgba(0,212,255,.48);
-}
-.maturity-kpi-value{display:block;font:800 18px var(--hd);color:var(--tx);margin-top:5px;line-height:1.3;overflow-wrap:anywhere}
-.maturity-kpi-note{display:block;margin-top:5px;font:9px var(--mo);line-height:1.5;color:var(--mu)}
-.maturity-kpi-ready{
-  border-color:rgba(255,38,72,.68);
-  background:linear-gradient(145deg,rgba(255,24,64,.13),rgba(255,30,60,.035));
-  box-shadow:inset 0 0 12px rgba(255,24,64,.035),0 0 10px rgba(255,30,70,.08);
-}
-.maturity-kpi-ready .maturity-kpi-label,.maturity-kpi-ready .maturity-kpi-value{
-  color:#ff335d;text-shadow:0 0 9px rgba(255,38,72,.50),0 0 20px rgba(255,38,72,.18);
-}
-.maturity-kpi-ready:hover,.maturity-kpi-ready:focus-visible{
-  border-color:#ff335d;box-shadow:0 0 0 2px rgba(255,38,72,.30),0 0 20px rgba(255,38,72,.28);
-}
-@media(prefers-reduced-motion:reduce){.maturity-kpi{transition:none}}
 </style>
 </head>
 <body>
@@ -628,38 +610,21 @@ a{color:var(--neon);text-decoration:none}
   <div id="maturity-panel" class="card" style="margin:14px 0 4px;border-color:rgba(0,212,255,.22);background:linear-gradient(135deg,rgba(0,212,255,.055),rgba(167,139,250,.035))">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div>
-        <div class="ct" style="margin:0">Collecte historique et validation pour pronostic</div>
+        <div class="ct" style="margin:0">Collecte et validation</div>
         <div id="maturity-checked" style="font:9px var(--mo);color:var(--dm);margin-top:3px">Contrôle D1, R2 et modèles…</div>
       </div>
       <div id="maturity-health" style="font:800 11px var(--mo);padding:5px 9px;border:1px solid var(--bd);border-radius:6px;color:var(--dm)">VÉRIFICATION</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:7px;margin-top:11px">
-      <button type="button" class="maturity-kpi" onclick="betproShowMaturityDetails()" title="Afficher le diagnostic détaillé de la collecte historique">
-        <span class="maturity-kpi-label">ÉVÉNEMENTS</span>
-        <span id="maturity-events" class="maturity-kpi-value">En cours</span>
-        <span class="maturity-kpi-note">Données historiques collectées</span>
-      </button>
-      <button type="button" class="maturity-kpi" onclick="betproShowMaturityDetails()" title="Afficher les informations sur les cotes archivées">
-        <span class="maturity-kpi-label">COTES ARCHIVÉES</span>
-        <span id="maturity-odds" class="maturity-kpi-value">En cours</span>
-        <span class="maturity-kpi-note">Observations conservées en base</span>
-      </button>
-      <button type="button" class="maturity-kpi" onclick="go('turf')" title="Ouvrir les courses PMU françaises">
-        <span class="maturity-kpi-label">COURSES PMU FRANCE</span>
-        <span id="maturity-pmu" class="maturity-kpi-value">En cours</span>
-        <span class="maturity-kpi-note">Voir les courses françaises</span>
-      </button>
-      <button type="button" class="maturity-kpi" onclick="go('hkjc')" title="Ouvrir les courses Hong Kong HKJC">
-        <span class="maturity-kpi-label">HONG KONG · HKJC</span>
-        <span id="maturity-hkjc" class="maturity-kpi-value">En cours</span>
-        <span id="maturity-hkjc-odds" class="maturity-kpi-note">Cotes vérifiées : en cours</span>
-      </button>
-      <button type="button" class="maturity-kpi maturity-kpi-ready" onclick="betproShowReadyPicks()" title="Afficher les pronostics contrôlés du dernier scan, sans garantie de gain">
-        <span class="maturity-kpi-label">PRONOSTICS PRÊTS À JOUER</span>
-        <span id="maturity-models" class="maturity-kpi-value">À scanner</span>
-        <span class="maturity-kpi-note">Analyses sportives ayant passé les contrôles</span>
-        <span id="maturity-ready-context" class="maturity-kpi-note">Lancer un scan pour obtenir un nombre vérifié</span>
-      </button>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">ÉVÉNEMENTS</div><div id="maturity-events" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COTES ARCHIVÉES</div><div id="maturity-odds" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">COURSES PMU FRANCE</div><div id="maturity-pmu" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
+      <div role="button" tabindex="0" aria-label="Afficher la rubrique Hong Kong HKJC" title="Voir les courses hippiques de Hong Kong" onclick="go('hkjc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('hkjc')}" style="padding:8px;border:1px solid rgba(0,212,255,.35);border-radius:7px;background:rgba(0,212,255,.07);cursor:pointer">
+        <div style="font:8px var(--mo);color:var(--neon)">HONG KONG · HKJC</div>
+        <div id="maturity-hkjc" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div>
+        <div id="maturity-hkjc-odds" style="font:9px var(--mo);color:var(--mu);margin-top:3px">Cotes vérifiées : non mesurées</div>
+      </div>
+      <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div style="font:8px var(--mo);color:var(--dm)">SEGMENTS SPORTS ACTIFS</div><div id="maturity-models" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
     </div>
     <div style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;gap:8px;font:9px var(--mo);color:var(--mu)"><span id="maturity-pmu-label">PMU France : construction</span><span id="maturity-pmu-value">0 / 500</span></div>
@@ -668,7 +633,7 @@ a{color:var(--neon);text-decoration:none}
     <div id="maturity-decision" style="font:10px var(--mo);color:var(--am);line-height:1.5;margin-top:10px">Aucune carte n’est fiable pour l’instant.</div>
     <div id="maturity-storage" style="font:9px var(--mo);color:var(--dm);line-height:1.5;margin-top:5px">R2 : vérification de la mémoire multi-années…</div>
     <div id="maturity-summary" style="font:11px var(--mo);line-height:1.65;margin-top:12px;white-space:pre-wrap"></div>
-    <details id="maturity-diagnostic-details" style="margin-top:10px"><summary style="cursor:pointer;color:var(--neon)">Détail des contrôles et des quotas</summary><div id="maturity-details" style="font:11px var(--mo);line-height:1.65;margin-top:12px;color:var(--tx)"></div></details>
+    <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--neon)">Détail des contrôles et des quotas</summary><div id="maturity-details" style="font:11px var(--mo);line-height:1.65;margin-top:12px;color:var(--tx)"></div></details>
     <button type="button" id="maturity-export" onclick="exportCollectionDiagnostic()" disabled style="margin-top:12px;padding:9px 12px;border:1px solid var(--bd);border-radius:7px;background:transparent;color:var(--tx)">Télécharger le diagnostic</button>
   </div>
 
@@ -2272,7 +2237,6 @@ function renderScanResults(opps, cnt, cacheAge, diag) {
         <div style="margin-top:10px;font-size:12px;color:var(--mu)">Raison probable : ${esc(reason)}</div>
       </div>
     </div>`;
-    betproUpdateReadyPicks(0,cacheAge);
     return;
   }
   _scanAllOpps = opps;
@@ -2312,7 +2276,6 @@ function renderScanResults(opps, cnt, cacheAge, diag) {
     <div class="opp-grid">
       ${opps.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('')}
     </div>`;
-  betproUpdateReadyPicks(cnt.querySelectorAll('.dir-card').length,cacheAge);
 }
 
 // ═══════════════════════════════════════════════
@@ -5201,6 +5164,23 @@ function getTickerStyle(sport) {
   return {bg:'rgba(78,106,138,.15)',color:'var(--mu)'};
 }
 
+// L'article original provient uniquement du champ URL publié par le fournisseur.
+// Ne jamais fabriquer une adresse à partir d'un titre ou rediriger vers la page d'accueil.
+function tickerExactArticleUrl(raw) {
+  try {
+    const url = new URL(String(raw || '').trim());
+    if (!['https:', 'http:'].includes(url.protocol) || !url.hostname || url.username || url.password) return '';
+    if (/^(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0)$/i.test(url.hostname)) return '';
+    return url.href;
+  } catch (_) { return ''; }
+}
+
+// Google Traduction ouvre la même URL, langue détectée automatiquement, cible FR.
+// L'article d'origine reste accessible si la traduction du site est indisponible.
+function tickerFrenchArticleUrl(original) {
+  return original ? 'https://translate.google.com/translate?sl=auto&tl=fr&hl=fr&u=' + encodeURIComponent(original) : '';
+}
+
 let tickerPaused = false;
 let tickerAnimFrame = null;
 let tickerLoadSequence = 0;
@@ -5228,7 +5208,7 @@ function renderTickerSafetyFallback(message='Connexion aux flux en cours…', fo
   if(!inner)return;
   if(!force && inner.querySelector('.ticker-item'))return;
   const html=TICKER_EMERGENCY_SPORTS.map(([label,sport])=>
-    `<div class="ticker-item ticker-safety"><span class="ticker-sport-badge" style="background:rgba(0,212,255,.10);color:var(--neon)">${label}</span><div style="flex:1;min-width:0"><div class="ticker-title">${esc(sport)} · surveillance active</div><div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px">${esc(message)}</div></div></div>`
+    `<div class="ticker-item ticker-safety"><span class="ticker-sport-badge" style="background:rgba(0,212,255,.10);color:var(--neon)">${label}</span><div style="flex:1;min-width:0"><div class="ticker-title">${esc(sport)} · surveillance active</div><div class="ticker-meta">${esc(message)}</div></div></div>`
   ).join('');
   inner.innerHTML=html;
   if(clone)clone.innerHTML=html;
@@ -5417,21 +5397,24 @@ ${blocks}`}]
         } catch(_) {}
       }
 
-      let safeLink = '';
-      try {
-        const parsedLink = new URL(String(art.link||''), window.location.href);
-        if (parsedLink.protocol === 'https:' || parsedLink.protocol === 'http:') safeLink = parsedLink.href.replace(/"/g,'&quot;');
-      } catch (_) {}
+      // Les affiches sportives D1 ne sont pas des articles : on ne leur invente pas de lien.
+      const originalArticle = (!art.is_status && !art.is_match && !art._turfRaceId)
+        ? tickerExactArticleUrl(art.link) : '';
+      const frenchArticle = tickerFrenchArticleUrl(originalArticle);
+      const titleHtml = frenchArticle
+        ? `<a href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer" title="Lire cet article en français (traduction automatique)">${esc(displayTitle)}</a>`
+        : esc(displayTitle);
       const turfAttr = art._turfRaceId ? ` data-turf-race="${esc(art._turfRaceId)}"` : '';
-      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${safeLink}"${turfAttr} style="${(safeLink||art._turfRaceId)?'cursor:pointer;':''}">
+      const clickable = !!(frenchArticle || art._turfRaceId);
+      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${esc(frenchArticle)}"${turfAttr}${clickable?' role="link" tabindex="0"':''} style="${clickable?'cursor:pointer;':'cursor:default;'}">
         <span class="ticker-sport-badge" style="background:${style.bg};color:${style.color}">${label}</span>
         <div style="flex:1;min-width:0">
-          <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${esc(displayTitle)}</div>
-          ${displayDescription?`<div style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-top:2px;line-height:1.4">${esc(displayDescription.slice(0,100))}${displayDescription.length>100?'…':''}</div>`:''}
-          ${art.source?`<div style="font-size:8px;color:var(--dm);font-family:var(--mo);margin-top:2px;opacity:.65">Source : ${esc(art.source)}</div>`:''}
-          ${dateStr?`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px;opacity:.7">📅 ${dateStr}</div>`:''}
-          ${safeLink?`<div style="font-size:9px;color:var(--neon);font-family:var(--mo);margin-top:2px;opacity:.7">🔗 Lire l'article →</div>`:''}
-          ${art._turfRaceId?`<div style="font-size:9px;color:#7ee8a0;font-family:var(--mo);margin-top:2px;opacity:.85">🐎 Voir la course →</div>`:''}
+          <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${titleHtml}</div>
+          ${displayDescription?`<div class="ticker-description">${esc(displayDescription.slice(0,220))}${displayDescription.length>220?'…':''}</div>`:''}
+          ${art.source?`<div class="ticker-meta">Source : ${esc(art.source)}</div>`:''}
+          ${dateStr?`<div class="ticker-meta">Publié le ${esc(dateStr)}</div>`:''}
+          ${frenchArticle?`<div class="ticker-read-links"><a class="ticker-read-primary" href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer" title="Le contenu est traduit par Google Traduction, quand disponible">Lire l'article en français</a><a class="ticker-read-original" href="${esc(originalArticle)}" target="_blank" rel="noopener noreferrer" title="Voir l'article exact dans sa langue d'origine">Article original</a></div>`:''}
+          ${art._turfRaceId?`<div class="ticker-meta" style="color:#a8efc0">Voir la course PMU dans BetPro</div>`:''}
         </div>
       </div>`;
     };
@@ -5470,14 +5453,31 @@ ${blocks}`}]
 
     function setupTickerClicks(container) {
       if(!container) return;
-      container.querySelectorAll('.ticker-item[data-href]').forEach(el => {
-        el.addEventListener('click', function(e) {
-          const url = this.dataset.href;
-          const turfId = this.dataset.turfRace;
-          if(turfId) { e.stopPropagation(); go('turf'); setTimeout(()=>turfSelectRace(turfId), 300); return; }
+      container.querySelectorAll('.ticker-item[role="link"]').forEach(el => {
+        const activate = (e) => {
+          // Les liens natifs gèrent eux-mêmes l'ouverture et l'accès à l'original.
+          // Cela évite d'ouvrir deux onglets quand on touche un lien sur mobile.
+          if(e.target.closest('a')) return;
+          const turfId = el.dataset.turfRace;
+          if(turfId) {
+            e.preventDefault();
+            go('turf');
+            setTimeout(()=>turfSelectRace(turfId), 300);
+            return;
+          }
+          const url = el.dataset.href;
           if(url) {
-            e.stopPropagation();
-            window.open(url, '_blank', 'noopener,noreferrer');
+            e.preventDefault();
+            // Activation synchronisée sur le clic utilisateur (pas de popup différée).
+            const a=document.createElement('a');
+            a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+            document.body.appendChild(a);a.click();a.remove();
+          }
+        };
+        el.addEventListener('click', activate);
+        el.addEventListener('keydown', e => {
+          if((e.key==='Enter'||e.key===' ')&&e.target===el){
+            e.preventDefault();activate(e);
           }
         });
       });
@@ -5732,42 +5732,6 @@ async function initStatusBadges() {
   } catch(_) {}
 }
 
-// Les pronostics prêts à jouer désignent UNIQUEMENT les cartes admises
-// et effectivement affichées lors du dernier scan multisports de cette page.
-// Aucun modèle statistique actif n'est converti artificiellement en "pari".
-let betproLastScanPicks=null;
-function betproRefreshReadyPicks(){
-  const number=document.getElementById('maturity-models');
-  const note=document.getElementById('maturity-ready-context');
-  if(!number||!note)return;
-  if(!betproLastScanPicks){
-    number.textContent='À scanner';
-    note.textContent='Lancer un scan pour obtenir un nombre vérifié';
-    return;
-  }
-  number.textContent=new Intl.NumberFormat('fr-FR').format(betproLastScanPicks.count);
-  note.textContent=betproLastScanPicks.count===0
-    ?'Aucune sélection validée lors du dernier scan'
-    :'Dernier scan : '+betproLastScanPicks.count+' sélection(s) validée(s)';
-  if(betproLastScanPicks.cacheAge>0)note.textContent+=' · cache '+betproLastScanPicks.cacheAge+' min';
-}
-function betproUpdateReadyPicks(count,cacheAge=0){
-  const n=Math.max(0,Math.floor(Number(count)||0));
-  betproLastScanPicks={count:n,cacheAge:Math.max(0,Number(cacheAge)||0)};
-  betproRefreshReadyPicks();
-}
-function betproShowMaturityDetails(){
-  go('dash');
-  const details=document.getElementById('maturity-diagnostic-details');
-  if(details){details.open=true;details.scrollIntoView({behavior:'smooth',block:'center'});}
-}
-function betproShowReadyPicks(){
-  go('dash');
-  const target=document.getElementById('scan-res')||document.getElementById('scan-btn');
-  target?.scrollIntoView({behavior:'smooth',block:'center'});
-  if(!betproLastScanPicks){toast('Lancez le scan pour obtenir des pronostics contrôlés.','ok');}
-}
-
 let maturityLoading=false,collectionDiagnostic=null;
 function collectionDiagnosticText(s){
   const n=v=>v===null||v===undefined||v===''?'non mesuré':Number.isFinite(Number(v))?new Intl.NumberFormat('fr-FR').format(Number(v)):'inconnu';
@@ -5823,7 +5787,7 @@ async function loadProfessionalMaturity(){
     const eventRows=Array.isArray(s.collection?.events)?s.collection.events:[],eventCount=eventRows.reduce((n,r)=>n+Number(r.events||0),0),health=Number(s.health.score),status=String(s.health.status||'INDISPONIBLE'),pmuRaces=Number(s.pmu?.detailed_races||0),target=Math.max(1,Number(s.pmu?.target_races||500)),percent=Math.min(100,Math.round(pmuRaces*100/target)),r2=s.r2||{};
     const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
     set('maturity-checked','État : '+(s.checked_at?new Date(s.checked_at).toLocaleString('fr-FR'):'date inconnue')+' · compteurs : '+(s.volume_checked_at?new Date(s.volume_checked_at).toLocaleString('fr-FR'):'date du contrôle')+'.');
-    set('maturity-events',nf.format(eventCount));set('maturity-odds',s.collection?.odds_snapshots==null?'Non mesuré':nf.format(Number(s.collection.odds_snapshots)));set('maturity-pmu',nf.format(pmuRaces));betproRefreshReadyPicks();
+    set('maturity-events',nf.format(eventCount));set('maturity-odds',s.collection?.odds_snapshots==null?'—':nf.format(Number(s.collection.odds_snapshots)));set('maturity-pmu',nf.format(pmuRaces));set('maturity-models',nf.format(Number(s.benter?.active_models||0)));
     // Compteurs HKJC indépendants des courses PMU françaises.
     set('maturity-hkjc',s.hkjc?.races==null?'—':nf.format(Math.max(0,Number(s.hkjc.races)||0)));
     set('maturity-hkjc-odds',s.hkjc?.verified_odds_snapshots==null?'Cotes vérifiées : non mesurées':'Cotes vérifiées : '+nf.format(Math.max(0,Number(s.hkjc.verified_odds_snapshots)||0)));
