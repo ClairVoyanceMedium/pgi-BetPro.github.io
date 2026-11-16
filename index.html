@@ -5623,6 +5623,12 @@ function tickerOfflineFrenchNews(art){
 }
 function tickerHasFrenchArticleTitle(art){
   if(art?.is_match||art?._turfRaceId)return true;
+  // Google Actualités fournit déjà des titres en français : aucune traduction AI
+  // n'est nécessaire pour les afficher, et les rencontres restent prioritaires.
+  if(art?.language==='fr' && String(art?.source||'').startsWith('Google Actualités')){
+    const title=String(art.title||'').trim();
+    return title.length>=12 && !/[<>]/.test(title);
+  }
   const title=String(art?._translatedTitle||'').trim();
   if(!title||title.toLocaleLowerCase('fr')===String(art?.title||'').trim().toLocaleLowerCase('fr'))return false;
   // Détecte une traduction restée massivement en anglais.
@@ -5659,7 +5665,7 @@ function tickerWriteTranslationCache(cache) {
 // Un tour par catégorie avant de passer au deuxième élément. Ainsi le PMU
 // reste visible sans repousser le football, le MMA et les autres sports sous
 // plusieurs écrans. Les doublons et les flux surabondants sont plafonnés.
-function buildBalancedTickerItems(sportItems, turfItems, maxItems = 76) {
+function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
   // Augmente la couverture sans évincer les vrais articles de presse.
   const groups = new Map(),seen=new Set();
   for(const item of [...(sportItems||[]),...(turfItems||[])]) {
@@ -5668,20 +5674,23 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 76) {
     if(seen.has(fp))continue;seen.add(fp);
     if(!groups.has(category))groups.set(category,{matches:[],articles:[]});
     const group=groups.get(category),bucket=item.is_match?group.matches:group.articles;
-    if(bucket.length<8)bucket.push({...item,sport:category});
+    if(bucket.length<(item.is_match?10:6))bucket.push({...item,sport:category});
   }
   const buckets=new Map();
   for(const [category,group] of groups){
     let entries;
     if(group.matches.length){
-      // Rencontres prioritaires pour chaque sport, articles conservés en complément.
-      entries=[...group.matches.slice(0,7),...group.articles.slice(0,1)];
-    }else entries=group.articles.slice(0,8);
+      // Rencontres toujours prioritaires, mais les nouvelles en français restent visibles.
+      // Maximum 8 rencontres et 2 actualités par sport, sans remplacer les affiches.
+      const matches=group.matches.slice(0,8), articles=group.articles.slice(0,2);
+      entries=[...matches.slice(0,3),...articles.slice(0,1),
+        ...matches.slice(3),...articles.slice(1)];
+    }else entries=group.articles.slice(0,4);
     buckets.set(category,entries);
   }
   const extraCategories=[...buckets.keys()].filter(x=>!TICKER_SPORT_ORDER.includes(x)).sort();
   const order=[...TICKER_SPORT_ORDER,...extraCategories],balanced=[];
-  for(let round=0;round<8&&balanced.length<maxItems;round++) {
+  for(let round=0;round<12&&balanced.length<maxItems;round++) {
     for(const category of order){const item=buckets.get(category)?.[round];if(item)balanced.push(item);if(balanced.length>=maxItems)break;}
   }
   return balanced;
@@ -5883,7 +5892,7 @@ async function loadTicker() {
     const degraded = !!sportPayload.meta?.degraded;
     const completeMultisport = sportCategories.size >= 11;
     if (source) source.textContent = news.length
-      ? `${news.filter(x=>x.is_match).length} rencontres · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
+      ? `${news.filter(x=>x.is_match).length} rencontres · ${news.filter(x=>!x.is_match&&!x.is_status).length} actus FR · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
       : 'Flux momentanément indisponible';
     if (!news.length) {
       if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
@@ -5992,9 +6001,10 @@ ${blocks}`}]
       // Les affiches sportives D1 ne sont pas des articles : on ne leur invente pas de lien.
       const originalArticle = (!art.is_status && !art.is_match && !art._turfRaceId)
         ? tickerExactArticleUrl(art.link) : '';
-      const frenchArticle = tickerFrenchArticleUrl(originalArticle);
+      const nativeFrench=art.language==='fr' && String(art.source||'').startsWith('Google Actualités');
+      const frenchArticle = nativeFrench?originalArticle:tickerFrenchArticleUrl(originalArticle);
       const titleHtml = frenchArticle
-        ? `<a href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer" title="Lire cet article en français (traduction automatique)">${esc(displayTitle)}</a>`
+        ? `<a href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer" title="${nativeFrench?'Lire l’article original en français':'Lire cet article en français (traduction automatique)'}">${esc(displayTitle)}</a>`
         : esc(displayTitle);
       const turfAttr = art._turfRaceId ? ` data-turf-race="${esc(art._turfRaceId)}"` : '';
       const clickable = !!(frenchArticle || art._turfRaceId);
@@ -6006,7 +6016,7 @@ ${blocks}`}]
           ${art.source?`<div class="ticker-meta">Source : ${esc(art.source)}</div>`:''}
           ${dateStr?`<div class="ticker-meta">${art.is_match?'Rencontre le':'Publié le'} ${esc(dateStr)} (Paris)</div>`:''}
           ${marketLine}
-          ${frenchArticle?`<div class="ticker-read-links"><a class="ticker-read-primary" href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer" title="Le contenu est traduit par Google Traduction, quand disponible">Lire l'article en français</a><a class="ticker-read-original" href="${esc(originalArticle)}" target="_blank" rel="noopener noreferrer" title="Voir l'article exact dans sa langue d'origine">Article original</a></div>`:''}
+          ${frenchArticle?`<div class="ticker-read-links"><a class="ticker-read-primary" href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer">${nativeFrench?'Lire l’article en français':'Lire la traduction française'}</a>${nativeFrench?'':`<a class="ticker-read-original" href="${esc(originalArticle)}" target="_blank" rel="noopener noreferrer" title="Voir l’article original">Article original</a>`}</div>`:''}
           ${art._turfRaceId?`<div class="ticker-meta" style="color:#a8efc0">Voir la course PMU dans BetPro</div>`:''}
         </div>
       </div>`;
