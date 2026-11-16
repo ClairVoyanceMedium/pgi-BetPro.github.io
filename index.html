@@ -2104,6 +2104,21 @@ function sortScanCardsBalanced(a, b) {
 // que si CE sport précis n'a sorti aucune carte standard. Plafonne le
 // football à 4 cartes et les autres sports à 3 quand le filtre est "Tout",
 // pour garantir de la diversité au lieu de laisser le foot tout occuper.
+function betproBenterMarketIsActionable(o,now=Date.now()){
+  const start=Date.parse(o?.start_time||o?.commence_time||o?.event_start_at||'');
+  const status=String(o?.status||o?.event_status||'').toLowerCase();
+  return Number.isFinite(start)&&start>now+120000
+    &&Number.isFinite(Number(o?.odds))&&Number(o.odds)>=1.25
+    &&String(o?.selection||'').trim().length>0
+    &&Array.isArray(o?.all_bookmakers)&&o.all_bookmakers.length>0
+    &&!['final','cancelled','canceled','ended','finished','ft','aet','pen'].includes(status);
+}
+function betproBenterIsActionable(o,now=Date.now()){
+  if(!betproBenterMarketIsActionable(o,now))return false;
+  const result=o._res||computeDirection(o);
+  return result?.shouldDisplay===true&&result.direction==='play';
+}
+
 function buildBalancedScanCards(allDeduped, sportFilterVal) {
   const bySport = {};
 
@@ -2261,7 +2276,7 @@ async function doLiveScan() {
     // Garder uniquement les cartes JOUER (play), triées par tier puis fiabilité puis date proche.
     // Seuil d'entrée assoupli (score brut >=50 au lieu de 60) : le tri fin se fait ensuite par
     // le moteur William Benter (computeDirection), pas par ce pré-filtre grossier.
-    const allDeduped = deduped.filter(o => (o.score?.total || 0) >= 45);
+    const allDeduped = deduped.filter(o => (o.score?.total || 0) >= 45 && betproBenterMarketIsActionable(o));
 
     // Nouveau scan équilibré multi-sports :
     // - standard d'abord par sport
@@ -2317,7 +2332,9 @@ async function doLiveScan() {
 }
 
 function renderScanResults(opps, cnt, cacheAge, diag) {
-  if (!opps?.length) {
+  // Filtre reapplique aussi aux caches de scans, apres expiration d'une cote.
+  opps=(Array.isArray(opps)?opps:[]).filter(o=>betproBenterIsActionable(o));
+  if (!opps.length) {
     const d = diag || {};
     let reason;
     if(d.deadlineReached) reason = `le scan a atteint sa limite de sécurité ; ${d.completedRequests||0} requête(s) ont répondu et ${d.timedOutRequests||0} ont dépassé le délai. Vous pouvez relancer sans recharger la page.`;
@@ -4467,12 +4484,16 @@ function betproClassicCard(match,idx){
   const consistency=verified&&Number.isFinite(Number(c.consensus_score))?Math.max(0,Math.min(95,Math.round(Number(c.consensus_score)))):null;
   const positiveValue=verified&&!!marketValue?.positive_value;
   const bookmakerAgreement=verified&&Number(c.bookmakers||0)>0?Number(c.agreement||0)/Number(c.bookmakers):0;
-  const strong=verified&&consistency>=75&&Number(c.bookmakers||0)>=3&&bookmakerAgreement>=.66&&Number(c.probability||0)>=(c.draw_included?.42:.52);
+  const highMarketProbability=verified&&Number(c.probability||0)>=BETPRO_CLASSIC_GREEN_MARKET_PROBABILITY
+    &&consistency>=70&&Number(c.bookmakers||0)>=2&&bookmakerAgreement>=.65;
+  const strongConsensus=verified&&consistency>=75&&Number(c.bookmakers||0)>=3
+    &&bookmakerAgreement>=.66&&Number(c.probability||0)>=(c.draw_included?.42:.52);
+  const strong=highMarketProbability||strongConsensus;
   const tier=strong?'dir-play':'dir-watch';
   const color=strong?'var(--gr)':'var(--am)';
-  const verdict=strong?'CONSENSUS BOOKMAKERS FORT':verified?'TENDANCE DES BOOKMAKERS':archived?'ANCIENNES COTES DE MARCHÉ':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
-  const headValue=verified&&consistency!==null?consistency+'/100':archived?'ARCHIVE':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
-  const headCaption=verified&&consistency!==null?'cohérence des cotes':archived?'cote ancienne':oneSource?'cote isolée':'statut';
+  const verdict=highMarketProbability?'FAVORI À FORTE PROBABILITÉ':strongConsensus?'CONSENSUS BOOKMAKERS FORT':verified?'TENDANCE DES BOOKMAKERS':archived?'ANCIENNES COTES DE MARCHÉ':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
+  const headValue=highMarketProbability?Math.round(Number(c.probability)*100)+' %':verified&&consistency!==null?consistency+'/100':archived?'ARCHIVE':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
+  const headCaption=highMarketProbability?'probabilité de marché':verified&&consistency!==null?'cohérence des cotes':archived?'cote ancienne':oneSource?'cote isolée':'statut';
   const fav=hasMarket?String(quote.favorite||''):'',prob=hasMarket?betproClassicPct(quote.probability):'';
   const price=verified?(Number(marketValue?.best_price)>1?Number(marketValue.best_price):Number(c.median_market_odds||0)):Number(ind.market_odds||0);
   const priceDisplay=Number.isFinite(price)&&price>1?price.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}):null;
@@ -4504,7 +4525,7 @@ function betproClassicCard(match,idx){
     ${ssRow('Probabilité du favori',Math.round(Number(c.probability||0)*100))}
   </div>`:'';
   const realScore=scoreKnown?`<span class="bdg blv" style="font-weight:800">Score ${esc(String(score.home??'–'))} : ${esc(String(score.away??'–'))}</span>`:'';
-  const footnote=verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':archived?'Ancienne cote, indicative seulement, susceptible d’avoir changé.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
+  const footnote=highMarketProbability?'Vert = probabilité de marché élevée (≥75 %), pas une garantie de rendement. Vérifier la cote chez le bookmaker.':verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':archived?'Ancienne cote, indicative seulement, susceptible d’avoir changé.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
   return `<div class="dir-card ${tier}" data-engine="classic" data-sport-key="${esc(sport)}" data-tier="${strong?'strong':'moderate'}" role="button" tabindex="0" aria-expanded="false"
       onclick="betproClassicToggleCard(this,event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();betproClassicToggleCard(this,event)}">
     <div class="dir-banner"><span style="font-size:10px;font-weight:700">${verdict}</span>
@@ -4529,6 +4550,29 @@ function betproClassicCard(match,idx){
   </div>`;
 }
 
+// Le Scan Classique affiche uniquement des cotes pre-match encore exploitables.
+// Les rencontres sans cotes, les archives et les simples programmes restent
+// disponibles dans les rubriques de calendrier, pas dans les resultats du scan.
+const BETPRO_CLASSIC_GREEN_MARKET_PROBABILITY = 0.75;
+function betproClassicIsActionable(match,now=Date.now()){
+  const c=match?.consensus||{};
+  const start=Date.parse(match?.start_time||match?.event_start_at||'');
+  const observed=Date.parse(c.last_odds_at||'');
+  const quotedPrice=Number(match?.classic_value?.best_price)>1
+    ? Number(match.classic_value.best_price) : Number(c.median_market_odds);
+  const maxAge=start-now<=86400000?21600000:86400000;
+  const status=String(match?.status||'').toLowerCase();
+  return c.status==='ok'&&Number(c.bookmakers)>=2
+    &&['home','away','draw'].includes(c.choice)
+    &&String(c.favorite||'').trim().length>0
+    &&Number(c.probability)>0&&Number(c.probability)<1
+    &&Number.isFinite(quotedPrice)&&quotedPrice>1.001
+    &&Number.isFinite(start)&&start>now+120000
+    &&Number.isFinite(observed)&&observed<=now+30000
+    &&observed>=now-maxAge&&observed<start
+    &&!['final','cancelled','canceled','ended','finished','ft','aet','pen'].includes(status);
+}
+
 async function doClassicScan(){
   setBetProEngine('classic');
   const seq=++betProClassicScanSeq,btn=document.getElementById('scan-classic-btn'),cnt=document.getElementById('scan-classic-res');if(!cnt||!btn)return;
@@ -4539,9 +4583,17 @@ async function doClassicScan(){
     const d=await api('/api/classic/scan?'+params,'GET',null,{timeoutMs:25000});
     if(seq!==betProClassicScanSeq)return;
     if(!d?.ok)throw Error(d?.error||'Scan classique indisponible');
-    const events=Array.isArray(d.events)?d.events:[];
+    const candidates=Array.isArray(d.events)?d.events:[];
+    const now=Date.now();
+    const events=candidates.filter(e=>betproClassicIsActionable(e,now))
+      .sort((a,b)=>{
+        const strongA=Number(a.consensus?.probability)>=BETPRO_CLASSIC_GREEN_MARKET_PROBABILITY?1:0;
+        const strongB=Number(b.consensus?.probability)>=BETPRO_CLASSIC_GREEN_MARKET_PROBABILITY?1:0;
+        return strongB-strongA||Number(b.classic_value?.positive_value||0)-Number(a.classic_value?.positive_value||0)
+          ||Number(b.consensus?.consensus_score||0)-Number(a.consensus?.consensus_score||0);
+      });
     const warn='<div class="classic-subtext" style="margin-bottom:12px">Analyse indépendante de Benter : consensus bookmaker sans surcote artificielle ni garantie de victoire. Aucune requête Odds API payante ajoutée par ce scan.</div>';
-    cnt.innerHTML=`<div class="sbar"><span style="color:#dccaff;font-weight:800">SCAN LIVE CLASSIQUE</span><span>${events.length} rencontre(s) · ${Number(d.with_consensus||0)} consensus vérifiés</span><span style="margin-left:auto">${esc(betproClassicDate(d.generated_at))}</span></div>`+warn+(events.length?'<div class="opp-grid">'+events.map(betproClassicCard).join('')+'</div>':'<div class="empty"><div class="empty-t">Aucune rencontre enregistrée pour cette période</div></div>');
+    cnt.innerHTML=`<div class="sbar"><span style="color:#dccaff;font-weight:800">SCAN LIVE CLASSIQUE</span><span>${events.length} cote(s) exploitable(s) · ${candidates.length-events.length} rencontre(s) sans marché utilisable écartée(s)</span><span style="margin-left:auto">${esc(betproClassicDate(d.generated_at))}</span></div>`+warn+(events.length?'<div class="opp-grid">'+events.map(betproClassicCard).join('')+'</div>':'<div class="empty"><div class="empty-t">Aucune cote exploitable actuellement. Aucun match simplement programmé n’est affiché. Relancez le scan lorsque les bookmakers publient leurs cotes.</div></div>');
   }catch(e){if(seq===betProClassicScanSeq)cnt.innerHTML='<div class="warn">Scan Classique indisponible : '+esc(e?.message||String(e))+'</div>';}
   finally{if(seq===betProClassicScanSeq){btn.disabled=false;document.getElementById('scan-classic-txt').textContent='SCAN LIVE CLASSIQUE';}}
 }
@@ -6409,6 +6461,16 @@ function pgiTurfGlobalConfidence(d){
   if(Number(e.runners_active||0)<8)score=Math.min(score,64);
   return Math.round(pgiClamp100(score));
 }
+const BETPRO_BENTER_GREEN_MODEL_PROBABILITY = 70;
+function betproBenterIsHighProbability(o,res){
+  return res?.shouldDisplay===true&&res.direction==='play'
+    &&Number(res.modelProb)>=BETPRO_BENTER_GREEN_MODEL_PROBABILITY
+    &&Number(res.displayConf)>=75&&Number(res.reliabilityScore)>=78
+    &&Number(res.dataQualityScore)>=55&&Number(res.edgeProb)>=2
+    &&Number(res.evSimple)>=1.04
+    &&Array.isArray(o?.all_bookmakers)&&o.all_bookmakers.length>=2;
+}
+
 function pgiIsStrongSportsSignal(o,res){
   return res?.direction==='play'&&res?.tier==='premium'&&Number(res.reliabilityScore||0)>=92&&Number(res.displayConf||0)>=90&&Number(res.dataQualityScore||0)>=70&&Number(res.edgeProb||0)>=5&&Number(res.evSimple||0)>=1.12;
 }
@@ -6487,7 +6549,10 @@ function renderDirectionCard(o, i, containerId) {
   }[tier] || { border:'var(--bd)', bg:'', bannerBg:'rgba(78,106,138,.12)', label:tierLabel, icon:'&#9654;' };
 
   const pgiStrong=pgiIsStrongSportsSignal(o,res);
+  const pgiGreen=pgiStrong||betproBenterIsHighProbability(o,res);
+  if(pgiGreen&&!pgiStrong){tierCfg.label='PROBABILITÉ MODÈLE ÉLEVÉE';tierCfg.border='var(--gr)';tierCfg.bg='rgba(0,255,157,.04)';tierCfg.bannerBg='rgba(0,255,157,.16)';tierCfg.icon='&#10003;';}
   if(pgiStrong){tierCfg.label='SÉLECTION TRÈS FORTE À JOUER';tierCfg.border='#39ff14';tierCfg.bannerBg='rgba(57,255,20,.18)';tierCfg.icon='&#10003;';}
+  const bannerColor=pgiGreen?'var(--gr)':tierColor;
 
   const stakeNote = tier==='basic'
     ? '<div style="font-size:9px;color:var(--am);font-family:var(--mo);margin-top:4px">&#9888; SOLIDE — mise prudente, jamais utilisée en rattrapage</div>'
@@ -6501,9 +6566,9 @@ function renderDirectionCard(o, i, containerId) {
 
     <div style="padding:7px 14px;display:flex;align-items:center;gap:8px;background:${tierCfg.bannerBg}">
       <span style="font-size:12px">${tierCfg.icon}</span>
-      <span style="font-family:var(--hd);font-size:10px;font-weight:800;letter-spacing:.08em;color:${tierColor}">${tierCfg.label}</span>
-      <span style="margin-left:auto;font-family:var(--mo);font-size:18px;font-weight:800;color:${tierColor}">${displayConf}%</span>
-      <span style="font-family:var(--mo);font-size:9px;color:${tierColor};opacity:.75">confiance globale</span>
+      <span style="font-family:var(--hd);font-size:10px;font-weight:800;letter-spacing:.08em;color:${bannerColor}">${tierCfg.label}</span>
+      <span style="margin-left:auto;font-family:var(--mo);font-size:18px;font-weight:800;color:${bannerColor}">${displayConf}%</span>
+      <span style="font-family:var(--mo);font-size:9px;color:${bannerColor};opacity:.75">confiance globale</span>
     </div>
 
     <div style="padding:12px 14px">
