@@ -561,6 +561,14 @@ a{color:var(--neon);text-decoration:none}
 .betpro-real-live-reasons p{margin:5px 0}.betpro-real-live-method,.betpro-live-footnote{font-size:10px;color:var(--mu,#bac7d9);line-height:1.55;margin-top:7px}
 .betpro-real-live-panel small{display:block;margin-top:8px;color:var(--dm,#8793ab)}
 
+
+/* Simple and distinct direction/timing reading, NOT an unverified betting quote. */
+.betpro-live-decision{display:flex;flex-direction:column;gap:7px;margin:7px 0 12px;padding:10px 12px;border:1px solid rgba(245,158,11,.5);border-radius:8px;background:rgba(245,158,11,.08)}
+.betpro-live-decision.no{border-color:rgba(235,74,75,.6);background:rgba(235,74,75,.075)}
+.betpro-live-decision .betpro-live-decision-label{font:800 14px var(--mo,monospace);color:var(--am,#f59e0b)}
+.betpro-live-decision.no .betpro-live-decision-label{color:var(--re,#ef4444)}
+.betpro-live-decision p{margin:0;font-size:11px;line-height:1.55}
+.betpro-live-decision p strong{color:var(--tx,#edf4ff)}
 </style>
 </head>
 <body>
@@ -863,7 +871,7 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ LIVE ═══════════════ -->
 <section class="sec" id="s-live">
-  <div class="ph"><div class="pt">&#128308; Matchs Live / À venir</div><div class="ps">Rencontres réellement en cours, score, chronomètre et analyse statistique sur demande. Le calendrier est séparé.</div></div>
+  <div class="ph"><div class="pt">&#128308; Matchs Live / À venir</div><div class="ps">Rencontres réellement en cours, score, chronomètre et analyse statistique sur demande. Actualisation automatique toutes les 90 secondes pendant la consultation. Le calendrier est séparé.</div></div>
   <div class="bg" style="margin-bottom:14px" role="group" aria-label="Stratégie des rencontres en direct">
     <button class="classic-engine-switch benter" id="live-switch-benter" onclick="setBetProEngine('benter')">SCAN LIVE BENTER</button>
     <button class="classic-engine-switch on" id="live-switch-classic" onclick="setBetProEngine('classic')">SCAN LIVE CLASSIQUE</button>
@@ -4318,7 +4326,7 @@ function getLiveAllLeagues() {
 
 // BetPro live v140. Source-of-truth: confirmed in-play fixtures only.
 // Distinct from prematch Classique/Benter scans and their betting recommendations.
-const BETPRO_LIVE_STATUSES = new Set(['1H','HT','2H','ET','BT','P','LIVE']);
+const BETPRO_LIVE_STATUSES = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']);
 let betproLiveRequestSequence = 0;
 let betproLiveFixtureSnapshots = new Map();
 
@@ -4496,6 +4504,34 @@ function betproLiveHeuristicOther(m,stat){
     explanations:observations.map(o=>`${o.label} : ${m.home} ${o.a} / ${m.away} ${o.b}.`),
     method:'Comparaison multi-indicateurs non calibrée. Aucun pourcentage de victoire n’est calculé sans modèle validé pour ce sport.'};
 }
+
+// Compact, understandable additional guidance. Never emit "JOUER" without
+// independently verified current live odds AND a properly calibrated model.
+// The present live endpoints supply score/statistics, not real-time betting prices.
+function betproLiveSimpleTiming(m,analysis,statsFetchedAt){
+  const time=betproLiveTimeLabel(m)||'Chronomètre indisponible';
+  const sampleAge=Date.now()-Date.parse(statsFetchedAt||'');
+  const stale=!Number.isFinite(sampleAge)||sampleAge<0||sampleAge>150000;
+  const interrupted=['HT','INT','P','BT'].includes(String(m?.status||'').toUpperCase());
+  const lowEvidence=!!analysis.abstain||stale;
+  const hasPressure=m.sport==='soccer'&&analysis.dominant&&analysis.dominant!=='équilibrée'
+    &&Number(analysis.quality)>=0.6;
+  const label=lowEvidence?'NE PAS JOUER':interrupted?'ATTENDRE':hasPressure?'ATTENDRE':'NE PAS JOUER';
+  const direction=lowEvidence?'Impossible à déterminer fiablement':hasPressure
+    ? 'Pression statistique : '+analysis.dominant
+    :(!analysis.abstain&&analysis.verdict?'Analyse : '+analysis.verdict:'Aucune domination statistique claire');
+  const reason=stale?'Les statistiques sont trop anciennes pour décider. Actualise le match.'
+    :analysis.abstain?'Les statistiques ne suffisent pas pour décider sérieusement.'
+    :interrupted?'Le jeu est interrompu ou à la pause. Attends des données actualisées à la reprise.'
+    :hasPressure?'Les indicateurs favorisent cette équipe, mais aucune cote live vérifiée ne permet de dire « JOUER ».'
+    :'Les indicateurs restent incertains et aucune cote live vérifiée ne permet de conseiller un pari.';
+  return `<div class="betpro-live-decision ${label==='NE PAS JOUER'?'no':'wait'}" role="status">
+    <span class="betpro-live-decision-label">${esc(label)}</span>
+    <p><strong>Direction :</strong> ${esc(direction)}</p>
+    <p><strong>Moment :</strong> ${esc(time)} · Réévaluer uniquement après une nouvelle mise à jour des statistiques.</p>
+    <p><strong>Pourquoi :</strong> ${esc(reason)}</p>
+  </div>`;
+}
 async function betproAnalyzeRealLive(key,button){
   const m=betproLiveFixtureSnapshots.get(key);
   if(!m){toast('Rencontre non disponible : actualisez le direct.','err');return;}
@@ -4513,10 +4549,10 @@ async function betproAnalyzeRealLive(key,button){
     const a=m.sport==='soccer'?betproLiveHeuristicFootball(m,stats):betproLiveHeuristicOther(m,stats);
     const date=d.fetched_at?betproClassicDate(d.fetched_at):'non transmis';
     const disclaimer='<div class="betpro-live-footnote">Analyse indicative à partir de statistiques observées. Les estimations ne sont pas calibrées sur un historique indépendant et ne remplacent pas des cotes live vérifiées. Aucune recommandation de mise automatique.</div>';
-    if(a.abstain){el.innerHTML=`<div class="betpro-real-live-panel"><strong>ANALYSE LIVE : ABSTENTION</strong><p>${esc(a.reason)}</p>${a.html}${disclaimer}<small>Dernières statistiques : ${esc(date)}</small></div>`;return;}
+    if(a.abstain){el.innerHTML=`<div class="betpro-real-live-panel">${betproLiveSimpleTiming(m,a,d.fetched_at)}<strong>ANALYSE LIVE : ABSTENTION</strong><p>${esc(a.reason)}</p>${a.html}${disclaimer}<small>Dernières statistiques : ${esc(date)}</small></div>`;return;}
     const pct=x=>(100*x).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %';
     const probs=a.home!=null?`<div class="betpro-real-live-outcomes"><span>${esc(m.home)} : ${pct(a.home)}</span><span>Nul : ${pct(a.draw)}</span><span>${esc(m.away)} : ${pct(a.away)}</span></div>`:'';
-    el.innerHTML=`<div class="betpro-real-live-panel ${a.green?'betpro-real-live-strong':''}"><div class="betpro-real-live-verdict">${a.green?'SIGNAL STATISTIQUE FORT':'ANALYSE LIVE DÉTAILLÉE'}<strong>${esc(a.verdict)}</strong></div>
+    el.innerHTML=`<div class="betpro-real-live-panel ${a.green?'betpro-real-live-strong':''}">${betproLiveSimpleTiming(m,a,d.fetched_at)}<div class="betpro-real-live-verdict">${a.green?'SIGNAL STATISTIQUE FORT':'ANALYSE LIVE DÉTAILLÉE'}<strong>${esc(a.verdict)}</strong></div>
       ${a.predictedTop?`<p>Scénario dominant du modèle : ${esc(a.predictedTop)}. Ce chiffre est une simulation heuristique, pas une probabilité calibrée.</p>`:''}
       ${probs}${a.html}
       <div class="betpro-real-live-reasons">${(a.explanations||[]).map(x=>'<p>• '+esc(x)+'</p>').join('')}</div>
@@ -5819,7 +5855,56 @@ async function getTurfTickerArticles(){
   }
 }
 
+
+// Actualités internationales traduites : récupération indépendante et non
+// bloquante, sans modification des rencontres, des courses ou des pronostics.
+const BETPRO_GLOBAL_FR_NEWS_KEY = 'pgi_betpro_news_tous_sports_v148';
+const BETPRO_GLOBAL_FR_SPORTS = 'soccer,boxing,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
+let betproGlobalNewsRequest = null;
+let betproGlobalNewsLastCheck = 0;
+function betproTickerReadGlobalNews() {
+  try {
+    const data = JSON.parse(localStorage.getItem(BETPRO_GLOBAL_FR_NEWS_KEY) || 'null');
+    if (!data || !Array.isArray(data.items) || !data.at) return [];
+    const age = Date.now() - Date.parse(data.at);
+    if (!Number.isFinite(age) || age < 0 || age > 8 * 3600000) return [];
+    return data.items.filter(article => {
+      const pub = Date.parse(article?.published || '');
+      return !article?.is_match && (article?._translatedTitle || article?.language === 'fr')
+        && Number.isFinite(pub) && Date.now() - pub < 10 * 86400000;
+    }).slice(0, 32);
+  } catch (_) { return []; }
+}
+function betproLoadTranslatedNewsInBackground() {
+  if (betproGlobalNewsRequest || Date.now() - betproGlobalNewsLastCheck < 120000) return;
+  betproGlobalNewsLastCheck = Date.now();
+  betproGlobalNewsRequest = api('/api/news/translated?sports=' + enc(BETPRO_GLOBAL_FR_SPORTS),
+    'GET', null, {timeoutMs: 28000}).then(payload => {
+      if (!Array.isArray(payload?.news) || !payload.news.length) return;
+      const news = payload.news.filter(article => !article?.is_match &&
+        typeof article._translatedTitle === 'string' &&
+        article._translatedTitle.trim() &&
+        article.link && article.published).slice(0, 32);
+      if (!news.length) return;
+      const old = betproTickerReadGlobalNews();
+      const signature = items => JSON.stringify(items.map(i =>
+        [i.sport, i.link, i._translatedTitle, i.published]));
+      if (signature(news) === signature(old)) return;
+      try {
+        localStorage.setItem(BETPRO_GLOBAL_FR_NEWS_KEY,
+          JSON.stringify({at: new Date().toISOString(), items: news}));
+      } catch (_) {}
+      if (!document.hidden && document.getElementById('news-ticker-inner')) {
+        setTimeout(() => loadTicker().catch(e =>
+          console.warn('Rafraîchissement des news traduites indisponible', e?.message || e)), 300);
+      }
+    }).catch(error => {
+      console.warn('Actualités traduites : conservation du cache existant', error?.message || error);
+    }).finally(() => { betproGlobalNewsRequest = null; });
+}
+
 async function getSportTickerArticles(){
+  betproLoadTranslatedNewsInBackground();
   const sports='soccer,boxing,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
   const local=betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE));
   try{
@@ -5830,16 +5915,16 @@ async function getSportTickerArticles(){
     const restored=local.filter(x=>!unique.has(String(x.event_id)));
     const combined=[...matches,...restored].sort((a,b)=>Date.parse(a.event_start_at)-Date.parse(b.event_start_at));
     if(combined.length)betproTickerSaveLocal(BETPRO_TICKER_FIXTURES_STORE,combined);
-    return{items:[...combined,...incoming.filter(x=>!x?.is_match&&!x?.is_status)],
+    return{items:[...combined,...betproTickerReadGlobalNews(),...incoming.filter(x=>!x?.is_match&&!x?.is_status)],
       meta:{...data,fixtures_visible:combined.length,fixtures_from_local:restored.length}};
   }catch(error){
     // La panne de l'API principale ne transforme plus le flux en simples titres.
     try{
       const legacy=await api('/api/news?sports='+enc(sports),'GET',null,{timeoutMs:11000});
-      return{items:[...local,...(legacy.news||[])],meta:{...legacy,degraded:true,fixtures_from_local:local.length}};
+      return{items:[...local,...betproTickerReadGlobalNews(),...(legacy.news||[])],meta:{...legacy,degraded:true,fixtures_from_local:local.length}};
     }catch(_){
       console.warn('Ticker multisports temporairement indisponible:',error?.message||error);
-      return{items:local,meta:{degraded:true,fixtures_from_local:local.length}};
+      return{items:[...local,...betproTickerReadGlobalNews()],meta:{degraded:true,fixtures_from_local:local.length}};
     }
   }
 }
@@ -5892,7 +5977,7 @@ async function loadTicker() {
     const degraded = !!sportPayload.meta?.degraded;
     const completeMultisport = sportCategories.size >= 11;
     if (source) source.textContent = news.length
-      ? `${news.filter(x=>x.is_match).length} rencontres · ${news.filter(x=>!x.is_match&&!x.is_status).length} actus FR · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
+      ? `${news.filter(x=>x.is_match).length} rencontres · ${news.filter(x=>!x.is_match&&!x.is_status&&tickerHasFrenchArticleTitle(x)).length} actus FR · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
       : 'Flux momentanément indisponible';
     if (!news.length) {
       if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
@@ -5913,6 +5998,7 @@ async function loadTicker() {
     const toTranslate = [];
     for (const art of sorted) {
       if (art.sport === 'turf' || art.is_status || art.is_match || String(art.source||'').toUpperCase() !== 'ESPN') continue;
+      if (tickerHasFrenchArticleTitle(art)) continue; // déjà traduit côté Worker
       const cacheKey = tickerTranslationFingerprint(art);
       const cached = translationCache[cacheKey];
       if (cached && Date.now() - Number(cached.at||0) < cacheMaxAge) {
@@ -6549,6 +6635,13 @@ document.addEventListener('DOMContentLoaded', () => {
   loadQuotas();
   ttsInit();
   loadTicker();
+  // Actualisation du DIRECT uniquement si l'onglet Live est ouvert et visible.
+  // Ne change ni le ticker des rencontres à venir ni les scans Classique/Benter.
+  setInterval(() => {
+    if (!document.hidden && document.getElementById('s-live')?.classList.contains('on')) {
+      loadLive().catch(e => console.warn('Rafraîchissement Live indisponible', e?.message || e));
+    }
+  }, 90 * 1000);
   setInterval(()=>{if(!document.hidden && document.getElementById('s-dash')?.classList.contains('on'))loadTicker();},10*60*1000);
   loadProfessionalMaturity();
   setInterval(()=>{if(!document.hidden && document.getElementById('s-dash')?.classList.contains('on'))loadProfessionalMaturity();},60*60*1000);
