@@ -5710,10 +5710,12 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
     if(seen.has(fp))continue;seen.add(fp);
     if(!groups.has(category))groups.set(category,{matches:[],articles:[]});
     const group=groups.get(category),bucket=item.is_match?group.matches:group.articles;
-    if(bucket.length<(item.is_match?10:6))bucket.push({...item,sport:category});
+    if(bucket.length<(item.is_match?10:40))bucket.push({...item,sport:category});
   }
   const buckets=new Map();
   for(const [category,group] of groups){
+    // Le fil choisit d'abord les publications les plus récentes, et non les premières dans le cache.
+    group.articles.sort((a,b)=>(Date.parse(b.published||'')||0)-(Date.parse(a.published||'')||0));
     let entries;
     if(group.matches.length){
       // Rencontres toujours prioritaires, mais les nouvelles en français restent visibles.
@@ -5858,7 +5860,7 @@ async function getTurfTickerArticles(){
 
 // Actualités internationales traduites : récupération indépendante et non
 // bloquante, sans modification des rencontres, des courses ou des pronostics.
-const BETPRO_GLOBAL_FR_NEWS_KEY = 'pgi_betpro_news_tous_sports_v148';
+const BETPRO_GLOBAL_FR_NEWS_KEY = 'pgi_betpro_news_fraiches_v155';
 const BETPRO_GLOBAL_FR_SPORTS = 'soccer,boxing,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
 let betproGlobalNewsRequest = null;
 let betproGlobalNewsLastCheck = 0;
@@ -5867,11 +5869,12 @@ function betproTickerReadGlobalNews() {
     const data = JSON.parse(localStorage.getItem(BETPRO_GLOBAL_FR_NEWS_KEY) || 'null');
     if (!data || !Array.isArray(data.items) || !data.at) return [];
     const age = Date.now() - Date.parse(data.at);
-    if (!Number.isFinite(age) || age < 0 || age > 8 * 3600000) return [];
+    if (!Number.isFinite(age) || age < 0 || age > 90 * 60000) return [];
     return data.items.filter(article => {
       const pub = Date.parse(article?.published || '');
       return !article?.is_match && (article?._translatedTitle || article?.language === 'fr')
-        && Number.isFinite(pub) && Date.now() - pub < 10 * 86400000;
+        && Number.isFinite(pub) && pub <= Date.now() + 3600000
+        && Date.now() - pub < ((['boxing','mma','rugby','handball','volleyball','baseball'].includes(article.sport) ? 7 : 3) * 86400000);
     }).slice(0, 32);
   } catch (_) { return []; }
 }
