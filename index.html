@@ -4846,7 +4846,7 @@ async function doClassicScan(){
         return strongB-strongA||Number(b.classic_value?.positive_value||0)-Number(a.classic_value?.positive_value||0)
           ||Number(b.consensus?.consensus_score||0)-Number(a.consensus?.consensus_score||0);
       });
-    const warn='<div class="classic-subtext" style="margin-bottom:12px">Analyse indépendante de Benter : consensus bookmaker sans surcote artificielle ni garantie de victoire. Aucune requête Odds API payante ajoutée par ce scan.</div>';
+    const warn='<div class="classic-subtext" style="margin-bottom:12px">Analyse indépendante de Benter : consensus de bookmakers, sans garantie de victoire. Si les cotes manquent, un rattrapage ciblé peut utiliser des crédits Odds API dans les limites prévues.</div>';
     cnt.innerHTML=`<div class="sbar"><span style="color:#dccaff;font-weight:800">SCAN LIVE CLASSIQUE</span><span>${events.length} cote(s) exploitable(s) · ${Math.max(0,identified-events.length)} rencontre(s) sans marché exploitable</span><span style="margin-left:auto">${esc(betproClassicDate(d.generated_at))}</span></div>`+warn+(events.length?'<div class="opp-grid">'+events.map(betproClassicCard).join('')+'</div>':'<div class="empty"><div class="empty-t">Aucune cote exploitable actuellement. '+identified+' rencontre(s) enregistrée(s), mais aucun marché assez fiable pour une carte de pari. Les rencontres ne sont pas présentées comme des paris.</div></div>');
   }catch(e){if(seq===betProClassicScanSeq)cnt.innerHTML='<div class="warn">Scan Classique indisponible : '+esc(e?.message||String(e))+'</div>';}
   finally{if(seq===betProClassicScanSeq){btn.disabled=false;document.getElementById('scan-classic-txt').textContent='SCAN LIVE CLASSIQUE';}}
