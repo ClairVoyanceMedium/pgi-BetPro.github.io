@@ -724,6 +724,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
   <div id="scan-res" style="display:none"></div>
   <div id="scan-classic-res"></div>
+  <div id="betpro-sports-calendar-panel" style="margin-top:14px"></div>
 
   <!-- TICKER — couverture équilibrée de tous les sports + PMU -->
   <div id="news-ticker-wrap" style="margin:16px 0 4px">
@@ -1862,6 +1863,7 @@ function setScanSport(el){
   liveSportFilter=liveSportSet.has('all')?'all':[...liveSportSet].sort().join(',');
   document.querySelectorAll('.ssb').forEach(b=>b.classList.toggle('on',liveSportSet.has('all')?b.dataset.sport==='all':liveSportSet.has(b.dataset.sport||'')));
   if(document.querySelector('.dir-card')||document.querySelector('.oc')){filterScanCards();}
+  betproRenderCalendarPanel();
 }
 const LIVE_SPORT_KEYS={soccer:['soccer'],basketball:['basketball','nba'],tennis:['tennis'],rugby:['rugby'],icehockey:['icehockey','hockey'],baseball:['baseball'],mma:['mma','boxing'],americanfootball:['americanfootball','nfl'],handball:['handball'],volleyball:['volleyball']};
 function matchesSportFilter(sport,filter){if(filter==='all')return true;const name=String(sport||'').toLowerCase();return String(filter||'').split(',').some(cat=>{const keys=LIVE_SPORT_KEYS[cat]||[cat];return keys.some(k=>name.includes(k));});}
@@ -2253,6 +2255,7 @@ async function doLiveScan() {
   // normal, que le scan réussisse, échoue, ou se termine tôt via le cache.
   try {
     cnt.innerHTML = '<div class="ls"><div class="sp"></div><p>Scan multi-sports en cours (football inclus)…</p></div>';
+    betproRefreshSportsCalendar().catch(()=>{});
 
     const toScan = getLeaguesForSportFilter(liveSportFilter, currentScanMode);
     // BUG CORRIGÉ : getLeaguesForSportFilter() résout déjà lui-même le choix entre
@@ -4818,11 +4821,71 @@ function betproClassicIsActionable(match,now=Date.now()){
     &&!['final','cancelled','canceled','ended','finished','ft','aet','pen'].includes(status);
 }
 
+
+let betproCalendarSnapshot=null;
+let betproCalendarLoadedAt=0;
+let betproCalendarLoading=null;
+function betproRenderCalendarPanel(){
+  const el=document.getElementById('betpro-sports-calendar-panel');if(!el)return;
+  const categories=['icehockey','tennis','baseball','rugby'];
+  const chosen=liveSportFilter==='all'?categories:liveSportFilter.split(',').filter(s=>categories.includes(s));
+  if(!chosen.length){el.innerHTML='';return;}
+  const names={icehockey:'Hockey',tennis:'Tennis',baseball:'Baseball',rugby:'Rugby'};
+  const data=betproCalendarSnapshot;
+  if(!data){el.innerHTML='<div class="info">Calendriers officiels des sports en cours de consultation…</div>';return;}
+  if(!data.ok){el.innerHTML='<div class="warn">Calendriers sportifs momentanément indisponibles. Le scan de cotes reste indépendant.</div>';return;}
+  const all=Array.isArray(data.fixtures)?data.fixtures:[];
+  let total=0;
+  const sections=chosen.map(sport=>{
+    const matches=all.filter(x=>x.sport===sport).slice(0,4);
+    total+=matches.length;
+    const rows=matches.map(x=>{
+      const start=Date.parse(x.start_time||'');
+      const when=Number.isFinite(start)?new Date(start).toLocaleString('fr-FR',{timeZone:'Europe/Paris',weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Horaire non confirmé';
+      const live=x.status==='live';
+      return '<div style="border-top:1px solid var(--bd);padding:8px 0;display:flex;align-items:flex-start;gap:10px;justify-content:space-between;flex-wrap:wrap">'
+        +'<div style="flex:1;min-width:170px"><strong>'+esc(x.home)+' · '+esc(x.away)+'</strong>'
+        +'<div style="font-size:10px;color:var(--mu)">'+esc(x.competition||'Compétition')+' · ESPN</div></div>'
+        +'<div style="font-size:10px;color:var(--tx);font-family:var(--mo)">'+(live?'<span class="bdg blv">EN DIRECT</span> ':'')+esc(when)+'</div></div>';
+    }).join('');
+    const unavailable=data.source_status?.[sport]!=='disponible';
+    const empty=unavailable?'Source du calendrier indisponible : aucune conclusion sur les matchs.':
+      sport==='baseball'?'Aucune rencontre MLB confirmée dans les 48 h (intersaison possible).':
+      'Aucune rencontre confirmée par cette source dans les 48 h.';
+    return '<div style="background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:11px 12px">'
+      +'<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px"><strong>'+esc(names[sport])+'</strong>'
+      +'<span style="color:var(--mu);font:700 10px var(--mo)">'+matches.length+' rencontre(s)</span></div>'
+      +(rows||'<div style="font-size:11px;color:var(--mu)">'+esc(empty)+'</div>')+'</div>';
+  }).join('');
+  const at=data.fetched_at?betproClassicDate(data.fetched_at):'relevé non daté';
+  el.innerHTML='<div class="card" style="border-color:var(--bd2)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:9px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<div><strong style="font-size:13px;color:var(--tx)">RENCONTRES VÉRIFIÉES · SPORTS COMPLÉMENTAIRES</strong>'
+    +'<div style="font-size:11px;color:var(--mu);margin-top:4px">Calendrier officiel ESPN sur 48 h, même si BetPro ne possède pas de cotes.</div></div>'
+    +'<span class="bdg bsp">'+total+' visible(s)</span></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px">'+sections+'</div>'
+    +'<div style="font-size:10px;color:var(--mu);margin-top:9px">Données : ESPN · '+esc(at)+(data.cached?' · cache court':'')+'. Ces rencontres sont informatives : ni cote de bookmaker, ni pronostic de mise. Les cartes de pari exigent des marchés vérifiés.</div>'
+    +'</div>';
+}
+async function betproRefreshSportsCalendar(){
+  if(betproCalendarLoading)return betproCalendarLoading;
+  if(betproCalendarSnapshot?.ok&&Date.now()-betproCalendarLoadedAt<12*60000){betproRenderCalendarPanel();return;}
+  betproCalendarLoading=(async()=>{
+    try{const d=await api('/api/sports/calendar','GET',null,{timeoutMs:16000});
+      if(!d?.ok)throw Error('Calendrier indisponible');
+      betproCalendarSnapshot=d;betproCalendarLoadedAt=Date.now();
+    }catch(e){if(!betproCalendarSnapshot)betproCalendarSnapshot={ok:false,error:String(e?.message||e)};}
+    finally{betproRenderCalendarPanel();}
+  })();
+  try{await betproCalendarLoading;}finally{betproCalendarLoading=null;}
+}
+
 async function doClassicScan(){
   setBetProEngine('classic');
   const seq=++betProClassicScanSeq,btn=document.getElementById('scan-classic-btn'),cnt=document.getElementById('scan-classic-res');if(!cnt||!btn)return;
   btn.disabled=true;document.getElementById('scan-classic-txt').textContent='SCAN LIVE CLASSIQUE';
   cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Récupération des rencontres et comparaison des bookmakers internationaux…</p></div>';
+  betproRefreshSportsCalendar().catch(()=>{});
   try{
     const dateParams=getScanDateParams(),selected=liveSportFilter==='all'?['all']:liveSportFilter.split(',').filter(Boolean);
     const responses=await Promise.allSettled(selected.map(sport=>{
@@ -6706,6 +6769,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadQuotas();
   ttsInit();
   loadTicker();
+  if(document.getElementById('s-dash')?.classList.contains('on'))betproRefreshSportsCalendar().catch(()=>{});
   // Actualisation du DIRECT uniquement si l'onglet Live est ouvert et visible.
   // Ne change ni le ticker des rencontres à venir ni les scans Classique/Benter.
   setInterval(() => {
