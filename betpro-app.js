@@ -3910,33 +3910,114 @@ let lossPeriodFilter = 'all';
 let recoverySport = 'all';
 let selectedMethod = 'pgi_prudente';
 
+let lossSyncTimer=null,lossSyncWorking=false,lossSyncDirty=false,lossSyncRetries=0;
 function lossLoad(){
   try{
     const data=JSON.parse(localStorage.getItem(LOSS_KEY)||'{"entries":[]}');
     return data&&Array.isArray(data.entries)?data:{entries:[]};
   }catch(_){return {entries:[]};}
 }
+function lossStoreLocal(data){
+  try{localStorage.setItem(LOSS_KEY,JSON.stringify(data));return true;}
+  catch(_){lossSyncStatus('Enregistrement local indisponible','err');return false;}
+}
+function lossSyncStatus(message,kind){
+  const status=document.getElementById('loss-sync-status');
+  if(status){
+    status.textContent=message;
+    status.style.color=kind==='err'?'var(--re)':kind==='ok'?'var(--gr)':'var(--dm)';
+  }
+}
+function lossEntryModifiedAt(entry){
+  return Date.parse(entry.updatedAt||entry.settledAt||entry.createdAt||entry.date||'')||0;
+}
+function lossMergeData(local,remote){
+  const a=local&&Array.isArray(local.entries)?local:{entries:[]};
+  const b=remote&&Array.isArray(remote.entries)?remote:{entries:[]};
+  const localStamp=Date.parse(a.updatedAt||'')||0;
+  const remoteStamp=Date.parse(b.updatedAt||'')||0;
+  const latest=localStamp>=remoteStamp?a:b;
+  const clearedAt=(Date.parse(a.clearedAt||'')||0)>=(Date.parse(b.clearedAt||'')||0)?a.clearedAt:b.clearedAt;
+  const clearMs=Date.parse(clearedAt||'')||0;
+  const deleted={...(b.deletedEntries||{})};
+  for(const [id,when]of Object.entries(a.deletedEntries||{})){
+    if((Date.parse(when)||0)>(Date.parse(deleted[id]||'')||0))deleted[id]=when;
+  }
+  const byId=new Map();
+  for(const e of [...b.entries,...a.entries]){
+    if(!e||e.id==null)continue;
+    const id=String(e.id),previous=byId.get(id);
+    if(!previous||lossEntryModifiedAt(e)>lossEntryModifiedAt(previous)
+      ||(lossEntryModifiedAt(e)===lossEntryModifiedAt(previous)&&previous.result==='pending'&&e.result!=='pending')
+      ||(lossEntryModifiedAt(e)===lossEntryModifiedAt(previous)&&e.recovered===true&&!previous.recovered))
+      byId.set(id,e);
+  }
+  const entries=[...byId.values()].filter(e=>{
+    const modified=lossEntryModifiedAt(e);
+    return !(clearMs&&modified<=clearMs)&&!(deleted[String(e.id)]&&(Date.parse(deleted[String(e.id)])||0)>=modified);
+  }).sort((x,y)=>new Date(y.createdAt||y.date||0)-new Date(x.createdAt||x.date||0));
+  const anchorA=Date.parse(a.bankrollAnchorAt||'')||0,anchorB=Date.parse(b.bankrollAnchorAt||'')||0;
+  const owner=anchorA>=anchorB?a:b;
+  return {...latest,entries,deletedEntries:deleted,clearedAt,
+    bankroll:owner.bankroll,bankrollAnchorAt:owner.bankrollAnchorAt,
+    updatedAt:new Date(Math.max(localStamp,remoteStamp)||Date.now()).toISOString()};
+}
+function lossSyncSchedule(delay=650){
+  if(lossSyncTimer)clearTimeout(lossSyncTimer);
+  lossSyncTimer=setTimeout(()=>{lossSyncTimer=null;lossFlushCloud().catch(()=>{});},delay);
+}
 function lossSave(data){
   data.updatedAt=new Date().toISOString();
-  try{localStorage.setItem(LOSS_KEY,JSON.stringify(data));}catch(_){}
-  api('/api/notes','PUT',{notes:[{id:'pgi_loss_v3',title:'LossTracker',body:JSON.stringify(data),updatedAt:data.updatedAt}]}).catch(()=>{});
+  if(!lossStoreLocal(data))return;
+  lossSyncDirty=true;
+  lossSyncStatus('Journal local enregistré · cloud en attente','');
+  lossSyncSchedule();
+}
+async function lossFlushCloud(){
+  if(lossSyncWorking||!lossSyncDirty)return;
+  lossSyncWorking=true;
+  lossSyncDirty=false;
+  try{
+    const r=await api('/api/notes','GET',null,{noCache:true,timeoutMs:18000});
+    if(!r?.ok||!Array.isArray(r.notes))throw Error('Lecture cloud non confirmée');
+    const note=r.notes.find(n=>n.id==='pgi_loss_v3');
+    let remote={entries:[]};
+    if(note?.body)remote=JSON.parse(note.body);
+    let merged=lossMergeData(lossLoad(),remote);
+    merged=lossMergeData(lossLoad(),merged);
+    lossStoreLocal(merged);
+    const response=await api('/api/notes','PUT',{
+      notes:[{id:'pgi_loss_v3',title:'LossTracker',body:JSON.stringify(merged),updatedAt:merged.updatedAt}]
+    },{timeoutMs:18000});
+    if(!response?.ok||response.saved!==1)throw Error('Sauvegarde serveur non confirmée');
+    lossSyncRetries=0;
+    lossSyncStatus('Journal synchronisé avec Cloudflare','ok');
+  }catch(error){
+    lossSyncDirty=true;
+    lossSyncRetries++;
+    lossSyncStatus('Journal local conservé · synchronisation à reprendre','err');
+    if(lossSyncRetries<=4)lossSyncSchedule(Math.min(30000,1500*lossSyncRetries));
+  }finally{
+    lossSyncWorking=false;
+    if(lossSyncDirty&&lossSyncRetries===0)lossSyncSchedule();
+  }
 }
 async function lossLoadCloud(){
   try{
-    const d=await api('/api/notes','GET',null,{noCache:true});
-    const note=(d.notes||[]).find(n=>n.id==='pgi_loss_v3');
-    if(note&&note.body){
-      const cloud=JSON.parse(note.body),local=lossLoad();
-      if(!Array.isArray(cloud.entries))return local;
-      const remoteAt=Date.parse(cloud.updatedAt||note.updatedAt||'')||0;
-      const localAt=Date.parse(local.updatedAt||'')||0;
-      if(remoteAt>localAt||(!remoteAt&&!localAt&&cloud.entries.length>local.entries.length)){
-        try{localStorage.setItem(LOSS_KEY,JSON.stringify(cloud));}catch(_){}
-        return cloud;
-      }
-    }
-  }catch(_){}
-  return lossLoad();
+    const r=await api('/api/notes','GET',null,{noCache:true,timeoutMs:18000});
+    if(!r?.ok||!Array.isArray(r.notes))throw Error('Cloud indisponible');
+    const note=r.notes.find(n=>n.id==='pgi_loss_v3');
+    const remote=note?.body?JSON.parse(note.body):{entries:[]};
+    const merged=lossMergeData(lossLoad(),remote);
+    const changed=JSON.stringify(merged)!==JSON.stringify(lossLoad());
+    lossStoreLocal(merged);
+    if(changed){lossSyncDirty=true;lossSyncSchedule();}
+    lossSyncStatus('Journal chargé depuis Cloudflare','ok');
+    return merged;
+  }catch(_){
+    lossSyncStatus('Journal local affiché · serveur inaccessible','err');
+    return lossLoad();
+  }
 }
 
 function lossSetPeriod(p,el){
