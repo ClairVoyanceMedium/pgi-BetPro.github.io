@@ -4202,8 +4202,8 @@ function lossRender(){
       +'<div style="height:1px;background:rgba(167,139,250,.2);margin:12px 0"></div>'
       +'<div class="rb-label">Plafond par pari (indicatif, pas un montant à jouer)</div>'
       +'<div class="rb-next-stake">'+calc.nextStake.toFixed(2)+' €</div>'
-      +'<div class="rb-odds-target">Cote de référence @ '+calc.coteCible.toFixed(2)+'</div>'
-      +'<div class="rb-expl">'+esc(calc.expl)+'<br>Pour effacer '+totalActiveLost.toFixed(2)+' € en un seul pari @ '+calc.coteCible.toFixed(2)+', la mise théorique serait '+calc.theoretical.toFixed(2)+' €. Elle peut dépasser les limites autorisées.<br>Déficit résiduel si le plafond indicatif gagne : '+remainingIfWin.toFixed(2)+' €. Aucun gain garanti.</div>'
+      +'<div class="rb-odds-target">Cotes réelles récupérées lors de la recherche des matchs</div>'
+      +'<div class="rb-expl">'+esc(calc.expl)+'<br>Le montant à investir et le déficit restant sont calculés sur les cotes disponibles pour chaque nouvelle rencontre. Aucune cote n’est inventée. Aucun gain garanti.</div>'
        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-top:12px;text-align:left">'
        +'<div class="tsm-cell"><div class="sv">'+risk.betCap.toFixed(2)+' €</div><label>Limite par pari (1 %)</label></div>'
        +'<div class="tsm-cell"><div class="sv">'+risk.combinedCap.toFixed(2)+' €</div><label>Budget total du plan</label></div>'
@@ -4218,7 +4218,7 @@ function lossRender(){
       +sportBtns.map(function(s){return '<button class="fbtn '+(s.val===recoverySport?'on':'')+'" onclick="setRecoverySport(\''+s.val+'\',this)">'+s.label+'</button>';}).join('')
       +'</div></div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-      +'<button class="btn bp" onclick="lossAutoSearch()">Trouver matchs pour récupération prudente</button>'
+      +'<button class="btn bp" onclick="lossAutoSearch()">Analyser les matchs disponibles</button>'
       +'</div>'
       +'<div id="loss-search-results"></div>';
   } else if(allEntries.length>0){
@@ -4241,7 +4241,7 @@ function lossRender(){
         +'<div class="le-match">'+esc(sl)+' | '+esc(e.match)+(e.sel?' - '+esc(e.sel):'')+'</div>'
         +(e.bookmaker||e.ticket_id||e.ticket_type||e.note?'<div style="font-size:10px;color:var(--dm);margin-top:3px">'+esc([e.bookmaker,e.ticket_type,e.ticket_id?('Ticket '+e.ticket_id):'',e.note].filter(Boolean).join(' · '))+'</div>':'')
         +'<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">'
-        +'<span class="le-odds">@ '+e.odds+'</span><span class="le-stake">'+e.stake+' €</span>'
+        +'<span class="le-odds">'+(Number(e.odds)>1?'@ '+Number(e.odds).toFixed(2):'Cote non renseignée')+'</span><span class="le-stake">'+e.stake+' €</span>'
         +' '+icon+' '
         +(e.recovered?'<span class="bdg" style="background:var(--grb);color:var(--gr)">Session clôturée</span>':'')
         +'<span class="le-date">'+fmtDT(e.date)+'</span>'
