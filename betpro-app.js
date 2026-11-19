@@ -4027,39 +4027,55 @@ function calcRecoveryStake(totalLost,lastOdds,method,bankroll){
     expl:'Plafond indicatif uniquement. Le calcul par rencontre prendra en compte probabilité, valeur attendue et mises maximales. Une perte ne doit jamais augmenter automatiquement la mise.'};
 }
 
-function lossAdd(){
-  const match=document.getElementById('loss-match')?.value.trim()||'';
-  const stake=Number(document.getElementById('loss-stake')?.value),odds=Number(document.getElementById('loss-odds')?.value);
-  const sel=document.getElementById('loss-sel')?.value.trim()||'';
+function lossUpdateQuickForm(){
   const result=document.getElementById('loss-result')?.value||'loss';
-  const rawPayout=document.getElementById('loss-payout')?.value?.trim()||'';
-  const rawDate=document.getElementById('loss-bet-date')?.value||'';
-  const dt=rawDate?new Date(rawDate):new Date();
-  if(!match||!Number.isFinite(stake)||stake<=0||stake>100000000){toast('Rencontre ou mise invalide','err');return;}
-  if(!Number.isFinite(odds)||odds<=1||odds>100000){toast('Cote décimale invalide','err');return;}
-  if(!Number.isFinite(dt.getTime())||dt.getTime()>Date.now()+3600000){toast('Date incorrecte','err');return;}
-  if(result==='cashout'&&rawPayout===''){toast('Indiquez le retour encaissé du cash-out','err');return;}
-  if(rawPayout!==''&&(!Number.isFinite(Number(rawPayout))||Number(rawPayout)<0)){
-    toast('Retour encaissé invalide','err');return;
-  }
-  const payout=Math.round((rawPayout===''?(result==='win'?stake*odds:result==='void'?stake:0):Number(rawPayout))*100)/100;
+  const wrap=document.getElementById('loss-quick-payout');
+  if(wrap)wrap.style.display=(result==='win'||result==='cashout')?'block':'none';
+  const btn=document.getElementById('loss-save-btn');
+  if(btn)btn.textContent=({loss:'+ Enregistrer ma perte',win:'+ Enregistrer mon gain',
+    void:'+ Enregistrer le remboursement',cashout:'+ Enregistrer le cash-out'})[result]||'+ Enregistrer';
+}
+function lossAdd(){
+  const stakeRaw=document.getElementById('loss-stake')?.value?.trim()||'';
+  const stake=Number(stakeRaw);
+  const oddsRaw=document.getElementById('loss-odds')?.value?.trim()||'';
+  const odds=oddsRaw===''?null:Number(oddsRaw);
+  const result=document.getElementById('loss-result')?.value||'loss';
+  const payoutRaw=document.getElementById('loss-payout')?.value?.trim()||'';
+  const dateRaw=document.getElementById('loss-bet-date')?.value||'';
+  const date=dateRaw?new Date(dateRaw):new Date();
+  if(stakeRaw===''||!Number.isFinite(stake)||stake<=0||stake>100000000){toast('Saisissez le montant réellement misé','err');return;}
+  if(oddsRaw!==''&&(!Number.isFinite(odds)||odds<=1||odds>100000)){toast('Cote invalide','err');return;}
+  if(!Number.isFinite(date.getTime())||date.getTime()>Date.now()+3600000){toast('Date invalide','err');return;}
+  if(payoutRaw!==''&&(!Number.isFinite(Number(payoutRaw))||Number(payoutRaw)<0)){toast('Retour encaissé invalide','err');return;}
+  if(result==='cashout'&&payoutRaw===''){toast('Indiquez le montant réellement encaissé','err');return;}
+  if(result==='win'&&payoutRaw===''&&odds===null){toast('Indiquez le retour encaissé ou la cote dans les détails','err');return;}
+  const payout=Math.round((payoutRaw!==''?Number(payoutRaw):
+    result==='win'?stake*odds:result==='void'?stake:0)*100)/100;
   const net=Math.round((payout-stake)*100)/100;
   const data=lossLoad();
   data.entries.unshift({
     id:Date.now()+Math.floor(Math.random()*1000)/1000,
-    match,sel,stake,odds,result,sport:document.getElementById('loss-sport-sel')?.value||'all',
+    match:document.getElementById('loss-match')?.value.trim()||'Pari non précisé',
+    sel:document.getElementById('loss-sel')?.value.trim()||'',
+    stake,odds,result,sport:document.getElementById('loss-sport-sel')?.value||'all',
     actual_return:payout,amount_lost:Math.max(0,-net),amount_won:Math.max(0,net),
     bookmaker:document.getElementById('loss-bookmaker')?.value.trim()||'',
     ticket_id:document.getElementById('loss-ticket-id')?.value.trim()||'',
     ticket_type:document.getElementById('loss-ticket-type')?.value||'simple',
-    note:document.getElementById('loss-note')?.value.trim()||'',date:dt.toISOString(),recovered:false
+    note:document.getElementById('loss-note')?.value.trim()||'',date:date.toISOString(),recovered:false
   });
   lossSave(data);
-  ['loss-match','loss-sel','loss-stake','loss-odds','loss-payout','loss-bookmaker','loss-ticket-id','loss-note','loss-bet-date']
-    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  toast('Pari enregistré : '+(net>=0?'+':'')+net.toFixed(2)+' € nets',net>0?'ok':'');
+  ['loss-match','loss-sel','loss-stake','loss-odds','loss-payout','loss-bookmaker','loss-ticket-id','loss-note','loss-bet-date'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const select=document.getElementById('loss-result');if(select)select.value='loss';
+  lossUpdateQuickForm();
+  toast('Enregistré : '+(net>=0?'+':'')+net.toFixed(2)+' € nets',net>=0?'ok':'');
   lossRender();
-  if(net<0)setTimeout(()=>lossAutoSearch(),300);
+  if(net<0&&Number(document.getElementById('loss-bankroll-input')?.value)>0){
+    setTimeout(()=>lossAutoSearch(),300);
+  }
 }
 
 function lossBankrollSave(){
