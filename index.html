@@ -562,6 +562,33 @@ a{color:var(--neon);text-decoration:none}
 .betpro-results-table td{color:var(--tx);padding:10px 5px;border-bottom:1px solid var(--bd)}
 .betpro-results-table th:not(:first-child),.betpro-results-table td:not(:first-child){text-align:right}
 #betpro-stats-live{scroll-margin-top:64px}
+/* Résultats à suivre : toutes les largeurs restent contenues, y compris sur téléphone étroit. */
+#s-results,#res-cnt{width:100%;max-width:100%;min-width:0}
+#s-results{overflow-x:clip}
+#s-results .betpro-results-section,
+#s-results .betpro-chosen-card,
+#s-results .betpro-results-row,
+#s-results .betpro-analytics-group{max-width:100%;min-width:0;overflow-wrap:anywhere}
+#s-results .betpro-analytics-overflow{display:block;max-width:100%;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+#s-results .betpro-analytics-table{width:710px;min-width:710px;max-width:none;table-layout:fixed}
+#s-results .betpro-analytics-table th,
+#s-results .betpro-analytics-table td{overflow-wrap:anywhere;word-break:normal}
+#s-results .betpro-analytics-table th:first-child,
+#s-results .betpro-analytics-table td:first-child{width:160px;min-width:0;max-width:160px}
+#s-results .tracker-summary{max-width:100%}
+#s-results .betpro-analytics-head>*{min-width:0}
+@media(max-width:600px){
+ #s-results .tracker-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #s-results .tsm-cell{min-width:0;padding:10px 7px;overflow-wrap:anywhere}
+ #s-results .tsm-cell .sv{font-size:16px;line-height:1.3}
+ #s-results .tsm-cell label{letter-spacing:.015em;line-height:1.4}
+ #s-results .betpro-results-section{padding:12px 10px}
+ #s-results .betpro-analytics-head{flex-wrap:wrap}
+ #s-results .betpro-analytics-head .btn{max-width:100%;white-space:normal}
+ #scan-date-btns{gap:5px}
+ #scan-custom-date-wrap .fgrp{flex:1 1 115px;min-width:0}
+ #scan-custom-date-wrap input[type="date"]{max-width:100%;width:100%;min-width:0;font-size:12px}
+}
 /* Résultats : archivage lisible sans surcharge visuelle. */
 .betpro-results-section{padding:15px 16px;margin-bottom:14px}
 /* Encadré des pronostics en attente : même contour or brossé que « Suivre le résultat ». */
@@ -732,7 +759,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni on" data-s="dash"      onclick="go('dash')"    ><span class="ni-i">&#9889;</span>Tableau de bord</div>
     <div class="ni"    data-s="manual"    onclick="go('manual')"  ><span class="ni-i">&#127919;</span>Analyse manuelle</div>
     <div class="ni"    data-s="live"      onclick="go('live')"    ><span class="ni-i">&#128308;</span>Matchs Live / À venir</div>
-    <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats</div>
+    <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats à suivre</div>
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie de valeur</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Rattrapage Intelligent</div>
@@ -794,18 +821,19 @@ a{color:var(--neon);text-decoration:none}
         <button class="fbtn on" onclick="setScanDateFilter('all',this)">Toutes</button>
         <button class="fbtn" onclick="setScanDateFilter('today',this)">Aujourd'hui</button>
         <button class="fbtn" onclick="setScanDateFilter('tomorrow',this)">Demain</button>
-        <button class="fbtn" onclick="setScanDateFilter('week',this)">Cette semaine</button>
+        <button class="fbtn" onclick="setScanDateFilter('week',this)">Fin de semaine</button>
         <button class="fbtn" onclick="setScanDateFilter('weekend',this)">Week-end</button>
-        <button class="fbtn" onclick="setScanDateFilter('7d',this)">7 jours</button>
+        <button class="fbtn" onclick="setScanDateFilter('7d',this)">7 prochains jours</button>
         <button class="fbtn" onclick="setScanDateFilter('month',this)">Ce mois</button>
         <button class="fbtn" onclick="setScanDateFilter('custom',this)">Perso.</button>
       </div>
       <div id="scan-custom-date-wrap" style="display:none;margin-top:6px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div class="fgrp"><label style="font-size:9px">Du</label><input type="date" id="scan-date-from" style="color:var(--tx)"></div>
-          <div class="fgrp"><label style="font-size:9px">Au</label><input type="date" id="scan-date-to" style="color:var(--tx)"></div>
+          <div class="fgrp"><label style="font-size:9px">Du</label><input type="date" id="scan-date-from" onchange="betproScanDateFeedback()" style="color:var(--tx);max-width:100%"></div>
+          <div class="fgrp"><label style="font-size:9px">Au</label><input type="date" id="scan-date-to" onchange="betproScanDateFeedback()" style="color:var(--tx);max-width:100%"></div>
         </div>
       </div>
+      <div id="scan-date-feedback" role="status" aria-live="polite" style="font:10px var(--mo);color:var(--dm);line-height:1.5">Période du prochain scan : toutes les dates disponibles.</div>
     </div>
     <div class="betpro-dual-scan" role="group" aria-label="Sélectionner la stratégie du Scan Live">
       <button class="scan-main-btn classic-ready" id="scan-classic-btn" onclick="setBetProEngine('classic');doClassicScan()" aria-label="Lancer le Scan Live Classique">
@@ -1027,7 +1055,7 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ RÉSULTATS ═══════════════ -->
 <section class="sec" id="s-results">
-  <div class="ph"><div class="pt">&#128202; Mes résultats suivis</div><div class="ps">Uniquement les pronostics que tu sélectionnes dans les cartes Scan Live.</div></div>
+  <div class="ph"><div class="pt">&#128202; Mes résultats à suivre</div><div class="ps">Uniquement tes pronostics sélectionnés sur Scan Live : en attente ou vérifiés.</div></div>
   <div class="bg" style="margin-bottom:14px;flex-wrap:wrap">
     <button class="btn bs" onclick="loadResults()">&#128260; Actualiser</button>
     <button class="btn bp" type="button" id="betpro-results-verify" onclick="betproVerifyResultsNow()">Vérifier les scores</button>
