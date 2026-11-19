@@ -4095,16 +4095,17 @@ function lossRender(){
   var allEntries=data.entries||[];
   var filteredEntries=lossFilterByPeriod(allEntries);
 
-  var wins=filteredEntries.filter(function(e){return e.result==='win';});
-  var losses=filteredEntries.filter(function(e){return e.result==='loss';});
-  var voids=filteredEntries.filter(function(e){return e.result==='void';});
+  var wins=filteredEntries.filter(function(e){return lossNetAmount(e)>0;});
+  var losses=filteredEntries.filter(function(e){return lossNetAmount(e)<0;});
+  var voids=filteredEntries.filter(function(e){return lossNetAmount(e)===0;});
   var totalBets=wins.length+losses.length;
   var winRate=totalBets>0?Math.round(wins.length/totalBets*100):0;
-  var totalWon=wins.reduce(function(s,e){return s+(e.amount_won||0);},0);
-  var totalLostPeriod=losses.reduce(function(s,e){return s+(e.amount_lost||0);},0);
-  var netPL=totalWon-totalLostPeriod;
-  var activeLosses=allEntries.filter(function(e){return !e.recovered&&e.result==='loss';});
-  var totalActiveLost=activeLosses.reduce(function(s,e){return s+(e.amount_lost||0);},0);
+  var totalWon=wins.reduce(function(sum,e){return sum+lossNetAmount(e);},0);
+  var totalLostPeriod=losses.reduce(function(sum,e){return sum-Math.abs(lossNetAmount(e));},0);
+  var netPL=Math.round((totalWon+totalLostPeriod)*100)/100;
+  var activeLosses=allEntries.filter(function(e){return !e.recovered&&lossNetAmount(e)<0;});
+  var session=lossLedgerSummary(allEntries);
+  var totalActiveLost=session.deficit;
   var lastOdds=activeLosses.length>0?activeLosses[0].odds:2.0;
 
   var statsPanel=document.getElementById('loss-stats-panel');
@@ -4125,7 +4126,7 @@ function lossRender(){
       +'<div class="tsm-cell"><div class="sv" style="color:var(--am)">'+voids.length+'</div><label>Void</label></div>'
       +'<div class="tsm-cell"><div class="sv" style="color:'+(winRate>=55?'var(--gr)':winRate>=40?'var(--am)':'var(--re)')+'">'+winRate+'%</div><label>% Gain</label></div>'
       +'<div class="tsm-cell"><div class="sv" style="color:'+plColor+'">'+(netPL>=0?'+':'')+netPL.toFixed(2)+' €</div><label>P&L net</label></div>'
-      +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+totalActiveLost.toFixed(2)+' €</div><label>A recuperer</label></div>'
+      +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+totalActiveLost.toFixed(2)+' €</div><label>Déficit net session</label></div>'
       +'</div>'
       +(totalBets>0?'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dm);font-family:var(--mo);margin-bottom:3px"><span style="color:var(--gr)">Gagnes '+winRate+'% ('+wins.length+')</span><span style="color:var(--re)">Perdus '+(100-winRate)+'% ('+losses.length+')</span></div><div style="height:6px;background:var(--bd);border-radius:3px;overflow:hidden;display:flex"><div style="width:'+winRate+'%;background:var(--gr)"></div><div style="width:'+(100-winRate)+'%;background:var(--re)"></div></div></div>':'')
       +(chartE.length>1?'<div style="display:flex;align-items:flex-end;gap:3px;height:48px;padding:0 2px">'
@@ -4144,9 +4145,10 @@ function lossRender(){
 
   var panelHtml='';
   if(totalActiveLost>0){
-    var bankroll = parseFloat(document.getElementById('loss-bankroll-input')?.value || '200') || 200;
-    var calc = calcRecoveryStake(totalActiveLost, lastOdds, selectedMethod, bankroll);
-    var gainNet=(calc.nextStake*(calc.coteCible-1)-totalActiveLost).toFixed(2);
+    var bankroll = Number(document.getElementById('loss-bankroll-input')?.value);
+    var calc = calcRecoveryStake(totalActiveLost,lastOdds,selectedMethod,bankroll);
+    var risk=calc.risk;
+    var remainingIfWin=Math.max(0,totalActiveLost-calc.nextStake*(calc.coteCible-1));
 
     var sportBtns=[
       {val:'basketball',label:'Basket'},
@@ -4162,10 +4164,17 @@ function lossRender(){
       +'<div class="rb-label">Pertes actives a recuperer ('+activeLosses.length+' paris)</div>'
       +'<div class="rb-loss-total">-'+totalActiveLost.toFixed(2)+' €</div>'
       +'<div style="height:1px;background:rgba(167,139,250,.2);margin:12px 0"></div>'
-      +'<div class="rb-label">Mise recommandee — '+(selectedMethod||'Standard')+' (aperçu, recalculée par match ci-dessous)</div>'
+      +'<div class="rb-label">Plafond par pari (indicatif, pas un montant à jouer)</div>'
       +'<div class="rb-next-stake">'+calc.nextStake.toFixed(2)+' €</div>'
       +'<div class="rb-odds-target">Cote de référence @ '+calc.coteCible.toFixed(2)+'</div>'
-      +'<div class="rb-expl">'+esc(calc.expl)+'<br>Gain net indicatif si victoire : <strong style="color:var(--gr)">'+gainNet+' €</strong><br>Ne misez que ce que vous pouvez perdre. Aucun pari garanti.</div>'
+      +'<div class="rb-expl">'+esc(calc.expl)+'<br>Pour effacer '+totalActiveLost.toFixed(2)+' € en un seul pari @ '+calc.coteCible.toFixed(2)+', la mise théorique serait '+calc.theoretical.toFixed(2)+' €. Elle peut dépasser les limites autorisées.<br>Déficit résiduel si le plafond indicatif gagne : '+remainingIfWin.toFixed(2)+' €. Aucun gain garanti.</div>'
+       +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-top:12px;text-align:left">'
+       +'<div class="tsm-cell"><div class="sv">'+risk.betCap.toFixed(2)+' €</div><label>Limite par pari (1 %)</label></div>'
+       +'<div class="tsm-cell"><div class="sv">'+risk.combinedCap.toFixed(2)+' €</div><label>Budget total du plan</label></div>'
+       +'<div class="tsm-cell"><div class="sv">'+risk.dailyRemaining.toFixed(2)+' €</div><label>Budget de risque restant aujourd\'hui</label></div>'
+       +'<div class="tsm-cell"><div class="sv">'+risk.streak+'</div><label>Pertes consécutives</label></div>'
+       +'</div>'
+       +(risk.blocked?'<div class="warn" style="margin-top:9px;color:var(--re)">Abstention : '+esc(risk.reason)+'. Le moteur ne proposera pas de nouvelle mise.</div>':'')
       +'</div>'
       +'<div style="margin-bottom:10px">'
       +'<div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mo)">Sport prioritaire (facultatif)</div>'
@@ -4188,18 +4197,21 @@ function lossRender(){
     var toShow=filteredEntries;
     if(!toShow.length){ histList.innerHTML='<div style="text-align:center;padding:20px;color:var(--dm);font-size:12px">Aucun signal probabiliste cette periode.</div>'; return; }
     histList.innerHTML=toShow.map(function(e){
-      var icon=e.result==='win'?'OK':e.result==='void'?'-':'PERDU';
-      var amtColor=e.result==='win'?'var(--gr)':e.result==='loss'?'var(--re)':'var(--am)';
-      var amtStr=e.result==='win'?'+'+(e.amount_won||0).toFixed(2)+' €':e.result==='loss'?'-'+(e.amount_lost||0).toFixed(2)+' €':'Void';
-      var sl={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL'}[e.sport]||'Sport';
+      var net=lossNetAmount(e);
+      var icon=net>0?'GAGNÉ':net<0?'PERDU':'REMBOURSÉ';
+      var amtColor=net>0?'var(--gr)':net<0?'var(--re)':'var(--am)';
+      var amtStr=(net>=0?'+':'')+net.toFixed(2)+' €';
+      var sl={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL',handball:'Handball',volleyball:'Volleyball'}[e.sport]||'Sport';
       return '<div class="loss-entry '+(!e.recovered&&e.result==='loss'?'active-loss':'')+'">'
         +'<div style="flex:1;min-width:0">'
-        +'<div class="le-match">'+sl+' | '+esc(e.match)+(e.sel?' - '+esc(e.sel):'')+'</div>'
+        +'<div class="le-match">'+esc(sl)+' | '+esc(e.match)+(e.sel?' - '+esc(e.sel):'')+'</div>'
+        +(e.bookmaker||e.ticket_id||e.ticket_type||e.note?'<div style="font-size:10px;color:var(--dm);margin-top:3px">'+esc([e.bookmaker,e.ticket_type,e.ticket_id?('Ticket '+e.ticket_id):'',e.note].filter(Boolean).join(' · '))+'</div>':'')
         +'<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">'
         +'<span class="le-odds">@ '+e.odds+'</span><span class="le-stake">'+e.stake+' €</span>'
         +' '+icon+' '
         +(e.recovered?'<span class="bdg" style="background:var(--grb);color:var(--gr)">Recupere</span>':'')
         +'<span class="le-date">'+fmtDT(e.date)+'</span>'
+        +(Number.isFinite(Number(e.actual_return))&&e.actual_return!==undefined?'<span class="le-stake">Retour encaissé : '+Number(e.actual_return).toFixed(2)+' €</span>':'')
         +'</div></div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
         +'<span style="font-family:var(--mo);font-weight:700;color:'+amtColor+';font-size:13px">'+amtStr+'</span>'
