@@ -3969,6 +3969,7 @@ function setRecoverySport(sport,el){
 }
 
 function lossNetAmount(e){
+  if(e.result==='pending')return 0;
   const stake=Number(e.stake)||0,received=e.actual_return;
   if(received!==undefined&&received!==null&&received!==''&&Number.isFinite(Number(received)))
     return Math.round((Number(received)-stake)*100)/100;
@@ -3978,29 +3979,55 @@ function lossNetAmount(e){
   return -stake;
 }
 function lossLedgerSummary(entries){
-  const active=(entries||[]).filter(e=>!e.recovered);
+  const active=(entries||[]).filter(e=>!e.recovered&&e.result!=='pending');
   const net=Math.round(active.reduce((sum,e)=>sum+lossNetAmount(e),0)*100)/100;
   return {active,net,deficit:Math.max(0,-net)};
+}
+// Instantané du capital : ne jamais déduire à nouveau les anciens tickets.
+function lossBalanceSnapshot(data){
+  const base=Number(data?.bankroll);
+  const anchor=Date.parse(data?.bankrollAnchorAt||'')||0;
+  if(!Number.isFinite(base)||base<=0||!anchor)return {configured:false,available:0,base:0,pending:0,realized:0};
+  let realized=0,pending=0;
+  for(const e of (data.entries||[])){
+    const stake=Number(e.stake)||0;
+    const created=Date.parse(e.createdAt||e.date||'')||0;
+    const settled=Date.parse(e.settledAt||e.createdAt||e.date||'')||0;
+    if(e.result==='pending'){
+      if(created>anchor)pending+=stake;
+    }else if(settled>anchor){
+      realized+=lossNetAmount(e);
+    }
+  }
+  return {configured:true,base,realized:Math.round(realized*100)/100,
+    pending:Math.round(pending*100)/100,available:Math.round(Math.max(0,base+realized-pending)*100)/100};
 }
 function lossRiskLimits(bankroll,entries){
   const amount=Number.isFinite(bankroll)&&bankroll>0?bankroll:0;
   const today=new Date().toDateString();
-  const todayLoss=(entries||[]).reduce((sum,e)=>{
-    const dt=new Date(e.date||0);
-    return dt.toDateString()===today?sum+Math.max(0,-lossNetAmount(e)):sum;
-  },0);
-  const entriesSorted=[...(entries||[])].filter(e=>!e.recovered).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+  let todayLoss=0,pendingExposure=0;
+  for(const e of (entries||[])){
+    if(e.result==='pending'){pendingExposure+=Math.max(0,Number(e.stake)||0);continue;}
+    const date=new Date(e.settledAt||e.createdAt||e.date||0);
+    if(date.toDateString()===today)todayLoss+=Math.max(0,-lossNetAmount(e));
+  }
+  const entriesSorted=[...(entries||[])].filter(e=>!e.recovered&&e.result!=='pending')
+    .sort((a,b)=>new Date(b.settledAt||b.createdAt||b.date||0)-new Date(a.settledAt||a.createdAt||a.date||0));
   let streak=0;
-  for(const e of entriesSorted){const n=lossNetAmount(e);if(n<0)streak++;else if(n>0)break;}
+  for(const e of entriesSorted){
+    const net=lossNetAmount(e);
+    if(net<0)streak++;
+    else if(net>0)break;
+  }
   const betCap=Math.floor(amount*.01*100)/100;
   const dailyCap=Math.floor(amount*.03*100)/100;
-  const dailyRemaining=Math.max(0,Math.round((dailyCap-todayLoss)*100)/100);
-  const combinedCap=Math.min(Math.floor(amount*.02*100)/100,dailyRemaining);
+  const dailyRemaining=Math.max(0,Math.round((dailyCap-todayLoss-pendingExposure)*100)/100);
+  const combinedCap=Math.max(0,Math.min(Math.floor(amount*.02*100)/100,dailyRemaining));
   const blocked=!amount||streak>=3||betCap<.50||combinedCap<.50;
-  return {amount,todayLoss,streak,betCap,dailyCap,dailyRemaining,combinedCap,blocked,
-    reason:!amount?'Bankroll invalide':streak>=3?'Arrêt après trois pertes consécutives':
-      dailyRemaining<.50?'Limite de perte quotidienne atteinte':
-      betCap<.50?'Bankroll insuffisante pour une mise de 0,50 €':''};
+  return {amount,todayLoss,pendingExposure,streak,betCap,dailyCap,dailyRemaining,combinedCap,blocked,
+    reason:!amount?'Solde disponible non défini ou épuisé':streak>=3?'Arrêt après trois pertes consécutives':
+      dailyRemaining<.50?'Limite de perte et exposition quotidienne atteinte':
+      betCap<.50?'Solde insuffisant pour une mise de 0,50 €':''};
 }
 function lossRoundDown(v){return Math.floor(Math.max(0,Number(v)||0)*100+1e-7)/100;}
 function recoveryProposal(due,odds,probPct,risk,portion){
@@ -4020,7 +4047,8 @@ function recoveryProposal(due,odds,probPct,risk,portion){
       accepted<.50?'Mise calculée inférieure à 0,50 €':'Plafond de risque et Kelly au quart'};
 }
 function calcRecoveryStake(totalLost,lastOdds,method,bankroll){
-  const risk=lossRiskLimits(Number(bankroll),lossLoad().entries||[]);
+  const data=lossLoad();
+  const risk=lossRiskLimits(lossBalanceSnapshot(data).available,data.entries||[]);
   const odds=Number(lastOdds)>1.01?Number(lastOdds):1.80;
   return {nextStake:risk.blocked?0:lossRoundDown(Math.min(risk.betCap,risk.combinedCap)),
     coteCible:odds,theoretical:lossRoundDown(totalLost/(odds-1)),risk,
@@ -4061,6 +4089,7 @@ function lossAdd(){
     match:document.getElementById('loss-match')?.value.trim()||'Pari non précisé',
     sel:document.getElementById('loss-sel')?.value.trim()||'',
     stake,odds,result,sport:document.getElementById('loss-sport-sel')?.value||'all',
+    createdAt:new Date().toISOString(),settledAt:new Date().toISOString(),
     actual_return:payout,amount_lost:Math.max(0,-net),amount_won:Math.max(0,net),
     bookmaker:document.getElementById('loss-bookmaker')?.value.trim()||'',
     ticket_id:document.getElementById('loss-ticket-id')?.value.trim()||'',
@@ -4075,7 +4104,7 @@ function lossAdd(){
   lossUpdateQuickForm();
   toast('Enregistré : '+(net>=0?'+':'')+net.toFixed(2)+' € nets',net>=0?'ok':'');
   lossRender();
-  if(net<0&&Number(document.getElementById('loss-bankroll-input')?.value)>0){
+  if(net<0&&lossBalanceSnapshot(data).configured){
     setTimeout(()=>lossAutoSearch(),300);
   }
 }
@@ -4083,7 +4112,7 @@ function lossAdd(){
 function lossBankrollSave(){
   const value=Number(document.getElementById('loss-bankroll-input')?.value);
   if(Number.isFinite(value)&&value>=10&&value<=100000){
-    const d=lossLoad();d.bankroll=value;lossSave(d);
+    const d=lossLoad();d.bankroll=value;d.bankrollAnchorAt=new Date().toISOString();lossSave(d);
   }
   lossRender();
 }
@@ -4183,7 +4212,7 @@ function lossRender(){
 
   var panelHtml='';
   if(totalActiveLost>0){
-    var bankroll = Number(document.getElementById('loss-bankroll-input')?.value);
+    var bankroll = lossBalanceSnapshot(data).available;
     var calc = calcRecoveryStake(totalActiveLost,lastOdds,selectedMethod,bankroll);
     var risk=calc.risk;
     var remainingIfWin=Math.max(0,totalActiveLost-calc.nextStake*(calc.coteCible-1));
@@ -4332,7 +4361,7 @@ async function lossAutoSearch(forcedOdds){
   const method    = selectedMethod || 'pgi_prudente';
   const totalLost = lossLedgerSummary(data.entries||[]).deficit;
   const lastOdds  = forcedOdds || losses[losses.length-1]?.odds || 1.80;
-  const bankroll  = Number(document.getElementById('loss-bankroll-input')?.value);
+  const bankroll  = lossBalanceSnapshot(data).available;
   const risk = lossRiskLimits(bankroll,data.entries||[]);
   const cnt = document.getElementById('loss-search-results');
 
@@ -4546,9 +4575,12 @@ const METHODS = [
 function initMethods() {
   const grid = document.getElementById('m-strat-grid');
   if (!grid) return;
-  const saved=Number(lossLoad().bankroll);
+  const savedData=lossLoad(),saved=Number(savedData.bankroll);
   const input=document.getElementById('loss-bankroll-input');
-  if(input&&Number.isFinite(saved)&&saved>0)input.value=saved;
+  if(input&&Number.isFinite(saved)&&saved>0){
+    input.value=saved;
+    if(!savedData.bankrollAnchorAt){savedData.bankrollAnchorAt=new Date().toISOString();lossSave(savedData);}
+  }
   grid.innerHTML = METHODS.map(function(m) {
     var isSel = selectedMethod===m.id;
     return '<div class="m-strat-card'+(isSel?' sel':'')+'" data-mid="'+m.id+'" onclick="selectMethod(this.dataset.mid)">'
@@ -4575,7 +4607,7 @@ function selectMethod(id) {
   lossRender();
   var data = lossLoad();
   var active = (data.entries||[]).filter(function(e){ return !e.recovered && e.result==='loss'; });
-  if(active.length > 0) {
+  if(active.length > 0 && lossBalanceSnapshot(data).configured) {
     setTimeout(function(){ lossAutoSearch(); }, 400);
   }
   toast('Strategie: '+id,'ok');
