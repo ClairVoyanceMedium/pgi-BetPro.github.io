@@ -493,6 +493,12 @@ a{color:var(--neon);text-decoration:none}
 .bj-card-btn.selected .bj-card-face{box-shadow:inset 0 0 0 2px var(--neon)}
 .bj-card-btn .bjc-val{z-index:3}
 
+/* Résultats : archivage lisible sans surcharge visuelle. */
+.betpro-results-section{padding:15px 16px;margin-bottom:14px}
+.betpro-results-row{padding:10px 0;border-bottom:1px solid var(--bd);overflow-wrap:anywhere}
+.betpro-results-row:last-child{border-bottom:0}
+.betpro-results-more{color:var(--neon);cursor:pointer;font:700 11px var(--mo);padding:7px 0}
+.betpro-results-more:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
 /* Rapport de collecte repliable : état compact au chargement, contenu conservé. */
 #maturity-panel>summary::-webkit-details-marker{display:none}
 #maturity-panel>summary::marker{content:""}
@@ -940,10 +946,10 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ RÉSULTATS ═══════════════ -->
 <section class="sec" id="s-results">
-  <div class="ph"><div class="pt">&#128202; Résultats sauvegardés</div></div>
-  <div class="bg" style="margin-bottom:14px">
+  <div class="ph"><div class="pt">&#128202; Résultats et historique</div><div class="ps">Sélections enregistrées, résultats confirmés et archives des scans sportifs.</div></div>
+  <div class="bg" style="margin-bottom:14px;flex-wrap:wrap">
     <button class="btn bs" onclick="loadResults()">&#128260; Actualiser</button>
-    <button class="btn" onclick="clearResults()" style="background:var(--reb);color:var(--re);border:1px solid rgba(239,68,68,.25)">&#128465; Vider</button>
+    <button class="btn bs" onclick="go('perf')">&#128200; Voir les performances</button>
   </div>
   <div id="res-cnt"><div class="ls"><div class="sp"></div><p>Chargement…</p></div></div>
 </section>
