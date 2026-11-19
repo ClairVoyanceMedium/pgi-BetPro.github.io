@@ -4212,7 +4212,7 @@ function lossPendingRender(entries){
     +' <span style="margin-left:8px;color:var(--am);font-size:11px">'+sum.toFixed(2)+' € engagés</span></div>'
     +'<div style="font-size:10px;color:var(--dm);margin-bottom:12px">Ces mises sont réservées, mais pas comptées comme des pertes tant que le résultat n’est pas enregistré. Le règlement doit correspondre au bookmaker.</div>'
     +pending.map(e=>{
-      const id=JSON.stringify(String(e.id));
+      const id="'"+String(e.id).replace(/[^a-zA-Z0-9_-]/g,'')+"'";
       const header=[e.match||'Rencontre',e.sel||''].filter(Boolean).join(' · ');
       return '<div style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:9px">'
       +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:start">'
@@ -4269,6 +4269,20 @@ function lossDeleteEntry(id){
 function lossRender(){
   var data=lossLoad();
   var allEntries=data.entries||[];
+  const account=document.getElementById('loss-account-status');
+  if(account){
+    const bal=lossBalanceSnapshot(data);
+    const pendingAmount=allEntries.filter(e=>e.result==='pending').reduce((sum,e)=>sum+(Number(e.stake)||0),0);
+    account.innerHTML=bal.configured
+      ?'<div class="card" style="border-color:rgba(0,212,255,.27);margin-bottom:10px">'
+       +'<div class="ct">Solde et paris réellement engagés</div>'
+       +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">'
+       +'<div class="tsm-cell"><div class="sv" style="color:var(--neon)">'+bal.available.toFixed(2)+' €</div><label>Solde disponible calculé</label></div>'
+       +'<div class="tsm-cell"><div class="sv" style="color:var(--am)">'+pendingAmount.toFixed(2)+' €</div><label>Mises en attente</label></div>'
+       +'<div class="tsm-cell"><div class="sv" style="color:'+(bal.realized>=0?'var(--gr)':'var(--re)')+'">'+(bal.realized>0?'+':'')+bal.realized.toFixed(2)+' €</div><label>Variation depuis le solde déclaré</label></div>'
+       +'</div><div style="color:var(--dm);font-size:10px;margin-top:8px">Solde calculé d’après les mises et résultats enregistrés, pas un solde connecté au bookmaker. Corrigez le montant déclaré en cas de dépôt ou de retrait.</div></div>'
+      :'<div class="info" style="margin-bottom:10px">Renseignez votre solde réel disponible une fois pour activer la gestion automatique du capital. Le journal de pertes reste utilisable sans cette donnée.</div>';
+  }
   lossPendingRender(allEntries);
   var filteredEntries=lossFilterByPeriod(allEntries.filter(e=>e.result!=='pending'));
 
