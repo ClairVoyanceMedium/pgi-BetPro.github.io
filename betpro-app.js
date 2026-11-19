@@ -4176,7 +4176,7 @@ function recoveryProposal(due,odds,probPct,risk,portion){
   const o=Number(odds),p=Number(probPct)/100;
   if(!(o>1.01&&p>0&&p<1))return {stake:0,reason:'Cote ou probabilité invalide'};
   const conservativeP=Math.max(0,p-.05),edge=conservativeP*o-1;
-  const theoretical=lossRoundDown(due/(o-1));
+  const theoretical=Math.ceil((due/(o-1)-1e-8)*100)/100;
   const kelly=edge>0?edge/(o-1):0;
   const profile=risk.methodProfile||lossMethodProfile(risk,[]);
   const cap=Math.min(risk.betCap,risk.amount*profile.capPct,risk.combinedCap*(portion==null?1:portion),risk.amount*kelly*profile.kellyFraction);
@@ -4194,7 +4194,7 @@ function calcRecoveryStake(totalLost,lastOdds,method,bankroll){
   const odds=Number(lastOdds)>1.01?Number(lastOdds):1.80;
   const profile=lossMethodProfile(risk,data.entries||[]);
   return {nextStake:risk.blocked?0:lossRoundDown(Math.min(risk.betCap,risk.combinedCap,risk.amount*profile.capPct)),
-    coteCible:odds,theoretical:lossRoundDown(totalLost/(odds-1)),risk,profile,
+    coteCible:odds,theoretical:Math.ceil((totalLost/(odds-1)-1e-8)*100)/100,risk,profile,
     expl:'Le plafond de stratégie n’est pas un montant conseillé. Une mise de compensation dépend de la cote et suppose une victoire.'};
 }
 
