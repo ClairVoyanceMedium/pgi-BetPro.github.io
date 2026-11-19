@@ -4290,26 +4290,24 @@ function matchRecoverySportFilter(leagueSport, filter) {
 
 async function lossAutoSearch(forcedOdds){
   const data    = lossLoad();
-  const losses  = (data.entries||[]).filter(e=>!e.recovered && e.result==='loss');
+  const losses  = (data.entries||[]).filter(e=>!e.recovered && lossNetAmount(e)<0);
   if(!losses.length){ toast('Aucune perte active','err'); return; }
 
   const method    = selectedMethod || 'pgi_prudente';
-  const totalLost = losses.reduce((s,e)=>s+(e.stake||0),0);
+  const totalLost = lossLedgerSummary(data.entries||[]).deficit;
   const lastOdds  = forcedOdds || losses[losses.length-1]?.odds || 1.80;
-  const bankroll  = parseFloat(document.getElementById('loss-bankroll-input')?.value||'200')||200;
+  const bankroll  = Number(document.getElementById('loss-bankroll-input')?.value);
+  const risk = lossRiskLimits(bankroll,data.entries||[]);
   const cnt = document.getElementById('loss-search-results');
 
   const histCards    = histLocalLoad();
   const settledCount = getSettledCards(histCards).length;
   const ultraPrudent = settledCount < 100;
 
-  const _sortedAll = [...(data.entries||[])].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
-  let consecutiveLosses = 0;
-  for(const _e of _sortedAll) { if(_e.result==='loss' && !_e.recovered) consecutiveLosses++; else break; }
-
-  if(consecutiveLosses >= 5){
-    if(cnt) cnt.innerHTML = '<div class="warn" style="color:var(--re)">&#128683; Rattrapage bloqué : série de pertes trop élevée. Protection bankroll activée.</div>';
-    toast('Rattrapage bloqué — protection bankroll','err');
+  const consecutiveLosses=risk.streak;
+  if(risk.blocked){
+    if(cnt)cnt.innerHTML='<div class="warn" style="color:var(--re)">Abstention : '+esc(risk.reason)+'. Aucun pari supplémentaire proposé ; le plafond de risque prime sur le rattrapage.</div>';
+    toast('Abstention : '+risk.reason,'err');
     return;
   }
 
@@ -4354,6 +4352,8 @@ async function lossAutoSearch(forcedOdds){
         if(ultraPrudent && res.tier === 'solid') continue;
 
         if((res.evSimple||0) < 1.10) continue;
+         const modelP=Number(res.modelProb)/100,quote=Number(o.odds);
+         if(!(modelP>0&&modelP<1&&quote>1.01&&(modelP-.05)*quote>1.02))continue;
         if((res.kellyFull||0) <= 0) continue;
         if((res.edgeProb||0) < 4) continue;
         if(res.tier==='premium' && (res.dataQualityScore||0) < 60) continue;
@@ -4403,90 +4403,90 @@ async function lossAutoSearch(forcedOdds){
     return;
   }
 
-  const best = candidates.slice(0,5);
-  let html = banners + `<div class="sbar"><div class="sdot" style="background:var(--gr)"></div>
-    <span><strong>${best.length}</strong> opportunité(s) de rattrapage — ${esc(method)}</span>
-    <span style="margin-left:auto;font-size:9px;color:var(--dm)">Bankroll: ${bankroll.toFixed(0)} €</span>
-  </div>`;
+  // Une proposition par rencontre : diversifier les évènements, pas les tickets du même match.
+  const seen=new Set();
+  const best=candidates.filter(o=>{
+    const key=[o._sport,o.home_team||'',o.away_team||'',o.start_time||o.commence_time||''].join('|').toLowerCase();
+    if(seen.has(key))return false;seen.add(key);return true;
+  }).slice(0,5);
+  const plans=best.map(o=>({o,p:recoveryProposal(totalLost,o.odds,o._res.modelProb,risk,1)}));
+  const eligible=plans.filter(x=>x.p.stake>=.50);
+  if(!eligible.length){
+    if(cnt)cnt.innerHTML=banners+'<div class="warn">Aucune mise n’est admissible après application du plafond de risque, de la marge de sécurité de 5 points et du Kelly au quart. Abstention recommandée.</div>';
+    return;
+  }
+  const euro=n=>(Math.round(Number(n||0)*100)/100).toFixed(2)+' €';
+  const primary=eligible[0];
+  let html=banners+'<div class="card" style="border:1px solid rgba(0,212,255,.32);padding:14px;margin-bottom:12px">'
+    +'<div class="ct">Bilan et protection du capital</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px">'
+    +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+euro(totalLost)+'</div><label>Déficit net à combler</label></div>'
+    +'<div class="tsm-cell"><div class="sv">'+euro(risk.betCap)+'</div><label>Maximum par pari</label></div>'
+    +'<div class="tsm-cell"><div class="sv">'+euro(risk.combinedCap)+'</div><label>Budget total de risque</label></div>'
+    +'<div class="tsm-cell"><div class="sv">'+euro(risk.dailyRemaining)+'</div><label>Disponible dans la limite quotidienne</label></div>'
+    +'</div><div style="font-size:10px;color:var(--mu);margin-top:10px">Capital disponible déclaré : '+euro(bankroll)+'. Les deux plans ci-dessous sont des alternatives. Ne jamais les additionner.</div></div>';
 
-  best.forEach((o)=>{
-    const res = o._res, hAdj = o._hAdj;
-    const recoveryForCard = calcRecoveryStake(totalLost, o.odds, method, bankroll);
+  html+='<div class="card" style="border-color:rgba(0,255,157,.3);margin-bottom:10px">'
+    +'<div class="ct">Scénario A : un seul pari simple</div>'
+    +'<div style="font-size:12px;color:var(--tx);font-weight:700;margin-bottom:5px">'+esc(primary.o.home_team||'?')+' / '+esc(primary.o.away_team||'?')+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">'
+    +'<div class="tsm-cell"><div class="sv" style="color:var(--gr)">'+euro(primary.p.stake)+'</div><label>Mise plafonnée</label></div>'
+    +'<div class="tsm-cell"><div class="sv">'+euro(primary.p.profit)+'</div><label>Bénéfice si victoire</label></div>'
+    +'<div class="tsm-cell"><div class="sv">'+euro(primary.p.winRemaining)+'</div><label>Déficit restant si victoire</label></div>'
+    +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">'+euro(primary.p.loseRemaining)+'</div><label>Déficit si défaite</label></div>'
+    +'</div><div style="font-size:10px;color:var(--dm);margin-top:8px">Valeur attendue selon le modèle : '+euro(primary.p.ev)+'. Elle dépend de la justesse de sa probabilité estimée, non garantie.</div></div>';
 
-    let finalRecoveryStake, stakeReducedNote, tierMsg;
-    if(res.tier === 'premium') {
-      finalRecoveryStake = recoveryForCard.nextStake;
-      if(ultraPrudent) finalRecoveryStake = Math.min(finalRecoveryStake, bankroll*0.01);
-      stakeReducedNote = ultraPrudent ? ' (plafonnée 1% — historique insuffisant)' : '';
-      tierMsg = 'Rattrapage autorisé sur une sélection TRÈS FORTE, dans la limite de bankroll définie.';
-    } else {
-      finalRecoveryStake = recoveryForCard.nextStake * 0.60;
-      stakeReducedNote = ' (réduite -40%)';
-      tierMsg = 'Rattrapage autorisé uniquement avec mise réduite sur TRÈS SOLIDE.';
-    }
-    finalRecoveryStake = Math.round(finalRecoveryStake * 2) / 2;
+  const paired=eligible.slice(0,3).map((item,i)=>({
+    o:item.o,p:recoveryProposal(totalLost,item.o.odds,item.o._res.modelProb,risk,i===0?.50:.50)
+  })).filter(x=>x.p.stake>=.50).slice(0,2);
+  if(paired.length===2){
+    const combined=paired.reduce((acc,x)=>({stake:acc.stake+x.p.stake,profit:acc.profit+x.p.profit,ev:acc.ev+x.p.ev}),{stake:0,profit:0,ev:0});
+    html+='<div class="card" style="border-color:rgba(167,139,250,.35);margin-bottom:12px">'
+      +'<div class="ct">Scénario B : deux paris simples sur des rencontres distinctes</div>'
+      +paired.map((x,i)=>'<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:6px 0;border-bottom:1px solid var(--bd)"><span>'+esc(x.o.home_team||'?')+' / '+esc(x.o.away_team||'?')+' @ '+Number(x.o.odds).toFixed(2)+'</span><strong>'+euro(x.p.stake)+'</strong></div>').join('')
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px">'
+      +'<div class="tsm-cell"><div class="sv" style="color:var(--pu)">'+euro(combined.stake)+'</div><label>Mise totale</label></div>'
+      +'<div class="tsm-cell"><div class="sv">'+euro(combined.profit)+'</div><label>Bénéfice si les deux gagnent</label></div>'
+      +'<div class="tsm-cell"><div class="sv">'+euro(Math.max(0,totalLost-combined.profit))+'</div><label>Déficit si les deux gagnent</label></div>'
+      +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">'+euro(totalLost+combined.stake)+'</div><label>Déficit si les deux perdent</label></div>'
+      +'</div><div style="font-size:10px;color:var(--dm);margin-top:8px">EV agrégée estimée : '+euro(combined.ev)+'. Ce ne sont pas des paris combinés. Les issues ne sont pas indépendantes par hypothèse ; aucun taux de réussite commun n’est annoncé.</div></div>';
+  } else {
+    html+='<div class="info" style="margin-bottom:12px">Deuxième rencontre indépendante non admissible : aucun scénario multiple fabriqué.</div>';
+  }
+  html+='<div class="sbar"><div class="sdot" style="background:var(--gr)"></div><span>'
+    +eligible.length+' rencontres éligibles après filtres de risque et qualité</span></div>';
 
-    const tierCfg = {
-      premium: {color:'var(--gr)', label:'TRÈS FORTE', icon:'&#128142;'},
-      solid:   {color:'var(--am)', label:'TRÈS SOLIDE', icon:'&#11088;'},
-    }[res.tier] || {color:'var(--neon)',label:'SOLIDE',icon:'&#9650;'};
-    const selDisplay = translateSelection(o.selection,o.market,o.home_team,o.away_team,o.line);
-
-    const histLine = (!hAdj || hAdj.status==='insufficient')
-      ? `Ajustement historique : insuffisant — ${hAdj?hAdj.volume:0} cartes, aucune conclusion fiable`
-      : `Ajustement historique : ${hAdj.status==='positive'?'positif':hAdj.status==='negative'?'négatif':'neutre'} — ${hAdj.volume} cartes, ROI ${hAdj.roi!=null?(hAdj.roi>0?'+':'')+hAdj.roi+'%':'—'}${hAdj.winRate!=null?', réussite '+hAdj.winRate+'%':''}`;
-
-    const pgiStrong=pgiIsStrongSportsSignal(o,res);
-    const globalConfidence=Math.round(pgiClamp100(res.displayConf||0));
-    if(pgiStrong){tierCfg.label='SÉLECTION TRÈS FORTE À JOUER';tierCfg.color='#39ff14';tierCfg.icon='&#10003;';}
-    html += `<div class="live-card${pgiStrong?' pgi-signal-tres-fort':''}" style="border-color:${tierCfg.color};margin-bottom:8px">
-      <div style="padding:8px 12px;background:rgba(0,0,0,.2);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)">
-        <span style="font-size:10px;font-weight:800;color:${tierCfg.color}">${tierCfg.icon} ${tierCfg.label}</span>
-        <span style="margin-left:auto;font-family:var(--mo);font-size:14px;font-weight:700;color:${tierCfg.color}">Confiance globale : ${globalConfidence}%</span>
-      </div>
-      <div class="lc-head">
-        <div style="flex:1">
-          <div class="lc-teams">&#9917; ${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
-            <span class="bdg bsp">${esc(o.competition||o._sport||'')}</span>
-            <span class="bdg bmk">${o.market||''}</span>
-          </div>
-          <div style="margin-top:8px">
-            <div style="font-family:var(--mo);font-size:13px;font-weight:700;color:var(--am)">${esc(selDisplay)} @ ${o.odds}</div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px">
-              <div style="text-align:center;background:var(--sf2);border-radius:4px;padding:4px">
-                <div style="font-family:var(--mo);font-size:11px;font-weight:700;color:var(--neon)">${res.modelProb}%</div>
-                <div style="font-size:8px;color:var(--dm)">Prob. modèle</div>
-              </div>
-              <div style="text-align:center;background:var(--sf2);border-radius:4px;padding:4px">
-                <div style="font-family:var(--mo);font-size:11px;font-weight:700;color:var(--gr)">+${res.edgeProb}%</div>
-                <div style="font-size:8px;color:var(--dm)">Avantage sur la cote</div>
-              </div>
-              <div style="text-align:center;background:var(--sf2);border-radius:4px;padding:4px">
-                <div style="font-family:var(--mo);font-size:11px;font-weight:700;color:var(--am)">${res.evSimple?res.evSimple.toFixed(3):'—'}</div>
-                <div style="font-size:8px;color:var(--dm)">Valeur attendue</div>
-              </div>
-              <div style="text-align:center;background:rgba(0,255,157,.07);border:1px solid rgba(0,255,157,.2);border-radius:4px;padding:4px">
-                <div style="font-family:var(--mo);font-size:11px;font-weight:700;color:var(--gr)">${finalRecoveryStake.toFixed(2)} €</div>
-                <div style="font-size:8px;color:var(--dm)">Mise récup.${stakeReducedNote}</div>
-              </div>
-            </div>
-            <div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:6px">${esc(histLine)}</div>
-          </div>
-        </div>
-      </div>
-      <div style="padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--bd)">
-        ${bookieLinkHtml()}
-        <button onclick="event.stopPropagation();copyTeamNames(this)" data-home="${esc(o.home_team||'')}" data-away="${esc(o.away_team||'')}"
-          style="background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:4px;color:var(--neon);font-size:10px;font-family:var(--mo);padding:5px 10px;cursor:pointer">&#128203; Copier</button>
-        <div style="font-size:9px;color:${tierCfg.color};font-family:var(--mo);align-self:center">${esc(tierMsg)}</div>
-      </div>
-    </div>`;
+  best.forEach(o=>{
+    const res=o._res,hAdj=o._hAdj;
+    const p=recoveryProposal(totalLost,o.odds,res.modelProb,risk,1);
+    const isEligible=p.stake>=.50;
+    const select=translateSelection(o.selection,o.market,o.home_team,o.away_team,o.line);
+    const histLine=(!hAdj||hAdj.status==='insufficient')?'Échantillon historique insuffisant : '+(hAdj?hAdj.volume:0)+' cartes':
+      'Historique '+(hAdj.status==='positive'?'favorable':hAdj.status==='negative'?'défavorable':'neutre')
+        +' ('+hAdj.volume+' cartes, ROI '+(hAdj.roi==null?'non disponible':hAdj.roi+' %')+')';
+    const prob=Number(res.modelProb);
+    html+='<div class="live-card" style="border-color:'+(isEligible?'var(--gr)':'var(--bd)')+';margin-bottom:9px">'
+      +'<div style="padding:9px 12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;gap:8px">'
+      +'<strong style="font-size:10px;color:'+(isEligible?'var(--gr)':'var(--dm)')+'">'+(isEligible?'ADMISSIBLE SOUS PLAFOND':'ABSTENTION SUR CE MATCH')+' · '+(res.tier==='premium'?'Très forte':'Solide')+'</strong>'
+      +'<span style="font-family:var(--mo);font-size:10px;color:var(--mu)">Qualité '+Number(res.dataQualityScore||0).toFixed(0)+'/100</span></div>'
+      +'<div class="lc-head"><div style="flex:1;min-width:0">'
+      +'<div class="lc-teams">'+esc(o.home_team||'?')+' vs '+esc(o.away_team||'?')+'</div>'
+      +'<div style="font-size:10px;color:var(--mu);margin:5px 0">'+esc(o.competition||o._sport||'')+' · '+(o.start_time?esc(fmtDT(o.start_time)):'Horaire non fourni')+'</div>'
+      +'<div style="font-size:12px;color:var(--am);font-weight:700">'+esc(select)+' @ '+Number(o.odds).toFixed(2)+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;margin-top:10px">'
+      +'<div class="tsm-cell"><div class="sv">'+prob.toFixed(1)+' %</div><label>Probabilité modèle</label></div>'
+      +'<div class="tsm-cell"><div class="sv">'+euro(p.stake)+'</div><label>Mise maximale calculée</label></div>'
+      +'<div class="tsm-cell"><div class="sv">'+euro(p.profit||0)+'</div><label>Bénéfice si victoire</label></div>'
+      +'<div class="tsm-cell"><div class="sv">'+euro(p.ev||0)+'</div><label>EV estimée</label></div>'
+      +'</div><div style="font-size:10px;color:var(--dm);line-height:1.6;margin-top:8px">'
+      +'Mise théorique pour compenser tout le déficit sur ce seul match : '+euro(p.theoretical||0)+'. '
+      +'Écart non couvert si victoire avec la mise plafonnée : '+euro(p.winRemaining==null?totalLost:p.winRemaining)+'. '
+      +esc(p.reason||'')+'. '+esc(histLine)
+      +'</div></div></div>'
+      +'<div style="padding:9px 12px;border-top:1px solid var(--bd)">'+bookieLinkHtml()+'</div></div>';
   });
-
-  html += '<div style="font-size:10px;color:var(--dm);text-align:center;margin-top:10px;font-style:italic">Analyse probabiliste — aucun pari garanti. Peut perdre malgré une EV positive.</div>';
-  html += '<div style="font-size:10px;color:var(--am);text-align:center;margin-top:6px;font-style:italic">&#9888; Le rattrapage augmente le risque. Si vous êtes fatigué, énervé ou en série négative, ne jouez pas.</div>';
-  if(cnt) cnt.innerHTML = html;
+  html+='<div class="warn" style="margin-top:10px">Aucune stratégie ne garantit de récupérer une perte. Les probabilités peuvent être mal calibrées, les cotes varier et plusieurs paris perdre simultanément. La meilleure décision reste parfois de ne pas miser. Une perte passée ne crée aucun avantage statistique sur les prochains matchs.</div>';
+  if(cnt)cnt.innerHTML=html;
 }
 
 async function lossSearchMatches(targetOdds, customLeagues){ await lossAutoSearch(targetOdds); }
