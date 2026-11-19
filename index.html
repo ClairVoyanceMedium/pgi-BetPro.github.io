@@ -323,7 +323,7 @@ a{color:var(--neon);text-decoration:none}
 .note-saved{background:var(--grb);color:var(--gr)}.note-unsaved{background:var(--pub);color:var(--pu)}
 
 /* ── NEWS TICKER — plus rapide ── */
-#news-ticker-scroll-box{height:270px;overflow-y:scroll;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;will-change:scroll-position;cursor:grab}
+#news-ticker-scroll-box{height:270px;overflow-y:scroll;position:relative;border:1px solid rgba(0,212,255,.1);border-radius:10px;background:rgba(0,0,0,.25);scroll-behavior:auto;overscroll-behavior:contain;overflow-anchor:none;-webkit-overflow-scrolling:touch;cursor:grab}
 #news-ticker-scroll-box:active{cursor:grabbing}
 #news-ticker-scroll-box::-webkit-scrollbar{width:4px}
 #news-ticker-scroll-box::-webkit-scrollbar-track{background:transparent}
