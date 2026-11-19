@@ -4673,14 +4673,9 @@ async function lossAutoSearch(forcedOdds){
 
   const histCards    = histLocalLoad();
   const settledCount = getSettledCards(histCards).length;
-  const ultraPrudent = settledCount < 100;
-
+  // Le seuil de 100 cartes sert à calibrer les ajustements historiques,
+  // pas à empêcher l'examen des opportunités disponibles.
   const consecutiveLosses=risk.streak;
-  if(risk.blocked){
-    if(cnt)cnt.innerHTML='<div class="warn" style="color:var(--re)">Abstention : '+esc(risk.reason)+'. Aucun pari supplémentaire proposé ; le plafond de risque prime sur le rattrapage.</div>';
-    toast('Abstention : '+risk.reason,'err');
-    return;
-  }
 
   let banners = '';
   if(risk.methodProfile.simulation){
@@ -4689,8 +4684,11 @@ async function lossAutoSearch(forcedOdds){
   if(consecutiveLosses >= 3) {
     banners += `<div class="warn" style="color:var(--am)">&#9888; ${consecutiveLosses} pertes consécutives — prudence renforcée.</div>`;
   }
-  if(ultraPrudent) {
-    banners += `<div class="warn" style="color:var(--am)">&#9888; Historique insuffisant (${settledCount} cartes réglées sur 100 requises) — mode ultra prudent activé : sélections TRÈS FORTES uniquement, mise plafonnée à 1% de la bankroll. Niveau FORT désactivé.</div>`;
+  if(settledCount<100) {
+    banners += '<div class="info">Historique local : '+settledCount+' carte(s) réglée(s). Les estimations restent non calibrées par un historique suffisant ; les rencontres sont néanmoins analysées normalement.</div>';
+  }
+  if(risk.blocked) {
+    banners += '<div class="info">Analyse des rencontres disponible. Aucune mise conseillée avec le solde et les règles de calcul actuels : '+esc(risk.reason)+'.</div>';
   }
 
   if(cnt) cnt.innerHTML = banners + '<div class="ls"><div class="sp"></div><p>Analyse des opportunités en cours…</p></div>';
@@ -4710,6 +4708,8 @@ async function lossAutoSearch(forcedOdds){
     .filter(l=>!isLeagueExcluded(l.sport));
 
   const candidates = [];
+  const observed = [];
+  const diagnostics={sourcesFailed:0,quotesReceived:0,withinPeriod:0,modelEligible:0,additionalRejected:0};
   let blockedByHistory = false;
 
   let nextLeague=0;
@@ -4721,26 +4721,27 @@ async function lossAutoSearch(forcedOdds){
       try{
       const d = await api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=standard'+periodQS,'GET',null,{signal:controller.signal,timeoutMs:22000,noCache:true});
       if(scanVersion!==lossScanVersion)return;
-      if(d.error || d.status==='error') { leagueFailRecord(sport); continue; }
+      if(d.error || d.status==='error') { diagnostics.sourcesFailed++;leagueFailRecord(sport);continue; }
       leagueFailReset(sport);
-      const opps = d.opportunities||[];
-      for(const o of filterOpsByPeriod(opps, periodParams)){
-        const res = computeDirection(o, {mode:'standard', bankroll, riskProfile:'conservateur'});
-        if(!res.shouldDisplay || res.direction!=='play') continue;
-
-        if(res.tier === 'basic') continue;
-        if(ultraPrudent && res.tier === 'solid') continue;
-
-        if((res.evSimple||0) < 1.10) continue;
-         const modelP=Number(res.modelProb)/100,quote=Number(o.odds);
-         if(!(modelP>0&&modelP<1&&quote>1.01&&(modelP-.05)*quote>1.02))continue;
-        if((res.kellyFull||0) <= 0) continue;
-        if((res.edgeProb||0) < 4) continue;
-        if(res.tier==='premium' && (res.dataQualityScore||0) < 60) continue;
-        if(res.tier==='solid'   && (res.dataQualityScore||0) < 55) continue;
-
-        if((sport.includes('mma')||sport.includes('box')) && method==='pgi_prudente') continue;
-        if(sport.includes('soccer') && market==='h2h' && (res.modelProb||0) < 68) continue;
+      const opps=Array.isArray(d.opportunities)?d.opportunities:[];
+      diagnostics.quotesReceived+=opps.length;
+      const inWindow=filterOpsByPeriod(opps,periodParams);
+      diagnostics.withinPeriod+=inWindow.length;
+      for(const o of inWindow){
+        const res=computeDirection(o,{mode:'standard',bankroll,riskProfile:'conservateur'});
+        if(!res.shouldDisplay||res.direction!=='play'){
+          if(observed.length<15)observed.push({o,sport,reason:res.reason||'Conditions du modèle non satisfaites'});
+          continue;
+        }
+        diagnostics.modelEligible++;
+        // Conserver les niveaux SOLIDE et TRÈS FORTE même avec peu
+        // d'historique ; ne pas ajouter de seuils secondaires arbitraires.
+        if(res.tier==='basic'){diagnostics.additionalRejected++;continue;}
+        const modelP=Number(res.modelProb)/100,quote=Number(o.odds);
+        if(!(modelP>0&&modelP<1&&quote>1.01&&(modelP-.05)*quote>1.02)){
+          diagnostics.additionalRejected++;continue;
+        }
+        if((res.kellyFull||0)<=0){diagnostics.additionalRejected++;continue;}
 
         const hAdj = res.historicalAdjustment || getHistoricalAdjustment(histCards, {
           sport, market, tier:res.tier, odds:o.odds, modelProb:res.modelProb,
@@ -4748,6 +4749,7 @@ async function lossAutoSearch(forcedOdds){
         });
         if(hAdj && (hAdj.status === 'blocked' || (hAdj.status==='negative' && hAdj.volume>=500 && (hAdj.roi||0) < -10))){
           blockedByHistory = true;
+          diagnostics.additionalRejected++;
           continue;
         }
 
@@ -4755,6 +4757,7 @@ async function lossAutoSearch(forcedOdds){
       }
       }catch(error){
         if(controller.signal.aborted)return;
+        diagnostics.sourcesFailed++;
         leagueFailRecord(sport);
       }
     }
@@ -4781,11 +4784,32 @@ async function lossAutoSearch(forcedOdds){
     return tA-tB;
   });
 
+  const scanSummary='<div class="card" style="padding:10px 12px;margin-bottom:10px;border-color:rgba(255,147,105,.3);font-size:11px;color:var(--mu)">'
+    +diagnostics.withinPeriod+' cotes dans la période · '+diagnostics.modelEligible+' validées par le modèle · '
+    +candidates.length+' retenues pour les scénarios · '+diagnostics.sourcesFailed+' source(s) indisponible(s)</div>';
   if(!candidates.length){
-    let msg = NO_RELIABLE_CARD_MESSAGE + ' Les cotes ou la validation statistique ne suffisent pas pour ce filtre.';
-    if(blockedByHistory) msg = NO_RELIABLE_CARD_MESSAGE + ' L’historique récent de cette combinaison sport/marché impose l’abstention.';
-    if(cnt) cnt.innerHTML = banners + `<div class="warn">&#128269; ${esc(msg)}</div>`;
-    toast(NO_RELIABLE_CARD_MESSAGE,'');
+    const unavailable=diagnostics.quotesReceived===0;
+    let msg=unavailable?'Aucune cote reçue pour cette période et ces sports. Vérifiez les sources et la couverture des compétitions.':
+      'Aucune rencontre ne satisfait actuellement tous les critères de valeur, de cotes et de données.';
+    if(blockedByHistory)msg+=' Certaines combinaisons sont défavorables d’après l’historique.';
+    const seenWatch=new Set();
+    const watch=observed.filter(x=>{
+      const key=[x.sport,x.o.home_team,x.o.away_team,x.o.start_time].join('|');
+      if(seenWatch.has(key))return false;seenWatch.add(key);return true;
+    }).slice(0,5);
+    let watchHtml='';
+    if(watch.length){
+      watchHtml='<div class="card" style="margin-bottom:10px"><div class="ct">Rencontres observées, non validées pour une mise</div>'
+        +watch.map(x=>{
+          const teams=[x.o.home_team||'?',x.o.away_team||'?'].join(' vs ');
+          const odds=Number(x.o.odds);
+          const oddsText=Number.isFinite(odds)&&odds>1?' · cote '+odds.toFixed(2):' · cote non disponible';
+          return '<div style="padding:8px 0;border-bottom:1px solid var(--bd);font-size:11px"><strong>'+esc(teams)+'</strong>'
+             +'<div style="color:var(--mu)">'+esc(x.sport)+oddsText+'</div>'
+             +'<div style="color:var(--dm)">'+esc(x.reason)+'</div></div>';
+        }).join('')+'</div>';
+    }
+    if(cnt)cnt.innerHTML=banners+scanSummary+'<div class="info">'+esc(msg)+'</div>'+watchHtml;
     return;
   }
 
@@ -4797,13 +4821,9 @@ async function lossAutoSearch(forcedOdds){
   }).slice(0,5);
   const plans=best.map(o=>({o,p:recoveryProposal(totalLost,o.odds,o._res.modelProb,risk,1)}));
   const eligible=plans.filter(x=>x.p.stake>=.50);
-  if(!eligible.length){
-    if(cnt)cnt.innerHTML=banners+'<div class="warn">Aucune mise n’est admissible après application des plafonds de risque, de la marge de sécurité de 5 points et du profil de calcul sélectionné. Abstention recommandée.</div>';
-    return;
-  }
   const euro=n=>(Math.round(Number(n||0)*100)/100).toFixed(2)+' €';
-  const primary=eligible[0];
-  let html=banners+'<div class="card" style="border:1px solid rgba(255,147,105,.40);padding:14px;margin-bottom:12px">'
+  const primary=eligible[0]||null;
+  let html=banners+scanSummary+'<div class="card" style="border:1px solid rgba(255,147,105,.40);padding:14px;margin-bottom:12px">'
     +'<div class="ct">Bilan et protection du capital</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px">'
     +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+euro(totalLost)+'</div><label>Déficit net à combler</label></div>'
@@ -4811,6 +4831,9 @@ async function lossAutoSearch(forcedOdds){
     +'<div class="tsm-cell"><div class="sv">'+euro(risk.combinedCap)+'</div><label>Budget total de risque</label></div>'
     +'</div><div style="font-size:10px;color:var(--mu);margin-top:10px">Capital disponible déclaré : '+euro(bankroll)+'. Les deux plans ci-dessous sont des alternatives. Ne jamais les additionner.</div></div>';
 
+  if(!primary){
+    html+='<div class="info">Des rencontres ont été analysées et sont affichées ci-dessous, mais aucune mise de 0,50 € ou plus n’est calculée avec le solde, les cotes et les règles de gestion sélectionnés.</div>';
+  }else{
   html+='<div class="card" style="border-color:rgba(0,255,157,.3);margin-bottom:10px">'
     +'<div class="ct">Scénario A : un seul pari simple</div>'
     +'<div style="font-size:12px;color:var(--tx);font-weight:700;margin-bottom:5px">'+esc(primary.o.home_team||'?')+' / '+esc(primary.o.away_team||'?')+'</div>'
@@ -4838,8 +4861,9 @@ async function lossAutoSearch(forcedOdds){
   } else {
     html+='<div class="info" style="margin-bottom:12px">Deuxième rencontre indépendante non admissible : aucun scénario multiple fabriqué.</div>';
   }
+  }
   html+='<div class="sbar"><div class="sdot" style="background:var(--gr)"></div><span>'
-    +eligible.length+' rencontres éligibles après filtres de risque et qualité</span></div>';
+    +eligible.length+' proposition(s) de mise, sur '+best.length+' rencontre(s) analysée(s) et retenue(s) par les critères</span></div>';
 
   recoveryCardCache=[];
   const pendingKeys=new Set((data.entries||[]).filter(e=>e.result==='pending').map(e=>e.ticketKey));
