@@ -4690,7 +4690,11 @@ async function lossAutoSearch(forcedOdds){
       +'Écart non couvert si victoire avec la mise plafonnée : '+euro(p.winRemaining==null?totalLost:p.winRemaining)+'. '
       +esc(p.reason||'')+'. '+esc(histLine)
       +'</div></div></div>'
-      +'<div style="padding:9px 12px;border-top:1px solid var(--bd)">'+bookieLinkHtml()+'</div></div>';
+      +'<div style="padding:9px 12px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+      +bookieLinkHtml()
+      +(isEligible&&!existingPending?'<button class="btn bp" onclick="lossPrepareTicket('+recIndex+')">J’ai misé : suivre ce pari</button>':
+         existingPending?'<span style="font-size:10px;color:var(--am)">Ce match est déjà en attente</span>':'')
+      +'</div></div>';
   });
   html+='<div class="warn" style="margin-top:10px">Vérifiez à nouveau les cotes et la disponibilité du marché chez le bookmaker avant toute décision. Aucune stratégie ne garantit de récupérer une perte. Les probabilités peuvent être mal calibrées, les cotes varier et plusieurs paris perdre simultanément. La meilleure décision reste parfois de ne pas miser. Une perte passée ne crée aucun avantage statistique sur les prochains matchs.</div>';
   if(cnt)cnt.innerHTML=html;
