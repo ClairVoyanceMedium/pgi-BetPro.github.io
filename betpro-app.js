@@ -3726,7 +3726,7 @@ function betproRenderChosenResults(items,stats){
  const settled=chosen.filter(x=>['win','loss','void'].includes(String(x.status||'')));
  const pending=chosen.filter(x=>!['win','loss','void'].includes(String(x.status||'')));
  const stat=(name,val)=>'<div class="tsm-cell"><div class="sv" style="color:var(--tx)">'+val+'</div><label>'+name+'</label></div>';
- const section=(name,rows,empty)=>'<div class="card betpro-results-section"><div class="ct">'+name+'</div>'
+ const section=(name,rows,empty,extraClass='')=>'<div class="card betpro-results-section'+(extraClass?' '+extraClass:'')+'"><div class="ct">'+name+'</div>'
    +(rows.length?rows.slice(0,15).map(betproChosenResultRow).join('')
       +(rows.length>15?'<details><summary class="betpro-results-more">Afficher '+(rows.length-15)+' autres pronostics</summary>'+rows.slice(15).map(betproChosenResultRow).join('')+'</details>':'')
       :'<p style="font-size:11px;color:var(--mu);line-height:1.7">'+empty+'</p>')+'</div>';
@@ -3739,7 +3739,7 @@ function betproRenderChosenResults(items,stats){
    +'<p style="font-size:12px;color:var(--mu);line-height:1.75">Effectue un Scan Live Classique ou Benter, puis appuie sur « Suivre le résultat » sur les cartes de ton choix. Elles apparaîtront ici sur tous tes appareils.</p></div>';
  }else{
   html+=section('Mes résultats confirmés',settled,'Aucun des pronostics choisis n’a encore un score officiel confirmé.')
-    +section('Mes pronostics en attente',pending,'Toutes tes sélections ont été vérifiées.');
+    +section('Mes pronostics en attente',pending,'Toutes tes sélections ont été vérifiées.','betpro-pending-section');
  }
  html+=betproResultsBottomStats(stats,chosen);
  target.innerHTML=html;
