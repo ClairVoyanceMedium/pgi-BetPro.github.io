@@ -4112,14 +4112,82 @@ function lossRiskLimits(bankroll,entries){
       betCap<.50?'Solde insuffisant pour une mise de 0,50 €':''};
 }
 function lossRoundDown(v){return Math.floor(Math.max(0,Number(v)||0)*100+1e-7)/100;}
+
+// Les stratégies progressives après une perte sont uniquement simulées.
+// Aucune d'elles n'augmente la mise recommandée pour récupérer un déficit.
+function lossMethodProfile(risk,entries){
+  const id=METHODS.some(m=>m.id===selectedMethod)?selectedMethod:'pgi_prudente';
+  const settled=[...(entries||[])].filter(e=>!e.recovered&&e.result!=='pending')
+    .sort((a,b)=>new Date(b.settledAt||b.createdAt||b.date||0)-new Date(a.settledAt||a.createdAt||a.date||0));
+  let wins=0;
+  for(const e of settled){if(lossNetAmount(e)>0)wins++;else break;}
+  const settings={
+    pgi_prudente:{capPct:.0075,kellyFraction:.25},
+    flat:{capPct:.005,kellyFraction:.25},
+    kelly:{capPct:.01,kellyFraction:.25},
+    kelly_eighth:{capPct:.01,kellyFraction:.125},
+    kelly_half:{capPct:.01,kellyFraction:.50},
+    anti_martingale:{capPct:Math.min(.01,.005*Math.pow(1.5,Math.min(wins,2))),kellyFraction:.25},
+    martingale:{capPct:.0075,kellyFraction:.25,simulation:true},
+    dalembert:{capPct:.0075,kellyFraction:.25,simulation:true},
+    fibonacci:{capPct:.0075,kellyFraction:.25,simulation:true}
+  };
+  const profile=settings[id]||settings.pgi_prudente;
+  const unit=risk.amount>0?lossRoundDown(risk.amount*.005):0;
+  const n=Math.min(20,Math.max(0,risk.streak));
+  let theoreticalNext=0,fourLossExposure=0;
+  if(id==='martingale'){
+    theoreticalNext=unit*Math.pow(2,n);
+    fourLossExposure=unit*15;
+  }else if(id==='dalembert'){
+    theoreticalNext=unit*(n+1);
+    fourLossExposure=unit*10;
+  }else if(id==='fibonacci'){
+    const fib=[1,1];
+    for(let i=2;i<=Math.max(4,n);i++)fib.push(fib[i-1]+fib[i-2]);
+    theoreticalNext=unit*fib[n];
+    fourLossExposure=unit*7;
+  }
+  return {...profile,id,wins,unit,
+    name:METHODS.find(m=>m.id===id)?.name||'Protection de bankroll',
+    theoreticalNext:lossRoundDown(theoreticalNext),
+    fourLossExposure:lossRoundDown(fourLossExposure)};
+}
+function renderMethodDetail(){
+  const panel=document.getElementById('m-detail-panel');
+  if(!panel)return;
+  const data=lossLoad(),balance=lossBalanceSnapshot(data);
+  const risk=lossRiskLimits(balance.available,data.entries||[]);
+  const profile=lossMethodProfile(risk,data.entries||[]);
+  const money=n=>Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+  const methodCap=lossRoundDown(Math.min(risk.betCap,risk.combinedCap,risk.amount*profile.capPct));
+  const status=risk.blocked?'Aucune mise admissible : '+risk.reason:
+    'Plafond avant contrôle des cotes et probabilités : '+money(methodCap);
+  const more=profile.simulation
+    ?'<div style="margin-top:8px;color:var(--re);font-weight:700">Simulation uniquement. Aucune augmentation après une perte ne sera appliquée aux propositions réelles.</div>'
+     +'<div style="margin-top:6px">Unité théorique : '+money(profile.unit)
+     +' · prochaine mise théorique après '+risk.streak+' perte(s) consécutive(s) : <strong>'+money(profile.theoreticalNext)
+     +'</strong> · exposition si quatre pertes consécutives depuis le départ : <strong>'+money(profile.fourLossExposure)
+     +'</strong> ('+(risk.amount>0?(100*profile.fourLossExposure/risk.amount).toFixed(1):'0')+' % du capital disponible).</div>'
+     +'<div style="margin-top:6px;color:var(--mu)">Le moteur de recherche conserve la protection de bankroll et le Kelly au quart pour ses propositions. Une martingale ne modifie ni la probabilité de victoire ni l’espérance de gain.</div>'
+    :'<div style="margin-top:6px;color:var(--mu)">Kelly conservateur : probabilité estimée réduite de 5 points, facteur '+Math.round(profile.kellyFraction*1000)/10
+     +' % ; plafond de stratégie '+(profile.capPct*100).toLocaleString('fr-FR',{maximumFractionDigits:2})+' % du capital. '
+     +(profile.id==='anti_martingale'?'Série courante : '+profile.wins+' gain(s), retour à la mise de base après une perte. ':'')
+     +'Chaque proposition reste soumise à une valeur attendue positive et aux limites par pari, par journée et de pertes consécutives.</div>';
+  panel.style.display='block';
+  panel.innerHTML='<div style="margin-top:10px;border-top:1px solid var(--bd);padding:11px 3px 2px;font:11px var(--hd);line-height:1.6">'
+    +'<strong style="color:var(--tx)">'+profile.name+'</strong>'
+    +'<div style="color:var(--am);margin-top:4px">'+status+'</div>'
+    +more+'</div>';
+}
 function recoveryProposal(due,odds,probPct,risk,portion){
   const o=Number(odds),p=Number(probPct)/100;
   if(!(o>1.01&&p>0&&p<1))return {stake:0,reason:'Cote ou probabilité invalide'};
   const conservativeP=Math.max(0,p-.05),edge=conservativeP*o-1;
   const theoretical=lossRoundDown(due/(o-1));
   const kelly=edge>0?edge/(o-1):0;
-  const modeCap=selectedMethod==='flat'?.005:selectedMethod==='pgi_prudente'?.0075:.01;
-  const cap=Math.min(risk.betCap,risk.amount*modeCap,risk.combinedCap*(portion==null?1:portion),risk.amount*kelly*.25);
+  const profile=risk.methodProfile||lossMethodProfile(risk,[]);
+  const cap=Math.min(risk.betCap,risk.amount*profile.capPct,risk.combinedCap*(portion==null?1:portion),risk.amount*kelly*profile.kellyFraction);
   const stake=!risk.blocked&&edge>.02?lossRoundDown(cap):0;
   const accepted=stake>=.50?stake:0;
   const profit=lossRoundDown(accepted*(o-1));
@@ -4132,7 +4200,8 @@ function calcRecoveryStake(totalLost,lastOdds,method,bankroll){
   const data=lossLoad();
   const risk=lossRiskLimits(lossBalanceSnapshot(data).available,data.entries||[]);
   const odds=Number(lastOdds)>1.01?Number(lastOdds):1.80;
-  return {nextStake:risk.blocked?0:lossRoundDown(Math.min(risk.betCap,risk.combinedCap)),
+  const profile=lossMethodProfile(risk,data.entries||[]);
+  return {nextStake:risk.blocked?0:lossRoundDown(Math.min(risk.betCap,risk.combinedCap,risk.amount*profile.capPct)),
     coteCible:odds,theoretical:lossRoundDown(totalLost/(odds-1)),risk,
     expl:'Plafond indicatif uniquement. Le calcul par rencontre prendra en compte probabilité, valeur attendue et mises maximales. Une perte ne doit jamais augmenter automatiquement la mise.'};
 }
@@ -4372,6 +4441,7 @@ function lossCancelPending(id){
 function lossRender(){
   if(lossScanController&&!lossScanController.signal.aborted){lossScanController.abort();lossScanVersion++;}
   var data=lossLoad();
+  renderMethodDetail();
   var allEntries=data.entries||[];
   const account=document.getElementById('loss-account-status');
   if(account){
@@ -4607,6 +4677,7 @@ async function lossAutoSearch(forcedOdds){
   const lastOdds  = forcedOdds || losses[losses.length-1]?.odds || 1.80;
   const bankroll  = lossBalanceSnapshot(data).available;
   const risk = lossRiskLimits(bankroll,data.entries||[]);
+  risk.methodProfile=lossMethodProfile(risk,data.entries||[]);
   const cnt = document.getElementById('loss-search-results');
 
   const histCards    = histLocalLoad();
@@ -4621,6 +4692,9 @@ async function lossAutoSearch(forcedOdds){
   }
 
   let banners = '';
+  if(risk.methodProfile.simulation){
+    banners += '<div class="info">Mode '+esc(risk.methodProfile.name)+' : simulation visible dans le Profil de calcul. Les mises proposées conservent les limites du profil prudent et n’augmentent pas après une perte.</div>';
+  }
   if(consecutiveLosses >= 3) {
     banners += `<div class="warn" style="color:var(--am)">&#9888; ${consecutiveLosses} pertes consécutives — prudence renforcée.</div>`;
   }
@@ -4733,7 +4807,7 @@ async function lossAutoSearch(forcedOdds){
   const plans=best.map(o=>({o,p:recoveryProposal(totalLost,o.odds,o._res.modelProb,risk,1)}));
   const eligible=plans.filter(x=>x.p.stake>=.50);
   if(!eligible.length){
-    if(cnt)cnt.innerHTML=banners+'<div class="warn">Aucune mise n’est admissible après application du plafond de risque, de la marge de sécurité de 5 points et du Kelly au quart. Abstention recommandée.</div>';
+    if(cnt)cnt.innerHTML=banners+'<div class="warn">Aucune mise n’est admissible après application des plafonds de risque, de la marge de sécurité de 5 points et du profil de calcul sélectionné. Abstention recommandée.</div>';
     return;
   }
   const euro=n=>(Math.round(Number(n||0)*100)/100).toFixed(2)+' €';
@@ -4829,14 +4903,32 @@ async function lossSearchMatchesSport(cote){ await lossAutoSearch(cote); }
 // ═══════════════════════════════════════════════
 const METHODS = [
   {id:'pgi_prudente',ico:'&#9733;',name:'Protection de bankroll',
-   sub:'1 % max par pari, 2 % pour le portefeuille, arrêt après trois pertes',
+   sub:'0,75 % du capital max, Kelly au quart, arrêt après trois pertes',
    risk:'mr-low',riskLabel:'Référence',isDefault:true},
-  {id:'flat',ico:'=',name:'Mise plafonnée',
-   sub:'Aucune augmentation de mise après une perte',
+  {id:'flat',ico:'=',name:'Mise fixe plafonnée',
+   sub:'0,5 % du capital maximum, sans hausse après une perte',
    risk:'mr-low',riskLabel:'Prudent'},
   {id:'kelly',ico:'K',name:'Kelly au quart',
-   sub:'Probabilité prudente diminuée de 5 points avant le calcul',
-   risk:'mr-low',riskLabel:'Prudent'}
+   sub:'25 % du Kelly prudent, plafonné à 1 %',
+   risk:'mr-low',riskLabel:'Prudent'},
+  {id:'kelly_eighth',ico:'⅛',name:'Kelly au huitième',
+   sub:'12,5 % du Kelly prudent, plafonné à 1 %',
+   risk:'mr-low',riskLabel:'Très prudent'},
+  {id:'kelly_half',ico:'½',name:'Demi-Kelly plafonné',
+   sub:'50 % du Kelly prudent, limite stricte de 1 %',
+   risk:'mr-med',riskLabel:'Plus volatil'},
+  {id:'anti_martingale',ico:'+',name:'Anti-martingale / Paroli',
+   sub:'Progression après les gains seulement, jamais après les pertes',
+   risk:'mr-med',riskLabel:'Plafonnée'},
+  {id:'martingale',ico:'×2',name:'Martingale classique',
+   sub:'Doublement après une perte : calcul théorique seulement',
+   risk:'mr-vhi',riskLabel:'Simulation'},
+  {id:'dalembert',ico:'+1',name:"D’Alembert",
+   sub:'Progression arithmétique après perte : simulation seulement',
+   risk:'mr-hi',riskLabel:'Simulation'},
+  {id:'fibonacci',ico:'1·1·2',name:'Fibonacci',
+   sub:'Progression par la suite de Fibonacci : simulation seulement',
+   risk:'mr-hi',riskLabel:'Simulation'}
 ];
 
 function initMethods() {
@@ -4866,6 +4958,7 @@ function initMethods() {
 }
 
 function selectMethod(id) {
+  if(!METHODS.some(m=>m.id===id))return;
   selectedMethod = id;
   document.querySelectorAll('.m-strat-card').forEach(function(c){
     var isSelected = c.dataset.mid === id;
@@ -4877,7 +4970,7 @@ function selectMethod(id) {
   if(active.length > 0 && lossBalanceSnapshot(data).configured) {
     setTimeout(function(){ lossAutoSearch(); }, 400);
   }
-  toast('Strategie: '+id,'ok');
+  toast('Stratégie : '+(METHODS.find(m=>m.id===id)?.name||id),'ok');
 }
 
 // ═══════════════════════════════════════════════
