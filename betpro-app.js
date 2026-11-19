@@ -3138,7 +3138,7 @@ function betproFollowBenterPayload(o){
 function betproFollowClassicPayload(m){
  const c=m.consensus||{},odds=Number(m.classic_value?.best_price)>1?Number(m.classic_value.best_price):Number(c.median_market_odds);
  return{engine:'Classique',sport:String(m.sport||''),home:String(m.home_name||m.home||''),away:String(m.away_name||m.away||''),
- market:'h2h',selection:String(c.favorite||''),line:null,odds:Number.isFinite(odds)?odds:null,
+ market:'h2h',selection:c.choice==='draw'?'draw':String(c.favorite||''),line:null,odds:Number.isFinite(odds)?odds:null,
  startTime:m.start_time||m.event_start_at||'',competition:String(m.competition||m.sport_label||'')};
 }
 function betproFollowPaint(){
