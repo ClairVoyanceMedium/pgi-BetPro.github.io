@@ -815,6 +815,7 @@ function renderScanResults(opps, cnt, cacheAge, diag) {
     </div>`;
     return;
   }
+  betproRememberScan('Benter',opps);
   _scanAllOpps = opps;
 
   const sPortCount = {};
@@ -3306,6 +3307,7 @@ async function doClassicScan(){
       events.length===0&&missingProvider.length?'Aucune compétition active chez le fournisseur de cotes pour : '+missingProvider.join(', ')+'.':'';
     const warning=issue?'<div class="warn" style="margin-bottom:11px">'+esc(issue)+'</div>':'';
     const warn='<div class="classic-subtext" style="margin-bottom:12px">Analyse indépendante de Benter : consensus de bookmakers, sans garantie de victoire. Si les cotes manquent, un rattrapage ciblé peut utiliser des crédits Odds API dans les limites prévues.</div>'+warning;
+    betproRememberScan('Classique',events);
     cnt.innerHTML=`<div class="sbar"><span style="color:#dccaff;font-weight:800">SCAN LIVE CLASSIQUE</span><span>${events.length} cote(s) exploitable(s) · ${Math.max(0,identified-events.length)} rencontre(s) sans marché exploitable</span><span style="margin-left:auto">${esc(betproClassicDate(d.generated_at))}</span></div>`+warn+(events.length?'<div class="opp-grid">'+events.map(betproClassicCard).join('')+'</div>':'<div class="empty"><div class="empty-t">Aucune cote exploitable actuellement. '+identified+' rencontre(s) enregistrée(s), mais aucun marché assez fiable pour une carte de pari. Les rencontres ne sont pas présentées comme des paris.</div></div>');
   }catch(e){if(seq===betProClassicScanSeq)cnt.innerHTML='<div class="warn">Scan Classique indisponible : '+esc(e?.message||String(e))+'</div>';}
   finally{if(seq===betProClassicScanSeq){btn.disabled=false;document.getElementById('scan-classic-txt').textContent='SCAN LIVE CLASSIQUE';}}
@@ -3334,8 +3336,172 @@ setBetProEngine(betProActiveEngine);
 // ═══════════════════════════════════════════════
 //  RÉSULTATS
 // ═══════════════════════════════════════════════
-async function clearResults(){if(!confirm('Vider tous les résultats ?'))return;try{await api('/api/results','DELETE');document.getElementById('res-cnt').innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Résultats vidés</div></div>';toast('Résultats vidés','ok');}catch(e){toast('Erreur: '+e.message,'err');}}
-async function loadResults(){const cnt=document.getElementById('res-cnt');cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement…</p></div>';try{const d=await api('/api/results');if(!d.opportunities?.length){cnt.innerHTML='<div class="empty"><div class="empty-i">📊</div><div class="empty-t">Aucun résultat sauvegardé</div></div>';return;}cnt.innerHTML='<div style="font-family:var(--mo);font-size:10px;color:var(--dm);text-align:right;margin-bottom:9px">'+fmtDT(d.analyzed_at)+'</div>'+renderOpps(d.opportunities);}catch(e){cnt.innerHTML=`<div class="card"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;}}
+// Résultats lisibles, issus des historiques réels; jamais de score extrapolé.
+const BETPRO_SCAN_RESULT_ARCHIVE='betpro_scan_result_archive_v1';
+let betproResultsSequence=0;
+let betproResultsLastData=null;
+function betproReadScanArchive(){
+  try{const data=JSON.parse(localStorage.getItem(BETPRO_SCAN_RESULT_ARCHIVE)||'[]');return Array.isArray(data)?data:[];}catch(_){return[];}
+}
+function betproRememberScan(engine,items){
+  if(!Array.isArray(items)||!items.length)return;
+  try{
+    const at=new Date().toISOString();
+    const history=betproReadScanArchive();
+    const oldIds=new Set(history.map(x=>x.id));
+    const newRows=[];
+    for(const item of items.slice(0,70)){
+      if(!item||typeof item!=='object')continue;
+      const isClassic=engine==='Classique',c=item.consensus||{};
+      const home=String((isClassic?item.home_name:item.home_team)||item.home||'').trim();
+      const away=String((isClassic?item.away_name:item.away_team)||item.away||'').trim();
+      const sport=String(item.sport||item._sport||'');
+      const start=String(item.start_time||item.event_start_at||item.commence_time||'');
+      const choice=String(isClassic?(c.favorite||''):(item.selection||''));
+      if(!home||!away||!choice||!start||!Number.isFinite(Date.parse(start)))continue;
+      const id=[engine,sport,home,away,start.slice(0,16),choice,String(item.market||'h2h')].join('|').toLowerCase();
+      if(oldIds.has(id))continue;
+      oldIds.add(id);
+      const odds=isClassic?(Number(item.classic_value?.best_price)>1?Number(item.classic_value.best_price):Number(c.median_market_odds)):Number(item.odds);
+      newRows.push({id,engine,sport,home,away,at,start,selection:choice,
+        market:String(item.market||(isClassic?'consensus':'h2h')),odds:Number.isFinite(odds)&&odds>1?odds:null,
+        competition:String(item.competition||item.sport_title||'')});
+    }
+    if(newRows.length){
+      const all=[...newRows,...history].slice(0,300);
+      const serialized=JSON.stringify(all);
+      if(serialized.length<250000)localStorage.setItem(BETPRO_SCAN_RESULT_ARCHIVE,serialized);
+    }
+  }catch(error){console.warn('Archive locale des scans indisponible',error?.message||error);}
+}
+function betproResultDate(value){
+  const ts=Date.parse(value||'');
+  return Number.isFinite(ts)?new Date(ts).toLocaleString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Date non disponible';
+}
+function betproResultNormalize(row,source){
+  if(!row||typeof row!=='object')return null;
+  const home=String(row.home||row.home_team||row.team_home||'').trim();
+  const away=String(row.away||row.away_team||row.team_away||'').trim();
+  if(!home||!away)return null;
+  const sport=String(row.sport||row._sport||'');
+  const market=String(row.market||'h2h');
+  const selection=String(row.selection||'');
+  const start=String(row.startTime||row.start_time||row.event_start_at||row.commence_time||'');
+  const detected=String(row.detectedAt||row.createdAt||row.detected_at||row.created_at||'');
+  const raw=String(row.status||row.settlement_status||'pending').toLowerCase();
+  const status=['win','won'].includes(raw)?'win':['loss','lost'].includes(raw)?'loss':['void','push','refund'].includes(raw)?'void':'pending';
+  const id=[sport,home,away,market,selection,start.slice(0,16)].join('|').toLowerCase();
+  const odds=Number(row.odds??row.oddsDetected??row.odds_detected);
+  return {id,recordId:String(row.id||''),home,away,sport,market,selection,start,detected,status,
+    odds:Number.isFinite(odds)&&odds>1?odds:null,competition:String(row.competition||row.sport_title||''),
+    bookmaker:String(row.bookmaker||''),source,updatedAt:String(row.updatedAt||row.updated_at||'')};
+}
+function betproResultMerge(primary,secondary){
+  const entries=new Map();
+  for(const [data,source] of [[primary,'Cartes BetPro'],[secondary,'Historique sportif']]){
+    for(const raw of data){
+      const card=betproResultNormalize(raw,source);
+      if(!card)continue;
+      const previous=entries.get(card.id);
+      if(!previous){entries.set(card.id,card);continue;}
+      const resolved=card.status!=='pending',prevResolved=previous.status!=='pending';
+      if(resolved&&!prevResolved)entries.set(card.id,{...previous,...card});
+      else if(prevResolved&&!resolved)continue;
+      else if(previous.source==='Historique sportif'&&source==='Cartes BetPro')entries.set(card.id,{...previous,...card});
+    }
+  }
+  return [...entries.values()].sort((a,b)=>
+    (Date.parse(b.detected||b.start||'')||0)-(Date.parse(a.detected||a.start||'')||0));
+}
+function betproResultRow(row,mode='history'){
+  const status=row.status||'pending';
+  const startMs=Date.parse(row.start||'');
+  const due=Number.isFinite(startMs)&&startMs<Date.now()-21600000;
+  const label=mode==='scan'?'SÉLECTION ARCHIVÉE':status==='win'?'GAGNÉ':status==='loss'?'PERDU':status==='void'?'ANNULÉ':due?'ISSUE NON VÉRIFIÉE':'EN ATTENTE';
+  const hue=mode==='scan'?'var(--neon)':status==='win'?'var(--gr)':status==='loss'?'var(--re)':status==='void'?'var(--mu)':'var(--am)';
+  const clean=t=>esc(String(t||''));
+  const quote=row.odds!=null?' · Cote '+Number(row.odds).toLocaleString('fr-FR',{maximumFractionDigits:2}):'';
+  const selected=row.selection?' · Sélection : '+clean(row.selection):'';
+  const date=row.start?'Rencontre : '+betproResultDate(row.start):'Date du match indisponible';
+  return '<div class="betpro-results-row">'
+    +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<strong style="font-size:12px;color:var(--tx)">'+clean(row.home)+' / '+clean(row.away)+'</strong>'
+    +'<span style="font:700 9px var(--mo);color:'+hue+'">'+label+'</span></div>'
+    +'<div style="font-size:10px;color:var(--mu);margin-top:5px;line-height:1.65">'
+    +clean(row.competition||row.sport||'Sport')+selected+clean(quote)+'</div>'
+    +'<div style="font-size:9px;color:var(--dm);margin-top:4px">'+clean(date)
+    +' · '+(mode==='scan'?'Scan '+clean(row.engine)+' : '+betproResultDate(row.at):'Enregistré : '+betproResultDate(row.detected))+'</div>'
+    +'</div>';
+}
+function betproResultSection(title,rows,empty,mode='history'){
+  return '<div class="card betpro-results-section"><div class="ct">'+title+'</div>'
+    +(rows.length?rows.slice(0,15).map(x=>betproResultRow(x,mode)).join('')
+      +(rows.length>15?'<details><summary class="betpro-results-more">Afficher '+(rows.length-15)+' autre(s) fiche(s)</summary>'+rows.slice(15,100).map(x=>betproResultRow(x,mode)).join('')+'</details>':'')
+      :'<p style="color:var(--mu);font-size:11px;line-height:1.6">'+empty+'</p>')
+    +'</div>';
+}
+function betproRenderResults(primary,advanced,oldAnalysis,remoteLabel){
+  const target=document.getElementById('res-cnt');if(!target)return;
+  const cards=betproResultMerge(primary,advanced);
+  const settled=cards.filter(x=>x.status!=='pending');
+  const pending=cards.filter(x=>x.status==='pending');
+  const wins=settled.filter(x=>x.status==='win').length,losses=settled.filter(x=>x.status==='loss').length;
+  const archived=betproReadScanArchive();
+  const count=(label,n)=>'<div class="tsm-cell"><div class="sv" style="color:var(--tx)">'+n+'</div><label>'+label+'</label></div>';
+  let html='<div class="info" style="font-size:11px;line-height:1.7;margin-bottom:12px">Historique des analyses et sélections enregistrées. Une sélection ou un match terminé ne devient un gain ou une perte que si son résultat a été confirmé.</div>'
+    +'<div class="tracker-summary" style="margin-bottom:12px">'
+    +count('Cartes enregistrées',cards.length)+count('Gagnées',wins)+count('Perdues',losses)+count('Non réglées',pending.length)
+    +'</div><p style="color:var(--dm);font:10px var(--mo);margin:0 0 12px">'+esc(remoteLabel)+'</p>'
+    +betproResultSection('Résultats confirmés',settled,'Aucun résultat de pari confirmé pour le moment. Les sélections sans score officiel restent non réglées.')
+    +betproResultSection('Sélections enregistrées · résultat à confirmer',pending,'Aucune sélection en attente actuellement.')
+    +betproResultSection('Dernières sélections issues des scans',archived,'Aucune sélection de scan archivée sur cet appareil. Après un scan produisant des cartes exploitables, elles seront enregistrées ici.','scan');
+  const legacyItems=Array.isArray(oldAnalysis?.opportunities)?oldAnalysis.opportunities:[];
+  const oldTime=Date.parse(oldAnalysis?.analyzed_at||'');
+  const age=Number.isFinite(oldTime)?Date.now()-oldTime:Infinity;
+  const oldLabel=Number.isFinite(oldTime)?betproResultDate(oldAnalysis.analyzed_at):'date non indiquée';
+  const isOld=age>86400000;
+  const summary=legacyItems.length?legacyItems.length+' propositions archivées · analyse du '+oldLabel:'Aucune ancienne analyse disponible';
+  html+='<details class="card betpro-results-section" style="margin-bottom:14px">'
+    +'<summary class="betpro-results-more">Anciennes analyses des marchés · '+esc(summary)+'</summary>'
+    +'<div class="info" style="font-size:11px;margin-top:11px">'+(isOld?'Attention : données historiques. Les cotes et rencontres peuvent être expirées.':'Ces analyses ne constituent pas des résultats de matchs.')+' Aucun résultat sportif final n’est déduit de ces propositions.</div>'
+    +(legacyItems.length?legacyItems.slice(0,35).map(o=>betproResultRow({...betproResultNormalize({home:o.home_team,away:o.away_team,sport:o.sport,market:o.market,selection:o.selection,start:o.start_time||o.commence_time,detected:oldAnalysis.analyzed_at,odds:o.odds},'Archive'),engine:'archive',at:oldAnalysis.analyzed_at},'scan')).join(''):'')
+    +'</details>';
+  if(!cards.length&&!archived.length&&!legacyItems.length)html+='<div class="info">Aucun historique disponible : ouvrez le Tableau de bord et lancez un scan. Seules les sélections effectivement détectées seront sauvegardées.</div>';
+  target.innerHTML=html;
+}
+// L'ancien bouton "Vider" reste compatible, mais n'efface que le cache historique
+// du serveur; le bouton n'est plus présenté comme supprimant tous les historiques.
+async function clearResults(){
+  if(!confirm('Effacer seulement les anciennes analyses du cache serveur ? Les historiques de cartes et de scans restent conservés.'))return;
+  try{await api('/api/results','DELETE');toast('Ancien cache vidé ; historiques préservés.','ok');loadResults();}
+  catch(e){toast('Erreur : '+e.message,'err');}
+}
+async function loadResults(){
+  const target=document.getElementById('res-cnt');if(!target)return;
+  const seq=++betproResultsSequence;
+  const localCards=histLocalLoad(),localSport=_sportHistLoad();
+  const previous=betproResultsLastData;
+  // Ne jamais présenter un écran vide en attendant Cloudflare.
+  betproRenderResults(localCards,localSport,previous?.legacy||null,'Lecture des historiques Cloudflare en cours…');
+  const tasks=await Promise.allSettled([
+    api('/api/history/list?limit=100','GET',null,{timeoutMs:16000}),
+    api('/api/sport-history/list?limit=100','GET',null,{timeoutMs:16000}),
+    api('/api/results','GET',null,{timeoutMs:16000})
+  ]);
+  if(seq!==betproResultsSequence)return;
+  const primary=tasks[0].status==='fulfilled'&&tasks[0].value?.ok!==false&&Array.isArray(tasks[0].value?.cards)?tasks[0].value.cards:[];
+  const advanced=tasks[1].status==='fulfilled'&&tasks[1].value?.ok!==false&&Array.isArray(tasks[1].value?.entries)?tasks[1].value.entries:[];
+  const legacy=tasks[2].status==='fulfilled'&&tasks[2].value?.ok!==false?tasks[2].value:(previous?.legacy||null);
+  // Les lectures distantes sont non destructives : ne réécrivent aucun historique.
+  const mergeById=(a,b)=>[...new Map([...a,...b].filter(x=>x&&x.id).map(x=>[x.id,x])).values()];
+  const allPrimary=mergeById(primary,localCards),allAdvanced=mergeById(advanced,localSport);
+  const okCount=tasks.filter(x=>x.status==='fulfilled'&&x.value?.ok!==false).length;
+  betproResultsLastData={legacy,primary:allPrimary,advanced:allAdvanced};
+  betproRenderResults(allPrimary,allAdvanced,legacy,
+    okCount===3?'Historique Cloudflare actualisé · '+betproResultDate(new Date().toISOString()):
+    'Certaines sources sont indisponibles : affichage des données vérifiées disponibles ('+okCount+'/3 sources).');
+}
+
 
 // ═══════════════════════════════════════════════
 //  SETTINGS
