@@ -853,6 +853,7 @@ function renderScanResults(opps, cnt, cacheAge, diag) {
     <div class="opp-grid">
       ${opps.map((o,i)=>renderDirectionCard(o,i,'scan-res')).join('')}
     </div>`;
+  betproEnhanceScanFollow('scan-res',opps,'Benter');
 }
 
 // ═══════════════════════════════════════════════
@@ -3119,6 +3120,71 @@ async function loadUpcomingBenter(){
   }catch(e){cnt.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;}
 }
 
+// Le suivi des résultats ne s'active que par une sélection explicite.
+const betproFollowCatalog=new Map();
+let betproFollowSelected=new Set();
+function betproFollowIdentifier(c){
+ const t=[c.engine,c.sport,c.home,c.away,c.startTime,c.market,c.selection,c.line??'']
+  .join('|').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ let a=2166136261,b=2654435761;
+ for(let i=0;i<t.length;i++){a=Math.imul(a^t.charCodeAt(i),16777619);b=Math.imul(b^t.charCodeAt(i),2246822519);}
+ return 'follow_'+(a>>>0).toString(16).padStart(8,'0')+(b>>>0).toString(16).padStart(8,'0');
+}
+function betproFollowBenterPayload(o){
+ return{engine:'Benter',sport:String(o.sport||o._sport||''),home:String(o.home_team||''),away:String(o.away_team||''),
+ market:String(o.market||''),selection:String(o.selection||''),line:o.line??null,odds:o.odds??null,
+ startTime:o.start_time||o.commence_time||'',competition:String(o.competition||o.sport_title||'')};
+}
+function betproFollowClassicPayload(m){
+ const c=m.consensus||{},odds=Number(m.classic_value?.best_price)>1?Number(m.classic_value.best_price):Number(c.median_market_odds);
+ return{engine:'Classique',sport:String(m.sport||''),home:String(m.home_name||m.home||''),away:String(m.away_name||m.away||''),
+ market:'h2h',selection:String(c.favorite||''),line:null,odds:Number.isFinite(odds)?odds:null,
+ startTime:m.start_time||m.event_start_at||'',competition:String(m.competition||m.sport_label||'')};
+}
+function betproFollowPaint(){
+ document.querySelectorAll('[data-betpro-follow-id]').forEach(el=>{
+  if(el.disabled)return;const selected=betproFollowSelected.has(el.dataset.betproFollowId);
+  el.classList.toggle('is-followed',selected);el.setAttribute('aria-pressed',selected?'true':'false');
+  el.textContent=selected?'✓ Retirer du suivi':'Suivre le résultat';
+ });
+}
+async function betproFollowRefresh(){
+ try{const d=await api('/api/results/tracked','GET',null,{noCache:true,timeoutMs:15000});
+  if(!d?.ok)throw Error(d?.error||'Suivi non disponible');
+  betproFollowSelected=new Set((d.items||[]).map(x=>x.id));betproFollowPaint();
+ }catch(e){console.warn('Suivi non disponible',e?.message||e);}
+}
+async function betproToggleFollow(btn,id){
+ if(!btn||btn.disabled)return;
+ const card=betproFollowCatalog.get(id);
+ if(!card){toast('Sélection indisponible : relance un scan.','err');return;}
+ const remove=betproFollowSelected.has(id);btn.disabled=true;btn.textContent='Enregistrement…';
+ try{const d=await api('/api/results/tracked','POST',{action:remove?'remove':'add',card},{timeoutMs:20000});
+  if(!d?.ok)throw Error(d?.error||'Enregistrement impossible');
+  betproFollowSelected=new Set((d.items||[]).map(x=>x.id));
+  toast(remove?'Pronostic retiré du suivi.':'Pronostic ajouté au suivi.','ok');
+  if(document.getElementById('s-results')?.classList.contains('on'))loadResults();
+ }catch(e){toast(e?.message||'Erreur de suivi','err');}
+ finally{btn.disabled=false;betproFollowPaint();}
+}
+function betproEnhanceScanFollow(containerId,items,engine){
+ const wrap=document.getElementById(containerId);if(!wrap||!Array.isArray(items))return;
+ const cards=[...wrap.querySelectorAll('.opp-grid > .dir-card')];
+ for(let i=0;i<items.length;i++){
+  const el=engine==='Benter'?wrap.querySelector('#dc-scan-res-'+i):cards[i];if(!el)continue;
+  const body=el.querySelector('.dir-body')||el.children[1];if(!body)continue;
+  const data=engine==='Benter'?betproFollowBenterPayload(items[i]):betproFollowClassicPayload(items[i]);
+  if(!data.home||!data.away||!data.selection||!Number.isFinite(Date.parse(data.startTime)))continue;
+  const id=betproFollowIdentifier(data),card={...data,id};betproFollowCatalog.set(id,card);
+  const button=document.createElement('button');button.type='button';button.className='betpro-follow-btn';
+  button.dataset.betproFollowId=id;button.setAttribute('aria-pressed','false');
+  button.textContent='Suivre le résultat';
+  button.addEventListener('click',event=>{event.stopPropagation();betproToggleFollow(button,id);});
+  body.appendChild(button);
+ }
+ betproFollowPaint();
+ betproFollowRefresh();
+}
 // Module Classique : séparation stricte du code et des résultats Benter.
 const BETPRO_CLASSIC_UI_VERSION='v117-dual-live-isolated';
 let betProActiveEngine='classic';
@@ -3309,6 +3375,7 @@ async function doClassicScan(){
     const warn='<div class="classic-subtext" style="margin-bottom:12px">Analyse indépendante de Benter : consensus de bookmakers, sans garantie de victoire. Si les cotes manquent, un rattrapage ciblé peut utiliser des crédits Odds API dans les limites prévues.</div>'+warning;
     betproRememberScan('Classique',events);
     cnt.innerHTML=`<div class="sbar"><span style="color:#dccaff;font-weight:800">SCAN LIVE CLASSIQUE</span><span>${events.length} cote(s) exploitable(s) · ${Math.max(0,identified-events.length)} rencontre(s) sans marché exploitable</span><span style="margin-left:auto">${esc(betproClassicDate(d.generated_at))}</span></div>`+warn+(events.length?'<div class="opp-grid">'+events.map(betproClassicCard).join('')+'</div>':'<div class="empty"><div class="empty-t">Aucune cote exploitable actuellement. '+identified+' rencontre(s) enregistrée(s), mais aucun marché assez fiable pour une carte de pari. Les rencontres ne sont pas présentées comme des paris.</div></div>');
+    betproEnhanceScanFollow('scan-classic-res',events,'Classique');
   }catch(e){if(seq===betProClassicScanSeq)cnt.innerHTML='<div class="warn">Scan Classique indisponible : '+esc(e?.message||String(e))+'</div>';}
   finally{if(seq===betProClassicScanSeq){btn.disabled=false;document.getElementById('scan-classic-txt').textContent='SCAN LIVE CLASSIQUE';}}
 }
