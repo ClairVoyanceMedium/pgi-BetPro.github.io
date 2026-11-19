@@ -1207,7 +1207,7 @@ a{color:var(--neon);text-decoration:none}
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px">
         <label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo);font-weight:700;display:block;margin-bottom:4px">Bankroll (&#8364;)</label>
-        <input type="number" id="loss-bankroll-input" value="200" min="10" max="100000" step="10" oninput="lossRender()"
+        <input type="number" id="loss-bankroll-input" value="200" min="10" max="100000" step="10" oninput="lossRender()" onchange="lossBankrollSave()"
           style="width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:7px 10px;color:var(--tx);font-family:var(--mo);font-size:13px;font-weight:700;outline:none">
       </div>
       <div style="font-size:10px;color:var(--dm);max-width:200px">Limites automatiques : 1% par pari, 2% par ensemble, arrêt si pertes de session répétées<br><span style="color:var(--re);font-size:9px">Ne misez que ce que vous pouvez perdre.</span></div>
