@@ -3909,6 +3909,7 @@ const LOSS_KEY = 'pgi_loss_history_v3';
 let lossPeriodFilter = 'all';
 let recoverySport = 'all';
 let selectedMethod = 'pgi_prudente';
+try { selectedMethod=localStorage.getItem('betpro_recovery_strategy')||selectedMethod; } catch(_) {}
 
 let lossSyncTimer=null,lossSyncWorking=false,lossSyncDirty=false,lossSyncRetries=0;
 function lossLoad(){
@@ -4228,7 +4229,7 @@ function lossRecoveryUpdateQuote(){
   if(!(num>1.01)){
     destination.innerHTML='<div style="font-weight:700;color:var(--tx);font-size:12px">Mise pour couvrir '+lossRecoveryEuro(deficit)+' : <span style="color:#ff9369">cote nécessaire</span></div>'
       +'<div style="font-size:11px;color:var(--mu);margin-top:6px">Choisissez la cote d’une rencontre ci-dessous ou saisissez-la ici. Impossible de calculer une mise de compensation sans cote.</div>'
-      +'<div style="margin-top:10px;color:var(--mu);font-size:10px">Profil '+esc(profile.name)+' : plafond '+lossRecoveryEuro(strategyLimit)+' (ce n’est pas une mise recommandée).</div>';
+      +'<div style="margin-top:10px;color:var(--mu);font-size:10px">Stratégie sélectionnée : '+esc(profile.name)+'. Les limites de mise restent consultables dans les détails.</div>';
     return;
   }
   // Arrondi au centime supérieur, sinon le déficit pourrait subsister.
@@ -4244,10 +4245,10 @@ function lossRecoveryUpdateQuote(){
     +'<div style="font:800 clamp(24px,6vw,38px) var(--mo);color:#ff9369;line-height:1.25;margin:2px 0 9px">'+lossRecoveryEuro(fullStake)+'</div>'
     +'<div style="font-size:11px;color:var(--tx)">Si victoire : bénéfice net '+lossRecoveryEuro(fullWinNet)+', déficit ramené à '+lossRecoveryEuro(Math.max(0,Math.round((deficit-fullWinNet)*100)/100))+'.</div>'
     +'<div style="font-size:11px;color:var(--re);margin-top:3px">Si défaite : déficit porté à '+lossRecoveryEuro(lossesAfterFull)+'.</div>'
-    +'<div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px;font-size:11px;color:var(--tx)"><strong>Profil sélectionné : '+esc(profile.name)+'</strong>'
-    +'<div style="margin-top:5px">Plafond prévu par ce profil : <strong>'+lossRecoveryEuro(strategyLimit)+'</strong>. Gain net si victoire à ce plafond : '+lossRecoveryEuro(cappedNet)+'. Déficit restant : '+lossRecoveryEuro(cappedRemaining)+'.</div>'
-    +(riskExceeded?'<div style="color:var(--am);margin-top:5px">La mise de compensation excède ce plafond : elle n’est pas proposée comme mise conseillée.</div>':'')
-    +(profile.simulation?'<div style="color:var(--am);margin-top:5px">Progression '+esc(profile.name)+' : prochaine mise théorique '+lossRecoveryEuro(profile.theoreticalNext)+' (simulation, pas un conseil de mise).</div>':'')
+    +'<div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px;font-size:11px;color:var(--tx)"><strong>Stratégie choisie : '+esc(profile.name)+'</strong>'
+    +'<div style="margin-top:5px">Elle sert à simuler une progression ou à limiter le risque, mais elle ne change pas la mise mathématique nécessaire à cette cote.</div>'
+    +(riskExceeded?'<div style="color:var(--am);margin-top:5px">Cette mise dépasse la limite prévue par la stratégie choisie et ne constitue pas une recommandation.</div>':'')
+    +(profile.simulation?'<div style="color:var(--am);margin-top:5px">La stratégie '+esc(profile.name)+' est une simulation uniquement. La progression après une perte ne rend pas une victoire plus probable.</div>':'')
     +'<div style="font-size:10px;color:var(--mu);margin-top:7px">'+source+'. Une cote ne permet pas à elle seule de valider la probabilité de gagner. Aucun gain n’est garanti.</div>'
     +'</div>';
 }
@@ -4585,10 +4586,13 @@ function lossRender(){
     panelHtml+='<div class="recovery-banner" style="text-align:left">'
       +'<div class="rb-label">Votre perte nette à récupérer ('+session.active.length+' pari(s) pris en compte)</div>'
       +'<div class="rb-loss-total" style="text-align:center;margin:7px 0 14px">-'+lossRecoveryEuro(totalActiveLost)+'</div>'
-      +'<div style="padding:12px;border:1px solid rgba(255,147,105,.45);border-radius:10px;background:rgba(255,147,105,.06);margin-bottom:12px">'
-      +'<div style="color:#ffb38a;font-size:11px;font-weight:800">STRATÉGIE : '+esc(calc.profile.name)+'</div>'
-      +'<div style="color:var(--mu);font-size:10px;margin-top:5px">Plafond de cette stratégie (ce n’est pas une mise conseillée)</div>'
-      +'<div style="font:800 24px var(--mo);color:#ff9369;margin-top:3px">'+lossRecoveryEuro(calc.nextStake)+'</div>'
+      +'<div style="padding:14px;border:1px solid rgba(255,147,105,.45);border-radius:10px;background:rgba(255,147,105,.06);margin-bottom:12px">'
+      +'<label for="loss-strategy-select" style="display:block;color:#ffb38a;font-size:12px;font-weight:800;margin-bottom:8px">CHOISIR MA STRATÉGIE</label>'
+      +'<select id="loss-strategy-select" aria-label="Choisir la stratégie de calcul" onchange="selectMethod(this.value)" style="display:block;width:100%;background:#111827;color:#fff;border:2px solid #ff9369;border-radius:9px;padding:12px;font:700 14px var(--hd);min-height:46px">'
+      +METHODS.map(function(m){return '<option value="'+m.id+'"'+(selectedMethod===m.id?' selected':'')+'>'+esc(m.name)+(m.riskLabel==='Simulation'?' (simulation)':'')+'</option>';}).join('')
+      +'</select>'
+      +'<div style="font-size:11px;color:var(--mu);margin-top:9px">'+esc(METHODS.find(m=>m.id===selectedMethod)?.sub||'')+'</div>'
+      +(calc.profile.simulation?'<div style="font-size:10px;color:var(--am);margin-top:7px">Progression théorique uniquement : Fibonacci, Martingale et D’Alembert ne sont pas des recommandations de mise après une perte.</div>':'')
       +'</div>'
       +'<label for="loss-recovery-odds" style="display:block;color:var(--tx);font-size:11px;font-weight:700;margin-bottom:6px">Cote du match à calculer</label>'
       +'<input id="loss-recovery-odds" type="number" min="1.02" max="1000" step="0.01" inputmode="decimal" placeholder="Exemple : 2.00" value="'+(lossRecoveryOdds?lossRecoveryOdds.toFixed(2):'')+'" oninput="lossRecoverySetOdds(this.value,\'manual\')" style="width:100%;max-width:260px;padding:12px;border-color:rgba(255,147,105,.55)">'
@@ -4596,6 +4600,7 @@ function lossRender(){
       +'<div id="loss-recovery-estimate" style="border:1px solid rgba(255,147,105,.40);border-radius:10px;padding:13px;background:rgba(12,18,34,.72)" aria-live="polite"></div>'
       +'<details style="margin-top:12px;font-size:11px;color:var(--mu)"><summary style="cursor:pointer;color:#ffb38a;font-weight:700">Voir les autres limites et explications</summary>'
       +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-top:10px">'
+      +'<div class="tsm-cell"><div class="sv">'+lossRecoveryEuro(calc.nextStake)+'</div><label>Plafond du profil choisi</label></div>'
       +'<div class="tsm-cell"><div class="sv">'+lossRecoveryEuro(risk.betCap)+'</div><label>Plafond par pari (1 %)</label></div>'
       +'<div class="tsm-cell"><div class="sv">'+lossRecoveryEuro(risk.combinedCap)+'</div><label>Budget total du plan (2 %)</label></div>'
       +'<div class="tsm-cell"><div class="sv">'+risk.streak+'</div><label>Pertes consécutives</label></div></div>'
@@ -5079,6 +5084,7 @@ const METHODS = [
 ];
 
 function initMethods() {
+  if(!METHODS.some(m=>m.id===selectedMethod))selectedMethod='pgi_prudente';
   const grid = document.getElementById('m-strat-grid');
   if (!grid) return;
   const savedData=lossLoad(),saved=Number(savedData.bankroll);
@@ -5107,6 +5113,7 @@ function initMethods() {
 function selectMethod(id) {
   if(!METHODS.some(m=>m.id===id))return;
   selectedMethod = id;
+  try { localStorage.setItem('betpro_recovery_strategy',id); } catch(_) {}
   document.querySelectorAll('.m-strat-card').forEach(function(c){
     var isSelected = c.dataset.mid === id;
     c.classList.toggle('sel', isSelected);
