@@ -706,6 +706,34 @@ a{color:var(--neon);text-decoration:none}
 .betpro-live-decision.neutral{border-color:rgba(68,148,200,.45);background:rgba(68,148,200,.05)}
 .betpro-live-market-note{padding-top:5px;border-top:1px solid rgba(255,255,255,.12);color:var(--mu,#bac7d9)}
 
+/* BetPro : page « Se refaire intelligemment » uniquement.
+   Palette saumon fluo déjà employée par le Scan Live Benter. */
+#s-methods{
+  --neon:#ff9369;--neon2:#ffb38a;
+  --nbg:rgba(255,147,105,.10);
+  --ng:0 0 8px rgba(255,147,105,.60),0 0 22px rgba(255,147,105,.34);
+  --ngd:0 0 5px rgba(255,147,105,.43),0 0 14px rgba(255,147,105,.22);
+  --bd:rgba(255,147,105,.20);--bd2:rgba(255,147,105,.32);
+}
+#s-methods .methods-hero{
+  background:linear-gradient(135deg,rgba(167,139,250,.10),rgba(255,147,105,.085));
+}
+#s-methods .recovery-banner{
+  background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(255,147,105,.09));
+}
+#s-methods .bp{box-shadow:0 0 14px rgba(255,147,105,.42)}
+#s-methods .bp:hover{box-shadow:0 0 20px rgba(255,147,105,.53)}
+#s-methods .info{
+  background:rgba(255,147,105,.07);border-color:rgba(255,147,105,.30);color:#ffb38a;
+}
+#s-methods .sp{border-color:rgba(255,147,105,.23);border-top-color:#ff9369}
+#s-methods .bsp{background:rgba(255,147,105,.10);color:#ffb38a}
+#s-methods .sig-e{border-color:rgba(255,147,105,.35)}
+#s-methods .oc.xp{box-shadow:0 0 0 1px rgba(255,147,105,.20)}
+#s-methods .stake-badge{
+  background:rgba(255,147,105,.13);border-color:rgba(255,147,105,.36);
+}
+
 </style>
 </head>
 <body>
@@ -1162,7 +1190,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- Saisie express : un montant suffit en cas de perte -->
-  <div class="card" id="loss-input-card" style="margin-bottom:12px;border-color:rgba(0,212,255,.28)">
+  <div class="card" id="loss-input-card" style="margin-bottom:12px;border-color:rgba(255,147,105,.38)">
     <div class="ct">① Enregistrer un résultat en quelques secondes</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px">
       <div class="fgrp"><label for="loss-stake" id="loss-stake-label">Montant perdu (€) *</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="Ex. 20" inputmode="decimal" style="font-size:17px;font-weight:700"></div>
