@@ -4009,7 +4009,8 @@ function recoveryProposal(due,odds,probPct,risk,portion){
   const conservativeP=Math.max(0,p-.05),edge=conservativeP*o-1;
   const theoretical=lossRoundDown(due/(o-1));
   const kelly=edge>0?edge/(o-1):0;
-  const cap=Math.min(risk.betCap,risk.combinedCap*(portion==null?1:portion),risk.amount*kelly*.25);
+  const modeCap=selectedMethod==='flat'?.005:selectedMethod==='pgi_prudente'?.0075:.01;
+  const cap=Math.min(risk.betCap,risk.amount*modeCap,risk.combinedCap*(portion==null?1:portion),risk.amount*kelly*.25);
   const stake=!risk.blocked&&edge>.02?lossRoundDown(cap):0;
   const accepted=stake>=.50?stake:0;
   const profit=lossRoundDown(accepted*(o-1));
@@ -4059,6 +4060,14 @@ function lossAdd(){
   toast('Pari enregistré : '+(net>=0?'+':'')+net.toFixed(2)+' € nets',net>0?'ok':'');
   lossRender();
   if(net<0)setTimeout(()=>lossAutoSearch(),300);
+}
+
+function lossBankrollSave(){
+  const value=Number(document.getElementById('loss-bankroll-input')?.value);
+  if(Number.isFinite(value)&&value>=10&&value<=100000){
+    const d=lossLoad();d.bankroll=value;lossSave(d);
+  }
+  lossRender();
 }
 
 function lossResetSession(){
@@ -4116,7 +4125,7 @@ function lossRender(){
   if(statsPanel&&allEntries.length>0){
     var plColor=netPL>=0?'var(--gr)':'var(--re)';
     var chartE=[...filteredEntries].reverse().slice(-15);
-    var maxV=Math.max.apply(null,chartE.map(function(e){return Math.max(e.amount_lost||0,e.amount_won||0);}));
+    var maxV=Math.max.apply(null,chartE.map(function(e){return Math.abs(lossNetAmount(e));}));
     maxV=Math.max(maxV,1);
     statsPanel.innerHTML='<div class="card">'
       +'<div class="ct">Statistiques'+( lossPeriodFilter!=='all'?' — periode filtree':'')+'</div>'
@@ -4130,7 +4139,7 @@ function lossRender(){
       +'</div>'
       +(totalBets>0?'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dm);font-family:var(--mo);margin-bottom:3px"><span style="color:var(--gr)">Gagnes '+winRate+'% ('+wins.length+')</span><span style="color:var(--re)">Perdus '+(100-winRate)+'% ('+losses.length+')</span></div><div style="height:6px;background:var(--bd);border-radius:3px;overflow:hidden;display:flex"><div style="width:'+winRate+'%;background:var(--gr)"></div><div style="width:'+(100-winRate)+'%;background:var(--re)"></div></div></div>':'')
       +(chartE.length>1?'<div style="display:flex;align-items:flex-end;gap:3px;height:48px;padding:0 2px">'
-        +chartE.map(function(e){var val=e.result==='win'?(e.amount_won||0):(e.amount_lost||0);var h=Math.max(4,Math.round(val/maxV*44));var c=e.result==='win'?'var(--gr)':e.result==='loss'?'var(--re)':'var(--am)';return '<div title="'+esc(e.match)+'" style="flex:1;height:'+h+'px;background:'+c+';border-radius:1px 1px 0 0;opacity:.85;min-width:5px"></div>';}).join('')
+        +chartE.map(function(e){var net=lossNetAmount(e);var val=Math.abs(net);var h=Math.max(4,Math.round(val/maxV*44));var c=net>0?'var(--gr)':net<0?'var(--re)':'var(--am)';return '<div title="'+esc(e.match)+'" style="flex:1;height:'+h+'px;background:'+c+';border-radius:1px 1px 0 0;opacity:.85;min-width:5px"></div>';}).join('')
         +'</div><div style="display:flex;gap:10px;font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:4px"><span style="color:var(--gr)">Gain</span><span style="color:var(--re)">Perte</span><span style="color:var(--am)">Void</span></div>':'')
       +'</div>';
   } else if(statsPanel){ statsPanel.innerHTML=''; }
@@ -4161,7 +4170,7 @@ function lossRender(){
     ];
 
     panelHtml+='<div class="recovery-banner">'
-      +'<div class="rb-label">Pertes actives a recuperer ('+activeLosses.length+' paris)</div>'
+      +'<div class="rb-label">Déficit net de la session ('+session.active.length+' paris, gains inclus)</div>'
       +'<div class="rb-loss-total">-'+totalActiveLost.toFixed(2)+' €</div>'
       +'<div style="height:1px;background:rgba(167,139,250,.2);margin:12px 0"></div>'
       +'<div class="rb-label">Plafond par pari (indicatif, pas un montant à jouer)</div>'
@@ -4183,8 +4192,6 @@ function lossRender(){
       +'</div></div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
       +'<button class="btn bp" onclick="lossAutoSearch()">Trouver matchs pour récupération prudente</button>'
-      +'<button class="btn bs" onclick="lossAutoSearch(1.70)">Aperçu @ 1.70</button>'
-      +'<button class="btn bs" onclick="lossAutoSearch(2.50)">Aperçu @ 2.50</button>'
       +'</div>'
       +'<div id="loss-search-results"></div>';
   } else if(allEntries.length>0){
@@ -4291,7 +4298,7 @@ function matchRecoverySportFilter(leagueSport, filter) {
 async function lossAutoSearch(forcedOdds){
   const data    = lossLoad();
   const losses  = (data.entries||[]).filter(e=>!e.recovered && lossNetAmount(e)<0);
-  if(!losses.length){ toast('Aucune perte active','err'); return; }
+  if(!losses.length || lossLedgerSummary(data.entries||[]).deficit<=0){toast('Aucun déficit net actif','');return;}
 
   const method    = selectedMethod || 'pgi_prudente';
   const totalLost = lossLedgerSummary(data.entries||[]).deficit;
@@ -4510,6 +4517,9 @@ const METHODS = [
 function initMethods() {
   const grid = document.getElementById('m-strat-grid');
   if (!grid) return;
+  const saved=Number(lossLoad().bankroll);
+  const input=document.getElementById('loss-bankroll-input');
+  if(input&&Number.isFinite(saved)&&saved>0)input.value=saved;
   grid.innerHTML = METHODS.map(function(m) {
     var isSel = selectedMethod===m.id;
     return '<div class="m-strat-card'+(isSel?' sel':'')+'" data-mid="'+m.id+'" onclick="selectMethod(this.dataset.mid)">'
@@ -4520,7 +4530,11 @@ function initMethods() {
       +'</div>';
   }).join('');
   lossRender();
-  lossLoadCloud().then(function(){ lossRender(); }).catch(function(){});
+  lossLoadCloud().then(function(data){
+    const inp=document.getElementById('loss-bankroll-input');
+    if(inp&&Number.isFinite(Number(data.bankroll))&&Number(data.bankroll)>0)inp.value=Number(data.bankroll);
+    lossRender();
+  }).catch(function(){});
 }
 
 function selectMethod(id) {
