@@ -4656,11 +4656,18 @@ async function lossAutoSearch(forcedOdds){
   html+='<div class="sbar"><div class="sdot" style="background:var(--gr)"></div><span>'
     +eligible.length+' rencontres éligibles après filtres de risque et qualité</span></div>';
 
+  recoveryCardCache=[];
+  const pendingKeys=new Set((data.entries||[]).filter(e=>e.result==='pending').map(e=>e.ticketKey));
   best.forEach(o=>{
     const res=o._res,hAdj=o._hAdj;
     const p=recoveryProposal(totalLost,o.odds,res.modelProb,risk,1);
     const isEligible=p.stake>=.50;
     const select=translateSelection(o.selection,o.market,o.home_team,o.away_team,o.line);
+    const eventTime=o.start_time||o.commence_time||'';
+    const match=[o.home_team||'?',o.away_team||'?'].join(' vs ');
+    const ticketKey=[o._sport,o.home_team||'',o.away_team||'',eventTime,select].join('|').toLowerCase();
+    const existingPending=pendingKeys.has(ticketKey);
+    const recIndex=recoveryCardCache.push({match,sel:select,odds:Number(o.odds),stake:p.stake,sport:o._sport,market:o.market||'h2h',competition:o.competition||'',eventTime,key:ticketKey,prob:Number(res.modelProb)||0})-1;
     const histLine=(!hAdj||hAdj.status==='insufficient')?'Échantillon historique insuffisant : '+(hAdj?hAdj.volume:0)+' cartes':
       'Historique '+(hAdj.status==='positive'?'favorable':hAdj.status==='negative'?'défavorable':'neutre')
         +' ('+hAdj.volume+' cartes, ROI '+(hAdj.roi==null?'non disponible':hAdj.roi+' %')+')';
