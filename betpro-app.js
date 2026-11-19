@@ -3416,7 +3416,9 @@ function betproResultMerge(primary,secondary){
 function betproResultRow(row,mode='history'){
   const status=row.status||'pending';
   const startMs=Date.parse(row.start||'');
-  const due=Number.isFinite(startMs)&&startMs<Date.now()-21600000;
+  const detectedMs=Date.parse(row.detected||'');
+  const due=(Number.isFinite(startMs)&&startMs<Date.now()-21600000)
+    ||(!Number.isFinite(startMs)&&Number.isFinite(detectedMs)&&detectedMs<Date.now()-7*86400000);
   const label=mode==='scan'?'SÉLECTION ARCHIVÉE':status==='win'?'GAGNÉ':status==='loss'?'PERDU':status==='void'?'ANNULÉ':due?'ISSUE NON VÉRIFIÉE':'EN ATTENTE';
   const hue=mode==='scan'?'var(--neon)':status==='win'?'var(--gr)':status==='loss'?'var(--re)':status==='void'?'var(--mu)':'var(--am)';
   const clean=t=>esc(String(t||''));
