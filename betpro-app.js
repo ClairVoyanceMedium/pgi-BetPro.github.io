@@ -5141,6 +5141,12 @@ ${blocks}`}]
     // Conserver toutes les rencontres; un article ESPN sans titre français
     // reste en réserve jusqu'à traduction vérifiable, sans titre anglais affiché.
     const visibleItems=sorted.filter(tickerHasFrenchArticleTitle);
+    // Ne jamais vider un flux déjà visible lorsque des articles attendent
+    // leur traduction : éviter une zone blanche et un nouveau saut au chargement.
+    if(!visibleItems.length){
+      renderTickerSafetyFallback('Chargement des rencontres et des actualités en français…',false);
+      return;
+    }
     if(persistSnapshot && !sportPayload?.meta?.degraded) betproTickerSaveFastSnapshot(visibleItems);
     const html = visibleItems.map(renderItem).join('');
     const tickerBox = document.getElementById('news-ticker-scroll-box');
