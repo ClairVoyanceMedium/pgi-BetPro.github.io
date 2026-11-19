@@ -2129,10 +2129,10 @@ function _sportHistNormalizeIdPart(s) {
 }
 
 async function sportHistKVSave(entry) {
-  try { await api('/api/sport-history/add', 'POST', { entry }); return true; } catch(_) { return false; }
+  try { const response=await api('/api/sport-history/add', 'POST', { entry }); return response?.ok===true; } catch(_) { return false; }
 }
 async function sportHistKVUpdate(id, fields) {
-  try { await api('/api/sport-history/update', 'POST', { id, fields }); return true; } catch(_) { return false; }
+  try { const response=await api('/api/sport-history/update', 'POST', { id, fields }); return response?.ok===true; } catch(_) { return false; }
 }
 async function sportHistKVDelete(id) {
   try { await api('/api/sport-history/delete', 'POST', { id }); return true; } catch(_) { return false; }
@@ -2149,7 +2149,7 @@ async function sportHistKVLoad(filters) {
       nextOffset: (result.next_offset !== undefined ? result.next_offset : result.nextOffset) ?? null,
       has_more: result.has_more ?? null,
     };
-  } catch(_) { return { entries:[], total:0, limit:null, offset:0, nextOffset:null, has_more:null }; }
+  } catch(_) { return { entries:[], total:0, limit:null, offset:0, nextOffset:null, has_more:null, failed:true }; }
 }
 async function sportHistKVLoadAll(filters) {
   let all = [];
@@ -2158,6 +2158,7 @@ async function sportHistKVLoadAll(filters) {
   const limit = 500;
   while (pagesLoaded < 50) {
     const page = await sportHistKVLoad({ ...(filters||{}), limit, offset });
+    if(page.failed)throw new Error('Lecture de l’historique distant indisponible');
     const entries = page.entries || [];
     all.push(...entries);
     pagesLoaded++;
@@ -2186,22 +2187,62 @@ function mergeSportHistories(local, remote) {
   });
   return Object.values(map);
 }
-async function syncSportHistoryLocalToCloud() {
-  try {
-    const local = _sportHistLoad();
-    for(const e of local.slice(0,200)) { await sportHistKVSave(e); }
-  } catch(_) {}
+// Ne republie plus chaque fiche à chaque ouverture. La mémoire locale
+// reste fusionnée avec le serveur, et seules les entrées manquantes ou
+// réellement incomplètes sont envoyées.
+let sportHistoryCloudSnapshot=null;
+async function syncSportHistoryLocalToCloud(){
+  if(!(sportHistoryCloudSnapshot instanceof Map))return;
+  try{
+    const local=_sportHistLoad();
+    const completeStatus=v=>['win','loss','void'].includes(String(v||'').toLowerCase());
+    const descriptive=['competition','sport','market','selection','bookmaker','oddsOpening','oddsDetected','source'];
+    for(const e of local.slice(0,200)){
+      if(!e||!e.id)continue;
+      const saved=sportHistoryCloudSnapshot.get(e.id);
+      if(!saved){
+        const added=await sportHistKVSave(e);
+        if(!added)continue;
+        if(completeStatus(e.status)){
+          const updated=await sportHistKVUpdate(e.id,{
+            status:e.status,finalScore:e.finalScore??null,
+            closingOdds:e.oddsClosing??null,clv:e.clv??null,
+            resolvedAt:e.resolvedAt??null,updatedAt:e.updatedAt
+          });
+          if(!updated)continue;
+        }
+        sportHistoryCloudSnapshot.set(e.id,e);
+        continue;
+      }
+      const missingDescription=descriptive.some(key=>
+        (saved[key]===null||saved[key]===undefined||saved[key]==='')&&
+        e[key]!==null&&e[key]!==undefined&&e[key]!=='');
+      const newlyResolved=completeStatus(e.status)&&!completeStatus(saved.status);
+      if(!missingDescription&&!newlyResolved)continue;
+      if(!(await sportHistKVSave(e)))continue;
+      if(newlyResolved){
+        await sportHistKVUpdate(e.id,{
+          status:e.status,finalScore:e.finalScore??null,
+          closingOdds:e.oddsClosing??null,clv:e.clv??null,
+          resolvedAt:e.resolvedAt??null,updatedAt:e.updatedAt
+        });
+      }
+      sportHistoryCloudSnapshot.set(e.id,e);
+    }
+  }catch(error){console.warn('Synchronisation historique sportif différée',error?.message||error);}
 }
-async function loadSportHistoryFromCloud() {
-  try {
-    const remote = await sportHistKVLoadAll();
-    if(remote.entries && remote.entries.length) {
-      const local = _sportHistLoad();
-      const merged = mergeSportHistories(local, remote.entries);
+async function loadSportHistoryFromCloud(){
+  sportHistoryCloudSnapshot=null;
+  try{
+    const remote=await sportHistKVLoadAll();
+    sportHistoryCloudSnapshot=new Map(remote.entries.filter(e=>e&&e.id).map(e=>[e.id,e]));
+    if(remote.entries&&remote.entries.length){
+      const local=_sportHistLoad();
+      const merged=mergeSportHistories(local,remote.entries);
       merged.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
       _sportHistSave(merged);
     }
-  } catch(_) {}
+  }catch(_){sportHistoryCloudSnapshot=null;}
 }
 
 function saveSportMatchHistory(matchData) {
