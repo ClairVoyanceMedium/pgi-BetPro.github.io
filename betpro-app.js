@@ -4591,7 +4591,12 @@ function matchRecoverySportFilter(leagueSport, filter) {
   return keys.some(k => s.includes(k));
 }
 
+let lossScanVersion=0,lossScanController=null;
 async function lossAutoSearch(forcedOdds){
+  const scanVersion=++lossScanVersion;
+  if(lossScanController)lossScanController.abort();
+  const controller=new AbortController();
+  lossScanController=controller;
   const data    = lossLoad();
   const losses  = (data.entries||[]).filter(e=>!e.recovered && lossNetAmount(e)<0);
   if(!losses.length || lossLedgerSummary(data.entries||[]).deficit<=0){toast('Aucun déficit net actif','');return;}
@@ -4641,9 +4646,15 @@ async function lossAutoSearch(forcedOdds){
   const candidates = [];
   let blockedByHistory = false;
 
-  for(const {sport, market} of leagues){
-    try{
-      const d = await api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=standard'+periodQS);
+  let nextLeague=0;
+  const scanPool=async()=>{
+    while(scanVersion===lossScanVersion&&!controller.signal.aborted){
+      const index=nextLeague++;
+      if(index>=leagues.length)return;
+      const {sport,market}=leagues[index];
+      try{
+      const d = await api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=standard'+periodQS,'GET',null,{signal:controller.signal,timeoutMs:22000,noCache:true});
+      if(scanVersion!==lossScanVersion)return;
       if(d.error || d.status==='error') { leagueFailRecord(sport); continue; }
       leagueFailReset(sport);
       const opps = d.opportunities||[];
@@ -4676,8 +4687,14 @@ async function lossAutoSearch(forcedOdds){
 
         candidates.push({...o, _sport:sport, _res:res, _hAdj:hAdj});
       }
-    }catch(_){ leagueFailRecord(sport); }
-  }
+      }catch(error){
+        if(controller.signal.aborted)return;
+        leagueFailRecord(sport);
+      }
+    }
+  };
+  await Promise.all(Array.from({length:Math.min(3,leagues.length)},()=>scanPool()));
+  if(scanVersion!==lossScanVersion||controller.signal.aborted)return;
 
   candidates.sort((a,b)=>{
     if(recoverySport && recoverySport!=='all'){
@@ -4800,7 +4817,7 @@ async function lossAutoSearch(forcedOdds){
       +'</div></div>';
   });
   html+='<div class="warn" style="margin-top:10px">Vérifiez à nouveau les cotes et la disponibilité du marché chez le bookmaker avant toute décision. Aucune stratégie ne garantit de récupérer une perte. Les probabilités peuvent être mal calibrées, les cotes varier et plusieurs paris perdre simultanément. La meilleure décision reste parfois de ne pas miser. Une perte passée ne crée aucun avantage statistique sur les prochains matchs.</div>';
-  if(cnt)cnt.innerHTML=html;
+  if(scanVersion===lossScanVersion&&cnt&&cnt.isConnected)cnt.innerHTML=html;
 }
 
 async function lossSearchMatches(targetOdds, customLeagues){ await lossAutoSearch(targetOdds); }
