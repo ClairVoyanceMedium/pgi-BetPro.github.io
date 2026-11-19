@@ -1,0 +1,25 @@
+{
+  "name": "BetPro - Analyse multisports",
+  "short_name": "BetPro",
+  "description": "Tableau de bord multisports, scans en direct et pronostics hippiques.",
+  "id": "/pgi-BetPro.github.io/",
+  "start_url": "/pgi-BetPro.github.io/",
+  "scope": "/pgi-BetPro.github.io/",
+  "display": "standalone",
+  "background_color": "#060810",
+  "theme_color": "#060810",
+  "icons": [
+    {
+      "src": "./betpro-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./betpro-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
