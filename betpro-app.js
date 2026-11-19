@@ -4112,6 +4112,14 @@ function lossRender(){
   var totalWon=wins.reduce(function(sum,e){return sum+lossNetAmount(e);},0);
   var totalLostPeriod=losses.reduce(function(sum,e){return sum-Math.abs(lossNetAmount(e));},0);
   var netPL=Math.round((totalWon+totalLostPeriod)*100)/100;
+  var settledStakes=filteredEntries.filter(e=>Math.abs(lossNetAmount(e))>0.0001).reduce((sum,e)=>sum+(Number(e.stake)||0),0);
+  var realizedROI=settledStakes>0?Math.round(netPL/settledStakes*1000)/10:null;
+  var rollingPL=0,peakPL=0,maxDrawdown=0,maxLosingStreak=0,runLosses=0;
+  [...filteredEntries].sort((a,b)=>new Date(a.date||0)-new Date(b.date||0)).forEach(e=>{
+    const result=lossNetAmount(e);rollingPL+=result;peakPL=Math.max(peakPL,rollingPL);
+    maxDrawdown=Math.max(maxDrawdown,peakPL-rollingPL);
+    if(result<0){runLosses++;maxLosingStreak=Math.max(maxLosingStreak,runLosses);}else if(result>0)runLosses=0;
+  });
   var activeLosses=allEntries.filter(function(e){return !e.recovered&&lossNetAmount(e)<0;});
   var session=lossLedgerSummary(allEntries);
   var totalActiveLost=session.deficit;
@@ -4132,10 +4140,13 @@ function lossRender(){
       +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:12px">'
       +'<div class="tsm-cell"><div class="sv" style="color:var(--gr)">'+wins.length+'</div><label>Gagnes</label></div>'
       +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">'+losses.length+'</div><label>Perdus</label></div>'
-      +'<div class="tsm-cell"><div class="sv" style="color:var(--am)">'+voids.length+'</div><label>Void</label></div>'
+      +'<div class="tsm-cell"><div class="sv" style="color:var(--am)">'+voids.length+'</div><label>Remboursés / neutres</label></div>'
       +'<div class="tsm-cell"><div class="sv" style="color:'+(winRate>=55?'var(--gr)':winRate>=40?'var(--am)':'var(--re)')+'">'+winRate+'%</div><label>% Gain</label></div>'
       +'<div class="tsm-cell"><div class="sv" style="color:'+plColor+'">'+(netPL>=0?'+':'')+netPL.toFixed(2)+' €</div><label>P&L net</label></div>'
       +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+totalActiveLost.toFixed(2)+' €</div><label>Déficit net session</label></div>'
+       +'<div class="tsm-cell"><div class="sv" style="color:'+(realizedROI!==null&&realizedROI>=0?'var(--gr)':'var(--re)')+'">'+(realizedROI===null?'—':(realizedROI>0?'+':'')+realizedROI.toFixed(1)+' %')+'</div><label>ROI réalisé</label></div>'
+       +'<div class="tsm-cell"><div class="sv" style="color:var(--am)">'+maxDrawdown.toFixed(2)+' €</div><label>Drawdown maximal</label></div>'
+       +'<div class="tsm-cell"><div class="sv">'+maxLosingStreak+'</div><label>Plus longue série de pertes</label></div>'
       +'</div>'
       +(totalBets>0?'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dm);font-family:var(--mo);margin-bottom:3px"><span style="color:var(--gr)">Gagnes '+winRate+'% ('+wins.length+')</span><span style="color:var(--re)">Perdus '+(100-winRate)+'% ('+losses.length+')</span></div><div style="height:6px;background:var(--bd);border-radius:3px;overflow:hidden;display:flex"><div style="width:'+winRate+'%;background:var(--gr)"></div><div style="width:'+(100-winRate)+'%;background:var(--re)"></div></div></div>':'')
       +(chartE.length>1?'<div style="display:flex;align-items:flex-end;gap:3px;height:48px;padding:0 2px">'
@@ -4443,9 +4454,9 @@ async function lossAutoSearch(forcedOdds){
     +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">'+euro(primary.p.loseRemaining)+'</div><label>Déficit si défaite</label></div>'
     +'</div><div style="font-size:10px;color:var(--dm);margin-top:8px">Valeur attendue selon le modèle : '+euro(primary.p.ev)+'. Elle dépend de la justesse de sa probabilité estimée, non garantie.</div></div>';
 
-  const paired=eligible.slice(0,3).map((item,i)=>({
-    o:item.o,p:recoveryProposal(totalLost,item.o.odds,item.o._res.modelProb,risk,i===0?.50:.50)
-  })).filter(x=>x.p.stake>=.50).slice(0,2);
+  const paired=eligible.slice(0,2).map(item=>({
+    o:item.o,p:recoveryProposal(totalLost,item.o.odds,item.o._res.modelProb,risk,.50)
+  })).filter(x=>x.p.stake>=.50);
   if(paired.length===2){
     const combined=paired.reduce((acc,x)=>({stake:acc.stake+x.p.stake,profit:acc.profit+x.p.profit,ev:acc.ev+x.p.ev}),{stake:0,profit:0,ev:0});
     html+='<div class="card" style="border-color:rgba(167,139,250,.35);margin-bottom:12px">'
@@ -4492,7 +4503,7 @@ async function lossAutoSearch(forcedOdds){
       +'</div></div></div>'
       +'<div style="padding:9px 12px;border-top:1px solid var(--bd)">'+bookieLinkHtml()+'</div></div>';
   });
-  html+='<div class="warn" style="margin-top:10px">Aucune stratégie ne garantit de récupérer une perte. Les probabilités peuvent être mal calibrées, les cotes varier et plusieurs paris perdre simultanément. La meilleure décision reste parfois de ne pas miser. Une perte passée ne crée aucun avantage statistique sur les prochains matchs.</div>';
+  html+='<div class="warn" style="margin-top:10px">Vérifiez à nouveau les cotes et la disponibilité du marché chez le bookmaker avant toute décision. Aucune stratégie ne garantit de récupérer une perte. Les probabilités peuvent être mal calibrées, les cotes varier et plusieurs paris perdre simultanément. La meilleure décision reste parfois de ne pas miser. Une perte passée ne crée aucun avantage statistique sur les prochains matchs.</div>';
   if(cnt)cnt.innerHTML=html;
 }
 
