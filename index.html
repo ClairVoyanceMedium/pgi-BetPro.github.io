@@ -1242,17 +1242,19 @@ a{color:var(--neon);text-decoration:none}
   <div class="card" style="margin-bottom:8px;padding:12px">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px">
-        <label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo);font-weight:700;display:block;margin-bottom:4px">Capital disponible pour les paris (&#8364;)</label>
+        <label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo);font-weight:700;display:block;margin-bottom:4px">Solde disponible déclaré (&#8364;)</label>
         <input type="number" id="loss-bankroll-input" value="" placeholder="Capital disponible" min="10" max="100000" step="10" oninput="lossRender()" onchange="lossBankrollSave()"
           style="width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:7px 10px;color:var(--tx);font-family:var(--mo);font-size:13px;font-weight:700;outline:none">
       </div>
-      <div style="font-size:10px;color:var(--dm);max-width:200px">Ce montant est mémorisé. Limites : 1 % par pari, 2 % pour le plan<br><span style="color:var(--re);font-size:9px">Ne misez que ce que vous pouvez perdre.</span></div>
+      <div style="font-size:10px;color:var(--dm);max-width:200px">À renseigner une fois. Le solde sera ensuite recalculé à partir des paris réellement enregistrés. Vous pouvez le réajuster en cas de dépôt ou de retrait.<br><span style="color:var(--re);font-size:9px">Ne misez que ce que vous pouvez perdre.</span></div>
     </div>
   </div>
   <details class="card" style="margin-bottom:10px"><summary style="cursor:pointer;color:var(--mu);font-weight:700;font-size:11px">Profil de calcul (facultatif)</summary><div class="m-strat-grid" id="m-strat-grid" style="margin-top:12px"></div></details>
   <div id="m-detail-panel" style="display:none"></div>
 
   <!-- ③ STATS -->
+  <div id="loss-account-status" style="margin-bottom:10px"></div>
+  <div id="loss-pending-panel"></div>
   <div id="loss-stats-panel"></div>
 
   <!-- ④ RECHERCHE STATISTIQUE + SIMULATION SOUS PLAFOND -->
@@ -1741,6 +1743,33 @@ wrangler deploy</pre>
 </main>
 </div>
 <div id="toasts"></div>
+
+
+<!-- Enregistrement d'un pari réellement placé depuis une recommandation. -->
+<div id="loss-bet-modal" role="dialog" aria-modal="true" aria-label="Enregistrer un pari réellement placé"
+  style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.83);align-items:center;justify-content:center;padding:15px">
+  <div style="background:var(--sf);border:1px solid var(--neon);border-radius:12px;padding:20px;width:min(96vw,430px);max-height:85vh;overflow:auto;box-shadow:0 0 35px rgba(0,212,255,.15)">
+    <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:7px">J'ai réellement placé ce pari</div>
+    <div id="loss-bet-modal-match" style="font-size:12px;color:var(--mu);line-height:1.5;margin-bottom:14px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fgrp">
+        <label for="loss-bet-modal-stake">Mise réellement placée (€)</label>
+        <input type="number" id="loss-bet-modal-stake" min=".01" step=".01" inputmode="decimal" style="font-size:16px;font-weight:700">
+      </div>
+      <div class="fgrp">
+        <label for="loss-bet-modal-odds">Cote réellement obtenue</label>
+        <input type="number" id="loss-bet-modal-odds" min="1.01" step=".01" inputmode="decimal" style="font-size:16px;font-weight:700">
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--dm);line-height:1.6;margin:9px 0 15px">
+      Seul un pari effectivement placé doit être confirmé. La mise sera réservée sur votre solde jusqu'au résultat. BetPro ne place pas le pari à votre place.
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bp" onclick="lossConfirmTicket()" style="flex:1;min-width:150px">Confirmer mon pari réel</button>
+      <button class="btn bs" onclick="lossCloseTicketModal()">Annuler</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL BOOKMAKER -->
 <div id="bookie-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center">
