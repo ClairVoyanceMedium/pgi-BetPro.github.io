@@ -4031,6 +4031,8 @@ function lossUpdateQuickForm(){
   const result=document.getElementById('loss-result')?.value||'loss';
   const wrap=document.getElementById('loss-quick-payout');
   if(wrap)wrap.style.display=(result==='win'||result==='cashout')?'block':'none';
+  const stakeLabel=document.getElementById('loss-stake-label');
+  if(stakeLabel)stakeLabel.textContent=result==='loss'?'Montant perdu (€) *':'Mise initiale (€) *';
   const btn=document.getElementById('loss-save-btn');
   if(btn)btn.textContent=({loss:'+ Enregistrer ma perte',win:'+ Enregistrer mon gain',
     void:'+ Enregistrer le remboursement',cashout:'+ Enregistrer le cash-out'})[result]||'+ Enregistrer';
