@@ -4370,6 +4370,7 @@ function lossCancelPending(id){
 }
 
 function lossRender(){
+  if(lossScanController&&!lossScanController.signal.aborted){lossScanController.abort();lossScanVersion++;}
   var data=lossLoad();
   var allEntries=data.entries||[];
   const account=document.getElementById('loss-account-status');
@@ -4491,14 +4492,14 @@ function lossRender(){
       +'</div>'
       +'<div id="loss-search-results"></div>';
   } else if(allEntries.length>0){
-    panelHtml+='<div class="info">'+(session.active.length?'Session équilibrée ou bénéficiaire. Aucun déficit net actif.':'Sessions clôturées. Historique conservé, déficit passé non reporté automatiquement.')+'</div>';
+    panelHtml+='<div class="info">'+(allEntries.some(e=>e.result==='pending')?'Des paris sont encore en attente de résultat. Aucun nouveau déficit net n’est confirmé.':session.active.length?'Session équilibrée ou bénéficiaire. Aucun déficit net actif.':'Sessions clôturées. Historique conservé, déficit passé non reporté automatiquement.')+'</div>';
   }
   panel.innerHTML=panelHtml;
 
   if(histCard) histCard.style.display='';
   if(histList){
     var toShow=filteredEntries;
-    if(!toShow.length){ histList.innerHTML='<div style="text-align:center;padding:20px;color:var(--dm);font-size:12px">Aucun signal probabiliste cette periode.</div>'; return; }
+    if(!toShow.length){ histList.innerHTML='<div style="text-align:center;padding:20px;color:var(--dm);font-size:12px">Aucun pari réglé sur cette période.</div>'; return; }
     histList.innerHTML=toShow.map(function(e){
       var net=lossNetAmount(e);
       var icon=net>0?'GAGNÉ':net<0?'PERDU':'REMBOURSÉ';
