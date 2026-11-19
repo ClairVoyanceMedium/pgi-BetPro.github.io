@@ -4549,7 +4549,7 @@ function lossRender(){
       +sportBtns.map(function(s){return '<button class="fbtn '+(s.val===recoverySport?'on':'')+'" onclick="setRecoverySport(\''+s.val+'\',this)">'+s.label+'</button>';}).join('')
       +'</div></div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-      +'<button class="btn bp" onclick="lossAutoSearch()">Analyser les matchs disponibles</button>'
+      +'<button class="btn bp" onclick="lossAutoSearch()">Analyser les matchs des rencontres pour se refaire</button>'
       +'</div>'
       +'<div id="loss-search-results"></div>';
   } else if(allEntries.length>0){
@@ -4653,6 +4653,66 @@ function matchRecoverySportFilter(leagueSport, filter) {
   return keys.some(k => s.includes(k));
 }
 
+
+// Rencontres récupérées depuis le moteur Classique (D1 / cotes horodatées).
+// Aucune probabilité de gain ni recommandation ne se déduit d'un simple consensus.
+function lossMarketSportOk(item,filter){
+  if(!filter||filter==='all')return true;
+  const v={basket:'basketball',hockey:'icehockey',american:'americanfootball'}[filter]||filter;
+  return getSportFamily(item.sport||'')===v;
+}
+function lossMarketCards(items,period,filter){
+  const now=Date.now();
+  const actual=(Array.isArray(items)?items:[]).filter(e=>{
+    const t=Date.parse(e.start_time||'');
+    return Number.isFinite(t)&&t>now+120000&&t<now+7*86400000
+      &&e.home_name&&e.away_name&&lossMarketSportOk(e,filter);
+  });
+  const narrow=filterOpsByPeriod(actual,period);
+  const broad=narrow.length===0&&actual.length>0;
+  const shown=(broad?actual:narrow).slice(0,12);
+  const date=t=>{const ms=Date.parse(t||'');return Number.isFinite(ms)?new Date(ms).toLocaleString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Horaire non disponible';};
+  let verifiedCount=0;
+  const cards=shown.map(e=>{
+    const c=e.consensus||{},last=Date.parse(c.last_odds_at||'');
+    const hoursToStart=(Date.parse(e.start_time)-now)/3600000;
+    const fresh=Number.isFinite(last)&&last<=now+30000&&now-last<=(hoursToStart<=24?6:24)*3600000;
+    const multi=c.status==='ok'&&Number(c.bookmakers)>=2&&fresh;
+    if(multi)verifiedCount++;
+    const raw=Number(e.classic_value?.best_price||c.median_market_odds||c.market_odds);
+    const validPrice=multi&&Number.isFinite(raw)&&raw>1;
+    const info=validPrice
+      ?'Consensus du marché : '+esc(c.favorite||'non indiqué')+' · cote indicative '+raw.toFixed(2)+' · '+Number(c.bookmakers)+' bookmakers · relevé '+date(c.last_odds_at)
+      :'Cote recoupée et actuelle non disponible';
+    return '<div class="card" style="padding:11px 13px;margin-bottom:8px;border-color:'+(multi?'rgba(255,147,105,.58)':'var(--bd)')+'">'
+     +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--dm);font-size:10px"><span>'+esc(e.competition||e.sport||'Sport')+'</span><span>'+date(e.start_time)+'</span></div>'
+     +'<div style="font-size:12px;font-weight:750;color:var(--tx);margin-top:4px">'+esc(e.home_name)+' vs '+esc(e.away_name)+'</div>'
+     +'<div style="font-size:10px;color:'+(multi?'#ff9369':'var(--mu)')+';margin-top:5px">'+info+'</div>'
+     +'</div>';
+  }).join('');
+  return{count:shown.length,markup:shown.length
+    ?'<div class="card" style="margin-bottom:10px;border-color:rgba(255,147,105,.42);padding:13px"><div class="ct">Rencontres disponibles dans les données collectées</div>'
+     +(broad?'<div class="info">Aucun match sur la période choisie : affichage étendu aux sept prochains jours.</div>':'')
+     +'<div style="color:var(--mu);font-size:10px;margin-bottom:10px">'+shown.length+' rencontres réelles · '+verifiedCount+' avec cotes recoupées. Le consensus des bookmakers ne prouve pas un avantage ni un gain futur.</div>'
+     +cards+'</div>'
+    :''};
+}
+async function lossCollectMarketCards(period,filter){
+  const category={basket:'basketball',hockey:'icehockey',american:'americanfootball'}[filter]||filter;
+  const sport=['soccer','basketball','tennis','mma','icehockey','rugby','baseball','americanfootball','handball','volleyball'].includes(category)?category:'all';
+  const issues=[];
+  for(const scope of ['scan','upcoming']){
+    try{
+      const url='/api/classic/scan?scope='+scope+'&sport='+enc(sport)+'&limit=65'+(scope==='upcoming'?'&hours=168':'');
+      const data=await api(url,'GET',null,{timeoutMs:26000,noCache:true});
+      if(!data?.ok||!Array.isArray(data.events)){issues.push(data?.error||'API sans réponse');continue;}
+      const view=lossMarketCards(data.events,period,filter);
+      if(view.count)return view;
+    }catch(error){issues.push(String(error?.message||error));}
+  }
+  return {count:0,markup:'<div class="info">Aucune rencontre future trouvée dans les sources consultées.'+(issues.length?' Certaines sources sont momentanément indisponibles.':'')+'</div>'};
+}
+
 let lossScanVersion=0,lossScanController=null;
 async function lossAutoSearch(forcedOdds){
   const scanVersion=++lossScanVersion;
@@ -4691,10 +4751,22 @@ async function lossAutoSearch(forcedOdds){
     banners += '<div class="info">Analyse des rencontres disponible. Aucune mise conseillée avec le solde et les règles de calcul actuels : '+esc(risk.reason)+'.</div>';
   }
 
-  if(cnt) cnt.innerHTML = banners + '<div class="ls"><div class="sp"></div><p>Analyse des opportunités en cours…</p></div>';
+  if(cnt) cnt.innerHTML = banners + '<div class="ls"><div class="sp"></div><p>Recherche des rencontres et cotes collectées…</p></div>';
 
   const periodParams = getLossPeriodParams();
   const sportFilter  = getLossSport();
+  const [marketView,proStatus]=await Promise.all([
+    lossCollectMarketCards(periodParams,sportFilter),
+    api('/api/pro/status','GET',null,{timeoutMs:20000}).catch(()=>null)
+  ]);
+  if(scanVersion!==lossScanVersion||controller.signal.aborted)return;
+  const marketMarkup=marketView.markup;
+  if(cnt)cnt.innerHTML=marketMarkup;
+  if(proStatus?.ok&&Number(proStatus.readiness?.decision_ready_segments||0)===0){
+    if(cnt)cnt.innerHTML=marketMarkup
+      +'<div class="info">Modèles Benter sportifs non validés : aucune recommandation de mise fiable n’est calculable. Les rencontres sont présentées pour information, sans promesse de récupération.</div>';
+    return;
+  }
   const periodQS = Object.keys(periodParams).map(k=>'&'+encodeURIComponent(k)+'='+encodeURIComponent(periodParams[k])).join('');
   const ALL_LEAGUES = [
     ...FOOTBALL_LEAGUES.map(l => ({ sport:l.sport, market:'h2h' })),
@@ -4809,7 +4881,7 @@ async function lossAutoSearch(forcedOdds){
              +'<div style="color:var(--dm)">'+esc(x.reason)+'</div></div>';
         }).join('')+'</div>';
     }
-    if(cnt)cnt.innerHTML=banners+scanSummary+'<div class="info">'+esc(msg)+'</div>'+watchHtml;
+    if(cnt)cnt.innerHTML=marketMarkup+banners+scanSummary+'<div class="info">'+esc(msg)+'</div>'+watchHtml;
     return;
   }
 
@@ -4823,7 +4895,7 @@ async function lossAutoSearch(forcedOdds){
   const eligible=plans.filter(x=>x.p.stake>=.50);
   const euro=n=>(Math.round(Number(n||0)*100)/100).toFixed(2)+' €';
   const primary=eligible[0]||null;
-  let html=banners+scanSummary+'<div class="card" style="border:1px solid rgba(255,147,105,.40);padding:14px;margin-bottom:12px">'
+  let html=marketMarkup+banners+scanSummary+'<div class="card" style="border:1px solid rgba(255,147,105,.40);padding:14px;margin-bottom:12px">'
     +'<div class="ct">Bilan et protection du capital</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px">'
     +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+euro(totalLost)+'</div><label>Déficit net à combler</label></div>'
