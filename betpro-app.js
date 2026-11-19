@@ -4170,7 +4170,7 @@ function lossAdd(){
     match:document.getElementById('loss-match')?.value.trim()||'Pari non précisé',
     sel:document.getElementById('loss-sel')?.value.trim()||'',
     stake,odds,result,sport:document.getElementById('loss-sport-sel')?.value||'all',
-    createdAt:new Date().toISOString(),settledAt:new Date().toISOString(),
+    createdAt:new Date().toISOString(),settledAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
     actual_return:payout,amount_lost:Math.max(0,-net),amount_won:Math.max(0,net),
     bookmaker:document.getElementById('loss-bookmaker')?.value.trim()||'',
     ticket_id:document.getElementById('loss-ticket-id')?.value.trim()||'',
@@ -4305,6 +4305,7 @@ function lossPendingRender(entries){
       +'<button class="btn bs" onclick="lossPendingSettle('+id+',\'loss\')" style="color:var(--re)">Perdu</button>'
       +'<button class="btn bs" onclick="lossPendingSettle('+id+',\'void\')">Remboursé</button>'
       +'<button class="btn bs" onclick="lossPendingSettle('+id+',\'cashout\')">Cash-out</button>'
+      +'<button class="btn bs" onclick="lossCancelPending('+id+')">Pari non joué : annuler</button>'
       +'</div></div>';
     }).join('')+'</div>';
 }
@@ -4317,34 +4318,54 @@ function lossBankrollSave(){
   lossRender();
 }
 
+function lossClearHistory(reason){
+  const data=lossLoad();
+  const pending=data.entries.some(e=>e.result==='pending');
+  if(pending){toast('Réglez ou annulez les tickets en attente avant d’effacer le journal','err');return;}
+  const balance=lossBalanceSnapshot(data),now=new Date().toISOString();
+  data.entries=[];data.clearedAt=now;data.deletedEntries={};
+  if(balance.configured){data.bankroll=balance.available;data.bankrollAnchorAt=now;}
+  lossSave(data);lossRender();
+  toast(reason||'Historique supprimé, solde disponible préservé','ok');
+}
 function lossResetSession(){
-  if(!confirm('Remettre a zero ? Tous les paris seront effaces et une nouvelle session commence.')) return;
-  lossSave({entries:[]});
-  toast('Session remise a zero !','ok');
-  lossRender();
+  if(!confirm('Effacer le journal et démarrer une nouvelle période ? Les tickets passés seront supprimés.'))return;
+  lossClearHistory('Nouvelle période ouverte');
 }
 function lossMarkRecovered(){
   const summary=lossLedgerSummary(lossLoad().entries||[]);
   if(!confirm(summary.deficit>0?'Clôturer avec un solde négatif de '+summary.deficit.toFixed(2)+' € ? L’historique sera conservé.':'Clôturer cette session ?'))return;
   var data=lossLoad();
   if(data.entries.some(e=>e.result==='pending')){toast('Réglez les tickets en attente avant de clôturer la session','err');return;}
-  data.entries=data.entries.map(function(e){return Object.assign({},e,{recovered:true});});
+  const closedAt=new Date().toISOString();
+  data.entries=data.entries.map(function(e){return Object.assign({},e,{recovered:true,updatedAt:closedAt});});
   lossSave(data);
   toast('Session clôturée sans effacement de l’historique','ok');
   lossRender();
 }
 function lossClearAll(){
-  if(!confirm('Effacer tout l\'historique ? (Irreversible)')) return;
-  lossSave({entries:[]});
-  toast('Historique efface','ok');
-  lossRender();
+  if(!confirm('Effacer définitivement le journal des paris ? Le solde courant sera conservé comme référence.'))return;
+  lossClearHistory('Historique supprimé');
 }
 function lossDeleteEntry(id){
-  var data=lossLoad();
-  if(!confirm('Supprimer définitivement ce pari du journal ?'))return;
-  data.entries=data.entries.filter(function(e){return e.id!==id;});
-  lossSave(data);
-  lossRender();
+  const data=lossLoad();
+  const entry=data.entries.find(e=>String(e.id)===String(id));
+  if(!entry||!confirm('Supprimer définitivement ce ticket et corriger le solde en conséquence ?'))return;
+  const now=new Date().toISOString();
+  data.deletedEntries={...(data.deletedEntries||{}),[String(id)]:now};
+  data.entries=data.entries.filter(e=>String(e.id)!==String(id));
+  lossSave(data);lossRender();
+}
+function lossCancelPending(id){
+  const data=lossLoad();
+  const entry=data.entries.find(e=>String(e.id)===String(id)&&e.result==='pending');
+  if(!entry)return;
+  if(!confirm('Ce pari n’a jamais été placé ? Son montant réservé sera libéré.'))return;
+  const now=new Date().toISOString();
+  data.deletedEntries={...(data.deletedEntries||{}),[String(id)]:now};
+  data.entries=data.entries.filter(e=>String(e.id)!==String(id));
+  lossSave(data);lossRender();
+  toast('Ticket annulé, mise libérée','ok');
 }
 
 function lossRender(){
