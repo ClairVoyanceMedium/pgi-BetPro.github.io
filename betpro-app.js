@@ -4716,6 +4716,49 @@ function tickerFrenchArticleUrl(original) {
 let tickerPaused = false;
 let tickerAnimFrame = null;
 let tickerLoadSequence = 0;
+// Évite les redessins inutiles et les retours intempestifs au début des actualités.
+let tickerRenderedMarkup = null;
+let tickerResizeObserver = null;
+function tickerStableIdentity(item){
+  const sport=tickerCategory(item?.sport);
+  const raw=item?.event_id ?? item?._turfRaceId ?? item?.link ??
+    [item?.title||'',item?.published||''].join('|');
+  return sport+'|'+String(raw).slice(0,360);
+}
+function tickerRememberPosition(box,inner){
+  if(!box||!inner||!inner.querySelector('.ticker-item'))return null;
+  const height=inner.scrollHeight;
+  if(!(height>0))return null;
+  const position=Math.max(0,box.scrollTop),relative=position%height;
+  let anchor=null;
+  for(const item of inner.children){
+    if(item.classList.contains('ticker-item') && item.offsetTop+item.offsetHeight>relative){
+      anchor=item;break;
+    }
+  }
+  return{position,height,clone:position>=height,
+    identity:anchor?.dataset.tickerKey||null,
+    offset:anchor?relative-anchor.offsetTop:0};
+}
+function tickerRestorePosition(box,inner,previous){
+  if(!box||!inner)return 0;
+  if(!previous){box.scrollTop=0;return 0;}
+  const height=inner.scrollHeight;
+  if(!(height>0)){box.scrollTop=0;return 0;}
+  let relative=(previous.position%previous.height)*(height/previous.height);
+  if(previous.identity){
+    for(const item of inner.children){
+      if(item.dataset.tickerKey===previous.identity){
+        relative=item.offsetTop+Math.max(0,Math.min(previous.offset,item.offsetHeight-1));
+        break;
+      }
+    }
+  }
+  const target=Math.max(0,Math.min((previous.clone?height:0)+relative,
+    Math.max(0,box.scrollHeight-box.clientHeight)));
+  box.scrollTop=target;
+  return box.scrollTop;
+}
 const tickerScrollState = { position:0, userScrolling:false, lastTouch:0, lastFrame:0 };
 function tickerToggle() {
   tickerPaused = !tickerPaused;
@@ -4739,6 +4782,7 @@ function renderTickerSafetyFallback(message='Actualisation des actualités sport
   const source=document.getElementById('ticker-source');
   if(!inner)return;
   if(!force&&inner.querySelector('.ticker-item:not(.ticker-safety)'))return;
+  tickerRenderedMarkup=null;
   const html=`<div class="ticker-loading" role="status" style="padding:15px;color:#b8cce2;font:11px var(--mo);text-align:center">${esc(message)}</div>`;
   inner.innerHTML=html;
   if(clone)clone.innerHTML=html;
@@ -5080,7 +5124,7 @@ ${blocks}`}]
         : esc(displayTitle);
       const turfAttr = art._turfRaceId ? ` data-turf-race="${esc(art._turfRaceId)}"` : '';
       const clickable = !!(frenchArticle || art._turfRaceId);
-      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-href="${esc(frenchArticle)}"${turfAttr}${clickable?' role="link" tabindex="0"':''} style="${clickable?'cursor:pointer;':'cursor:default;'}">
+      return `<div class="ticker-item ${art.is_match?'ticker-match':''}" data-ticker-key="${esc(tickerStableIdentity(art))}" data-href="${esc(frenchArticle)}"${turfAttr}${clickable?' role="link" tabindex="0"':''} style="${clickable?'cursor:pointer;':'cursor:default;'}">
         <span class="ticker-sport-badge" style="background:${style.bg};color:${style.color}">${label}</span>
         <div style="flex:1;min-width:0">
           <div class="ticker-title" id="ticker-t-${art._id||Math.random().toString(36).slice(2)}">${titleHtml}</div>
@@ -5099,38 +5143,50 @@ ${blocks}`}]
     const visibleItems=sorted.filter(tickerHasFrenchArticleTitle);
     if(persistSnapshot && !sportPayload?.meta?.degraded) betproTickerSaveFastSnapshot(visibleItems);
     const html = visibleItems.map(renderItem).join('');
-    inner.innerHTML = html;
-    if (clone) clone.innerHTML = html;
-
     const tickerBox = document.getElementById('news-ticker-scroll-box');
     const tickerList = document.getElementById('news-ticker-list');
-    if(tickerList) tickerList.classList.remove('auto-scroll');
+    // Un rafraîchissement identique (API, traduction, cache) ne modifie pas le DOM,
+    // la position, les écouteurs ou la boucle d'animation.
+    if(html===tickerRenderedMarkup && inner.querySelector('.ticker-item'))return;
 
-    // Vitesse indépendante du taux de rafraîchissement de l'écran. L'ancien
-    // incrément fixe accélérait sur un écran 120 Hz et saccadait à 30 Hz.
-    const TICKER_SPEED_PX_PER_SECOND = 30;
-    let tickerScrollHeight=inner.scrollHeight, tickerHeightMeasuredAt=0;
-    tickerScrollState.position = 0;
-    tickerScrollState.userScrolling = false;
-    tickerScrollState.lastTouch = 0;
-    tickerScrollState.lastFrame = 0;
-    if (tickerBox) tickerBox.scrollTop = 0;
+    // Conserver l'article visible et sa position exacte pendant les arrivées
+    // successives du cache, des résultats sportifs, du PMU et des traductions FR.
+    const previous=tickerRememberPosition(tickerBox,inner);
+    if(tickerAnimFrame)cancelAnimationFrame(tickerAnimFrame);
+    tickerAnimFrame=null;
+    if(tickerResizeObserver){tickerResizeObserver.disconnect();tickerResizeObserver=null;}
+    inner.innerHTML=html;
+    if(clone)clone.innerHTML=html;
+    tickerRenderedMarkup=html;
+    if(tickerList)tickerList.classList.remove('auto-scroll');
+    tickerScrollState.position=tickerRestorePosition(tickerBox,inner,previous);
+    tickerScrollState.lastFrame=0;
 
-    function tickerAnimate(frameTime) {
-      const previousFrame = tickerScrollState.lastFrame || frameTime;
-      const elapsedMs = Math.min(64, Math.max(0, frameTime - previousFrame));
-      tickerScrollState.lastFrame = frameTime;
-      if(!tickerPaused && !tickerScrollState.userScrolling && tickerBox) {
-        tickerScrollState.position += TICKER_SPEED_PX_PER_SECOND * (elapsedMs / 1000);
-        if(frameTime-tickerHeightMeasuredAt>2000){tickerScrollHeight=inner.scrollHeight;tickerHeightMeasuredAt=frameTime;}
-        const loopHeight = tickerScrollHeight;
-        if(loopHeight > 0 && tickerScrollState.position >= loopHeight) tickerScrollState.position -= loopHeight;
-        tickerBox.scrollTop = tickerScrollState.position;
-      }
-      tickerAnimFrame = requestAnimationFrame(tickerAnimate);
+    // Vitesse constante sur les écrans 60/90/120 Hz, sans mesure de mise en page
+    // forcée toutes les deux secondes dans la boucle d'animation.
+    const TICKER_SPEED_PX_PER_SECOND=30;
+    let tickerScrollHeight=inner.scrollHeight;
+    const tickerViewHeight=tickerBox?.clientHeight||270;
+    if(typeof ResizeObserver!=='undefined'){
+      tickerResizeObserver=new ResizeObserver(entries=>{
+        const height=entries[0]?.contentRect?.height;
+        if(Number.isFinite(height)&&height>0)tickerScrollHeight=height;
+      });
+      tickerResizeObserver.observe(inner);
     }
-    if(tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
-    tickerAnimFrame = requestAnimationFrame(tickerAnimate);
+
+    function tickerAnimate(frameTime){
+      const previousFrame=tickerScrollState.lastFrame||frameTime;
+      const elapsedMs=Math.min(64,Math.max(0,frameTime-previousFrame));
+      tickerScrollState.lastFrame=frameTime;
+      if(!document.hidden&&!tickerPaused&&!tickerScrollState.userScrolling&&tickerBox&&tickerScrollHeight>tickerViewHeight){
+        tickerScrollState.position+=TICKER_SPEED_PX_PER_SECOND*(elapsedMs/1000);
+        if(tickerScrollState.position>=tickerScrollHeight)tickerScrollState.position%=tickerScrollHeight;
+        tickerBox.scrollTop=tickerScrollState.position;
+      }
+      tickerAnimFrame=requestAnimationFrame(tickerAnimate);
+    }
+    tickerAnimFrame=requestAnimationFrame(tickerAnimate);
 
     function setupTickerClicks(container) {
       if(!container) return;
