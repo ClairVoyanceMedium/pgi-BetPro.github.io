@@ -3957,7 +3957,8 @@ function lossMergeData(local,remote){
     return !(clearMs&&modified<=clearMs)&&!(deleted[String(e.id)]&&(Date.parse(deleted[String(e.id)])||0)>=modified);
   }).sort((x,y)=>new Date(y.createdAt||y.date||0)-new Date(x.createdAt||x.date||0));
   const anchorA=Date.parse(a.bankrollAnchorAt||'')||0,anchorB=Date.parse(b.bankrollAnchorAt||'')||0;
-  const owner=anchorA>=anchorB?a:b;
+  const owner=anchorA>anchorB?a:anchorB>anchorA?b:
+    (Number(a.bankroll)>0?a:b);
   return {...latest,entries,deletedEntries:deleted,clearedAt,
     bankroll:owner.bankroll,bankrollAnchorAt:owner.bankrollAnchorAt,
     updatedAt:new Date(Math.max(localStamp,remoteStamp)||Date.now()).toISOString()};
@@ -4009,9 +4010,9 @@ async function lossLoadCloud(){
     const note=r.notes.find(n=>n.id==='pgi_loss_v3');
     const remote=note?.body?JSON.parse(note.body):{entries:[]};
     const merged=lossMergeData(lossLoad(),remote);
-    const changed=JSON.stringify(merged)!==JSON.stringify(lossLoad());
+    const needsUpload=JSON.stringify(merged)!==JSON.stringify(remote);
     lossStoreLocal(merged);
-    if(changed){lossSyncDirty=true;lossSyncSchedule();}
+    if(needsUpload&&(merged.entries.length||Number(merged.bankroll)>0)){lossSyncDirty=true;lossSyncSchedule();}
     lossSyncStatus('Journal chargé depuis Cloudflare','ok');
     return merged;
   }catch(_){
@@ -4825,10 +4826,7 @@ function initMethods() {
   if (!grid) return;
   const savedData=lossLoad(),saved=Number(savedData.bankroll);
   const input=document.getElementById('loss-bankroll-input');
-  if(input&&Number.isFinite(saved)&&saved>0){
-    input.value=saved;
-    if(!savedData.bankrollAnchorAt){savedData.bankrollAnchorAt=new Date().toISOString();lossSave(savedData);}
-  }
+  if(input&&Number.isFinite(saved)&&saved>0)input.value=saved;
   grid.innerHTML = METHODS.map(function(m) {
     var isSel = selectedMethod===m.id;
     return '<div class="m-strat-card'+(isSel?' sel':'')+'" data-mid="'+m.id+'" onclick="selectMethod(this.dataset.mid)">'
@@ -4841,7 +4839,10 @@ function initMethods() {
   lossRender();
   lossLoadCloud().then(function(data){
     const inp=document.getElementById('loss-bankroll-input');
-    if(inp&&Number.isFinite(Number(data.bankroll))&&Number(data.bankroll)>0)inp.value=Number(data.bankroll);
+    if(inp&&Number.isFinite(Number(data.bankroll))&&Number(data.bankroll)>0){
+      inp.value=Number(data.bankroll);
+      if(!data.bankrollAnchorAt){data.bankrollAnchorAt=new Date().toISOString();lossSave(data);}
+    }
     lossRender();
   }).catch(function(){});
 }
