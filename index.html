@@ -519,34 +519,34 @@ a{color:var(--neon);text-decoration:none}
  .betpro-analytics-head .btn{font-size:10px}
  .betpro-analytics-sub{float:none;display:inline-block;margin-left:6px}
 }
-/* Suivi volontaire des cartes : argent brossé au repos, or métallique lorsque sélectionné. */
+/* Suivi volontaire des cartes : or métallique au repos, argent brossé lorsque sélectionné. */
 .betpro-follow-btn{
  display:inline-flex;align-items:center;justify-content:center;min-height:39px;
  margin-top:12px;padding:9px 14px;border:1px solid transparent;border-radius:7px;
- background:linear-gradient(160deg,#24303b 0%,#141d28 52%,#222d39 100%) padding-box,
-  linear-gradient(125deg,#88939f 0%,#f0f3f6 26%,#bcc5ce 45%,#71808f 70%,#dce4eb 100%) border-box;
- color:#e4ebf1;font:750 11px var(--mo);letter-spacing:.01em;
- box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 0 1px rgba(160,175,188,.11),0 2px 12px rgba(173,188,202,.13);
- text-shadow:0 1px 0 rgba(0,0,0,.50);cursor:pointer;
+ background:linear-gradient(160deg,#30261a 0%,#1c1812 52%,#332717 100%) padding-box,
+  linear-gradient(125deg,#90682b 0%,#fff2c7 24%,#e2bb65 46%,#a47731 72%,#f3d995 100%) border-box;
+ color:#f8dda0;font:750 11px var(--mo);letter-spacing:.01em;
+ box-shadow:inset 0 1px 0 rgba(255,246,206,.12),0 0 0 1px rgba(200,159,82,.16),0 2px 14px rgba(229,181,84,.19);
+ text-shadow:0 1px 0 rgba(0,0,0,.54);cursor:pointer;
  transition:box-shadow .2s ease,filter .2s ease,transform .2s ease;
 }
 .betpro-follow-btn:hover{
- filter:brightness(1.12);
- box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 0 0 1px rgba(210,222,233,.23),0 0 16px rgba(191,205,219,.26);
-}
-.betpro-follow-btn:focus-visible{outline:2px solid #edf2f6;outline-offset:3px}
-.betpro-follow-btn.is-followed{
- background:linear-gradient(160deg,#30261a 0%,#1c1812 52%,#332717 100%) padding-box,
-  linear-gradient(125deg,#90682b 0%,#fff2c7 24%,#e2bb65 46%,#a47731 72%,#f3d995 100%) border-box;
- color:#f8dda0;
- box-shadow:inset 0 1px 0 rgba(255,246,206,.12),0 0 0 1px rgba(200,159,82,.16),0 2px 14px rgba(229,181,84,.19);
- text-shadow:0 1px 0 rgba(0,0,0,.54);
-}
-.betpro-follow-btn.is-followed:hover{
  filter:brightness(1.11);
  box-shadow:inset 0 1px 0 rgba(255,246,206,.18),0 0 0 1px rgba(237,196,117,.31),0 0 18px rgba(239,191,99,.27);
 }
-.betpro-follow-btn.is-followed:focus-visible{outline-color:#f5d78c}
+.betpro-follow-btn:focus-visible{outline:2px solid #f5d78c;outline-offset:3px}
+.betpro-follow-btn.is-followed{
+ background:linear-gradient(160deg,#24303b 0%,#141d28 52%,#222d39 100%) padding-box,
+  linear-gradient(125deg,#88939f 0%,#f0f3f6 26%,#bcc5ce 45%,#71808f 70%,#dce4eb 100%) border-box;
+ color:#e4ebf1;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 0 1px rgba(160,175,188,.11),0 2px 12px rgba(173,188,202,.13);
+ text-shadow:0 1px 0 rgba(0,0,0,.50);
+}
+.betpro-follow-btn.is-followed:hover{
+ filter:brightness(1.12);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 0 0 1px rgba(210,222,233,.23),0 0 16px rgba(191,205,219,.26);
+}
+.betpro-follow-btn.is-followed:focus-visible{outline-color:#edf2f6}
 .betpro-follow-btn:disabled{opacity:.64;cursor:progress;filter:none;transform:none}
 @media(prefers-reduced-motion:reduce){.betpro-follow-btn{transition:none}}
 .betpro-chosen-card+.betpro-chosen-card{border-top:1px solid var(--bd);padding-top:7px}
