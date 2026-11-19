@@ -4165,7 +4165,7 @@ function renderMethodDetail(){
     :'<div style="margin-top:6px;color:var(--mu)">Kelly conservateur : probabilité estimée réduite de 5 points, facteur '+Math.round(profile.kellyFraction*1000)/10
      +' % ; plafond de stratégie '+(profile.capPct*100).toLocaleString('fr-FR',{maximumFractionDigits:2})+' % du capital. '
      +(profile.id==='anti_martingale'?'Série courante : '+profile.wins+' gain(s), retour à la mise de base après une perte. ':'')
-     +'Chaque proposition reste soumise à une valeur attendue positive et aux limites par pari, par journée et de pertes consécutives.</div>';
+     +'Chaque proposition reste soumise à une valeur attendue positive et aux limites par pari et de pertes consécutives.</div>';
   panel.style.display='block';
   panel.innerHTML='<div style="margin-top:10px;border-top:1px solid var(--bd);padding:11px 3px 2px;font:11px var(--hd);line-height:1.6">'
     +'<strong style="color:var(--tx)">'+profile.name+'</strong>'
@@ -4194,8 +4194,62 @@ function calcRecoveryStake(totalLost,lastOdds,method,bankroll){
   const odds=Number(lastOdds)>1.01?Number(lastOdds):1.80;
   const profile=lossMethodProfile(risk,data.entries||[]);
   return {nextStake:risk.blocked?0:lossRoundDown(Math.min(risk.betCap,risk.combinedCap,risk.amount*profile.capPct)),
-    coteCible:odds,theoretical:lossRoundDown(totalLost/(odds-1)),risk,
-    expl:'Plafond indicatif uniquement. Le calcul par rencontre prendra en compte probabilité, valeur attendue et mises maximales. Une perte ne doit jamais augmenter automatiquement la mise.'};
+    coteCible:odds,theoretical:lossRoundDown(totalLost/(odds-1)),risk,profile,
+    expl:'Le plafond de stratégie n’est pas un montant conseillé. Une mise de compensation dépend de la cote et suppose une victoire.'};
+}
+
+
+// Calculatrice lisible : le montant de compensation suppose un succès du pari.
+// Les limites de stratégie et les mises conseillées par un modèle restent distinctes.
+let lossRecoveryOdds=null;
+let lossRecoveryOddsOrigin='';
+function lossRecoveryEuro(value){
+  return Number(value||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+function lossRecoverySetOdds(value,origin){
+  const parsed=Number(String(value??'').replace(',','.'));
+  lossRecoveryOdds=Number.isFinite(parsed)&&parsed>1.01&&parsed<=1000?Math.round(parsed*100)/100:null;
+  lossRecoveryOddsOrigin=lossRecoveryOdds?(origin||'manual'):'';
+  const input=document.getElementById('loss-recovery-odds');
+  if(input&&origin==='market')input.value=lossRecoveryOdds?.toFixed(2)||'';
+  lossRecoveryUpdateQuote();
+  if(origin==='market')document.getElementById('loss-recovery-estimate')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function lossRecoveryUpdateQuote(){
+  const destination=document.getElementById('loss-recovery-estimate');
+  if(!destination)return;
+  const data=lossLoad(),deficit=lossLedgerSummary(data.entries||[]).deficit;
+  if(deficit<=0){destination.innerHTML='';return;}
+  const balance=lossBalanceSnapshot(data);
+  const risk=lossRiskLimits(balance.available,data.entries||[]);
+  const profile=lossMethodProfile(risk,data.entries||[]);
+  const strategyLimit=lossRoundDown(Math.min(risk.betCap,risk.combinedCap,risk.amount*profile.capPct));
+  const num=lossRecoveryOdds;
+  if(!(num>1.01)){
+    destination.innerHTML='<div style="font-weight:700;color:var(--tx);font-size:12px">Mise pour couvrir '+lossRecoveryEuro(deficit)+' : <span style="color:#ff9369">cote nécessaire</span></div>'
+      +'<div style="font-size:11px;color:var(--mu);margin-top:6px">Choisissez la cote d’une rencontre ci-dessous ou saisissez-la ici. Impossible de calculer une mise de compensation sans cote.</div>'
+      +'<div style="margin-top:10px;color:var(--mu);font-size:10px">Profil '+esc(profile.name)+' : plafond '+lossRecoveryEuro(strategyLimit)+' (ce n’est pas une mise recommandée).</div>';
+    return;
+  }
+  // Arrondi au centime supérieur, sinon le déficit pourrait subsister.
+  const fullStake=Math.ceil((deficit/(num-1)-0.00000001)*100)/100;
+  const fullWinNet=Math.round(fullStake*(num-1)*100)/100;
+  const cappedNet=Math.round(strategyLimit*(num-1)*100)/100;
+  const cappedRemaining=Math.max(0,Math.round((deficit-cappedNet)*100)/100);
+  const lossesAfterFull=Math.round((deficit+fullStake)*100)/100;
+  const riskExceeded=fullStake>strategyLimit+0.000001;
+  const source=lossRecoveryOddsOrigin==='market'?'Cote issue des données du marché, à revérifier avant tout pari':'Cote saisie, non vérifiée auprès du bookmaker';
+  destination.innerHTML='<div style="font-size:10px;color:var(--mu)">À la cote '+num.toFixed(2)+' : pour effacer '+lossRecoveryEuro(deficit)+' <strong>en cas de victoire uniquement</strong></div>'
+    +'<div style="font-size:10px;color:var(--mu);margin-top:10px">MISE MATHÉMATIQUE DE COMPENSATION</div>'
+    +'<div style="font:800 clamp(24px,6vw,38px) var(--mo);color:#ff9369;line-height:1.25;margin:2px 0 9px">'+lossRecoveryEuro(fullStake)+'</div>'
+    +'<div style="font-size:11px;color:var(--tx)">Si victoire : bénéfice net '+lossRecoveryEuro(fullWinNet)+', déficit ramené à '+lossRecoveryEuro(Math.max(0,Math.round((deficit-fullWinNet)*100)/100))+'.</div>'
+    +'<div style="font-size:11px;color:var(--re);margin-top:3px">Si défaite : déficit porté à '+lossRecoveryEuro(lossesAfterFull)+'.</div>'
+    +'<div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px;font-size:11px;color:var(--tx)"><strong>Profil sélectionné : '+esc(profile.name)+'</strong>'
+    +'<div style="margin-top:5px">Plafond prévu par ce profil : <strong>'+lossRecoveryEuro(strategyLimit)+'</strong>. Gain net si victoire à ce plafond : '+lossRecoveryEuro(cappedNet)+'. Déficit restant : '+lossRecoveryEuro(cappedRemaining)+'.</div>'
+    +(riskExceeded?'<div style="color:var(--am);margin-top:5px">La mise de compensation excède ce plafond : elle n’est pas proposée comme mise conseillée.</div>':'')
+    +(profile.simulation?'<div style="color:var(--am);margin-top:5px">Progression '+esc(profile.name)+' : prochaine mise théorique '+lossRecoveryEuro(profile.theoreticalNext)+' (simulation, pas un conseil de mise).</div>':'')
+    +'<div style="font-size:10px;color:var(--mu);margin-top:7px">'+source+'. Une cote ne permet pas à elle seule de valider la probabilité de gagner. Aucun gain n’est garanti.</div>'
+    +'</div>';
 }
 
 function lossUpdateQuickForm(){
@@ -4528,20 +4582,25 @@ function lossRender(){
       {val:'all',label:'Tous'},
     ];
 
-    panelHtml+='<div class="recovery-banner">'
-      +'<div class="rb-label">Déficit net de la session ('+session.active.length+' paris, gains inclus)</div>'
-      +'<div class="rb-loss-total">-'+totalActiveLost.toFixed(2)+' €</div>'
-      +'<div style="height:1px;background:rgba(167,139,250,.2);margin:12px 0"></div>'
-      +'<div class="rb-label">Plafond par pari (indicatif, pas un montant à jouer)</div>'
-      +'<div class="rb-next-stake">'+calc.nextStake.toFixed(2)+' €</div>'
-      +'<div class="rb-odds-target">Cotes réelles récupérées lors de la recherche des matchs</div>'
-      +'<div class="rb-expl">'+esc(calc.expl)+'<br>Le montant à investir et le déficit restant sont calculés sur les cotes disponibles pour chaque nouvelle rencontre. Aucune cote n’est inventée. Aucun gain garanti.</div>'
-       +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-top:12px;text-align:left">'
-       +'<div class="tsm-cell"><div class="sv">'+risk.betCap.toFixed(2)+' €</div><label>Limite par pari (1 %)</label></div>'
-       +'<div class="tsm-cell"><div class="sv">'+risk.combinedCap.toFixed(2)+' €</div><label>Budget total du plan</label></div>'
-       +'<div class="tsm-cell"><div class="sv">'+risk.streak+'</div><label>Pertes consécutives</label></div>'
-       +'</div>'
-       +(risk.blocked?'<div class="warn" style="margin-top:9px;color:var(--re)">Abstention : '+esc(risk.reason)+'. Le moteur ne proposera pas de nouvelle mise.</div>':'')
+    panelHtml+='<div class="recovery-banner" style="text-align:left">'
+      +'<div class="rb-label">Votre perte nette à récupérer ('+session.active.length+' pari(s) pris en compte)</div>'
+      +'<div class="rb-loss-total" style="text-align:center;margin:7px 0 14px">-'+lossRecoveryEuro(totalActiveLost)+'</div>'
+      +'<div style="padding:12px;border:1px solid rgba(255,147,105,.45);border-radius:10px;background:rgba(255,147,105,.06);margin-bottom:12px">'
+      +'<div style="color:#ffb38a;font-size:11px;font-weight:800">STRATÉGIE : '+esc(calc.profile.name)+'</div>'
+      +'<div style="color:var(--mu);font-size:10px;margin-top:5px">Plafond de cette stratégie (ce n’est pas une mise conseillée)</div>'
+      +'<div style="font:800 24px var(--mo);color:#ff9369;margin-top:3px">'+lossRecoveryEuro(calc.nextStake)+'</div>'
+      +'</div>'
+      +'<label for="loss-recovery-odds" style="display:block;color:var(--tx);font-size:11px;font-weight:700;margin-bottom:6px">Cote du match à calculer</label>'
+      +'<input id="loss-recovery-odds" type="number" min="1.02" max="1000" step="0.01" inputmode="decimal" placeholder="Exemple : 2.00" value="'+(lossRecoveryOdds?lossRecoveryOdds.toFixed(2):'')+'" oninput="lossRecoverySetOdds(this.value,\'manual\')" style="width:100%;max-width:260px;padding:12px;border-color:rgba(255,147,105,.55)">'
+      +'<div style="font-size:10px;color:var(--mu);margin:7px 0 12px">Ou choisissez directement la cote d’une rencontre affichée après l’analyse.</div>'
+      +'<div id="loss-recovery-estimate" style="border:1px solid rgba(255,147,105,.40);border-radius:10px;padding:13px;background:rgba(12,18,34,.72)" aria-live="polite"></div>'
+      +'<details style="margin-top:12px;font-size:11px;color:var(--mu)"><summary style="cursor:pointer;color:#ffb38a;font-weight:700">Voir les autres limites et explications</summary>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-top:10px">'
+      +'<div class="tsm-cell"><div class="sv">'+lossRecoveryEuro(risk.betCap)+'</div><label>Plafond par pari (1 %)</label></div>'
+      +'<div class="tsm-cell"><div class="sv">'+lossRecoveryEuro(risk.combinedCap)+'</div><label>Budget total du plan (2 %)</label></div>'
+      +'<div class="tsm-cell"><div class="sv">'+risk.streak+'</div><label>Pertes consécutives</label></div></div>'
+      +(risk.blocked?'<div style="margin-top:8px;color:var(--am)">Pas de mise validée par le profil : '+esc(risk.reason)+'. Le calcul mathématique reste accessible.</div>':'')
+      +'<p style="margin-top:8px">Ces plafonds ne sont pas des consignes de pari. Une perte passée ne rend pas le prochain match plus probable.</p></details>'
       +'</div>'
       +'<div style="margin-bottom:10px">'
       +'<div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mo)">Sport prioritaire (facultatif)</div>'
@@ -4556,6 +4615,7 @@ function lossRender(){
     panelHtml+='<div class="info">'+(allEntries.some(e=>e.result==='pending')?'Des paris sont encore en attente de résultat. Aucun nouveau déficit net n’est confirmé.':session.active.length?'Session équilibrée ou bénéficiaire. Aucun déficit net actif.':'Sessions clôturées. Historique conservé, déficit passé non reporté automatiquement.')+'</div>';
   }
   panel.innerHTML=panelHtml;
+  lossRecoveryUpdateQuote();
 
   if(histCard) histCard.style.display='';
   if(histList){
@@ -4684,11 +4744,12 @@ function lossMarketCards(items,period,filter){
     const info=validPrice
       ?'Consensus du marché : '+esc(c.favorite||'non indiqué')+' · cote indicative '+raw.toFixed(2)+' · '+Number(c.bookmakers)+' bookmakers · relevé '+date(c.last_odds_at)
       :'Cote recoupée et actuelle non disponible';
+    const oddsAction=validPrice?'<button class="btn bs" style="margin-top:9px;border-color:rgba(255,147,105,.5);color:#ffb38a" data-odds="'+raw.toFixed(2)+'" onclick="lossRecoverySetOdds(this.dataset.odds,\'market\')">Calculer le montant avec cette cote</button>':'';
     return '<div class="card" style="padding:11px 13px;margin-bottom:8px;border-color:'+(multi?'rgba(255,147,105,.58)':'var(--bd)')+'">'
      +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--dm);font-size:10px"><span>'+esc(e.competition||e.sport||'Sport')+'</span><span>'+date(e.start_time)+'</span></div>'
      +'<div style="font-size:12px;font-weight:750;color:var(--tx);margin-top:4px">'+esc(e.home_name)+' vs '+esc(e.away_name)+'</div>'
      +'<div style="font-size:10px;color:'+(multi?'#ff9369':'var(--mu)')+';margin-top:5px">'+info+'</div>'
-     +'</div>';
+     +oddsAction+'</div>';
   }).join('');
   return{count:shown.length,markup:shown.length
     ?'<div class="card" style="margin-bottom:10px;border-color:rgba(255,147,105,.42);padding:13px"><div class="ct">Rencontres disponibles dans les données collectées</div>'
