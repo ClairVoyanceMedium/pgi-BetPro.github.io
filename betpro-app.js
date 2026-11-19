@@ -4195,7 +4195,7 @@ function lossRender(){
       +'</div>'
       +'<div id="loss-search-results"></div>';
   } else if(allEntries.length>0){
-    panelHtml+='<div class="ok-box">Session equilibree ou beneficiaire !</div>';
+    panelHtml+='<div class="info">'+(session.active.length?'Session équilibrée ou bénéficiaire. Aucun déficit net actif.':'Sessions clôturées. Historique conservé, déficit passé non reporté automatiquement.')+'</div>';
   }
   panel.innerHTML=panelHtml;
 
@@ -4209,14 +4209,14 @@ function lossRender(){
       var amtColor=net>0?'var(--gr)':net<0?'var(--re)':'var(--am)';
       var amtStr=(net>=0?'+':'')+net.toFixed(2)+' €';
       var sl={soccer:'Football',basketball:'Basket',mma:'MMA',tennis:'Tennis',icehockey:'Hockey',rugby:'Rugby',baseball:'Baseball',americanfootball:'NFL',handball:'Handball',volleyball:'Volleyball'}[e.sport]||'Sport';
-      return '<div class="loss-entry '+(!e.recovered&&e.result==='loss'?'active-loss':'')+'">'
+      return '<div class="loss-entry '+(!e.recovered&&net<0?'active-loss':'')+'">'
         +'<div style="flex:1;min-width:0">'
         +'<div class="le-match">'+esc(sl)+' | '+esc(e.match)+(e.sel?' - '+esc(e.sel):'')+'</div>'
         +(e.bookmaker||e.ticket_id||e.ticket_type||e.note?'<div style="font-size:10px;color:var(--dm);margin-top:3px">'+esc([e.bookmaker,e.ticket_type,e.ticket_id?('Ticket '+e.ticket_id):'',e.note].filter(Boolean).join(' · '))+'</div>':'')
         +'<div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">'
         +'<span class="le-odds">@ '+e.odds+'</span><span class="le-stake">'+e.stake+' €</span>'
         +' '+icon+' '
-        +(e.recovered?'<span class="bdg" style="background:var(--grb);color:var(--gr)">Recupere</span>':'')
+        +(e.recovered?'<span class="bdg" style="background:var(--grb);color:var(--gr)">Session clôturée</span>':'')
         +'<span class="le-date">'+fmtDT(e.date)+'</span>'
         +(Number.isFinite(Number(e.actual_return))&&e.actual_return!==undefined?'<span class="le-stake">Retour encaissé : '+Number(e.actual_return).toFixed(2)+' €</span>':'')
         +'</div></div>'
