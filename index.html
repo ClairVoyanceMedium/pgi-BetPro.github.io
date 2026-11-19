@@ -563,6 +563,18 @@ a{color:var(--neon);text-decoration:none}
 #betpro-stats-live{scroll-margin-top:64px}
 /* Résultats : archivage lisible sans surcharge visuelle. */
 .betpro-results-section{padding:15px 16px;margin-bottom:14px}
+/* Encadré des pronostics en attente : même contour or brossé que « Suivre le résultat ». */
+#s-results .betpro-results-section.betpro-pending-section{
+ border:1px solid transparent;
+ border-radius:8px;
+ background:linear-gradient(var(--sf),var(--sf)) padding-box,
+  linear-gradient(125deg,#90682b 0%,#fff2c7 24%,#e2bb65 46%,#a47731 72%,#f3d995 100%) border-box;
+ box-shadow:inset 0 1px 0 rgba(255,246,206,.06),
+  0 0 0 1px rgba(200,159,82,.12),0 2px 16px rgba(229,181,84,.14);
+}
+#s-results .betpro-results-section.betpro-pending-section>.ct{
+ color:#f8dda0;
+}
 .betpro-results-row{padding:10px 0;border-bottom:1px solid var(--bd);overflow-wrap:anywhere}
 .betpro-results-row:last-child{border-bottom:0}
 .betpro-results-more{color:#ff9369;cursor:pointer;font:700 11px var(--mo);padding:7px 0}
