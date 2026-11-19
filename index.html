@@ -500,12 +500,12 @@ a{color:var(--neon);text-decoration:none}
 .betpro-analytics-note{font-size:10px;color:var(--mu);line-height:1.7;margin:9px 0 12px}
 .betpro-analytics-note strong{color:var(--tx)}
 .betpro-analytics-hint{color:var(--dm);font-size:9px;line-height:1.5;margin-top:5px}
-.betpro-analytics-info{border:1px solid var(--bd);border-left:3px solid var(--neon);border-radius:6px;background:var(--sf2);color:var(--tx);font-size:11px;line-height:1.75;padding:11px 13px;margin:14px 0}
+.betpro-analytics-info{border:1px solid var(--bd);border-left:3px solid #ff9369;border-radius:6px;background:var(--sf2);color:var(--tx);font-size:11px;line-height:1.75;padding:11px 13px;margin:14px 0}
 .betpro-analytics-info strong{color:var(--tx)}
 .betpro-analytics-group{border-top:1px solid var(--bd);padding-top:10px;margin-top:12px}
 .betpro-analytics-group>summary{list-style-position:outside;cursor:pointer;color:var(--tx);font-family:var(--hd);font-size:12px;font-weight:750;line-height:1.6}
-.betpro-analytics-group[open]>summary{color:var(--neon)}
-.betpro-analytics-group>summary:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
+.betpro-analytics-group[open]>summary{color:#ff9369}
+.betpro-analytics-group>summary:focus-visible{outline:2px solid #ff9369;outline-offset:3px}
 .betpro-analytics-sub{float:right;font-size:9px;font-family:var(--mo);font-weight:500;color:var(--mu)}
 .betpro-analytics-overflow{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
 .betpro-analytics-table{min-width:710px}
@@ -520,11 +520,16 @@ a{color:var(--neon);text-decoration:none}
  .betpro-analytics-sub{float:none;display:inline-block;margin-left:6px}
 }
 /* Sélection volontaire de cartes Scan Live : lisible et sobre. */
-.betpro-follow-btn{display:inline-flex;align-items:center;justify-content:center;min-height:37px;margin-top:12px;padding:9px 13px;border-radius:7px;border:1px solid rgba(66,189,216,.46);background:rgba(66,189,216,.075);color:#b6e8f3;font:750 11px var(--mo);cursor:pointer;transition:border-color .18s,background .18s}
-.betpro-follow-btn:hover,.betpro-follow-btn:focus-visible{border-color:#4bd8eb;background:rgba(66,189,216,.14);outline-offset:3px}
+.betpro-follow-btn{display:inline-flex;align-items:center;justify-content:center;min-height:37px;margin-top:12px;padding:9px 13px;border-radius:7px;border:1px solid #ff9369;background:rgba(255,147,105,.11);color:#ffb38a;font:750 11px var(--mo);cursor:pointer;transition:border-color .18s,background .18s}
+.betpro-follow-btn:hover,.betpro-follow-btn:focus-visible{border-color:#ffb38a;background:rgba(255,147,105,.22);outline-offset:3px}
 .betpro-follow-btn.is-followed{border-color:rgba(57,255,20,.50);background:rgba(57,255,20,.085);color:#aaff92}
 .betpro-follow-btn:disabled{opacity:.62;cursor:progress}
 .betpro-chosen-card+.betpro-chosen-card{border-top:1px solid var(--bd);padding-top:7px}
+/* Accent orange saumon fluo déjà présent sur Scan Live Benter, limité aux nouveaux éléments Résultats. */
+#betpro-results-verify.btn.bp{background:linear-gradient(115deg,#ffb38a 0%,#ff9369 43%,#ff645b 100%);color:#32150b;border:1px solid #ff9869;box-shadow:0 0 14px rgba(255,135,93,.48)}
+#betpro-results-verify.btn.bp:hover{filter:brightness(1.07);box-shadow:0 0 21px rgba(255,135,93,.66)}
+#betpro-results-verify.btn.bp:focus-visible{outline:2px solid #ffd5a9;outline-offset:3px}
+#betpro-stats-live .betpro-analytics-head .btn.bs:hover,#betpro-stats-live .betpro-analytics-head .btn.bs:focus-visible{border-color:#ff9369;color:#ffb38a}
 /* Résultats confirmés et récapitulatif statistique en bas de page. */
 .betpro-results-table{border-collapse:collapse;width:100%;font:10px var(--mo);min-width:315px}
 .betpro-results-table th{color:var(--mu);font-weight:700;text-align:left;padding:9px 5px;border-bottom:1px solid var(--bd)}
@@ -535,8 +540,8 @@ a{color:var(--neon);text-decoration:none}
 .betpro-results-section{padding:15px 16px;margin-bottom:14px}
 .betpro-results-row{padding:10px 0;border-bottom:1px solid var(--bd);overflow-wrap:anywhere}
 .betpro-results-row:last-child{border-bottom:0}
-.betpro-results-more{color:var(--neon);cursor:pointer;font:700 11px var(--mo);padding:7px 0}
-.betpro-results-more:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
+.betpro-results-more{color:#ff9369;cursor:pointer;font:700 11px var(--mo);padding:7px 0}
+.betpro-results-more:focus-visible{outline:2px solid #ff9369;outline-offset:3px}
 /* Rapport de collecte repliable : état compact au chargement, contenu conservé. */
 #maturity-panel>summary::-webkit-details-marker{display:none}
 #maturity-panel>summary::marker{content:""}
