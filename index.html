@@ -762,7 +762,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats à suivre</div>
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie de valeur</div>
-    <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Rattrapage Intelligent</div>
+    <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Se refaire intelligemment</div>
     <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128014;</span>PMU / Turf France</div>
     <div class="ni"    data-s="hkjc"      onclick="go('hkjc')"    ><span class="ni-i">&#127464;&#127475;</span>HKJC Hong Kong</div>
     <div class="ni"    data-s="blackjack" onclick="go('blackjack')"><span class="ni-i">&#127183;</span>Blackjack Directionnel</div>
@@ -1155,13 +1155,49 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ MÉTHODES / RATTRAPAGE ═══════════════ -->
 <section class="sec" id="s-methods">
-  <div class="ph"><div class="pt">&#127919; Rattrapage Intelligent</div><div class="ps">Journal de paris · Solde réel · Recherche multicritère · Contrôle des mises</div></div>
+  <div class="ph"><div class="pt">&#127919; Se refaire intelligemment</div><div class="ps">Journal de paris · Solde réel · Recherche multicritère · Contrôle des mises</div></div>
   <div class="methods-hero">
-    <div style="font-family:var(--hd);font-size:16px;font-weight:800;color:var(--pu);margin-bottom:5px">Stratégies professionnelles avec suivi IA</div>
-    <div style="font-size:12px;color:var(--mu);line-height:1.7">1. Enregistrez vos résultats et montants réels → 2. Vérifiez le solde net → 3. Comparez les matchs, les mises plafonnées et les scénarios. Aucune obligation de rejouer.</div>
+    <div style="font-family:var(--hd);font-size:16px;font-weight:800;color:var(--pu);margin-bottom:5px">Enregistrer une perte en quelques secondes</div>
+    <div style="font-size:12px;color:var(--mu);line-height:1.7">Indiquez simplement le montant perdu. Le journal calcule votre déficit net, puis recherche les rencontres disponibles sans imposer de rejouer.</div>
   </div>
 
-  <!-- FILTRES RATTRAPAGE PÉRIODE+SPORT -->
+  <!-- Saisie express : un montant suffit en cas de perte -->
+  <div class="card" id="loss-input-card" style="margin-bottom:12px;border-color:rgba(0,212,255,.28)">
+    <div class="ct">① Enregistrer un résultat en quelques secondes</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px">
+      <div class="fgrp"><label for="loss-stake">Montant du pari (€) *</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="Ex. 20" inputmode="decimal" style="font-size:17px;font-weight:700"></div>
+      <div class="fgrp"><label for="loss-result">Résultat</label><select id="loss-result" onchange="lossUpdateQuickForm()"><option value="loss">Perdu</option><option value="win">Gagné</option><option value="void">Remboursé</option><option value="cashout">Cash-out / partiel</option></select></div>
+    </div>
+    <div id="loss-quick-payout" class="fgrp" style="display:none;margin-top:10px">
+      <label for="loss-payout">Montant encaissé, mise incluse (€)</label>
+      <input type="number" id="loss-payout" min="0" step="0.01" placeholder="Ex. 34,50" inputmode="decimal">
+      <div style="color:var(--dm);font-size:10px;margin-top:4px">Requis pour un gain sans cote renseignée ou un cash-out.</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 6px">
+      <button class="btn bp" id="loss-save-btn" onclick="lossAdd()" style="font-weight:800;padding:10px 17px">+ Enregistrer ma perte</button>
+      <span style="font-size:10px;color:var(--dm)">Aucun autre champ obligatoire pour une perte. Date automatique.</span>
+    </div>
+    <details id="loss-advanced" style="border-top:1px solid var(--bd);margin-top:12px;padding-top:10px">
+      <summary style="cursor:pointer;color:var(--neon);font-weight:700;font-size:11px">Détails du pari (facultatif)</summary>
+      <div class="fg" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px">
+        <div class="fgrp"><label>Rencontre</label><input type="text" id="loss-match" placeholder="Ex. PSG - Lyon" maxlength="160"></div>
+        <div class="fgrp"><label>Sélection</label><input type="text" id="loss-sel" placeholder="Ex. PSG gagne" maxlength="160"></div>
+        <div class="fgrp"><label>Cote jouée</label><input type="number" id="loss-odds" min="1.01" step="0.01" placeholder="Si connue" inputmode="decimal"></div>
+        <div class="fgrp"><label>Sport</label><select id="loss-sport-sel"><option value="all">Non précisé</option><option value="soccer">Football</option><option value="basketball">Basketball</option><option value="mma">MMA / boxe</option><option value="tennis">Tennis</option><option value="icehockey">Hockey</option><option value="rugby">Rugby</option><option value="baseball">Baseball</option><option value="americanfootball">NFL</option><option value="handball">Handball</option><option value="volleyball">Volleyball</option></select></div>
+        <div class="fgrp"><label>Type de ticket</label><select id="loss-ticket-type"><option value="simple">Simple</option><option value="combine">Combiné</option><option value="systeme">Système</option><option value="live">Live</option></select></div>
+        <div class="fgrp"><label>Date du pari</label><input type="datetime-local" id="loss-bet-date"></div>
+        <div class="fgrp"><label>Bookmaker</label><input type="text" id="loss-bookmaker" placeholder="Facultatif" maxlength="80"></div>
+        <div class="fgrp"><label>Référence du ticket</label><input type="text" id="loss-ticket-id" placeholder="Facultatif" maxlength="80"></div>
+        <div class="fgrp"><label>Commentaire</label><input type="text" id="loss-note" placeholder="Facultatif" maxlength="200"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn bs" onclick="lossMarkRecovered()">Clôturer la session</button>
+        <button class="btn" onclick="lossClearAll()" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25);border-radius:4px">Effacer l'historique</button>
+      </div>
+    </details>
+  </div>
+
+  <!-- FILTRES PÉRIODE+SPORT -->
   <div class="card" style="margin-bottom:10px;padding:12px">
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
@@ -1206,57 +1242,15 @@ a{color:var(--neon);text-decoration:none}
   <div class="card" style="margin-bottom:8px;padding:12px">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px">
-        <label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo);font-weight:700;display:block;margin-bottom:4px">Bankroll (&#8364;)</label>
-        <input type="number" id="loss-bankroll-input" value="200" min="10" max="100000" step="10" oninput="lossRender()" onchange="lossBankrollSave()"
+        <label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo);font-weight:700;display:block;margin-bottom:4px">Capital disponible pour les paris (&#8364;)</label>
+        <input type="number" id="loss-bankroll-input" value="" placeholder="Capital disponible" min="10" max="100000" step="10" oninput="lossRender()" onchange="lossBankrollSave()"
           style="width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:7px 10px;color:var(--tx);font-family:var(--mo);font-size:13px;font-weight:700;outline:none">
       </div>
-      <div style="font-size:10px;color:var(--dm);max-width:200px">Limites automatiques : 1% par pari, 2% par ensemble, arrêt si pertes de session répétées<br><span style="color:var(--re);font-size:9px">Ne misez que ce que vous pouvez perdre.</span></div>
+      <div style="font-size:10px;color:var(--dm);max-width:200px">Ce montant est mémorisé. Limites : 1 % par pari, 2 % pour le plan<br><span style="color:var(--re);font-size:9px">Ne misez que ce que vous pouvez perdre.</span></div>
     </div>
   </div>
-  <div class="card"><div class="ct">&#9312; Choisissez votre strat&#233;gie de rattrapage</div><div class="m-strat-grid" id="m-strat-grid"></div></div>
+  <details class="card" style="margin-bottom:10px"><summary style="cursor:pointer;color:var(--mu);font-weight:700;font-size:11px">Profil de calcul (facultatif)</summary><div class="m-strat-grid" id="m-strat-grid" style="margin-top:12px"></div></details>
   <div id="m-detail-panel" style="display:none"></div>
-
-  <!-- ② SAISIE PARI (gagné OU perdu) -->
-  <div class="card" id="loss-input-card">
-    <div class="ct">② Enregistrer un pari et son résultat réel</div>
-    <div class="fg" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-      <div class="fgrp"><label>Rencontre / événement</label><input type="text" id="loss-match" placeholder="Équipe A - Équipe B" maxlength="160"></div>
-      <div class="fgrp"><label>Pronostic joué</label><input type="text" id="loss-sel" placeholder="Équipe A gagne" maxlength="160"></div>
-      <div class="fgrp"><label>Mise (€)</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="20,00" inputmode="decimal"></div>
-      <div class="fgrp"><label>Cote réellement jouée</label><input type="number" id="loss-odds" min="1.01" step="0.01" placeholder="2.10" inputmode="decimal"></div>
-    </div>
-    <div class="fg" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px">
-      <div class="fgrp"><label>Résultat réel</label><select id="loss-result">
-        <option value="loss">Perdu</option><option value="win">Gagné</option>
-        <option value="void">Remboursé / annulé</option><option value="cashout">Cash-out / règlement partiel</option>
-      </select></div>
-      <div class="fgrp"><label>Sport</label><select id="loss-sport-sel">
-        <option value="all">Autre / non précisé</option><option value="soccer">Football</option>
-        <option value="basketball">Basketball</option><option value="mma">MMA / boxe</option>
-        <option value="tennis">Tennis</option><option value="icehockey">Hockey</option>
-        <option value="rugby">Rugby</option><option value="baseball">Baseball</option>
-        <option value="americanfootball">NFL</option><option value="handball">Handball</option>
-        <option value="volleyball">Volleyball</option>
-      </select></div>
-      <div class="fgrp"><label>Type de ticket</label><select id="loss-ticket-type">
-        <option value="simple">Pari simple</option><option value="combine">Combiné</option>
-        <option value="systeme">Système / multiple</option><option value="live">Live</option>
-      </select></div>
-      <div class="fgrp"><label>Date et heure du pari</label><input type="datetime-local" id="loss-bet-date"></div>
-      <div class="fgrp"><label>Bookmaker</label><input type="text" id="loss-bookmaker" placeholder="Facultatif" maxlength="80"></div>
-      <div class="fgrp"><label>Référence ticket</label><input type="text" id="loss-ticket-id" placeholder="Facultatif" maxlength="80"></div>
-      <div class="fgrp"><label>Somme effectivement encaissée (€)</label>
-        <input type="number" id="loss-payout" min="0" step="0.01" placeholder="Calcul auto si vide" inputmode="decimal">
-      </div>
-      <div class="fgrp"><label>Commentaire</label><input type="text" id="loss-note" placeholder="Facultatif" maxlength="200"></div>
-    </div>
-    <div style="color:var(--dm);font-size:10px;line-height:1.65;margin-top:6px">Le retour encaissé comprend la mise remboursée. Laissez vide pour calculer automatiquement un pari gagné, perdu ou annulé. En cas de cash-out, saisissez obligatoirement le montant exact encaissé.</div>
-    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn bp" onclick="lossAdd()">&#43; Enregistrer</button>
-      <button class="btn bs" onclick="lossMarkRecovered()">&#10003; Clôturer la session</button>
-      <button class="btn" onclick="lossClearAll()" style="background:rgba(239,68,68,.1);color:var(--re);border:1px solid rgba(239,68,68,.25);border-radius:4px">&#128465; Tout effacer</button>
-    </div>
-  </div>
 
   <!-- ③ STATS -->
   <div id="loss-stats-panel"></div>
