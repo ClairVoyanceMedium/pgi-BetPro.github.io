@@ -3603,42 +3603,57 @@ async function clearResults(){
   try{await api('/api/results','DELETE');toast('Ancien cache vidé ; historiques préservés.','ok');loadResults();}
   catch(e){toast('Erreur : '+e.message,'err');}
 }
+// Le suivi et ses statistiques utilisent exclusivement les cartes sélectionnées.
+function betproChosenResultRow(item){
+ const row=betproResultNormalize({...item,detectedAt:item.selectedAt},'Suivi personnel');
+ if(!row||!/^[A-Za-z0-9_-]+$/.test(String(item.id||'')))return'';
+ betproFollowCatalog.set(item.id,item);
+ const button='<button type="button" class="betpro-follow-btn is-followed" data-betpro-follow-id="'+item.id+'" aria-pressed="true" onclick="event.stopPropagation();betproToggleFollow(this,\''+item.id+'\')">Retirer du suivi</button>';
+ return '<div class="betpro-chosen-card">'+betproResultRow(row)
+  +'<div style="font-size:10px;color:var(--mu);margin:0 0 7px">Scan '+esc(item.engine||'')+' · Sélectionné le '+betproResultDate(item.selectedAt)+(item.phase==='en_direct'?' · Sélection en direct':'')+'</div>'
+  +'<div style="display:flex;justify-content:flex-end;margin:0 0 12px">'+button+'</div></div>';
+}
+function betproRenderChosenResults(items,stats){
+ const target=document.getElementById('res-cnt');if(!target)return;
+ const chosen=[...items].sort((a,b)=>(Date.parse(b.selectedAt||'')||0)-(Date.parse(a.selectedAt||'')||0));
+ const settled=chosen.filter(x=>['win','loss','void'].includes(String(x.status||'')));
+ const pending=chosen.filter(x=>!['win','loss','void'].includes(String(x.status||'')));
+ const stat=(name,val)=>'<div class="tsm-cell"><div class="sv" style="color:var(--tx)">'+val+'</div><label>'+name+'</label></div>';
+ const section=(name,rows,empty)=>'<div class="card betpro-results-section"><div class="ct">'+name+'</div>'
+   +(rows.length?rows.slice(0,15).map(betproChosenResultRow).join('')
+      +(rows.length>15?'<details><summary class="betpro-results-more">Afficher '+(rows.length-15)+' autres pronostics</summary>'+rows.slice(15).map(betproChosenResultRow).join('')+'</details>':'')
+      :'<p style="font-size:11px;color:var(--mu);line-height:1.7">'+empty+'</p>')+'</div>';
+ let html='<div class="info" style="font-size:11px;line-height:1.7;margin-bottom:14px">Suivi personnel : seuls les pronostics que tu as sélectionnés sur les cartes Scan Live sont contrôlés et comptabilisés ici.</div>'
+   +'<div class="tracker-summary" style="margin-bottom:14px">'
+   +stat('Mes sélections',chosen.length)+stat('Gagnées',settled.filter(x=>x.status==='win').length)
+   +stat('Perdues',settled.filter(x=>x.status==='loss').length)+stat('À vérifier',pending.length)+'</div>';
+ if(!chosen.length){
+  html+='<div class="card betpro-results-section"><div class="ct">Aucun pronostic sélectionné</div>'
+   +'<p style="font-size:12px;color:var(--mu);line-height:1.75">Effectue un Scan Live Classique ou Benter, puis appuie sur « Suivre le résultat » sur les cartes de ton choix. Elles apparaîtront ici sur tous tes appareils.</p></div>';
+ }else{
+  html+=section('Mes résultats confirmés',settled,'Aucun des pronostics choisis n’a encore un score officiel confirmé.')
+    +section('Mes pronostics en attente',pending,'Toutes tes sélections ont été vérifiées.');
+ }
+ html+=betproResultsBottomStats(stats,chosen);
+ target.innerHTML=html;
+}
 async function loadResults(){
-  const target=document.getElementById('res-cnt');if(!target)return;
-  const seq=++betproResultsSequence;
-  const localCards=histLocalLoad(),localSport=_sportHistLoad();
-  const previous=betproResultsLastData;
-  // Ne jamais présenter un écran vide en attendant Cloudflare.
-  betproRenderResults(localCards,localSport,previous?.legacy||null,'Lecture des historiques Cloudflare en cours…',previous?.stats||null);
-  const tasks=await Promise.allSettled([
-    api('/api/history/list?limit=100','GET',null,{timeoutMs:16000}),
-    api('/api/sport-history/list?limit=100','GET',null,{timeoutMs:16000}),
-    api('/api/results','GET',null,{timeoutMs:16000}),
-    api('/api/results/settlement-stats','GET',null,{timeoutMs:16000})
-  ]);
-  if(seq!==betproResultsSequence)return;
-  const primary=tasks[0].status==='fulfilled'&&tasks[0].value?.ok!==false&&Array.isArray(tasks[0].value?.cards)?tasks[0].value.cards:[];
-  const advanced=tasks[1].status==='fulfilled'&&tasks[1].value?.ok!==false&&Array.isArray(tasks[1].value?.entries)?tasks[1].value.entries:[];
-  const legacy=tasks[2].status==='fulfilled'&&tasks[2].value?.ok!==false?tasks[2].value:(previous?.legacy||null);
-  // Les lectures distantes sont non destructives : ne réécrivent aucun historique.
-  const mergeById=(remote,local)=>{
-    const byId=new Map(local.filter(x=>x?.id).map(x=>[x.id,x]));
-    for(const row of remote){if(!row?.id)continue;
-      const prev=byId.get(row.id);
-      const settled=x=>['win','won','loss','lost','void','refund'].includes(String(x?.status||x?.settlement_status||'').toLowerCase());
-      if(!prev||settled(row)||!settled(prev))byId.set(row.id,row);
-    }
-    return [...byId.values()];
-  };
-  const allPrimary=mergeById(primary,localCards),allAdvanced=mergeById(advanced,localSport);
-  const stats=tasks[3].status==='fulfilled'&&tasks[3].value?.ok?tasks[3].value:(previous?.stats||null);
-  const okCount=tasks.filter(x=>x.status==='fulfilled'&&x.value?.ok!==false).length;
-  betproResultsLastData={legacy,primary:allPrimary,advanced:allAdvanced,stats};
-  // La version serveur confirmée prévaut sur un cache local encore en attente.
-  try{histLocalSave(allPrimary.filter(c=>c?.id&&c?.home&&c?.away));_sportHistSave(allAdvanced);}catch(_){}
-  betproRenderResults(allPrimary,allAdvanced,legacy,
-    okCount===4?'Historique et statistiques Cloudflare actualisés · '+betproResultDate(new Date().toISOString()):
-    'Certaines sources sont indisponibles : affichage des données disponibles ('+okCount+'/4 sources).',stats);
+ const target=document.getElementById('res-cnt');if(!target)return;
+ const seq=++betproResultsSequence;
+ target.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement de mes pronostics suivis…</p></div>';
+ const responses=await Promise.allSettled([
+  api('/api/results/tracked','GET',null,{timeoutMs:16000,noCache:true}),
+  api('/api/results/settlement-stats','GET',null,{timeoutMs:16000,noCache:true})
+ ]);
+ if(seq!==betproResultsSequence)return;
+ const items=responses[0].status==='fulfilled'&&responses[0].value?.ok?responses[0].value.items:null;
+ const stats=responses[1].status==='fulfilled'&&responses[1].value?.ok?responses[1].value:null;
+ if(!Array.isArray(items)){
+  target.innerHTML='<div class="card"><div style="color:var(--re)">Suivi momentanément indisponible. Utilise « Actualiser ».</div></div>';return;
+ }
+ betproFollowSelected=new Set(items.map(x=>x.id));
+ betproRenderChosenResults(items,stats);
+ betproFollowPaint();
 }
 
 
