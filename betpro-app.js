@@ -4085,14 +4085,9 @@ function lossBalanceSnapshot(data){
     pending:Math.round(pending*100)/100,available:Math.round(Math.max(0,base+realized-pending)*100)/100};
 }
 function lossRiskLimits(bankroll,entries){
+  // Aucun seuil de perte quotidienne. Les performances journalières
+  // restent comptabilisées dans le journal, sans bloquer la recherche.
   const amount=Number.isFinite(bankroll)&&bankroll>0?bankroll:0;
-  const today=new Date().toDateString();
-  let todayLoss=0,pendingExposure=0;
-  for(const e of (entries||[])){
-    if(e.result==='pending'){pendingExposure+=Math.max(0,Number(e.stake)||0);continue;}
-    const date=new Date(e.settledAt||e.createdAt||e.date||0);
-    if(date.toDateString()===today)todayLoss+=Math.max(0,-lossNetAmount(e));
-  }
   const entriesSorted=[...(entries||[])].filter(e=>!e.recovered&&e.result!=='pending')
     .sort((a,b)=>new Date(b.settledAt||b.createdAt||b.date||0)-new Date(a.settledAt||a.createdAt||a.date||0));
   let streak=0;
@@ -4102,14 +4097,11 @@ function lossRiskLimits(bankroll,entries){
     else if(net>0)break;
   }
   const betCap=Math.floor(amount*.01*100)/100;
-  const dailyCap=Math.floor(amount*.03*100)/100;
-  const dailyRemaining=Math.max(0,Math.round((dailyCap-todayLoss-pendingExposure)*100)/100);
-  const combinedCap=Math.max(0,Math.min(Math.floor(amount*.02*100)/100,dailyRemaining));
+  const combinedCap=Math.max(0,Math.floor(amount*.02*100)/100);
   const blocked=!amount||streak>=3||betCap<.50||combinedCap<.50;
-  return {amount,todayLoss,pendingExposure,streak,betCap,dailyCap,dailyRemaining,combinedCap,blocked,
+  return {amount,streak,betCap,combinedCap,blocked,
     reason:!amount?'Solde disponible non défini ou épuisé':streak>=3?'Arrêt après trois pertes consécutives':
-      dailyRemaining<.50?'Limite de perte et exposition quotidienne atteinte':
-      betCap<.50?'Solde insuffisant pour une mise de 0,50 €':''};
+      betCap<.50||combinedCap<.50?'Solde insuffisant pour une mise de 0,50 €':''};
 }
 function lossRoundDown(v){return Math.floor(Math.max(0,Number(v)||0)*100+1e-7)/100;}
 
@@ -4448,7 +4440,7 @@ function lossRender(){
     const bal=lossBalanceSnapshot(data);
     const pendingAmount=allEntries.filter(e=>e.result==='pending').reduce((sum,e)=>sum+(Number(e.stake)||0),0);
     account.innerHTML=bal.configured
-      ?'<div class="card" style="border-color:rgba(0,212,255,.27);margin-bottom:10px">'
+      ?'<div class="card" style="border-color:rgba(255,147,105,.38);margin-bottom:10px">'
        +'<div class="ct">Solde et paris réellement engagés</div>'
        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">'
        +'<div class="tsm-cell"><div class="sv" style="color:var(--neon)">'+bal.available.toFixed(2)+' €</div><label>Solde disponible calculé</label></div>'
@@ -4547,7 +4539,6 @@ function lossRender(){
        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-top:12px;text-align:left">'
        +'<div class="tsm-cell"><div class="sv">'+risk.betCap.toFixed(2)+' €</div><label>Limite par pari (1 %)</label></div>'
        +'<div class="tsm-cell"><div class="sv">'+risk.combinedCap.toFixed(2)+' €</div><label>Budget total du plan</label></div>'
-       +'<div class="tsm-cell"><div class="sv">'+risk.dailyRemaining.toFixed(2)+' €</div><label>Budget de risque restant aujourd\'hui</label></div>'
        +'<div class="tsm-cell"><div class="sv">'+risk.streak+'</div><label>Pertes consécutives</label></div>'
        +'</div>'
        +(risk.blocked?'<div class="warn" style="margin-top:9px;color:var(--re)">Abstention : '+esc(risk.reason)+'. Le moteur ne proposera pas de nouvelle mise.</div>':'')
@@ -4812,13 +4803,12 @@ async function lossAutoSearch(forcedOdds){
   }
   const euro=n=>(Math.round(Number(n||0)*100)/100).toFixed(2)+' €';
   const primary=eligible[0];
-  let html=banners+'<div class="card" style="border:1px solid rgba(0,212,255,.32);padding:14px;margin-bottom:12px">'
+  let html=banners+'<div class="card" style="border:1px solid rgba(255,147,105,.40);padding:14px;margin-bottom:12px">'
     +'<div class="ct">Bilan et protection du capital</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px">'
     +'<div class="tsm-cell"><div class="sv" style="color:var(--re)">-'+euro(totalLost)+'</div><label>Déficit net à combler</label></div>'
     +'<div class="tsm-cell"><div class="sv">'+euro(risk.betCap)+'</div><label>Maximum par pari</label></div>'
     +'<div class="tsm-cell"><div class="sv">'+euro(risk.combinedCap)+'</div><label>Budget total de risque</label></div>'
-    +'<div class="tsm-cell"><div class="sv">'+euro(risk.dailyRemaining)+'</div><label>Disponible dans la limite quotidienne</label></div>'
     +'</div><div style="font-size:10px;color:var(--mu);margin-top:10px">Capital disponible déclaré : '+euro(bankroll)+'. Les deux plans ci-dessous sont des alternatives. Ne jamais les additionner.</div></div>';
 
   html+='<div class="card" style="border-color:rgba(0,255,157,.3);margin-bottom:10px">'
