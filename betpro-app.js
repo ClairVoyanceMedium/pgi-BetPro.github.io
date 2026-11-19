@@ -4109,6 +4109,125 @@ function lossAdd(){
   }
 }
 
+// Confirmations de tickets réels. Une carte recommandée n'est pas un pari placé.
+let recoveryCardCache=[];
+let recoverySelectedTicket=null;
+function lossPrepareTicket(index){
+  const card=recoveryCardCache[Number(index)];
+  if(!card)return toast('Actualisez les rencontres avant de sélectionner une carte','err');
+  const modal=document.getElementById('loss-bet-modal');
+  const info=document.getElementById('loss-bet-modal-match');
+  const stake=document.getElementById('loss-bet-modal-stake');
+  const odds=document.getElementById('loss-bet-modal-odds');
+  if(!modal||!stake||!odds)return;
+  recoverySelectedTicket=card;
+  if(info)info.textContent=[card.match,card.sel].filter(Boolean).join(' | ');
+  stake.value=Number(card.stake).toFixed(2);
+  odds.value=Number(card.odds).toFixed(2);
+  modal.style.display='flex';
+  stake.focus();stake.select();
+}
+function lossCloseTicketModal(){
+  const modal=document.getElementById('loss-bet-modal');
+  if(modal)modal.style.display='none';
+  recoverySelectedTicket=null;
+}
+function lossConfirmTicket(){
+  const card=recoverySelectedTicket;
+  if(!card)return;
+  const stakeRaw=document.getElementById('loss-bet-modal-stake')?.value||'';
+  const oddsRaw=document.getElementById('loss-bet-modal-odds')?.value||'';
+  const stake=Number(stakeRaw),odds=Number(oddsRaw);
+  if(!stakeRaw||!Number.isFinite(stake)||stake<.01||stake>100000000){
+    toast('Mise réellement engagée invalide','err');return;
+  }
+  if(!oddsRaw||!Number.isFinite(odds)||odds<=1||odds>100000){
+    toast('Cote réellement jouée invalide','err');return;
+  }
+  const data=lossLoad();
+  const duplicate=(data.entries||[]).some(e=>e.result==='pending'&&e.ticketKey===card.key);
+  if(duplicate){toast('Ce match a déjà un ticket en attente','err');return;}
+  const balance=lossBalanceSnapshot(data);
+  const risk=lossRiskLimits(balance.available,data.entries||[]);
+  if(risk.blocked||stake>risk.betCap+.001||stake>risk.combinedCap+.001){
+    if(!confirm('Cette mise dépasse la limite de risque actuelle ou intervient après une limite atteinte. Confirmez-vous avoir effectivement placé ce pari ? Ce bouton sert uniquement à enregistrer un pari réel.'))return;
+  }
+  const now=new Date().toISOString();
+  data.entries.unshift({
+    id:'bet-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),
+    match:card.match,sel:card.sel,sport:card.sport,odds,stake,
+    market:card.market,competition:card.competition,
+    eventTime:card.eventTime,ticketKey:card.key,ticket_type:'simple',
+    modelProbAtPick:card.prob,bookmaker:'',result:'pending',
+    actual_return:null,amount_lost:0,amount_won:0,
+    date:now,createdAt:now,updatedAt:now,recovered:false,
+    source:'recovery-confirmed'
+  });
+  lossSave(data);
+  lossCloseTicketModal();
+  lossRender();
+  toast('Ticket réel suivi : '+stake.toFixed(2)+' € réservés sur votre solde','ok');
+}
+function lossPendingSettle(id,result){
+  if(!['win','loss','void','cashout'].includes(result))return;
+  const data=lossLoad();
+  const e=(data.entries||[]).find(x=>String(x.id)===String(id));
+  if(!e||e.result!=='pending'){toast('Ce ticket a déjà été réglé ou est introuvable','err');return;}
+  const stake=Number(e.stake)||0;
+  const odds=Number(e.odds)||0;
+  let payout=0;
+  if(result==='win'){
+    if(odds<=1){toast('Cote de ce ticket non valide','err');return;}
+    payout=Math.round(stake*odds*100)/100;
+  }else if(result==='void')payout=stake;
+  else if(result==='cashout'){
+    const value=prompt('Montant total effectivement encaissé après cash-out (€), mise comprise :','');
+    if(value===null)return;
+    if(!String(value).trim()||!Number.isFinite(Number(value))||Number(value)<0){
+      toast('Montant de cash-out invalide','err');return;
+    }
+    payout=Math.round(Number(value)*100)/100;
+  }
+  const now=new Date().toISOString();
+  e.result=result;e.actual_return=payout;
+  e.amount_lost=Math.max(0,Math.round((stake-payout)*100)/100);
+  e.amount_won=Math.max(0,Math.round((payout-stake)*100)/100);
+  e.settledAt=now;e.updatedAt=now;
+  lossSave(data);
+  lossRender();
+  const net=lossNetAmount(e);
+  toast('Ticket réglé : '+(net>=0?'+':'')+net.toFixed(2)+' € nets',net>0?'ok':'');
+  if(net<0&&lossBalanceSnapshot(data).configured){
+    setTimeout(()=>lossAutoSearch(),300);
+  }
+}
+function lossPendingRender(entries){
+  const el=document.getElementById('loss-pending-panel');
+  if(!el)return;
+  const pending=(entries||[]).filter(e=>e.result==='pending');
+  if(!pending.length){el.innerHTML='';return;}
+  const sum=pending.reduce((v,e)=>v+(Number(e.stake)||0),0);
+  el.innerHTML='<div class="card" style="border-color:rgba(245,158,11,.42);margin-bottom:12px">'
+    +'<div class="ct">Tickets réellement placés en attente : '+pending.length
+    +' <span style="margin-left:8px;color:var(--am);font-size:11px">'+sum.toFixed(2)+' € engagés</span></div>'
+    +'<div style="font-size:10px;color:var(--dm);margin-bottom:12px">Ces mises sont réservées, mais pas comptées comme des pertes tant que le résultat n’est pas enregistré. Le règlement doit correspondre au bookmaker.</div>'
+    +pending.map(e=>{
+      const id=JSON.stringify(String(e.id));
+      const header=[e.match||'Rencontre',e.sel||''].filter(Boolean).join(' · ');
+      return '<div style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:9px">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:start">'
+      +'<div><strong style="font-size:12px">'+esc(header)+'</strong><div style="color:var(--dm);font-size:10px;margin-top:3px">'
+      +Number(e.stake||0).toFixed(2)+' € @ '+Number(e.odds||0).toFixed(2)
+      +(e.eventTime?' · '+esc(fmtDT(e.eventTime)):'')+'</div></div><span class="bdg" style="color:var(--am)">EN ATTENTE</span></div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:11px">'
+      +'<button class="btn bs" onclick="lossPendingSettle('+id+',\'win\')" style="color:var(--gr)">Gagné</button>'
+      +'<button class="btn bs" onclick="lossPendingSettle('+id+',\'loss\')" style="color:var(--re)">Perdu</button>'
+      +'<button class="btn bs" onclick="lossPendingSettle('+id+',\'void\')">Remboursé</button>'
+      +'<button class="btn bs" onclick="lossPendingSettle('+id+',\'cashout\')">Cash-out</button>'
+      +'</div></div>';
+    }).join('')+'</div>';
+}
+
 function lossBankrollSave(){
   const value=Number(document.getElementById('loss-bankroll-input')?.value);
   if(Number.isFinite(value)&&value>=10&&value<=100000){
@@ -4127,6 +4246,7 @@ function lossMarkRecovered(){
   const summary=lossLedgerSummary(lossLoad().entries||[]);
   if(!confirm(summary.deficit>0?'Clôturer avec un solde négatif de '+summary.deficit.toFixed(2)+' € ? L’historique sera conservé.':'Clôturer cette session ?'))return;
   var data=lossLoad();
+  if(data.entries.some(e=>e.result==='pending')){toast('Réglez les tickets en attente avant de clôturer la session','err');return;}
   data.entries=data.entries.map(function(e){return Object.assign({},e,{recovered:true});});
   lossSave(data);
   toast('Session clôturée sans effacement de l’historique','ok');
@@ -4149,7 +4269,8 @@ function lossDeleteEntry(id){
 function lossRender(){
   var data=lossLoad();
   var allEntries=data.entries||[];
-  var filteredEntries=lossFilterByPeriod(allEntries);
+  lossPendingRender(allEntries);
+  var filteredEntries=lossFilterByPeriod(allEntries.filter(e=>e.result!=='pending'));
 
   var wins=filteredEntries.filter(function(e){return lossNetAmount(e)>0;});
   var losses=filteredEntries.filter(function(e){return lossNetAmount(e)<0;});
@@ -4170,7 +4291,7 @@ function lossRender(){
   var activeLosses=allEntries.filter(function(e){return !e.recovered&&lossNetAmount(e)<0;});
   var session=lossLedgerSummary(allEntries);
   var totalActiveLost=session.deficit;
-  var lastOdds=activeLosses.length>0?activeLosses[0].odds:2.0;
+  var lastOdds=activeLosses.find(e=>Number(e.odds)>1)?.odds||2.0;
 
   var statsPanel=document.getElementById('loss-stats-panel');
   var panel=document.getElementById('loss-recovery-panel');
