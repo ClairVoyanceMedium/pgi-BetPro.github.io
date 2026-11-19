@@ -3131,15 +3131,18 @@ function betproFollowIdentifier(c){
  return 'follow_'+(a>>>0).toString(16).padStart(8,'0')+(b>>>0).toString(16).padStart(8,'0');
 }
 function betproFollowBenterPayload(o){
+ const p=Number(o?._res?.modelProb);
+ const probability=Number.isFinite(p)&&p>0&&p<100?p/100:null;
  return{engine:'Benter',sport:String(o.sport||o._sport||''),home:String(o.home_team||''),away:String(o.away_team||''),
  market:String(o.market||''),selection:String(o.selection||''),line:o.line??null,odds:o.odds??null,
- startTime:o.start_time||o.commence_time||'',competition:String(o.competition||o.sport_title||'')};
+ startTime:o.start_time||o.commence_time||'',competition:String(o.competition||o.sport_title||''),predictedProbability:probability};
 }
 function betproFollowClassicPayload(m){
  const c=m.consensus||{},odds=Number(m.classic_value?.best_price)>1?Number(m.classic_value.best_price):Number(c.median_market_odds);
  return{engine:'Classique',sport:String(m.sport||''),home:String(m.home_name||m.home||''),away:String(m.away_name||m.away||''),
  market:'h2h',selection:c.choice==='draw'?'draw':String(c.favorite||''),line:null,odds:Number.isFinite(odds)?odds:null,
- startTime:m.start_time||m.event_start_at||'',competition:String(m.competition||m.sport_label||'')};
+ startTime:m.start_time||m.event_start_at||'',competition:String(m.competition||m.sport_label||''),
+ predictedProbability:Number(c.probability)>0&&Number(c.probability)<1?Number(c.probability):null};
 }
 function betproFollowPaint(){
  document.querySelectorAll('[data-betpro-follow-id]').forEach(el=>{
