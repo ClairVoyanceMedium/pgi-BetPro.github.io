@@ -3911,21 +3911,29 @@ let recoverySport = 'all';
 let selectedMethod = 'pgi_prudente';
 
 function lossLoad(){
-  try{ const raw=localStorage.getItem(LOSS_KEY); return raw?JSON.parse(raw):{entries:[]}; }
-  catch(_){ return {entries:[]}; }
+  try{
+    const data=JSON.parse(localStorage.getItem(LOSS_KEY)||'{"entries":[]}');
+    return data&&Array.isArray(data.entries)?data:{entries:[]};
+  }catch(_){return {entries:[]};}
 }
 function lossSave(data){
-  try{ localStorage.setItem(LOSS_KEY,JSON.stringify(data)); }catch(_){}
-  api('/api/notes','PUT',{notes:[{id:'pgi_loss_v3',title:'LossTracker',body:JSON.stringify(data),updatedAt:new Date().toISOString()}]}).catch(function(){});
+  data.updatedAt=new Date().toISOString();
+  try{localStorage.setItem(LOSS_KEY,JSON.stringify(data));}catch(_){}
+  api('/api/notes','PUT',{notes:[{id:'pgi_loss_v3',title:'LossTracker',body:JSON.stringify(data),updatedAt:data.updatedAt}]}).catch(()=>{});
 }
 async function lossLoadCloud(){
   try{
-    var d=await api('/api/notes');
-    var note=(d.notes||[]).find(function(n){return n.id==='pgi_loss_v3';});
+    const d=await api('/api/notes','GET',null,{noCache:true});
+    const note=(d.notes||[]).find(n=>n.id==='pgi_loss_v3');
     if(note&&note.body){
-      var parsed=JSON.parse(note.body);
-      var local=lossLoad();
-      if((parsed.entries||[]).length>(local.entries||[]).length){ lossSave(parsed); return parsed; }
+      const cloud=JSON.parse(note.body),local=lossLoad();
+      if(!Array.isArray(cloud.entries))return local;
+      const remoteAt=Date.parse(cloud.updatedAt||note.updatedAt||'')||0;
+      const localAt=Date.parse(local.updatedAt||'')||0;
+      if(remoteAt>localAt||(!remoteAt&&!localAt&&cloud.entries.length>local.entries.length)){
+        try{localStorage.setItem(LOSS_KEY,JSON.stringify(cloud));}catch(_){}
+        return cloud;
+      }
     }
   }catch(_){}
   return lossLoad();
@@ -3960,83 +3968,98 @@ function setRecoverySport(sport,el){
   if(el) el.classList.add('on');
 }
 
-function calcRecoveryStake(totalLost, lastOdds, method, bankroll) {
-  bankroll = bankroll || 200;
-  const safeOdds = Math.max(1.01, lastOdds||1.80);
-  let nextStake = 0, coteCible = safeOdds, expl = '', riskLevel = 'low';
-  if(!method || method === 'pgi_prudente') {
-    const targetRecov = totalLost * 0.40;
-    nextStake = targetRecov / Math.max(0.10, safeOdds - 1);
-    nextStake = Math.min(nextStake, bankroll * 0.02);
-    nextStake = Math.max(0.50, Math.round(nextStake * 2) / 2);
-    riskLevel = 'low';
-    expl = 'Récupération prudente PGI : protection bankroll prioritaire, récupération progressive. Aucune garantie, peut perdre malgré une EV positive.';
-  } else if(method === 'martingale') {
-    nextStake = Math.min(totalLost, bankroll * 0.05);
-    riskLevel = 'very-high';
-    expl = 'Martingale plafonnée : risque très élevé, non recommandée par défaut. Plafond 5% bankroll.';
-  } else if(method === 'fibonacci') {
-    const fib=[1,1,2,3,5,8,13,21,34,55,89];
-    const n = Math.min(8, Math.max(0, Math.round(totalLost/5)));
-    nextStake = Math.min((bankroll*0.005)*(fib[n]||13), bankroll*0.04);
-    nextStake = Math.round(nextStake*2)/2;
-    riskLevel = 'high'; expl = 'Fibonacci — risque élevé, plafond 4% bankroll.';
-  } else if(method === 'dalembert') {
-    nextStake = Math.min((bankroll*0.005)+Math.round(totalLost/10), bankroll*0.03);
-    nextStake = Math.round(nextStake*2)/2;
-    riskLevel = 'medium'; expl = "D'Alembert — plafond 3% bankroll.";
-  } else if(method === 'kelly') {
-    nextStake = Math.min(bankroll*0.015, totalLost*0.20);
-    nextStake = Math.round(nextStake*2)/2;
-    riskLevel = 'medium'; expl = 'Kelly fractionnel — plafond 1.5% bankroll.';
-  } else if(method === 'flat') {
-    nextStake = Math.min(bankroll*0.01, 10);
-    nextStake = Math.round(nextStake*2)/2;
-    riskLevel = 'low'; expl = 'Mise fixe.';
-  } else if(method === 'labouchere') {
-    nextStake = Math.min(bankroll*0.005*3, bankroll*0.03);
-    nextStake = Math.round(nextStake*2)/2;
-    riskLevel = 'high'; expl = 'Labouchère — risque élevé, plafond 3% bankroll.';
-  } else {
-    nextStake = Math.min(5, bankroll*0.01);
-    expl = 'Méthode inconnue — mise minimale.';
-  }
-  nextStake = Math.max(0.50, nextStake);
-  return { nextStake, coteCible, expl, riskLevel, totalLost };
+function lossNetAmount(e){
+  const stake=Number(e.stake)||0,received=e.actual_return;
+  if(received!==undefined&&received!==null&&received!==''&&Number.isFinite(Number(received)))
+    return Math.round((Number(received)-stake)*100)/100;
+  if(e.result==='win')return Math.round(stake*((Number(e.odds)||1)-1)*100)/100;
+  if(e.result==='void')return 0;
+  if(e.result==='cashout')return Math.round(((Number(e.amount_won)||0)-(Number(e.amount_lost)||0))*100)/100;
+  return -stake;
 }
-
+function lossLedgerSummary(entries){
+  const active=(entries||[]).filter(e=>!e.recovered);
+  const net=Math.round(active.reduce((sum,e)=>sum+lossNetAmount(e),0)*100)/100;
+  return {active,net,deficit:Math.max(0,-net)};
+}
+function lossRiskLimits(bankroll,entries){
+  const amount=Number.isFinite(bankroll)&&bankroll>0?bankroll:0;
+  const today=new Date().toDateString();
+  const todayLoss=(entries||[]).reduce((sum,e)=>{
+    const dt=new Date(e.date||0);
+    return dt.toDateString()===today?sum+Math.max(0,-lossNetAmount(e)):sum;
+  },0);
+  const entriesSorted=[...(entries||[])].filter(e=>!e.recovered).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+  let streak=0;
+  for(const e of entriesSorted){const n=lossNetAmount(e);if(n<0)streak++;else if(n>0)break;}
+  const betCap=Math.floor(amount*.01*100)/100;
+  const dailyCap=Math.floor(amount*.03*100)/100;
+  const dailyRemaining=Math.max(0,Math.round((dailyCap-todayLoss)*100)/100);
+  const combinedCap=Math.min(Math.floor(amount*.02*100)/100,dailyRemaining);
+  const blocked=!amount||streak>=3||betCap<.50||combinedCap<.50;
+  return {amount,todayLoss,streak,betCap,dailyCap,dailyRemaining,combinedCap,blocked,
+    reason:!amount?'Bankroll invalide':streak>=3?'Arrêt après trois pertes consécutives':
+      dailyRemaining<.50?'Limite de perte quotidienne atteinte':
+      betCap<.50?'Bankroll insuffisante pour une mise de 0,50 €':''};
+}
+function lossRoundDown(v){return Math.floor(Math.max(0,Number(v)||0)*100+1e-7)/100;}
+function recoveryProposal(due,odds,probPct,risk,portion){
+  const o=Number(odds),p=Number(probPct)/100;
+  if(!(o>1.01&&p>0&&p<1))return {stake:0,reason:'Cote ou probabilité invalide'};
+  const conservativeP=Math.max(0,p-.05),edge=conservativeP*o-1;
+  const theoretical=lossRoundDown(due/(o-1));
+  const kelly=edge>0?edge/(o-1):0;
+  const cap=Math.min(risk.betCap,risk.combinedCap*(portion==null?1:portion),risk.amount*kelly*.25);
+  const stake=!risk.blocked&&edge>.02?lossRoundDown(cap):0;
+  const accepted=stake>=.50?stake:0;
+  const profit=lossRoundDown(accepted*(o-1));
+  return {stake:accepted,theoretical,profit,ev:Math.round(accepted*(p*o-1)*100)/100,
+    winRemaining:lossRoundDown(Math.max(0,due-profit)),loseRemaining:lossRoundDown(due+accepted),
+    conservativeP,edge,reason:risk.blocked?risk.reason:edge<=.02?'Avantage conservateur insuffisant':
+      accepted<.50?'Mise calculée inférieure à 0,50 €':'Plafond de risque et Kelly au quart'};
+}
+function calcRecoveryStake(totalLost,lastOdds,method,bankroll){
+  const risk=lossRiskLimits(Number(bankroll),lossLoad().entries||[]);
+  const odds=Number(lastOdds)>1.01?Number(lastOdds):1.80;
+  return {nextStake:risk.blocked?0:lossRoundDown(Math.min(risk.betCap,risk.combinedCap)),
+    coteCible:odds,theoretical:lossRoundDown(totalLost/(odds-1)),risk,
+    expl:'Plafond indicatif uniquement. Le calcul par rencontre prendra en compte probabilité, valeur attendue et mises maximales. Une perte ne doit jamais augmenter automatiquement la mise.'};
+}
 
 function lossAdd(){
-  var match=document.getElementById('loss-match')?.value.trim();
-  var stake=parseFloat(document.getElementById('loss-stake')?.value);
-  var odds=parseFloat(document.getElementById('loss-odds')?.value);
-  var sel=document.getElementById('loss-sel')?.value.trim()||'';
-  var result=document.getElementById('loss-result')?.value||'loss';
-  var sport=document.getElementById('loss-sport-sel')?.value||'all';
-
-  if(!match){toast('Renseignez le match','err');return;}
-  if(!stake||stake<=0){toast('Mise invalide','err');return;}
-  if(!odds||odds<=1){toast('Cote invalide (>1)','err');return;}
-
-  var data=lossLoad();
-  var gain=result==='win'?parseFloat(((stake*odds)-stake).toFixed(2)):0;
+  const match=document.getElementById('loss-match')?.value.trim()||'';
+  const stake=Number(document.getElementById('loss-stake')?.value),odds=Number(document.getElementById('loss-odds')?.value);
+  const sel=document.getElementById('loss-sel')?.value.trim()||'';
+  const result=document.getElementById('loss-result')?.value||'loss';
+  const rawPayout=document.getElementById('loss-payout')?.value?.trim()||'';
+  const rawDate=document.getElementById('loss-bet-date')?.value||'';
+  const dt=rawDate?new Date(rawDate):new Date();
+  if(!match||!Number.isFinite(stake)||stake<=0||stake>100000000){toast('Rencontre ou mise invalide','err');return;}
+  if(!Number.isFinite(odds)||odds<=1||odds>100000){toast('Cote décimale invalide','err');return;}
+  if(!Number.isFinite(dt.getTime())||dt.getTime()>Date.now()+3600000){toast('Date incorrecte','err');return;}
+  if(result==='cashout'&&rawPayout===''){toast('Indiquez le retour encaissé du cash-out','err');return;}
+  if(rawPayout!==''&&(!Number.isFinite(Number(rawPayout))||Number(rawPayout)<0)){
+    toast('Retour encaissé invalide','err');return;
+  }
+  const payout=Math.round((rawPayout===''?(result==='win'?stake*odds:result==='void'?stake:0):Number(rawPayout))*100)/100;
+  const net=Math.round((payout-stake)*100)/100;
+  const data=lossLoad();
   data.entries.unshift({
-    id:Date.now(), match:match, sel:sel, odds:odds, stake:stake, sport:sport,
-    result:result, amount_lost:result==='loss'?stake:0, amount_won:result==='win'?gain:0,
-    date:new Date().toISOString(), recovered:false
+    id:Date.now()+Math.floor(Math.random()*1000)/1000,
+    match,sel,stake,odds,result,sport:document.getElementById('loss-sport-sel')?.value||'all',
+    actual_return:payout,amount_lost:Math.max(0,-net),amount_won:Math.max(0,net),
+    bookmaker:document.getElementById('loss-bookmaker')?.value.trim()||'',
+    ticket_id:document.getElementById('loss-ticket-id')?.value.trim()||'',
+    ticket_type:document.getElementById('loss-ticket-type')?.value||'simple',
+    note:document.getElementById('loss-note')?.value.trim()||'',date:dt.toISOString(),recovered:false
   });
   lossSave(data);
-
-  ['loss-match','loss-sel','loss-stake','loss-odds'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-
-  toast(result==='win'?'Gain enregistre (+'+gain.toFixed(2)+' €)!':'Perte enregistree.', result==='win'?'ok':'');
-
+  ['loss-match','loss-sel','loss-stake','loss-odds','loss-payout','loss-bookmaker','loss-ticket-id','loss-note','loss-bet-date']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  toast('Pari enregistré : '+(net>=0?'+':'')+net.toFixed(2)+' € nets',net>0?'ok':'');
   lossRender();
-  if(result==='loss' && selectedMethod){
-    setTimeout(function(){ lossAutoSearch(); }, 400);
-  }
+  if(net<0)setTimeout(()=>lossAutoSearch(),300);
 }
-
 
 function lossResetSession(){
   if(!confirm('Remettre a zero ? Tous les paris seront effaces et une nouvelle session commence.')) return;
@@ -4045,11 +4068,12 @@ function lossResetSession(){
   lossRender();
 }
 function lossMarkRecovered(){
-  if(!confirm('Marquer toute la session comme recuperee ?')) return;
+  const summary=lossLedgerSummary(lossLoad().entries||[]);
+  if(!confirm(summary.deficit>0?'Clôturer avec un solde négatif de '+summary.deficit.toFixed(2)+' € ? L’historique sera conservé.':'Clôturer cette session ?'))return;
   var data=lossLoad();
   data.entries=data.entries.map(function(e){return Object.assign({},e,{recovered:true});});
   lossSave(data);
-  toast('Session recuperee !','ok');
+  toast('Session clôturée sans effacement de l’historique','ok');
   lossRender();
 }
 function lossClearAll(){
@@ -4060,6 +4084,7 @@ function lossClearAll(){
 }
 function lossDeleteEntry(id){
   var data=lossLoad();
+  if(!confirm('Supprimer définitivement ce pari du journal ?'))return;
   data.entries=data.entries.filter(function(e){return e.id!==id;});
   lossSave(data);
   lossRender();
@@ -4459,15 +4484,15 @@ async function lossSearchMatchesSport(cote){ await lossAutoSearch(cote); }
 //  METHODES GRID — selectMethod declenche calcul auto
 // ═══════════════════════════════════════════════
 const METHODS = [
-  {id:'pgi_prudente',ico:'&#9733;',name:'Stratégie PGI prudente',
-   sub:'TRÈS FORTE / FORTE uniquement — protection de la bankroll prioritaire',
-   risk:'mr-low',riskLabel:'Faible à modéré',isDefault:true},
-  {id:'martingale',ico:'M',name:'Martingale plafonnée',sub:'Double apres chaque perte',risk:'mr-vhi',riskLabel:'Tres eleve'},
-  {id:'fibonacci',ico:'F',name:'Fibonacci',sub:'Suite de Fibonacci',risk:'mr-hi',riskLabel:'Eleve'},
-  {id:'dalembert',ico:'D',name:"D'Alembert",sub:'+1 unite apres perte',risk:'mr-med',riskLabel:'Modere'},
-  {id:'labouchere',ico:'L',name:'Labouchere',sub:'Sequence personnalisee',risk:'mr-hi',riskLabel:'Élevé'},
-  {id:'flat',ico:'=',name:'Mise fixe',sub:'Mise constante',risk:'mr-low',riskLabel:'Faible'},
-  {id:'kelly',ico:'K',name:'Kelly fractionnel',sub:'Optimisation mathematique',risk:'mr-med',riskLabel:'Modere'},
+  {id:'pgi_prudente',ico:'&#9733;',name:'Protection de bankroll',
+   sub:'1 % max par pari, 2 % pour le portefeuille, arrêt après trois pertes',
+   risk:'mr-low',riskLabel:'Référence',isDefault:true},
+  {id:'flat',ico:'=',name:'Mise plafonnée',
+   sub:'Aucune augmentation de mise après une perte',
+   risk:'mr-low',riskLabel:'Prudent'},
+  {id:'kelly',ico:'K',name:'Kelly au quart',
+   sub:'Probabilité prudente diminuée de 5 points avant le calcul',
+   risk:'mr-low',riskLabel:'Prudent'}
 ];
 
 function initMethods() {
