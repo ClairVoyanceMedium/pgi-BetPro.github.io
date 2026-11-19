@@ -3515,7 +3515,111 @@ function betproResultSection(title,rows,empty,mode='history'){
       :'<p style="color:var(--mu);font-size:11px;line-height:1.6">'+empty+'</p>')
     +'</div>';
 }
+// Observatoire permanent des pronostics suivis. Aucun score non confirmé n'entre au rendement.
+let betproAnalyticsReport=null;
+function betproAnalyticsExportCsv(){
+ const d=betproAnalyticsReport;if(!d?.groups)return toast('Aucun bilan disponible pour export.','err');
+ const cols=['Dimension','Catégorie','Total','Gagnés','Perdus','Annulés','En attente','Cotes exploitables',
+  'Réussite %','Cote moyenne','Cote gagnés','Cote perdus','ROI virtuel %','ROI prudent indicatif %',
+  'Profit virtuel EUR','Brier','Brier observations'];
+ const lines=[cols];
+ for(const [kind,entries] of Object.entries(d.groups)){
+  for(const x of entries)lines.push([kind,x.label,x.total,x.win,x.loss,x.void,x.pending,
+   x.priced,x.rate,x.average_odds,x.win_odds,x.loss_odds,x.roi,x.roi_floor_95,x.profit,x.brier,x.brierN]);
+ }
+ const quote=v=>{const str=String(v??'');
+  return '"'+(/^[=+@]/.test(str)?"'"+str:str).replace(/"/g,'""')+'"';};
+ const blob=new Blob(['\ufeff'+lines.map(x=>x.map(quote).join(';')).join('\r\n')],
+   {type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),el=document.createElement('a');
+ el.href=url;el.download='BetPro_Bilan_statistique_'+new Date().toISOString().slice(0,10)+'.csv';
+ document.body.appendChild(el);el.click();el.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+function betproAnalyticsDashboard(d){
+ betproAnalyticsReport=d;
+ const format=(n,places=1)=>n==null||!Number.isFinite(Number(n))?'—':Number(n).toLocaleString('fr-FR',{maximumFractionDigits:places});
+ const percent=(n,sign=false)=>n==null?'—':(sign&&Number(n)>0?'+':'')+format(n)+' %';
+ const kpi=(label,value,desc)=>'<div class="tsm-cell"><div class="sv" style="color:var(--tx)">'+value+'</div>'
+  +'<label>'+label+'</label><div class="betpro-analytics-hint">'+desc+'</div></div>';
+ const number=(x)=>Number(x||0);
+ const status=x=>number(x.priced)<30?'Données insuffisantes':
+  x.roi_floor_95!=null&&x.roi_floor_95>0?'Signal positif à confirmer':'Avantage non démontré';
+ const sportLabel=v=>typeof getSportLabel==='function'?String(getSportLabel(v)||v):String(v);
+ const view=(kind,entries)=>{
+  if(!entries?.length)return'<p class="betpro-analytics-note">Aucune sélection dans cette catégorie.</p>';
+  const sorted=kind==='month'?[...entries].sort((a,b)=>b.label.localeCompare(a.label)):entries;
+  return'<div class="betpro-analytics-overflow"><table class="betpro-results-table betpro-analytics-table">'
+   +'<thead><tr><th>Catégorie</th><th>Paris réglés / total</th><th>G / P</th><th>Réussite</th>'
+   +'<th>Cote moy.</th><th>ROI virtuel</th><th>ROI prudent</th><th>Fiabilité</th></tr></thead><tbody>'
+   +sorted.slice(0,40).map(x=>'<tr><td><strong>'+esc(kind==='sport'?sportLabel(x.label):x.label)+'</strong></td>'
+    +'<td>'+number(x.priced)+' / '+number(x.total)+'</td>'
+    +'<td>'+number(x.win)+' / '+number(x.loss)+'</td>'
+    +'<td>'+percent(x.rate)+'</td><td>'+format(x.average_odds,2)+'</td>'
+    +'<td>'+percent(x.roi,true)+'</td><td>'+percent(x.roi_floor_95,true)+'</td>'
+    +'<td>'+status(x)+'</td></tr>').join('')+'</tbody></table></div>';
+ };
+ const section=(name,key,opened,note)=>'<details class="betpro-analytics-group"'+(opened?' open':'')+'>'
+  +'<summary>'+name+' <span class="betpro-analytics-sub">'+(d.groups?.[key]?.length||0)+' catégories</span></summary>'
+  +'<div class="betpro-analytics-note">'+note+'</div>'+view(key,d.groups?.[key]||[])+'</details>';
+ const strongest=(d.groups?.combo||[]).find(x=>number(x.priced)>=30);
+ const insight=strongest
+  ?'<div class="betpro-analytics-info"><strong>Segment en tête du classement indicatif :</strong> '
+    +esc(strongest.label)+', '+number(strongest.priced)+' pronostics à cote exploitable, ROI virtuel '
+    +percent(strongest.roi,true)+', borne basse indicative '+percent(strongest.roi_floor_95,true)
+    +'. Cette tendance doit encore être confirmée hors échantillon.</div>'
+  :'<div class="betpro-analytics-info"><strong>Historique encore insuffisant pour classer sérieusement la rentabilité.</strong> '
+    +'Le classement par rendement prudent commence à partir de 30 pronostics réglés avec cote dans le même segment. '
+    +'Aucun avantage ne peut actuellement être établi.</div>';
+ const cal=d.calibration||[];
+ const calibration=cal.length
+  ?'<div class="betpro-analytics-overflow"><table class="betpro-results-table betpro-analytics-table">'
+    +'<thead><tr><th>Tranche annoncée</th><th>Vérifiés</th><th>Prob. moyenne</th><th>Réussite réelle</th></tr></thead><tbody>'
+    +cal.map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+number(x.count)+'</td>'
+     +'<td>'+percent(x.expected)+'</td><td>'+percent(x.observed)+'</td></tr>').join('')
+    +'</tbody></table></div>'
+  :'<p class="betpro-analytics-note">Les cartes choisies à partir de cette version enregistrent les probabilités nécessaires à cette analyse.</p>';
+ return'<div class="card betpro-results-section" id="betpro-stats-live">'
+  +'<div class="betpro-analytics-head"><div class="ct">Observatoire statistique cumulatif</div>'
+  +'<button type="button" class="btn bs" onclick="betproAnalyticsExportCsv()">Exporter CSV</button></div>'
+  +'<p class="betpro-analytics-note">Statistiques de tes pronostics sélectionnés uniquement. '
+   +'Les résultats vérifiés demeurent dans le cumul lorsque tu retires une carte du suivi actif.</p>'
+  +'<div class="tracker-summary" style="margin:12px 0">'
+  +kpi('Pronostics cumulés',number(d.total),number(d.archived)+' archivés définitivement')
+  +kpi('Pronostics départagés',number(d.win)+number(d.loss),number(d.win)+' gagnés · '+number(d.loss)+' perdus')
+  +kpi('Taux de réussite',percent(d.rate),'Pronostics gagnés et perdus confirmés')
+  +kpi('ROI virtuel',percent(d.virtual_roi,true),number(d.priced)+' sélections avant-match à cote connue')
+  +kpi('Cote moyenne',format(d.average_odds,2),'Uniquement les pronostics réglés à cote connue')
+  +kpi('Matchs non vérifiés',number(d.unverified),'Rencontres passées sans issue confirmée')
+  +'</div>'
+  +'<p class="betpro-analytics-note">Cote moyenne des gagnants : <strong>'+format(d.win_odds,2)
+   +'</strong> · des perdants : <strong>'+format(d.loss_odds,2)
+   +'</strong> · borne basse indicative du ROI : <strong>'+percent(d.roi_floor_95,true)
+   +'</strong> · borne basse Wilson de la réussite : <strong>'+percent(d.rate_floor_95)+'</strong>.</p>'
+  +'<p class="betpro-analytics-note">Dernière vérification ESPN : '+esc(d.last_check?betproResultDate(d.last_check):'Aucune')
+   +' · Recalcul statistique : '+esc(d.updated_at?betproResultDate(d.updated_at):'Indisponible')+'</p>'
+  +insight
+  +section('Performances par sport','sport',true,'Les sports sont classés par une estimation prudente seulement lorsque le volume est suffisant.')
+  +section('Meilleures plages de cotes','odds',true,'Les cotes sont celles enregistrées lorsque tu as choisi la carte, pas les cotes ultérieures.')
+  +section('Scan Benter contre Scan Classique','engine',false,'Analyse séparée des deux moteurs à partir de tes choix.')
+  +section('Performance selon le marché','market',false,'Vainqueur, buts, handicaps et autres marchés qui ont fait l’objet de tes sélections.')
+  +section('Performance par compétition','competition',false,'Classement par championnat et compétition avec leur volume réel.')
+  +section('Sport + moteur + marché','combo',false,'Analyse croisée : identification des combinaisons, sans conclusion prématurée.')
+  +section('Historique mois par mois','month',false,'Regroupement selon le mois du match, indépendamment du jour où son résultat a été retrouvé.')
+  +'<details class="betpro-analytics-group"><summary>Calibrage des probabilités et score de Brier</summary>'
+  +'<p class="betpro-analytics-note">Score de Brier : '
+   +(d.brier==null?'volume insuffisant':format(d.brier,4))
+   +' ('+number(d.brierN)+' échantillons). Plus il est faible, mieux les probabilités ont été calibrées. '
+   +'Benter utilise sa probabilité de modèle; Classique la probabilité du marché.</p>'
+  +calibration+'</details>'
+  +'<p class="betpro-analytics-note" style="margin-top:13px">Méthode : mises théoriques de 10 € identiques, '
+   +'ROI réservé aux choix avant le match avec cote valide, matchs annulés ou non vérifiés exclus. '
+   +'Les bornes à 95 % sont approximatives et ne corrigent ni le biais de sélection ni les comparaisons multiples. '
+   +'Les rendements passés ne garantissent pas les résultats futurs.</p>'
+  +'</div>';
+}
 function betproResultsBottomStats(stats,cards){
+  if(stats?.ok&&stats.groups)return betproAnalyticsDashboard(stats);
   if(!stats?.ok){
     return '<div class="card betpro-results-section" id="betpro-stats-live"><div class="ct">Statistiques sportives actualisées</div>'
       +'<p style="color:var(--mu);font-size:11px">Statistiques Cloudflare indisponibles momentanément. Les historiques restent consultables.</p></div>';
