@@ -438,54 +438,86 @@ function getLeaguesForSportFilter(filter, mode) {
 //  LIVE SCAN — avec football
 // ═══════════════════════════════════════════════
 let _scanDateFilter = 'all';
-
-function setScanDateFilter(val, el) {
-  _scanDateFilter = val;
-  document.querySelectorAll('#scan-date-btns .fbtn').forEach(b=>b.classList.remove('on'));
-  el?.classList.add('on');
-  const wrap = document.getElementById('scan-custom-date-wrap');
-  if(wrap) wrap.style.display = val==='custom' ? 'block' : 'none';
+// La date est exprimée en heure de Paris, indépendamment du téléphone utilisé.
+function betproScanParisToday(){return frenchDateStrClient(new Date());}
+function betproScanShiftDay(day,delta){
+ const d=new Date(day+'T12:00:00Z');
+ d.setUTCDate(d.getUTCDate()+delta);
+ return d.toISOString().slice(0,10);
 }
-
-function getScanDateParams() {
-  const now   = new Date();
-  const today = localDateStr(now);
-
-  if(_scanDateFilter === 'all')  return {};
-  if(_scanDateFilter === 'today') return { date_filter:'today', date_from:today, date_to:today };
-
-  if(_scanDateFilter === 'tomorrow') {
-    const d = new Date(now); d.setDate(d.getDate()+1);
-    const tom = localDateStr(d);
-    return { date_filter:'tomorrow', date_from:tom, date_to:tom };
-  }
-  if(_scanDateFilter === 'week') {
-    const d = new Date(now); d.setDate(d.getDate()+7);
-    return { date_filter:'week', date_from:today, date_to:localDateStr(d) };
-  }
-  if(_scanDateFilter === 'weekend') {
-    const day = now.getDay();
-    const diff = day===0 ? 6 : day===6 ? 7 : (6-day);
-    const sat = new Date(now); sat.setDate(sat.getDate()+diff);
-    const sun = new Date(sat); sun.setDate(sun.getDate()+1);
-    return { date_filter:'weekend', date_from:localDateStr(sat), date_to:localDateStr(sun) };
-  }
-  if(_scanDateFilter === '7d') {
-    const d = new Date(now); d.setDate(d.getDate()+7);
-    return { date_filter:'7d', date_from:today, date_to:localDateStr(d) };
-  }
-  if(_scanDateFilter === 'month') {
-    const d = new Date(now.getFullYear(), now.getMonth()+1, 0);
-    return { date_filter:'month', date_from:today, date_to:localDateStr(d) };
-  }
-  if(_scanDateFilter === 'custom') {
-    return {
-      date_filter:'custom',
-      date_from: document.getElementById('scan-date-from')?.value || today,
-      date_to:   document.getElementById('scan-date-to')?.value   || today,
-    };
-  }
-  return {};
+function betproScanDatePeriodLabel(params){
+ if(!params?.date_from&&!params?.date_to)return'Toutes les dates disponibles';
+ if(params.date_from===params.date_to)return'Le '+params.date_from.split('-').reverse().join('/');
+ return'Du '+params.date_from.split('-').reverse().join('/')+' au '+params.date_to.split('-').reverse().join('/');
+}
+function betproScanDateMatches(startTime,params){
+ if(!params?.date_from&&!params?.date_to)return true;
+ const dt=Date.parse(startTime||'');
+ if(!Number.isFinite(dt))return false;
+ const day=frenchDateStrClient(new Date(dt));
+ return(!params.date_from||day>=params.date_from)&&(!params.date_to||day<=params.date_to);
+}
+function betproScanDateFeedback(){
+ const target=document.getElementById('scan-date-feedback');
+ if(!target)return;
+ if(_scanDateFilter==='custom'){
+  const from=document.getElementById('scan-date-from')?.value;
+  const to=document.getElementById('scan-date-to')?.value;
+  if(!from||!to){target.textContent='Saisis deux dates pour appliquer une période personnalisée au prochain scan.';return;}
+ }
+ try{
+  const params=getScanDateParams();
+  target.textContent='Période du prochain scan : '+betproScanDatePeriodLabel(params)
+   +'. Seules les cartes de cette période seront affichées, selon les rencontres et cotes disponibles.';
+ }catch(error){target.textContent=String(error?.message||'Dates invalides.');}
+}
+function setScanDateFilter(val,el){
+ _scanDateFilter=val;
+ document.querySelectorAll('#scan-date-btns .fbtn').forEach(b=>{
+  const selected=b===el;
+  b.classList.toggle('on',selected);
+  b.setAttribute('aria-pressed',String(selected));
+ });
+ const wrap=document.getElementById('scan-custom-date-wrap');
+ if(wrap)wrap.style.display=val==='custom'?'block':'none';
+ betproScanDateFeedback();
+}
+function getScanDateParams(){
+ const today=betproScanParisToday(),now=new Date(today+'T12:00:00Z');
+ const format=(f,t,filter)=>({date_filter:filter,date_from:f,date_to:t});
+ if(_scanDateFilter==='all')return{};
+ if(_scanDateFilter==='today')return format(today,today,'today');
+ if(_scanDateFilter==='tomorrow'){
+  const next=betproScanShiftDay(today,1);return format(next,next,'tomorrow');
+ }
+ if(_scanDateFilter==='week'){
+  const utcDay=now.getUTCDay();
+  return format(today,betproScanShiftDay(today,(7-utcDay)%7),'week');
+ }
+ if(_scanDateFilter==='weekend'){
+  const day=now.getUTCDay();
+  const toSaturday=day===0?0:day===6?0:6-day;
+  const from=day===0?today:betproScanShiftDay(today,toSaturday);
+  const to=day===0?today:betproScanShiftDay(from,1);
+  return format(from,to,'weekend');
+ }
+ if(_scanDateFilter==='7d')return format(today,betproScanShiftDay(today,6),'7d');
+ if(_scanDateFilter==='month'){
+  const end=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,0)).toISOString().slice(0,10);
+  return format(today,end,'month');
+ }
+ if(_scanDateFilter==='custom'){
+  const from=document.getElementById('scan-date-from')?.value||'';
+  const to=document.getElementById('scan-date-to')?.value||'';
+  const valid=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T12:00:00Z'));
+  if(!valid(from)||!valid(to))throw Error('Sélectionne une date de début et une date de fin.');
+  if(from>to)throw Error('La date de début doit précéder la date de fin.');
+  if(to<today)throw Error('Choisis une période qui comprend des matchs à venir.');
+  const limit=betproScanShiftDay(today,34);
+  if(from>limit||to>limit)throw Error('Période maximale : les 35 prochains jours, selon la couverture des fournisseurs.');
+  return format(from<today?today:from,to,'custom');
+ }
+ return{};
 }
 
 // ═══════════════════════════════════════════════
@@ -702,7 +734,7 @@ async function doLiveScan() {
       if (scanController.signal.aborted) break;
       const batch = toScanSafe.slice(i, i+chunk);
       const results = await Promise.allSettled(batch.map(({sport,market}) =>
-        (()=>{const _qd=getScanDateParams();const _qs=Object.keys(_qd).map(k=>'&'+enc(k)+'='+enc(_qd[k])).join('');return api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick'+_qs,'GET',null,{timeoutMs:20000,signal:scanController.signal});})().then(d => {
+        (()=>{const _qs=Object.keys(_dateParams).map(k=>'&'+enc(k)+'='+enc(_dateParams[k])).join('');return api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick'+_qs,'GET',null,{timeoutMs:20000,signal:scanController.signal});})().then(d => {
           completedRequests++;
           leagueFailReset(sport);
           totalGamesReceived += (d.games_count||0);
@@ -724,7 +756,8 @@ async function doLiveScan() {
 
     // Dédoublonner
     const seen = new Set();
-    const deduped = allOpps.filter(o => {
+    const inDate = allOpps.filter(o => betproScanDateMatches(o.start_time||o.commence_time||o.event_start_at,_dateParams));
+    const deduped = inDate.filter(o => {
       const k = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.market||'')+'|'+(o.selection||'');
       if(seen.has(k)) return false; seen.add(k); return true;
     });
@@ -3362,7 +3395,7 @@ async function doClassicScan(){
     const candidates=Array.isArray(d.events)?d.events:[];
     const identified=Math.max(candidates.length,Number(d.candidate_events||0));
     const now=Date.now();
-    const events=candidates.filter(e=>betproClassicIsActionable(e,now))
+    const events=candidates.filter(e=>betproClassicIsActionable(e,now)&&betproScanDateMatches(e.start_time||e.event_start_at,dateParams))
       .sort((a,b)=>{
         const strongA=Number(a.consensus?.probability)>=BETPRO_CLASSIC_GREEN_MARKET_PROBABILITY?1:0;
         const strongB=Number(b.consensus?.probability)>=BETPRO_CLASSIC_GREEN_MARKET_PROBABILITY?1:0;
@@ -3375,7 +3408,7 @@ async function doClassicScan(){
       events.length===0&&d.quota_blocked?'Budget de crédits Odds API protégé. Les appels supplémentaires sont suspendus.':
       events.length===0&&missingProvider.length?'Aucune compétition active chez le fournisseur de cotes pour : '+missingProvider.join(', ')+'.':'';
     const warning=issue?'<div class="warn" style="margin-bottom:11px">'+esc(issue)+'</div>':'';
-    const warn='<div class="classic-subtext" style="margin-bottom:12px">Analyse indépendante de Benter : consensus de bookmakers, sans garantie de victoire. Si les cotes manquent, un rattrapage ciblé peut utiliser des crédits Odds API dans les limites prévues.</div>'+warning;
+    const warn='<div class="classic-subtext" style="margin-bottom:12px">Période : '+esc(betproScanDatePeriodLabel(dateParams))+'. Analyse indépendante de Benter : consensus de bookmakers, sans garantie de victoire. Si les cotes manquent, un rattrapage ciblé peut utiliser des crédits Odds API dans les limites prévues.</div>'+warning;
     betproRememberScan('Classique',events);
     cnt.innerHTML=`<div class="sbar"><span style="color:#dccaff;font-weight:800">SCAN LIVE CLASSIQUE</span><span>${events.length} cote(s) exploitable(s) · ${Math.max(0,identified-events.length)} rencontre(s) sans marché exploitable</span><span style="margin-left:auto">${esc(betproClassicDate(d.generated_at))}</span></div>`+warn+(events.length?'<div class="opp-grid">'+events.map(betproClassicCard).join('')+'</div>':'<div class="empty"><div class="empty-t">Aucune cote exploitable actuellement. '+identified+' rencontre(s) enregistrée(s), mais aucun marché assez fiable pour une carte de pari. Les rencontres ne sont pas présentées comme des paris.</div></div>');
     betproEnhanceScanFollow('scan-classic-res',events,'Classique');
