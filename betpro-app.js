@@ -4050,7 +4050,7 @@ function betproChatShowResearchSources(data){
  const makeLink=url=>{
    try{
      const u=new URL(url);
-     return u.protocol==='https:'&&u.hostname==='site.api.espn.com'?u.href:null;
+     return u.protocol==='https:'&&['site.api.espn.com','news.google.com','www.espn.com','espn.com','www.leparisien.fr','leparisien.fr'].includes(u.hostname)?u.href:null;
    }catch(_){return null;}
  };
  const items=sources.map(s=>{
@@ -4061,10 +4061,16 @@ function betproChatShowResearchSources(data){
      '<small>'+esc(s.detail||'')+'</small></div>';
  }).join('');
  const level=data?.research_level==='event_found'?'Match recherché dans les données sportives':'Recherche ciblée limitée';
+ const coverage=data?.research_coverage&&typeof data.research_coverage==='object'?data.research_coverage:{};
+ const labels={injuries:'Blessures',suspensions:'Suspensions',lineups:'Compositions',
+  recent_form:'Forme récente',standings:'Classement',match_stats:'Statistiques',news:'Actualités'};
+ const checks=Object.keys(labels).filter(k=>typeof coverage[k]==='string').map(k=>
+  '<div><strong>'+esc(labels[k])+'</strong><span>'+esc(coverage[k])+'</span></div>').join('');
+ const expanded=checks?'<div class="betpro-chat-coverage">'+checks+'</div>':'';
  const node=document.createElement('div');
  node.className='betpro-chat-research';
  node.innerHTML='<div class="betpro-chat-research-heading"><strong>Sources réellement consultées</strong><span>'+esc(time)+'</span></div>'+
-  '<div class="betpro-chat-research-label">'+esc(level)+'</div>'+
+  '<div class="betpro-chat-research-label">'+esc(level)+'</div>'+expanded+
   (items||'<p>Aucune source sportive consultée. Indique les deux équipes pour une recherche de match.</p>')+
   (warnings.length?'<div class="betpro-chat-research-notices">'+warnings.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>':'');
  wrap.appendChild(node);
@@ -4084,7 +4090,7 @@ async function sendChat(){
  wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;
  try{
    const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:getCtx()},
-     {timeoutMs:26000,noCache:true});
+     {timeoutMs:35000,noCache:true});
    typing.remove();
    const answer=String(d?.response||'Analyse indisponible.');
    chatHistory.push({role:'assistant',content:answer});
