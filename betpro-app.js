@@ -5699,7 +5699,7 @@ function betproLoadTranslatedNewsInBackground() {
 function betproPsgMenArticle(art){
   if(!art||art.sport!=='psg'||!String(art.source||'').startsWith('Le Parisien · PSG'))return false;
   const t=String(art.title||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  return t.length>=14&&!/\b(?:feminin(?:e|es|s)?|femmes?|joueuses?|gardiennes?|defenseuses?|attaquantes?|championnes?|arkema|women|girls|titis?|academy|academie|centre de formation|jeunes?|juniors?|espoirs?|reserves?|youth league|u\s*-?\s*(?:1[5-9]|2[0-3]))\b/i.test(t);
+  return t.length>=14&&!/\b(?:feminin(?:e|es|s)?|femmes?|joueuses?|gardiennes?|defenseuses?|attaquantes?|championnes?|arkema|women|girls|titis?|academy|academie|centre de formation|jeunes?|juniors?|espoirs?|reserves?|youth league|parisiennes?|phoceennes?|premiere ligue|rappeur|album|colis|communities|boutique|u\s*-?\s*(?:1[5-9]|2[0-3]))\b/i.test(t);
 }
 
 const BETPRO_PSG_NEWS_LOCAL_KEY='betpro_ticker_psg_fr_v1';
