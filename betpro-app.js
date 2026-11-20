@@ -153,6 +153,68 @@ function toast(msg, type='') {
 //  NAVIGATION
 // ═══════════════════════════════════════════════
 
+
+/* Restaure la position exacte du bouton Actualiser après le retour sur
+   la rubrique précédente, même si les cartes asynchrones se redessinent.
+   N'interfère jamais avec un défilement volontaire de l'utilisateur. */
+function betproRestoreRefreshPosition(saved){
+  if(!saved||!Number.isFinite(Number(saved.y)))return;
+  const sectionId='s-'+String(saved.section||'dash');
+  const start=Date.now(),originalBehavior=document.documentElement.style.scrollBehavior;
+  const targetY=Math.max(0,Number(saved.y));
+  const wasAtBottom=saved.atBottom===true;
+  let cancelled=false,frame=0,observer=null,resizer=null,timer=null,expiry=null;
+  const maxScroll=()=>Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
+  const clean=()=>{
+    if(cancelled)return;
+    cancelled=true;
+    if(frame)cancelAnimationFrame(frame);
+    if(observer)observer.disconnect();
+    if(resizer)resizer.disconnect();
+    if(timer)clearInterval(timer);
+    if(expiry)clearTimeout(expiry);
+    window.removeEventListener('wheel',clean,true);
+    window.removeEventListener('touchstart',clean,true);
+    window.removeEventListener('keydown',keyCancel,true);
+    window.removeEventListener('pointerdown',clean,true);
+    window.removeEventListener('load',schedule);
+    document.documentElement.style.scrollBehavior=originalBehavior;
+  };
+  const keyCancel=e=>{
+    if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key))clean();
+  };
+  const apply=()=>{
+    frame=0;
+    if(cancelled)return;
+    if(document.querySelector('.sec.on')?.id!==sectionId){clean();return;}
+    const top=wasAtBottom?maxScroll():Math.min(targetY,maxScroll());
+    window.scrollTo({top,left:0,behavior:'instant'});
+    if(Date.now()-start>30000)clean();
+  };
+  const schedule=()=>{
+    if(!cancelled&&!frame)frame=requestAnimationFrame(apply);
+  };
+  // Désactive la transition de scroll CSS pour ne pas survoler la page.
+  document.documentElement.style.scrollBehavior='auto';
+  window.addEventListener('wheel',clean,true);
+  window.addEventListener('touchstart',clean,true);
+  window.addEventListener('pointerdown',clean,true);
+  window.addEventListener('keydown',keyCancel,true);
+  window.addEventListener('load',schedule);
+  const section=document.getElementById(sectionId);
+  if(section){
+    observer=new MutationObserver(schedule);
+    observer.observe(section,{childList:true,subtree:true,characterData:true});
+    if('ResizeObserver' in window){
+      resizer=new ResizeObserver(schedule);
+      resizer.observe(section);
+    }
+  }
+  timer=setInterval(schedule,350);
+  expiry=setTimeout(clean,30000);
+  schedule();
+}
+
 /* Recharger intégralement le code et les vues sans supprimer les données.
    Seul le petit cache de réponses API en localStorage est invalidé. */
 async function betproRefreshAll(trigger){
@@ -165,7 +227,15 @@ async function betproRefreshAll(trigger){
   });
   try{
     const active=document.querySelector('.sec.on')?.id?.slice(2)||'dash';
+    const y=Math.max(0,window.scrollY||document.documentElement.scrollTop||0);
+    const maxY=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
     sessionStorage.setItem('betpro:refresh:section',active);
+    sessionStorage.setItem('betpro:refresh:position',JSON.stringify({
+      section:active,
+      y,
+      atBottom:maxY>120&&maxY-y<85
+    }));
+    if('scrollRestoration' in history)history.scrollRestoration='manual';
   }catch(_){}
   try{
     const prefix=BETPRO_READ_CACHE_PREFIX;
@@ -6405,13 +6475,22 @@ async function loadProfessionalMaturity(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  let refreshPosition=null;
   try{
     const previous=sessionStorage.getItem('betpro:refresh:section');
-    if(previous){
-      sessionStorage.removeItem('betpro:refresh:section');
-      if(previous!=='dash'&&document.getElementById('s-'+previous))go(previous);
+    const saved=sessionStorage.getItem('betpro:refresh:position');
+    sessionStorage.removeItem('betpro:refresh:section');
+    sessionStorage.removeItem('betpro:refresh:position');
+    if(saved){
+      const parsed=JSON.parse(saved);
+      if(parsed&&typeof parsed==='object'&&String(parsed.section||'dash')===String(previous||'dash')){
+        refreshPosition=parsed;
+        if('scrollRestoration' in history)history.scrollRestoration='manual';
+      }
     }
+    if(previous&&previous!=='dash'&&document.getElementById('s-'+previous))go(previous);
   }catch(_){}
+  if(refreshPosition)betproRestoreRefreshPosition(refreshPosition);
   bookieApply();
   notesLoad();
   notesRender();
