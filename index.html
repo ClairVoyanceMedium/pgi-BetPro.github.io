@@ -1254,7 +1254,7 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ STRATÉGIE ═══════════════ -->
 <section class="sec" id="s-strategy">
-  <div class="ph"><div class="pt">&#127942; Value Betting Pro</div><div class="ps">Compare les bookmakers, indique quand recontrôler les cotes et distingue une fenêtre de décision de l'abstention. Aucun gain garanti.</div></div>
+  <div class="ph"><div class="pt">&#127942; Value Betting Pro</div><div class="ps">Classe les sélections, affiche la meilleure cote, la mise indicative et les prix à surveiller. Analyse du marché, sans garantie de gain.</div></div>
   <div class="card">
     <div class="ct">&#128247; Vos paris à analyser</div><p style="font-size:11px;color:var(--mu);line-height:1.65;margin:0 0 11px">Une ligne suffit : <strong>Arsenal vs Chelsea — Arsenal</strong>. La cote est facultative. BetPro recherche les prix disponibles, compare les opérateurs et affiche la direction à suivre sans inventer de données.</p>
     <div class="upload-zone" id="upload-zone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
@@ -1264,7 +1264,7 @@ a{color:var(--neon);text-decoration:none}
       <img id="img-preview" class="img-preview" alt="">
     </div>
     <div style="text-align:center;margin:0 0 12px;font-size:11px;color:var(--dm)">— OU —</div>
-    <div class="fgrp" style="margin-bottom:14px"><label>Match et sélection (cote facultative)</label><textarea id="strat-text" style="min-height:86px" placeholder="Arsenal vs Chelsea — Arsenal"></textarea></div><p style="font-size:11px;color:var(--mu);line-height:1.6;margin:7px 0 0">Quand agir ? Une fenêtre de contrôle n’est indiquée que si la cote a moins de 5 minutes et que le match commence dans plus de 30 minutes. Sinon, il faut actualiser ou s’abstenir.</p>
+    <div class="fgrp" style="margin-bottom:14px"><label>Match et sélection (cote facultative)</label><textarea id="strat-text" style="min-height:86px" placeholder="Arsenal vs Chelsea — Arsenal"></textarea></div><p style="font-size:11px;color:var(--mu);line-height:1.6;margin:7px 0 0">La cote n'a pas besoin d'être saisie. BetPro recherche la meilleure cote disponible dans ses relevés récents, puis donne une priorité ou une cote-cible à surveiller. Les prix sont à vérifier chez le bookmaker.</p>
   </div>
   <div class="card">
     <div class="ct">&#128176; Capital et niveau de prudence</div><p style="font-size:11px;color:var(--mu);line-height:1.6;margin:0 0 11px">Calcul Kelly fractionnaire, avec un plafond de 1 à 2 % par pari et de 4 % pour l'ensemble de la session. Le capital déclaré n'est pas débité.</p>
@@ -1921,7 +1921,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261120-valuebetpro-timing-v181"></script>
+<script defer src="./betpro-app.js?v=20261120-valuebetpro-ranking-v182"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
