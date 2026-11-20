@@ -635,6 +635,22 @@ a{color:var(--neon);text-decoration:none}
 .betpro-results-more{color:#ff9369;cursor:pointer;font:700 11px var(--mo);padding:7px 0}
 .betpro-results-more:focus-visible{outline:2px solid #ff9369;outline-offset:3px}
 
+
+/* Chat expert : provenance des données et limites lisibles et identifiables. */
+#s-chat .betpro-chat-research{margin:10px 0 18px 38px;max-width:calc(100% - 38px);padding:14px 15px;border:1px solid rgba(80,201,227,.3);background:rgba(7,29,43,.63);border-radius:11px}
+#s-chat .betpro-chat-research-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
+#s-chat .betpro-chat-research-heading strong{font-size:11px;line-height:1.5;color:var(--neon)}
+#s-chat .betpro-chat-research-heading span{font:10px var(--mo);color:var(--mu)}
+#s-chat .betpro-chat-research-label{font-size:10px;color:var(--mu);margin-bottom:10px}
+#s-chat .betpro-chat-source-item{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:9px 0;border-top:1px solid rgba(133,179,195,.14)}
+#s-chat .betpro-chat-source-item span{color:var(--tx);font-weight:650;font-size:11px}
+#s-chat .betpro-chat-source-item a{color:#ffb28d;text-decoration:underline;font-size:10px}
+#s-chat .betpro-chat-source-item small{color:var(--mu);font-size:10px;line-height:1.6;display:block;width:100%}
+#s-chat .betpro-chat-research-notices{margin-top:9px;border-top:1px solid rgba(255,189,122,.19);padding-top:8px}
+#s-chat .betpro-chat-research-notices p{color:#f2c79d;font-size:10px;line-height:1.6;margin:6px 0}
+#s-chat .betpro-chat-research>p{color:var(--mu);font-size:11px;line-height:1.6}
+@media(max-width:600px){#s-chat .betpro-chat-research{margin-left:0;max-width:100%;padding:12px}}
+
 /* BetPro : suivi clair et confortable, sans modification des cartes ni des calculs. */
 #s-results .ph{margin-bottom:18px}
 #s-results .bg{gap:10px;margin-bottom:22px!important}
@@ -1174,7 +1190,7 @@ a{color:var(--neon);text-decoration:none}
 <section class="sec" id="s-chat">
   <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Analyses fondées sur des sources vérifiables. Si les données manquent, le Chat Expert le signale et ne prétend pas connaître le résultat.</div></div>
   <div class="ctx-bar">
-    <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Contexte du match (optionnel)</div>
+    <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Contexte du match (renseigne les équipes pour vérifier cotes et résultats)</div>
     <div class="ctx-grid">
       <div class="fgrp"><label>Domicile</label><input type="text" id="ctx-home" placeholder="Arsenal"></div>
       <div class="fgrp"><label>Extérieur</label><input type="text" id="ctx-away" placeholder="Chelsea"></div>
