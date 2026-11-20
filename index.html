@@ -892,7 +892,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="live"      onclick="go('live')"    ><span class="ni-i">&#128308;</span>Matchs Live / À venir</div>
     <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats à suivre</div>
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
-    <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Stratégie de valeur</div>
+    <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Value Betting Pro</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Se refaire intelligemment</div>
     <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128014;</span>PMU / Turf France</div>
     <div class="ni"    data-s="hkjc"      onclick="go('hkjc')"    ><span class="ni-i">&#127464;&#127475;</span>HKJC Hong Kong</div>
@@ -1254,9 +1254,9 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ STRATÉGIE ═══════════════ -->
 <section class="sec" id="s-strategy">
-  <div class="ph"><div class="pt">&#127942; Stratégie de valeur</div><div class="ps">Uploadez une capture ou collez vos paris.</div></div>
+  <div class="ph"><div class="pt">&#127942; Value Betting Pro</div><div class="ps">Comparaison de cotes vérifiées, estimation prudente et mise plafonnée. Aucune promesse de gain.</div></div>
   <div class="card">
-    <div class="ct">&#128247; Capture ou liste</div>
+    <div class="ct">&#128247; Vos paris à analyser</div><p style="font-size:11px;color:var(--mu);line-height:1.65;margin:0 0 11px">Une ligne par pari. Exemple : <strong>Arsenal vs Chelsea — Arsenal @ 2.10</strong>. L'analyse exige des données récentes dans BetPro et peut conclure à une abstention.</p>
     <div class="upload-zone" id="upload-zone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
       <input type="file" id="strat-img" accept="image/*" onchange="handleImgChange(event)">
       <div class="upload-ico">&#128247;</div>
@@ -1267,7 +1267,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="fgrp" style="margin-bottom:14px"><label>Paris en texte</label><textarea id="strat-text" style="min-height:100px" placeholder="Arsenal vs Chelsea — Arsenal @ 2.10"></textarea></div>
   </div>
   <div class="card">
-    <div class="ct">&#128176; Bankroll &amp; Profil</div>
+    <div class="ct">&#128176; Capital et niveau de prudence</div><p style="font-size:11px;color:var(--mu);line-height:1.6;margin:0 0 11px">Calcul Kelly fractionnaire, avec un plafond de 1 à 2 % par pari et de 4 % pour l'ensemble de la session. Le capital déclaré n'est pas débité.</p>
     <div class="fg">
       <div class="fgrp"><label>Bankroll session</label><input type="number" id="strat-bankroll" min="10" value="150" style="font-size:18px;font-weight:700;color:var(--am)"></div>
       <div class="fgrp"><label>Presets</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="btn bs" style="font-size:11px" onclick="document.getElementById('strat-bankroll').value=50">50€</button><button class="btn bs" style="font-size:11px" onclick="document.getElementById('strat-bankroll').value=100">100€</button><button class="btn bs" style="font-size:11px" onclick="document.getElementById('strat-bankroll').value=200">200€</button></div></div>
@@ -1279,7 +1279,7 @@ a{color:var(--neon);text-decoration:none}
         <div class="risk-opt" id="rp-agressif" onclick="selectRisk('agressif')"><div class="ri">&#128640;</div><div class="rt">Agressif</div><div class="rs">Kelly 50%</div></div>
       </div>
     </div>
-    <div class="bg"><button class="btn bp" id="strat-btn" onclick="doStrategy()" style="font-size:13px;padding:11px 22px">&#127942; Calculer</button><button class="btn bs" onclick="resetStrategy()">&#8617; Réinitialiser</button></div>
+    <div class="bg"><button class="btn bp" id="strat-btn" onclick="doStrategy()" style="font-size:13px;padding:11px 22px">&#127942; Analyser les cotes</button><button class="btn bs" onclick="resetStrategy()">&#8617; Réinitialiser</button></div>
   </div>
   <div id="strat-res"></div>
 </section>
@@ -1921,7 +1921,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261120-expert-fresh-fixtures-v178"></script>
+<script defer src="./betpro-app.js?v=20261120-valuebetpro-v179"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
