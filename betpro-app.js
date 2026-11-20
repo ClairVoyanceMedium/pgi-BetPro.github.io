@@ -4050,7 +4050,7 @@ function betproChatShowResearchSources(data){
  const makeLink=url=>{
    try{
      const u=new URL(url);
-     return u.protocol==='https:'&&['site.api.espn.com','news.google.com','www.espn.com','espn.com','www.leparisien.fr','leparisien.fr'].includes(u.hostname)?u.href:null;
+     return u.protocol==='https:'&&['site.api.espn.com','news.google.com','www.espn.com','espn.com','www.leparisien.fr','leparisien.fr','www.reddit.com','reddit.com'].includes(u.hostname)?u.href:null;
    }catch(_){return null;}
  };
  const items=sources.map(s=>{
@@ -4076,6 +4076,122 @@ function betproChatShowResearchSources(data){
  wrap.appendChild(node);
  wrap.scrollTop=wrap.scrollHeight;
 }
+
+// Chat Expert : recherche factuelle directement dans les calendriers sportifs ESPN.
+// Les donnees ESPN sont consultées a la demande, pas extraites de la memoire du modele.
+// Si l'API ne repond pas, aucune rencontre ni heure ne sont inventees.
+const BETPRO_EXPERT_FEEDS={
+ soccer:[['soccer','eng.1'],['soccer','fra.1'],['soccer','esp.1'],['soccer','ita.1'],
+         ['soccer','ger.1'],['soccer','uefa.champions'],['soccer','uefa.europa'],['soccer','fifa.world']],
+ basketball:[['basketball','nba'],['basketball','wnba'],['basketball','mens-college-basketball']],
+ hockey:[['hockey','nhl']],baseball:[['baseball','mlb']],
+ nfl:[['football','nfl'],['football','college-football']],
+ mma:[['mma','ufc']],tennis:[['tennis','atp'],['tennis','wta']]
+};
+function betproExpertNorm(s){
+ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+ .replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function betproExpertAlias(s){
+ let t=betproExpertNorm(s);
+ const a={'psg':'paris saint germain','om':'marseille','barca':'barcelona',
+ 'man city':'manchester city','man utd':'manchester united','real':'real madrid',
+ 'inter milan':'internazionale','bayern':'bayern munich'};
+ for(const k of Object.keys(a))if((' '+t+' ').includes(' '+k+' '))t+=' '+a[k];
+ return t;
+}
+function betproExpertMentions(subject,name){
+ const full=betproExpertNorm(name),q=betproExpertAlias(subject);
+ if(!full||!q)return false;
+ if(q.includes(full))return true;
+ const tokens=full.split(' ').filter(w=>w.length>=4&&!['football','club','united','city','sporting','athletic'].includes(w));
+ return tokens.length>0 && tokens.some(t=>(' '+q+' ').includes(' '+t+' '));
+}
+function betproExpertSport(question){
+ const q=betproExpertNorm(question);
+ if(/\b(tennis|atp|wta|alcaraz|sinner|djokovic|swiatek)\b/.test(q))return 'tennis';
+ if(/\b(nba|basket|wnba|euroleague)\b/.test(q))return 'basketball';
+ if(/\b(nhl|hockey)\b/.test(q))return 'hockey';
+ if(/\b(mlb|baseball)\b/.test(q))return 'baseball';
+ if(/\b(nfl|super bowl|football americain)\b/.test(q))return 'nfl';
+ if(/\b(ufc|mma|boxe)\b/.test(q))return 'mma';
+ return 'soccer';
+}
+async function betproExpertFetchJson(url){
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),6000);
+ try{
+  const r=await fetch(url,{signal:ctrl.signal,headers:{'Accept':'application/json'},credentials:'omit',cache:'no-store'});
+  if(!r.ok)throw Error('HTTP '+r.status);
+  return await r.json();
+ }finally{clearTimeout(timer);}
+}
+function betproExpertDateParis(value){
+ if(!value||!Number.isFinite(Date.parse(value)))return 'heure non confirmée';
+ return new Date(value).toLocaleString('fr-FR',{timeZone:'Europe/Paris',weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+async function betproExpertFreshFixture(question,ctx){
+ const sport=betproExpertSport(question+' '+(ctx?.competition||''));
+ const feeds=(BETPRO_EXPERT_FEEDS[sport]||BETPRO_EXPERT_FEEDS.soccer).slice(0,8);
+ const research={checked_at:new Date().toISOString(),sources:[],warnings:[],
+   research_level:'limited',research_coverage:{schedule:'Non vérifié',match_stats:'Non vérifié',injuries:'Non vérifié',lineups:'Non vérifié',news:'Non vérifié'}};
+ const dateNow=new Date();
+ const yyyyMMdd=d=>d.getUTCFullYear().toString()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0');
+ const start=yyyyMMdd(new Date(dateNow.getTime()-86400000)),end=yyyyMMdd(new Date(dateNow.getTime()+14*86400000));
+ const results=await Promise.allSettled(feeds.map(async(pair)=>{
+  const url='https://site.api.espn.com/apis/site/v2/sports/'+pair[0]+'/'+pair[1]+'/scoreboard?dates='+start+'-'+end+'&limit=250';
+  return {data:await betproExpertFetchJson(url),url,league:pair[1]};
+ }));
+ const all=[];
+ results.forEach((r)=>{
+  if(r.status!=='fulfilled')return;
+  const {data,url,league}=r.value;
+  (Array.isArray(data.events)?data.events:[]).forEach(ev=>{
+   const co=ev.competitions?.[0],teams=co?.competitors||[];
+   if(teams.length<2)return;
+   const home=teams.find(t=>t.homeAway==='home')||teams[0],away=teams.find(t=>t.homeAway==='away')||teams[1];
+   const hn=home.team?.displayName||home.team?.name,an=away.team?.displayName||away.team?.name;
+   if(!hn||!an)return;
+   const score=(ev.status?.type?.state==='in'||ev.status?.type?.state==='post')
+    ? String(home.score||'0')+'-'+String(away.score||'0'):null;
+   all.push({home:hn,away:an,date:ev.date,league:ev.league?.name||data.leagues?.[0]?.name||league,
+     status:ev.status?.type?.description||'indisponible',score,url,
+     event_id:ev.id,completed:ev.status?.type?.completed===true});
+  });
+ });
+ const wanted=[ctx?.home,ctx?.away].filter(Boolean),q=question;
+ const ranked=all.map(e=>{
+   const h=betproExpertMentions(q,e.home)||wanted.some(w=>betproExpertMentions(w,e.home));
+   const a=betproExpertMentions(q,e.away)||wanted.some(w=>betproExpertMentions(w,e.away));
+   return {...e,match_score:(h?1:0)+(a?1:0)};
+ }).filter(e=>e.match_score>0);
+ ranked.sort((a,b)=>b.match_score-a.match_score||Math.abs(Date.parse(a.date)-Date.now())-Math.abs(Date.parse(b.date)-Date.now()));
+ const chosen=ranked[0];
+ if(!chosen){
+  research.warnings.push('Aucune rencontre identifiée avec certitude dans les calendriers consultables. Vérifier les noms, la compétition et la date.');
+  if(results.every(r=>r.status==='rejected'))research.warnings.push('Les flux sportifs externes ne répondent pas actuellement.');
+  return research;
+ }
+ if(chosen.match_score<2 && /\b(entre|contre|vs|versus)\b/i.test(question)){
+  research.warnings.push('Un seul des deux adversaires est identifié : correspondance à confirmer.');
+ }
+ research.fixture=chosen;
+ research.research_level=chosen.match_score>=2?'event_found':'limited';
+ research.research_coverage.schedule='Vérifié dans le calendrier ESPN à '+betproExpertDateParis(research.checked_at);
+ research.sources=[{label:'ESPN, calendrier '+chosen.league,url:chosen.url,
+ detail:chosen.home+' - '+chosen.away+' | '+betproExpertDateParis(chosen.date)}];
+ return research;
+}
+function betproExpertContextFromResearch(research){
+ const e=research?.fixture;if(!e)return '';
+ return 'DONNEES SPORTIVES VERIFIEES via ESPN le '+research.checked_at+
+  '. Match: '+e.home+' contre '+e.away+'. Competition: '+e.league+
+  '. Date/heure en Europe/Paris: '+betproExpertDateParis(e.date)+
+  '. Statut source: '+e.status+
+  (e.score?' | Score source: '+e.score:'')+
+  '. URL source: '+e.url+
+  '. Ces donnees priment sur ta memoire. Ne pas inventer les blessures, les cotes ou les probabilites; separer prediction et faits. Confirmer le calendrier sur une source officielle avant toute mise.';
+}
+
 async function sendChat(){
  const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
  const q=input?.value.trim();
@@ -4089,13 +4205,18 @@ async function sendChat(){
  typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Consultation des données et analyse…</div>';
  wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;
  try{
-   const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:getCtx()},
+   const ctx=getCtx()||{};
+   const research=await betproExpertFreshFixture(q,ctx).catch(e=>({warnings:['Recherche ESPN non disponible : '+String(e?.message||'erreur')],sources:[],research_level:'limited',checked_at:new Date().toISOString()}));
+   const verified=betproExpertContextFromResearch(research);
+   if(verified)ctx.extra=verified;
+   const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},
      {timeoutMs:35000,noCache:true});
    typing.remove();
-   const answer=String(d?.response||'Analyse indisponible.');
+   const evidence=research?.fixture?('**Rencontre vérifiée (ESPN)** : '+research.fixture.home+' - '+research.fixture.away+' | '+betproExpertDateParis(research.fixture.date)+' (heure de Paris) | '+research.fixture.status+(research.fixture.score?' | Score '+research.fixture.score:'')+'\n\n'):'';
+   const answer=evidence+String(d?.response||'Analyse indisponible.');
    chatHistory.push({role:'assistant',content:answer});
    appendMsg('bot',answer,d?.provider&&d?.model?d.provider+' · '+d.model:null);
-   betproChatShowResearchSources(d);
+   betproChatShowResearchSources({...research,...d,checked_at:d?.checked_at||research?.checked_at,sources:[...(research?.sources||[]),...(Array.isArray(d?.sources)?d.sources:[])],warnings:[...(research?.warnings||[]),...(Array.isArray(d?.warnings)?d.warnings:[])],research_level:d?.research_level==='event_found'||research?.research_level==='event_found'?'event_found':'limited',research_coverage:{...(research?.research_coverage||{}),...(d?.research_coverage||{})}});
  }catch(e){
    typing.remove();appendMsg('bot','Analyse indisponible : '+(e?.message||'erreur réseau')+'. Les informations ne sont pas vérifiées.');
  }
