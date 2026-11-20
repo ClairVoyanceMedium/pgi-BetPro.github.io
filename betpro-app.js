@@ -4304,7 +4304,7 @@ async function doStrategy(){
     html+='<div style="font-size:10px;color:var(--dm);font-weight:800;margin-bottom:5px">OPPORTUNITÉ '+(idx+1)+' · À CONTRÔLER</div>';
     html+='<div style="font-family:var(--hd);font-size:15px;font-weight:900;margin-bottom:9px">'+esc(b.match||'Match')+'</div>';
     html+='<div style="font-size:13px;font-weight:800;color:var(--neon);margin-bottom:4px">Sélection : '+esc(b.selection||'')+'</div>';
-    html+='<div style="font-size:13px;margin-bottom:9px">Meilleure cote vérifiée pour ce calcul : <strong>'+esc(Number(b.odds).toFixed(2))+'</strong> · '+esc(b.bookmaker||'bookmaker')+'</div>';
+    html+='<div style="font-size:13px;margin-bottom:9px">Cote retenue (marché complet, relevé récent) : <strong>'+esc(Number(b.odds).toFixed(2))+'</strong> · '+esc(b.bookmaker||'bookmaker')+'</div>';
     html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px">';
     html+='<div style="padding:10px;border:1px solid var(--bd);border-radius:8px"><div style="font-size:9px;color:var(--dm)">PLAFOND INDICATIF</div><strong style="font-size:18px">'+esc(valueProMoney(b.stake))+'</strong></div>';
     html+='<div style="padding:10px;border:1px solid var(--bd);border-radius:8px"><div style="font-size:9px;color:var(--dm)">ÉCART DE COTE ESTIMÉ</div><strong style="font-size:18px">'+esc(valueProPercent(b.price_advantage_pct))+'</strong></div>';
@@ -4313,6 +4313,7 @@ async function doStrategy(){
     html+='<p style="font-size:11px;color:var(--mu)">Probabilité moyenne dérivée des cotes : '+esc(valueProPercent(b.market_probability))+
        '. Hypothèse prudente : '+esc(valueProPercent(b.conservative_probability))+
        '. Comparaison de '+esc(String(b.reference_count||0))+' références indépendantes.</p>';
+    if(b.provided_odds!=null)html+='<p style="font-size:11px;color:'+(b.provided_quote_verified?'var(--mu)':'var(--am)')+'">Votre cote saisie : '+esc(Number(b.provided_odds).toFixed(2))+(b.provided_quote_verified?' (retrouvée dans les relevés récents)':' (non retrouvée, calcul effectué sur la meilleure cote complète vérifiée)')+'</p>';
     html+='<p style="font-size:11px;color:var(--mu)">Cote relevée le '+esc(valueProDate(b.observed_at))+
       '. '+esc(b.raisonnement||'')+'</p>';
     html+=valueProBookmakers(b.bookmaker_comparison);
