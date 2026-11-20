@@ -3498,9 +3498,21 @@ async function doClassicScan(){
       return api('/api/classic/scan?'+params,'GET',null,{timeoutMs:25000});
     }));
     const good=responses.filter(r=>r.status==='fulfilled'&&r.value?.ok).map(r=>r.value);
+    const failed=responses.map((r,i)=>{
+      const reason=r.status==='rejected'?String(r.reason?.message||r.reason||'Erreur de connexion'):
+        r.value?.ok===false?String(r.value.error||r.value.message||'Source sans données'):null;
+      return reason?{sport:selected[i]||'all',reason}:null;
+    }).filter(Boolean);
+    const quotaIssue=failed.some(x=>/D1.*free tier|free tier.*D1|row read limit|quota.*D1|D1.*quota|code 7500|exceeded.*daily row/i.test(x.reason));
+    const timeIssue=failed.some(x=>/délai dépassé|timeout|timed out|abort/i.test(x.reason));
+    const issueMessage=quotaIssue
+      ?'Quota gratuit Cloudflare D1 atteint : le Scan Classique ne peut temporairement lire les cotes. Réinitialisation quotidienne à 00:00 UTC (01:00 à Paris en hiver). Aucun abonnement payant requis.'
+      :timeIssue?'Les sources de cotes ont dépassé le délai de réponse. Réessayez plus tard ou limitez les sports sélectionnés.'
+      :failed.length?'Échec technique des sources de cotes ('+failed.length+' requête(s)). '+failed.slice(0,2).map(x=>x.sport+' : '+x.reason.slice(0,150)).join(' | ')
+      :'Aucun bookmaker exploitable pour les sports et la période sélectionnés.';
     const d=good.length?{ok:true,events:[...new Map(good.flatMap(x=>x.events||[]).map(x=>[String(x.event_id||x.sport+':'+x.home_name+':'+x.away_name),x])).values()],
       candidate_events:good.reduce((n,x)=>n+Number(x.candidate_events||0),0),generated_at:good[0].generated_at,rescue_warnings:good.flatMap(x=>x.rescue_warnings||[]),supported_sports:[...new Set(good.flatMap(x=>x.supported_sports||[]))],quota_blocked:good.some(x=>x.quota_blocked)}
-      :{ok:false,error:'Aucune source de cotes disponible pour les sports sélectionnés.'};
+      :{ok:false,error:issueMessage,quota_blocked:quotaIssue,failures:failed.slice(0,4)};
     if(seq!==betProClassicScanSeq)return;
     if(!d?.ok)throw Error(d?.error||'Scan classique indisponible');
     const candidates=Array.isArray(d.events)?d.events:[];
