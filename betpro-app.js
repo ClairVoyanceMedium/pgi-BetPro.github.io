@@ -4278,89 +4278,95 @@ function valueProBookmakers(overview){
 }
 async function doStrategy(){
  const bankroll=Number(document.getElementById('strat-bankroll')?.value);
- const betsText=String(document.getElementById('strat-text')?.value||'').trim();
+ const text=String(document.getElementById('strat-text')?.value||'').trim();
  const btn=document.getElementById('strat-btn'),res=document.getElementById('strat-res');
  if(!Number.isFinite(bankroll)||bankroll<10||bankroll>1000000){toast('Capital invalide (10 à 1 000 000 €)','err');return;}
- if(!betsText&&!stratImgB64){toast('Indiquez une rencontre et une sélection','err');return;}
- btn.disabled=true;btn.textContent='Comparaison en cours…';
- res.innerHTML='<div class="ls" style="padding:20px"><div class="sp"></div><p>Lecture des cotes et vérification de leur fraîcheur…</p></div>';
+ if(!text&&!stratImgB64){toast('Indiquez un match et une sélection','err');return;}
+ btn.disabled=true;btn.textContent='Analyse des bookmakers…';
+ res.innerHTML='<div class="ls" style="padding:20px"><div class="sp"></div><p>Classement des cotes et des sélections…</p></div>';
  try{
   const payload={bankroll,risk_profile:selectedRisk};
-  if(betsText)payload.bets_text=betsText;
+  if(text)payload.bets_text=text;
   if(stratImgB64){payload.image_b64=stratImgB64;payload.image_type=stratImgType;}
   const d=await api('/api/strategy','POST',payload,{timeoutMs:40000,noCache:true});
-  const accepted=Array.isArray(d?.strategy)?d.strategy:[],rejected=Array.isArray(d?.bets_rejected)?d.bets_rejected:[];
-  const sum=d?.bankroll_summary||{},positive=accepted.length>0;
-  const timeReady=accepted.some(b=>b.timing_signal?.state==='verify_now'&&Date.now()<Date.parse(b.timing_signal.price_window_expires_at||''));
-  const pending=positive&&!timeReady;
-  let html='<div class="card" style="padding:17px 16px;border:1px solid var(--bd);margin-bottom:14px;line-height:1.65">';
-  html+='<div style="font-size:10px;color:var(--dm);font-weight:800;letter-spacing:.08em;margin-bottom:5px">DIRECTION À PRENDRE</div>';
-  html+='<div style="font-family:var(--hd);font-weight:900;font-size:20px;color:'+(positive?'var(--neon)':'var(--am)')+';margin-bottom:7px">'+
-    (timeReady?'COTE RÉCENTE : CONTRÔLER MAINTENANT':pending?'ATTENDRE : RECONTRÔLER LES COTES':'NE PAS MISER POUR LE MOMENT')+'</div>';
-  html+='<div style="font-size:12px;color:var(--mu)">'+esc(d?.verdict||d?.message||'Les données disponibles ne permettent pas une décision vérifiée.')+'</div>';
-  html+='<div style="font-size:11px;color:var(--dm);margin-top:10px">Actualisé : '+esc(valueProDate(d?.checked_at))+' · '+esc(d?.provider||'BetPro D1')+'</div>';
-  html+='</div>';
-  if(positive){
-   for(const [idx,b] of accepted.entries()){
-    html+='<div class="card" style="padding:16px;margin-bottom:13px;line-height:1.65">';
-    html+='<div style="font-size:10px;color:var(--dm);font-weight:800;margin-bottom:5px">OPPORTUNITÉ '+(idx+1)+' · À CONTRÔLER</div>';
-    html+='<div style="font-family:var(--hd);font-size:15px;font-weight:900;margin-bottom:9px">'+esc(b.match||'Match')+'</div>';
-    html+='<div style="font-size:13px;font-weight:800;color:var(--neon);margin-bottom:4px">Sélection : '+esc(b.selection||'')+'</div>';
-    const timing=b.timing_signal||{};
-    const stillFresh=timing.state==='verify_now'&&Date.now()<Date.parse(timing.price_window_expires_at||'');
-    html+='<div style="padding:12px 13px;margin:9px 0 12px;background:var(--sf2);border:1px solid '+(stillFresh?'var(--gr)':'var(--am)')+';border-radius:9px">';
-    html+='<div style="font:800 13px var(--hd);color:'+(stillFresh?'var(--gr)':'var(--am)')+'">'+
-       (stillFresh?'FENÊTRE DE CONTRÔLE : MAINTENANT':'ATTENDRE OU S ABSTENIR : RECONTRÔLE NÉCESSAIRE')+'</div>';
-    html+='<div style="font-size:11px;color:var(--mu);line-height:1.7;margin-top:6px">'+
-      esc(stillFresh?timing.reason||'Cote récemment relevée, à vérifier chez le bookmaker.':
-         timing.state==='too_close'?'Rencontre trop proche du début pour valider cette cote.':
-         'Le prix a changé ou peut être périmé. Actualisez les données avant toute décision.')+'</div>';
-    html+='<div style="font-size:11px;color:var(--mu);margin-top:6px">Début du match : <strong>'+esc(valueProDate(b.start_at))+'</strong> (Paris) · Cote relevée depuis '+esc(String(timing.quote_age_minutes??'?'))+' min</div>';
-    if(stillFresh)html+='<div style="font-size:11px;color:var(--mu);margin-top:5px">Ce contrôle expire à '+esc(valueProDate(timing.price_window_expires_at))+' (Paris). Il faut relancer ensuite.</div>';
-    html+='<button class="btn bs" style="margin-top:10px;font-size:11px" onclick="doStrategy()">Actualiser les cotes et la fenêtre</button></div>';
-    html+='<div style="font-size:13px;margin-bottom:9px">Cote retenue (marché complet, relevé récent) : <strong>'+esc(Number(b.odds).toFixed(2))+'</strong> · '+esc(b.bookmaker||'bookmaker')+'</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px">';
-    html+='<div style="padding:10px;border:1px solid var(--bd);border-radius:8px"><div style="font-size:9px;color:var(--dm)">PLAFOND INDICATIF</div><strong style="font-size:18px">'+esc(valueProMoney(b.stake))+'</strong></div>';
-    html+='<div style="padding:10px;border:1px solid var(--bd);border-radius:8px"><div style="font-size:9px;color:var(--dm)">ÉCART DE COTE ESTIMÉ</div><strong style="font-size:18px">'+esc(valueProPercent(b.price_advantage_pct))+'</strong></div>';
-    html+='<div style="padding:10px;border:1px solid var(--bd);border-radius:8px"><div style="font-size:9px;color:var(--dm)">COTE MIN. INDICATIVE</div><strong style="font-size:18px">'+esc(Number(b.minimum_odds).toFixed(2))+'</strong></div>';
+  const picked=Array.isArray(d?.strategy)?d.strategy:[],watched=Array.isArray(d?.watchlist)?d.watchlist:[],rejected=Array.isArray(d?.bets_rejected)?d.bets_rejected:[];
+  const best=picked[0]||null,watch=watched[0]||null;
+  const money=valueProMoney,pct=valueProPercent,fmt=valueProDate;
+  const score=(o)=>Number.isFinite(Number(o))?Number(o).toFixed(2):'–';
+  const soft='font-size:11px;color:var(--mu);line-height:1.65';
+  const heading=best?'PRIORITÉ 1 · '+String(best.selection||'Sélection'):
+   watch?'À SURVEILLER · '+String(watch.selection||'Sélection'):'MARCHÉ À ACTUALISER';
+  const main=best?'Cote '+score(best.odds)+' chez '+String(best.bookmaker||'bookmaker')+
+   ' · mise indicative plafonnée '+money(best.stake):
+   watch?'Cote-cible '+score(watch.minimum_odds)+' · prix relevé '+score(watch.odds)+' chez '+String(watch.bookmaker||'bookmaker'):
+   'Aucun prix actuel suffisamment documenté pour une recommandation chiffrée.';
+  let html='<div class="card" style="padding:17px;border:1px solid var(--bd);margin-bottom:13px;line-height:1.7">';
+  html+='<div style="font-size:10px;letter-spacing:.08em;font-weight:800;color:var(--dm)">RECOMMANDATION PRINCIPALE</div>';
+  html+='<div style="font:900 20px var(--hd);color:'+(best?'var(--neon)':'var(--am)')+';margin:6px 0 7px">'+esc(heading)+'</div>';
+  html+='<div style="font-weight:750;font-size:13px">'+esc(main)+'</div>';
+  if(best)html+='<div style="'+soft+';margin-top:8px">Match : '+esc(best.match||'')+' · avantage théorique du prix : '+pct(best.price_advantage_pct)+
+    ' · cote minimale indicative : '+score(best.minimum_odds)+'. Recontrôler la cote chez le bookmaker avant de prendre une décision.</div>';
+  else if(watch)html+='<div style="'+soft+';margin-top:8px">Match : '+esc(watch.match||'')+'. La sélection est à suivre, mais son prix relevé ne justifie pas encore une mise calculée.</div>';
+  else html+='<div style="'+soft+';margin-top:7px">'+esc(d?.message||'Relancer après l’actualisation des cotes et choisir un match couvert par BetPro.')+'</div>';
+  html+='<div style="font-size:10px;color:var(--dm);margin-top:10px">Analyse : '+esc(fmt(d?.checked_at))+' · '+esc(d?.provider||'Données BetPro')+'</div>';
+  html+='<button class="btn bs" style="margin-top:12px;font-size:11px" onclick="doStrategy()">Actualiser les prix</button></div>';
+  if(picked.length){
+   html+='<div style="font-weight:900;font-family:var(--hd);font-size:14px;margin:15px 0 8px">Sélections prioritaires ('+picked.length+')</div>';
+   for(const [i,b] of picked.entries()){
+    const time=b.timing_signal||{};
+    const recent=time.state==='verify_now'&&Date.now()<Date.parse(time.price_window_expires_at||'');
+    html+='<div class="card" style="padding:14px;margin-bottom:11px;line-height:1.65">';
+    html+='<div style="font-size:10px;font-weight:800;color:var(--dm)">CHOIX '+(i+1)+'</div>';
+    html+='<div style="font:800 14px var(--hd);margin-top:5px">'+esc(b.match||'Match')+'</div>';
+    html+='<div style="font-weight:850;font-size:14px;color:var(--neon);margin:7px 0">Sélection : '+esc(b.selection||'')+' · cote '+score(b.odds)+'</div>';
+    html+='<div style="'+soft+'">Bookmaker : <strong>'+esc(b.bookmaker||'?')+'</strong> · Match : '+esc(fmt(b.start_at))+' (Paris)</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;margin:11px 0">';
+    for(const cell of [['Mise indicative',money(b.stake)],['Cote minimale',score(b.minimum_odds)],['Écart de prix',pct(b.price_advantage_pct)]]){
+     html+='<div style="padding:9px;border:1px solid var(--bd);border-radius:8px"><div style="color:var(--dm);font-size:9px">'+esc(cell[0])+'</div><strong style="font-size:14px">'+esc(cell[1])+'</strong></div>';}
     html+='</div>';
-    html+='<p style="font-size:11px;color:var(--mu)">Probabilité moyenne dérivée des cotes : '+esc(valueProPercent(b.market_probability))+
-       '. Hypothèse prudente : '+esc(valueProPercent(b.conservative_probability))+
-       '. Comparaison de '+esc(String(b.reference_count||0))+' références indépendantes.</p>';
-    if(b.provided_odds!=null)html+='<p style="font-size:11px;color:'+(b.provided_quote_verified?'var(--mu)':'var(--am)')+'">Votre cote saisie : '+esc(Number(b.provided_odds).toFixed(2))+(b.provided_quote_verified?' (retrouvée dans les relevés récents)':' (non retrouvée, calcul effectué sur la meilleure cote complète vérifiée)')+'</p>';
-    html+='<p style="font-size:11px;color:var(--mu)">Cote relevée le '+esc(valueProDate(b.observed_at))+
-      '. '+esc(b.raisonnement||'')+'</p>';
+    html+='<div style="'+soft+';font-weight:700;color:'+(recent?'var(--gr)':'var(--am)')+'">'+
+      (recent?'COTE RÉCENTE : VÉRIFIER LE PRIX DISPONIBLE':'COTE À RÉACTUALISER AVANT DÉCISION')+'</div>';
+    html+='<div style="'+soft+'">Dernier relevé : '+esc(fmt(b.observed_at))+
+       '. '+esc(String(b.reference_count||0))+' références indépendantes.</div>';
+    html+='<details style="margin-top:10px"><summary style="cursor:pointer;font-size:11px;color:var(--neon);font-weight:800">Comparer les bookmakers et voir le calcul</summary>';
+    html+='<p style="'+soft+'">Probabilité prudente implicite du marché : '+pct(b.conservative_probability)+
+       '. Ce calcul n’est pas une probabilité de victoire validée.</p>';
     html+=valueProBookmakers(b.bookmaker_comparison);
-    html+='</div>';
+    html+='</details></div>';
    }
-   html+='<div class="card" style="padding:14px;margin-bottom:14px;font-size:11px;line-height:1.65">';
-   html+='<strong>Gestion du capital</strong> : montant cumulé indicatif '+esc(valueProMoney(sum.invested))+
-    ' ('+esc(valueProPercent(sum.session_risk_pct))+' du capital). Rendement purement théorique à partir des cotes : '+esc(valueProPercent(sum.roi_espere))+'. Non calibré ni garanti.';
-   html+='</div>';
+   if(d?.bankroll_summary){
+    html+='<div class="card" style="padding:13px;margin-bottom:11px;font-size:11px;line-height:1.7">';
+    html+='<strong>Exposition totale indicative : '+esc(money(d.bankroll_summary.invested))+'</strong> ('+pct(d.bankroll_summary.session_risk_pct)+
+      ' du capital). Montants plafonnés, aucune mise automatique.</div>';}
+  }
+  if(watched.length){
+   html+='<div style="font:900 14px var(--hd);margin:15px 0 9px">Cotes-cibles à surveiller ('+watched.length+')</div>';
+   for(const [i,w] of watched.entries()){
+    html+='<div class="card" style="padding:13px;margin-bottom:9px;line-height:1.6">';
+    html+='<div style="font-size:10px;color:var(--dm);font-weight:800">SURVEILLANCE '+(i+1)+'</div>';
+    html+='<div style="font:800 13px var(--hd);margin:5px 0">'+esc(w.match||'Match')+'</div>';
+    html+='<div style="font-size:12px;color:var(--am);font-weight:800">'+esc(w.selection||'Sélection')+
+       ' · cote-cible : '+score(w.minimum_odds)+'</div>';
+    html+='<div style="'+soft+'">Cote observée : '+score(w.odds)+' · '+esc(w.bookmaker||'Source inconnue')+
+       ' · Relevé : '+esc(fmt(w.observed_at))+'</div>';
+    html+='<div style="'+soft+'">'+esc(w.reason||'À réexaminer lors d’un nouveau relevé')+'</div>';
+    html+='<details style="margin-top:8px"><summary style="font-size:11px;cursor:pointer;color:var(--neon)">Détails bookmakers</summary>'+
+       valueProBookmakers(w.bookmaker_comparison)+'</details></div>';
+   }
   }
   if(rejected.length){
-   const reports=rejected.filter(x=>x.bookmaker_comparison);
-   if(!positive){
-    for(const item of reports.slice(0,3)){
-     html+='<div class="card" style="padding:15px;margin-bottom:12px;line-height:1.6">';
-     html+='<div style="font-size:12px;font-weight:800">'+esc(item.match||'Rencontre')+'</div>';
-     html+='<p style="font-size:11px;color:var(--am);margin:5px 0">Motif : '+esc(item.raison||'Cotes insuffisantes')+'</p>';
-     html+=valueProBookmakers(item.bookmaker_comparison);
-     html+='</div>';
-    }
-   }
-   html+='<details class="card" style="padding:12px;margin-bottom:14px"><summary style="font-size:12px;font-weight:800;cursor:pointer">Tous les paris écartés ('+rejected.length+')</summary>';
-   for(const item of rejected)html+='<div style="padding:9px 0;border-bottom:1px solid var(--bd);font-size:11px"><strong>'+esc(item.match||'Ticket')+'</strong><div style="color:var(--mu)">'+esc(item.raison||'Non vérifié')+'</div></div>';
+   html+='<details class="card" style="padding:12px;margin-bottom:10px"><summary style="font-size:11px;font-weight:800;cursor:pointer">Données manquantes ou marchés non retenus ('+rejected.length+')</summary>';
+   for(const r of rejected)html+='<div style="border-bottom:1px solid var(--bd);padding:8px 0;font-size:11px"><strong>'+esc(r.match||'Ticket')+'</strong><div style="color:var(--mu)">'+esc(r.raison||'Information non corroborée')+'</div></div>';
    html+='</details>';
   }
-  html+='<p style="font-size:11px;line-height:1.65;color:var(--mu)">Le système n annonce pas une heure universelle pour parier : il signale une fenêtre de contrôle uniquement si le prix date de moins de cinq minutes et si le match commence dans plus de trente minutes. Une cote favorable ne prouve pas une rentabilité. Aucune mise automatique.</p>';
-  html+='<p style="font-size:11px;line-height:1.65;color:var(--mu)">Source des calculs : cotes historisées BetPro. Les cotes au-delà de 20 minutes restent consultables pour comparaison, mais elles ne servent jamais à justifier une mise. Les probabilités de marché ne sont pas des prévisions sportives calibrées. Aucun gain garanti.</p>';
-  if(d?.disclaimer)html+='<p style="font-size:10px;color:var(--dm)">'+esc(d.disclaimer)+'</p>';
+  html+='<p style="font-size:10px;line-height:1.65;color:var(--dm)">Le prix d’une cote ne prouve pas la probabilité réelle de gagner. Seuls les relevés récents peuvent conduire à une mise indicative. Vérifiez disponibilité, légalité du bookmaker et contexte sportif. Aucune garantie de rendement.</p>';
   res.innerHTML=html;
-  toast(positive?'Comparaison terminée':'Abstention : données insuffisantes','ok');
+  toast('Classement actualisé','ok');
  }catch(e){
-  res.innerHTML='<div class="card" style="padding:15px"><strong style="color:var(--re)">NE PAS MISER</strong><p>La vérification est indisponible : '+esc(e?.message||'Erreur réseau')+'. Aucun pari conseillé sans données vérifiées.</p></div>';
-  toast('Comparaison indisponible','err');
+  res.innerHTML='<div class="card" style="padding:15px"><strong style="color:var(--am)">DONNÉES ACTUELLEMENT INDISPONIBLES</strong>'+
+    '<p style="font-size:11px;line-height:1.6">Le comparateur ne peut pas établir un classement fiable : '+esc(e?.message||'erreur de données')+
+    '. Relancez lors du prochain rafraîchissement des cotes. Aucune sélection artificielle ne sera affichée.</p></div>';
+  toast('Données du marché indisponibles','err');
  }finally{btn.disabled=false;btn.textContent='Comparer et obtenir une direction';}
 }
 
