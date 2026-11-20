@@ -17,6 +17,31 @@ const AUTH_TOKEN = 'PgiBetProWinMoney';
 const BETPRO_READ_CACHE_PREFIX='betpro-read-v1:';
 const BETPRO_READ_CACHE_INFLIGHT=new Map();
 const BETPRO_READ_CACHE_MEMORY=new Map();
+/* Dernier instantane valide : secours d'affichage, jamais une cote live.
+   Aucune ecriture Cloudflare, seulement le stockage du navigateur. */
+const BETPRO_CARD_SNAPSHOT_PREFIX='betpro-card-snapshot-v1:';
+function betproCardSnapshotPath(path){
+  return path.startsWith('/api/analyze?')||path.startsWith('/api/classic/scan?');
+}
+function betproCardSnapshotSave(path,data){
+  if(!betproCardSnapshotPath(path)||!data||data.ok===false||data.error)return;
+  const cards=path.startsWith('/api/classic/')?data.events:data.opportunities;
+  if(!Array.isArray(cards)||!cards.length)return;
+  try{
+    const value=JSON.stringify({ts:Date.now(),data});
+    if(value.length<450000)localStorage.setItem(BETPRO_CARD_SNAPSHOT_PREFIX+path,value);
+  }catch(_){}
+}
+function betproCardSnapshotLoad(path){
+  if(!betproCardSnapshotPath(path))return null;
+  try{
+    const saved=JSON.parse(localStorage.getItem(BETPRO_CARD_SNAPSHOT_PREFIX+path)||'null');
+    if(!saved||!saved.ts||!saved.data||Date.now()-saved.ts>48*3600000)return null;
+    return {...saved.data,_snapshotFallback:true,_snapshotAt:new Date(saved.ts).toISOString(),
+      warning:'Dernieres donnees sauvegardees : D1 ou reseau indisponible. Cotes non actualisees, ne pas miser sans verification.'};
+  }catch(_){return null;}
+}
+
 function betproReadCacheTtl(path){
   if(path==='/api/sports')return 10*60*1000;
   if(path==='/api/quotas')return 20*1000;
@@ -70,6 +95,7 @@ async function api(path, method='GET', body=null, requestOptions={}) {
         throw new Error(errorData.error||'HTTP '+response.status);
       }
       const data=await response.json();
+      if(String(method).toUpperCase()==='GET'&&!requestOptions.signal)betproCardSnapshotSave(path,data);
       if(ttl&&data&&data.ok!==false&&!data.error){
         const entry={ts:Date.now(),data};
         BETPRO_READ_CACHE_MEMORY.set(path,entry);
@@ -80,6 +106,10 @@ async function api(path, method='GET', body=null, requestOptions={}) {
       }
       return data;
     }catch(error){
+      if(String(method).toUpperCase()==='GET'&&!requestOptions.signal){
+        const fallback=betproCardSnapshotLoad(path);
+        if(fallback)return fallback;
+      }
       if(controller.signal.aborted){
         if(timedOut)throw new Error('Délai dépassé après '+Math.round(timeoutMs/1000)+' s');
         throw new Error('Requête annulée');
@@ -2699,6 +2729,7 @@ async function doAnalyze(){
     const opps=(d.opportunities||[]).filter(o=>(o.score?.total||0)>=minScore);
     cnt.innerHTML='';
     if(d.warning)cnt.innerHTML+='<div class="warn">⚠ '+esc(d.warning)+'</div>';
+    if(d._snapshotFallback)cnt.innerHTML+='<div class="warn">Instantane du '+esc(fmtDT(d._snapshotAt))+'. Cotes anciennes, verifier avant de miser.</div>';
     if(d.key_used)cnt.innerHTML+=`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-bottom:8px">🔑 Clé ${d.key_used}/${d.keys_available||1} utilisée</div>`;
     cnt.innerHTML+=`<div class="sbar"><div class="sdot"></div><span>${opps.length} opportunité(s)</span>${d.cached?'<span class="bdg bca">Cache</span>':''}<span style="margin-left:auto;color:var(--dm)">${fmtDT(d.analyzed_at)}</span></div>`;
     cnt.innerHTML+=renderOpps(opps);loadQuotas();toast(opps.length+' opportunité(s)','ok');
@@ -3515,6 +3546,9 @@ async function doClassicScan(){
       :{ok:false,error:issueMessage,quota_blocked:quotaIssue,failures:failed.slice(0,4)};
     if(seq!==betProClassicScanSeq)return;
     if(!d?.ok)throw Error(d?.error||'Scan classique indisponible');
+    if(good.some(x=>x._snapshotFallback)){
+      cnt.innerHTML='<div class="warn">Donnees sauvegardees : cotes non actualisees. Verifier les cotes avant toute decision.</div>';
+    }
     const candidates=Array.isArray(d.events)?d.events:[];
     const identified=Math.max(candidates.length,Number(d.candidate_events||0));
     const now=Date.now();
