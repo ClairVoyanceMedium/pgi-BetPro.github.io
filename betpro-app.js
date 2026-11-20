@@ -5812,7 +5812,7 @@ function betproTickerRender(news,sportPayload,loadSequence,persistSnapshot=false
     const source = document.getElementById('ticker-source');
     if (!inner) return;
 
-    const sportCategories = new Set(news.filter(item => tickerCategory(item.sport) !== 'turf').map(item => tickerCategory(item.sport)));
+    const sportCategories = new Set(news.filter(item => !['turf','psg'].includes(tickerCategory(item.sport))).map(item => tickerCategory(item.sport)));
     const hasTurf = news.some(item => tickerCategory(item.sport) === 'turf');
     const degraded = !!sportPayload.meta?.degraded;
     const completeMultisport = sportCategories.size >= 11;
