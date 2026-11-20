@@ -636,6 +636,14 @@ a{color:var(--neon);text-decoration:none}
 .betpro-results-more:focus-visible{outline:2px solid #ff9369;outline-offset:3px}
 
 
+
+/* Chat Expert : sources étendues et couverture des recherches. */
+#s-chat .betpro-chat-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 15px}
+#s-chat .betpro-chat-coverage>div{padding:10px 11px;border:1px solid rgba(101,163,185,.17);border-radius:8px;background:rgba(15,40,55,.5);min-width:0}
+#s-chat .betpro-chat-coverage strong{display:block;font:700 10px var(--mo);color:#b3e7fb;margin-bottom:5px}
+#s-chat .betpro-chat-coverage span{display:block;color:var(--mu);font-size:10px;line-height:1.55;overflow-wrap:anywhere}
+@media(max-width:550px){#s-chat .betpro-chat-coverage{gap:7px}#s-chat .betpro-chat-coverage>div{padding:9px}}
+
 /* Chat expert : provenance des données et limites lisibles et identifiables. */
 #s-chat .betpro-chat-research{margin:10px 0 18px 38px;max-width:calc(100% - 38px);padding:14px 15px;border:1px solid rgba(80,201,227,.3);background:rgba(7,29,43,.63);border-radius:11px}
 #s-chat .betpro-chat-research-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
@@ -1188,7 +1196,7 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
-  <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Analyses fondées sur des sources vérifiables. Si les données manquent, le Chat Expert le signale et ne prétend pas connaître le résultat.</div></div>
+  <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Recherche ciblée : blessures et absences, forme récente, compositions, classement, statistiques, cotes et actualités. Sources datées et limites signalées.</div></div>
   <div class="ctx-bar">
     <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Contexte du match (renseigne les équipes pour vérifier cotes et résultats)</div>
     <div class="ctx-grid">
@@ -1913,7 +1921,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261120-expert-results-v175"></script>
+<script defer src="./betpro-app.js?v=20261120-expert-deep-research-v177"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
