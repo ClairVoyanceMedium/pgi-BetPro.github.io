@@ -3865,30 +3865,56 @@ function betproChosenResultRow(item){
   +'<div style="font-size:10px;color:var(--mu);margin:0 0 7px">Scan '+esc(item.engine||'')+' · Sélectionné le '+betproResultDate(item.selectedAt)+(item.phase==='en_direct'?' · Sélection en direct':'')+'</div>'
   +'<div style="display:flex;justify-content:flex-end;margin:0 0 12px">'+button+'</div></div>';
 }
+let betproFinishedOpen=false,betproAnalyticsOpen=false;
 function betproRenderChosenResults(items,stats){
  const target=document.getElementById('res-cnt');if(!target)return;
+ // Conserver les panneaux ouverts si la page se recharge en arriere-plan.
+ const older=target.querySelector('#betpro-finished-results');
+ const analytics=target.querySelector('#betpro-results-analytics');
+ if(older)betproFinishedOpen=older.open;
+ if(analytics)betproAnalyticsOpen=analytics.open;
  const chosen=[...items].sort((a,b)=>(Date.parse(b.selectedAt||'')||0)-(Date.parse(a.selectedAt||'')||0));
  const settled=chosen.filter(x=>['win','loss','void'].includes(String(x.status||'')));
  const pending=chosen.filter(x=>!['win','loss','void'].includes(String(x.status||'')));
+ const won=settled.filter(x=>x.status==='win').length,lost=settled.filter(x=>x.status==='loss').length,voids=settled.filter(x=>x.status==='void').length;
  const stat=(name,val)=>'<div class="tsm-cell"><div class="sv" style="color:var(--tx)">'+val+'</div><label>'+name+'</label></div>';
- const section=(name,rows,empty,extraClass='')=>'<div class="card betpro-results-section'+(extraClass?' '+extraClass:'')+'"><div class="ct">'+name+'</div>'
-   +(rows.length?rows.slice(0,15).map(betproChosenResultRow).join('')
-      +(rows.length>15?'<details><summary class="betpro-results-more">Afficher '+(rows.length-15)+' autres pronostics</summary>'+rows.slice(15).map(betproChosenResultRow).join('')+'</details>':'')
-      :'<p style="font-size:11px;color:var(--mu);line-height:1.7">'+empty+'</p>')+'</div>';
- let html='<div class="info" style="font-size:11px;line-height:1.7;margin-bottom:14px">Suivi personnel : seuls les pronostics que tu as sélectionnés sur les cartes Scan Live sont contrôlés et comptabilisés ici.</div>'
-   +'<div class="tracker-summary" style="margin-bottom:14px">'
-   +stat('Mes sélections',chosen.length)+stat('Gagnées',settled.filter(x=>x.status==='win').length)
-   +stat('Perdues',settled.filter(x=>x.status==='loss').length)+stat('À vérifier',pending.length)+'</div>';
+ const cards=(rows,max=6)=>rows.length
+    ?rows.slice(0,max).map(betproChosenResultRow).join('')
+      +(rows.length>max?'<details class="betpro-result-more-panel"><summary>Afficher '+(rows.length-max)+' autres sélections</summary><div class="betpro-result-more-content">'+rows.slice(max).map(betproChosenResultRow).join('')+'</div></details>':'')
+    :'<p class="betpro-result-empty">Aucune sélection dans cette catégorie.</p>';
+ let html='<div class="betpro-result-intro">Retrouve uniquement les matchs que tu as choisi de suivre. Les scores restent non réglés tant qu’ils ne sont pas vérifiés auprès d’une source.</div>'
+  +'<div class="tracker-summary betpro-results-kpis">'
+  +stat('Sélections suivies',chosen.length)+stat('À confirmer',pending.length)
+  +stat('Gagnées',won)+stat('Perdues',lost)+'</div>';
  if(!chosen.length){
-  html+='<div class="card betpro-results-section"><div class="ct">Aucun pronostic sélectionné</div>'
-   +'<p style="font-size:12px;color:var(--mu);line-height:1.75">Effectue un Scan Live Classique ou Benter, puis appuie sur « Suivre le résultat » sur les cartes de ton choix. Elles apparaîtront ici sur tous tes appareils.</p></div>';
+  html+='<div class="card betpro-results-section betpro-results-empty"><div class="ct">Aucun match suivi pour le moment</div>'
+   +'<p>Sur une carte Scan Live, utilise « Suivre le résultat ». Les matchs enregistrés apparaîtront ici sur tes appareils.</p></div>';
  }else{
-  html+=section('Mes résultats confirmés',settled,'Aucun des pronostics choisis n’a encore un score officiel confirmé.')
-    +section('Mes pronostics en attente',pending,'Toutes tes sélections ont été vérifiées.','betpro-pending-section');
+  // Les pronostics non réglés sont prioritaires. Les terminés restent consultables mais repliés.
+  html+='<section class="card betpro-results-section betpro-pending-section" aria-label="Pronostics en attente">'
+   +'<div class="betpro-results-section-heading"><h3>À suivre</h3><span class="betpro-results-count">'+pending.length+' en attente</span></div>'
+   +(pending.length?cards(pending,6):'<p class="betpro-result-empty">Aucun pronostic en attente. Tous les matchs sélectionnés ont été vérifiés.</p>')
+   +'</section>';
+  if(settled.length){
+   html+='<details class="card betpro-results-section betpro-finished-section" id="betpro-finished-results"'
+    +(betproFinishedOpen?' open':'')+'>'
+    +'<summary class="betpro-results-toggle"><span class="betpro-results-toggle-text"><strong>Matchs terminés</strong>'
+    +'<small>'+won+' gagnés · '+lost+' perdus'+(voids?' · '+voids+' annulés':'')+'</small></span>'
+    +'<span class="betpro-results-count">'+settled.length+' résultats</span><span class="betpro-results-chevron" aria-hidden="true">⌄</span></summary>'
+    +'<div class="betpro-finished-content">'+cards(settled,12)+'</div></details>';
+  }
  }
- html+=betproResultsBottomStats(stats,chosen);
+ html+='<details class="card betpro-results-section betpro-stats-collapsible" id="betpro-results-analytics"'
+  +(betproAnalyticsOpen?' open':'')+'>'
+  +'<summary class="betpro-results-toggle"><span class="betpro-results-toggle-text"><strong>Statistiques détaillées</strong>'
+  +'<small>Réussite, rendement théorique, sports et historique</small></span>'
+  +'<span class="betpro-results-chevron" aria-hidden="true">⌄</span></summary>'
+  +'<div class="betpro-finished-content">'+betproResultsBottomStats(stats,chosen)+'</div></details>';
  target.innerHTML=html;
+ target.querySelector('#betpro-finished-results')?.addEventListener('toggle',e=>{betproFinishedOpen=e.target.open;});
+ target.querySelector('#betpro-results-analytics')?.addEventListener('toggle',e=>{betproAnalyticsOpen=e.target.open;});
 }
+
 async function loadResults(){
  const target=document.getElementById('res-cnt');if(!target)return;
  const seq=++betproResultsSequence;
