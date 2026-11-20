@@ -4159,23 +4159,30 @@ async function betproExpertFreshFixture(question,ctx){
   });
  });
  const wanted=[ctx?.home,ctx?.away].filter(Boolean),q=question;
+ const resultQuestion=/\b(resultat|resultats|score|hier|dernier match|a gagne|avait gagne)\b/.test(betproExpertNorm(question));
  const ranked=all.map(e=>{
-   const h=betproExpertMentions(q,e.home)||wanted.some(w=>betproExpertMentions(w,e.home));
-   const a=betproExpertMentions(q,e.away)||wanted.some(w=>betproExpertMentions(w,e.away));
-   return {...e,match_score:(h?1:0)+(a?1:0)};
+   const qh=betproExpertMentions(q,e.home),qa=betproExpertMentions(q,e.away);
+   const ch=wanted.some(w=>betproExpertMentions(w,e.home)),ca=wanted.some(w=>betproExpertMentions(w,e.away));
+   const score=(qh?2:ch?1:0)+(qa?2:ca?1:0);
+   return {...e,match_score:score,match_both:(qh&&qa)||(ch&&ca)};
  }).filter(e=>e.match_score>0);
- ranked.sort((a,b)=>b.match_score-a.match_score||Math.abs(Date.parse(a.date)-Date.now())-Math.abs(Date.parse(b.date)-Date.now()));
+ ranked.sort((a,b)=>{
+   if(a.match_score!==b.match_score)return b.match_score-a.match_score;
+   if(!resultQuestion && a.completed!==b.completed)return a.completed?1:-1;
+   const da=Math.abs(Date.parse(a.date)-Date.now()),db=Math.abs(Date.parse(b.date)-Date.now());
+   return da-db;
+ });
  const chosen=ranked[0];
  if(!chosen){
   research.warnings.push('Aucune rencontre identifiée avec certitude dans les calendriers consultables. Vérifier les noms, la compétition et la date.');
   if(results.every(r=>r.status==='rejected'))research.warnings.push('Les flux sportifs externes ne répondent pas actuellement.');
   return research;
  }
- if(chosen.match_score<2 && /\b(entre|contre|vs|versus)\b/i.test(question)){
+ if(!chosen.match_both && /\b(entre|contre|vs|versus)\b/i.test(question)){
   research.warnings.push('Un seul des deux adversaires est identifié : correspondance à confirmer.');
  }
  research.fixture=chosen;
- research.research_level=chosen.match_score>=2?'event_found':'limited';
+ research.research_level=chosen.match_both?'event_found':'limited';
  research.research_coverage.schedule='Vérifié dans le calendrier ESPN à '+betproExpertDateParis(research.checked_at);
  research.sources=[{label:'ESPN, calendrier '+chosen.league,url:chosen.url,
  detail:chosen.home+' - '+chosen.away+' | '+betproExpertDateParis(chosen.date)}];
