@@ -4253,7 +4253,72 @@ function handleDrop(e){e.preventDefault();document.getElementById('upload-zone')
 function handleImgChange(e){const file=e.target.files[0];if(file)processImageFile(file);}
 function processImageFile(file){stratImgType=file.type||'image/jpeg';const reader=new FileReader();reader.onload=ev=>{const dataUrl=ev.target.result;stratImgB64=dataUrl.split(',')[1];const preview=document.getElementById('img-preview');if(file.type.startsWith('image/')){preview.src=dataUrl;preview.style.display='block';}document.querySelector('.upload-t').textContent='✅ '+file.name;toast('Image chargée','ok');};reader.readAsDataURL(file);}
 function resetStrategy(){stratImgB64=null;stratImgType=null;document.getElementById('strat-img').value='';document.getElementById('img-preview').style.display='none';document.getElementById('strat-text').value='';document.getElementById('strat-res').innerHTML='';}
-async function doStrategy(){const bankroll=parseFloat(document.getElementById('strat-bankroll').value),betsText=document.getElementById('strat-text').value.trim();const btn=document.getElementById('strat-btn'),res=document.getElementById('strat-res');if(!bankroll||bankroll<1){toast('Bankroll invalide','err');return;}if(!stratImgB64&&!betsText){toast('Image ou texte requis','err');return;}btn.disabled=true;btn.innerHTML='<span class="sp" style="width:13px;height:13px;border-width:2px"></span> Analyse…';res.innerHTML='<div class="ls"><div class="sp"></div><p>Calcul…</p></div>';try{const payload={bankroll,risk_profile:selectedRisk};if(stratImgB64){payload.image_b64=stratImgB64;payload.image_type=stratImgType;}if(betsText)payload.bets_text=betsText;const d=await api('/api/strategy','POST',payload);if(d.strategy){const s=d.strategy,strategy=s.strategy||[],rejected=s.bets_rejected||[],summary=s.bankroll_summary||{};const invested=summary.invested||strategy.reduce((a,b)=>a+(b.stake||0),0);res.innerHTML=`<div class="strat-summary"><div class="ss-cell"><div class="sv" style="color:var(--am)">${invested.toFixed(0)}€</div><label>Investi</label></div><div class="ss-cell"><div class="sv" style="color:var(--gr)">${(summary.potential_gain_max||0).toFixed(0)}€</div><label>Gain max</label></div><div class="ss-cell"><div class="sv" style="color:${(summary.expected_value||0)>=0?'var(--gr)':'var(--re)'}">${(summary.expected_value||0)>0?'+':''}${(summary.expected_value||0).toFixed(2)}€</div><label>EV</label></div><div class="ss-cell"><div class="sv">${(summary.roi_espere||0).toFixed(1)}%</div><label>ROI espéré</label></div></div>${strategy.map((b,i)=>`<div class="bet-row ${i===0?'top1':i===1?'top2':i===2?'top3':''}"><div style="display:flex;gap:10px;align-items:flex-start"><div class="stake-badge" style="min-width:80px"><div class="sam">${b.stake||0}€</div><div class="sal">${b.stake_pct||0}%</div></div><div style="flex:1"><div style="font-family:var(--hd);font-size:13px;font-weight:700">${esc(b.match||'?')}</div><div style="font-family:var(--mo);font-size:12px;color:var(--neon);font-weight:700;margin-top:3px">${esc(b.selection||'?')} @ ${b.odds||'?'}</div>${b.raisonnement?`<p style="font-size:11px;color:var(--mu);margin-top:6px;line-height:1.65">${esc(b.raisonnement)}</p>`:''}</div></div></div>`).join('')}${rejected.length?`<div style="opacity:.65"><div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 8px">❌ Paris rejetés</div>${rejected.map(b=>`<div class="bet-row rejected"><span style="font-size:12px;color:var(--mu)">${esc(b.match||'?')} — ${esc(b.raison||'Edge insuffisant')}</span></div>`).join('')}</div>`:''}<div class="verdict-final"><div class="vf-t">Verdict</div><div class="vf-c">${esc(s.verdict||'—')}</div></div><p style="font-size:10px;color:var(--dm);margin-top:12px">⚠️ ${esc(s.disclaimer||'Analyse probabiliste.')}</p>`;}else{res.innerHTML=`<div class="warn">⚠ L'IA n'a pas pu analyser. Vérifiez votre saisie.</div><pre style="font-size:10px">${esc(d.raw||'')}</pre>`;}toast('Analyse terminée','ok');}catch(e){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}btn.disabled=false;btn.innerHTML='🏆 Calculer';}
+
+function valueProMoney(v,digits=2){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('fr-FR',{minimumFractionDigits:digits,maximumFractionDigits:digits})+' €':'–';}
+function valueProPercent(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:2})+' %':'–';}
+function valueProDate(s){const t=Date.parse(s||'');return Number.isFinite(t)?new Date(t).toLocaleString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Non précisé';}
+async function doStrategy(){
+ const input=document.getElementById('strat-bankroll'),textBox=document.getElementById('strat-text');
+ const bankroll=Number(input?.value),betsText=String(textBox?.value||'').trim();
+ const btn=document.getElementById('strat-btn'),res=document.getElementById('strat-res');
+ if(!Number.isFinite(bankroll)||bankroll<10||bankroll>1000000){toast('Capital invalide (10 à 1 000 000 €)','err');return;}
+ if(!betsText&&!stratImgB64){toast('Saisissez un pari ou ajoutez une capture','err');return;}
+ btn.disabled=true;btn.textContent='Analyse des données…';
+ res.innerHTML='<div class="ls" style="padding:18px"><div class="sp"></div><p>Contrôle des rencontres, cotes et limites de risque…</p></div>';
+ try{
+  const payload={bankroll,risk_profile:selectedRisk};
+  if(betsText)payload.bets_text=betsText;
+  if(stratImgB64){payload.image_b64=stratImgB64;payload.image_type=stratImgType;}
+  const d=await api('/api/strategy','POST',payload,{timeoutMs:40000,noCache:true});
+  const rows=Array.isArray(d?.strategy)?d.strategy:[],rejected=Array.isArray(d?.bets_rejected)?d.bets_rejected:[];
+  const summary=d?.bankroll_summary||{},modelOK=d?.model_calibrated===true;
+  let html='<div class="card" style="padding:16px;border:1px solid var(--bd);margin-bottom:13px;line-height:1.6">';
+  html+='<div style="font:800 14px var(--hd);color:var(--neon);margin-bottom:7px">Value Betting Pro · Diagnostic du marché</div>';
+  html+='<div style="font-size:11px;color:var(--mu)">Source : '+esc(d?.provider||'BetPro D1')+' · Consultation : '+esc(valueProDate(d?.checked_at))+'</div>';
+  html+='<div style="font-size:11px;color:var(--mu);margin-top:6px">Méthode : '+esc(d?.methodology||'Vérification des données disponibles')+'</div>';
+  if(!modelOK)html+='<div style="font-size:11px;color:var(--am);margin-top:9px;font-weight:700">Probabilités issues du marché des cotes, non issues d’un modèle sportif calibré. L’EV et le ROI sont uniquement indicatifs.</div>';
+  html+='</div>';
+  if(rows.length){
+   html+='<div class="strat-summary" style="margin-bottom:16px">';
+   const cols=[
+    ['Mise globale plafonnée',valueProMoney(summary.invested), 'var(--am)'],
+    ['Risque sur capital',valueProPercent(summary.session_risk_pct),'var(--tx)'],
+    ['EV théorique du marché',valueProMoney(summary.expected_value),'var(--gr)'],
+    ['ROI théorique du marché',valueProPercent(summary.roi_espere),'var(--gr)']
+   ];
+   for(const col of cols)html+='<div class="ss-cell"><div class="sv" style="color:'+col[2]+'">'+col[1]+'</div><label>'+col[0]+'</label></div>';
+   html+='</div>';
+   for(const [i,b] of rows.entries()){
+    html+='<div class="bet-row '+(i===0?'top1':i===1?'top2':'')+'" style="margin-bottom:12px;line-height:1.6">';
+    html+='<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">';
+    html+='<div class="stake-badge" style="min-width:110px"><div class="sam">'+valueProMoney(b.stake)+'</div><div class="sal">'+valueProPercent(b.stake_pct)+' du capital</div></div>';
+    html+='<div style="flex:1;min-width:185px"><div style="font:800 14px var(--hd)">'+esc(b.match||'Rencontre')+'</div>';
+    html+='<div style="font:700 12px var(--mo);color:var(--neon);margin-top:5px">'+esc(b.selection||'Sélection')+' @ '+esc(Number(b.odds).toFixed(2))+' <span style="color:var(--mu);font-weight:400">('+esc(b.bookmaker||'source')+')</span></div>';
+    html+='<div style="font-size:11px;color:var(--gr);margin-top:4px;font-weight:800">Écart de valeur estimé : +'+valueProPercent(b.price_advantage_pct)+'</div>';
+    html+='<div style="font-size:11px;color:var(--mu);margin-top:5px">Probabilité consensus : '+valueProPercent(b.market_probability)+' · Prudente : '+valueProPercent(b.conservative_probability)+' · Seuil implicite de la cote : '+valueProPercent(b.implied_probability)+'</div>';
+    html+='<div style="font-size:11px;color:var(--mu);margin-top:4px">'+esc(String(b.reference_count||0))+' bookmakers de comparaison · Cote relevée : '+esc(valueProDate(b.observed_at))+'</div>';
+    html+='<div style="font-size:11px;color:var(--mu);margin-top:6px">'+esc(b.raisonnement||'')+'</div>';
+    html+='</div></div></div>';
+   }
+  }else{
+   html+='<div class="card" style="padding:16px;border:1px solid var(--am);margin-bottom:12px">';
+   html+='<div style="font:800 13px var(--hd);color:var(--am);margin-bottom:5px">ABSTENTION · Aucune cote suffisamment documentée</div>';
+   html+='<div style="font-size:12px;color:var(--mu);line-height:1.6">'+esc(d?.message||d?.verdict||'Aucun pari ne remplit les critères actuellement.')+'</div></div>';
+  }
+  if(rejected.length){
+   html+='<details class="card" style="margin-bottom:13px;padding:12px"><summary style="cursor:pointer;color:var(--am);font-weight:800;font-size:12px">Paris exclus et raisons ('+rejected.length+')</summary>';
+   for(const b of rejected)html+='<div style="padding:10px 2px;border-bottom:1px solid var(--bd);font-size:11px;line-height:1.6"><strong>'+esc(b.match||'Ticket')+'</strong><div style="color:var(--mu)">'+esc(b.raison||'Données insuffisantes')+'</div></div>';
+   html+='</details>';
+  }
+  html+='<div class="verdict-final" style="margin-bottom:10px"><div class="vf-t">Conclusion</div><div class="vf-c">'+esc(d?.verdict||d?.message||'Pas de conclusion vérifiable.')+'</div></div>';
+  html+='<p style="font-size:10px;color:var(--dm);line-height:1.7">'+esc(d?.disclaimer||'Analyse indicative. Aucun gain garanti.')+'</p>';
+  res.innerHTML=html;
+  toast(rows.length?'Comparaison terminée':'Analyse terminée : abstention','ok');
+ }catch(e){
+  res.innerHTML='<div class="card" style="border-color:var(--re);padding:14px"><div style="color:var(--re)">Calcul indisponible : '+esc(e?.message||'Erreur réseau')+'. Aucune recommandation sans données vérifiées.</div></div>';
+  toast('Erreur dans l’analyse','err');
+ }finally{btn.disabled=false;btn.textContent='🏆 Analyser les cotes';}
+}
 
 // ═══════════════════════════════════════════════
 //  RATTRAPAGE INTELLIGENT — LOGIQUE COMPLETE
