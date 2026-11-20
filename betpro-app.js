@@ -4217,7 +4217,7 @@ async function sendChat(){
    const verified=betproExpertContextFromResearch(research);
    if(verified)ctx.extra=verified;
    const nq=betproExpertNorm(q);
-   const predictionQuestion=/\b(gagner|gagnant|favori|pronostic|pari|parier|mise|cote|proba|chance|analyse|conseil|rentable|value)\b/.test(nq);
+   const predictionQuestion=/\b(gagne|gagner|gagnera|gagnant|vainqueur|victorieux|victorieuse|remporte|favori|pronostic|pari|parier|mise|cote|proba|chance|analyse|conseil|rentable|value)\b/.test(nq);
    const factualQuestion=/\b(quelle heure|a quelle heure|quel jour|quelle date|quand|horaire|date du match|debut du match)\b/.test(nq);
    const directFixtureAnswer=Boolean(factualQuestion&&!predictionQuestion&&research?.fixture);
    const d=directFixtureAnswer
@@ -4228,9 +4228,9 @@ async function sendChat(){
    typing.remove();
    const evidence=research?.fixture?('**Rencontre vérifiée (ESPN)** : '+research.fixture.home+' - '+research.fixture.away+' | '+betproExpertDateParis(research.fixture.date)+' (heure de Paris) | '+research.fixture.status+(research.fixture.score?' | Score '+research.fixture.score:'')+'\n\n'):'';
    const sSources=Array.isArray(d?.sources)?d.sources:[];
-   const unverified=predictionQuestion&&!research?.fixture&&!sSources.length;
+   const unverified=(predictionQuestion||factualQuestion)&&!research?.fixture&&!sSources.length;
    const answer=unverified
-    ? 'Impossible de fournir un pronostic fiable pour cette rencontre : aucune donnée de match récente et vérifiée n’a été retrouvée. Merci de préciser les deux adversaires, le sport et la compétition.'
+    ? 'Impossible de confirmer l’horaire ou de fournir un pronostic fiable : aucune donnée récente et vérifiée sur cette rencontre. Précisez les deux adversaires, le sport et la compétition.'
     : evidence+String(d?.response||'Analyse indisponible.');
    chatHistory.push({role:'assistant',content:answer});
    appendMsg('bot',answer,d?.provider&&d?.model?d.provider+' · '+d.model:null);
