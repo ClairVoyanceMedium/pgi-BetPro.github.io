@@ -6468,6 +6468,63 @@ async function initStatusBadges() {
 }
 
 let maturityLoading=false,collectionDiagnostic=null;
+
+let maturityLiveLoading=false,maturityLiveLastRequest=0;
+async function loadMaturityLiveCounters(){
+  if(maturityLiveLoading||document.hidden||!document.getElementById('s-dash')?.classList.contains('on'))return;
+  if(Date.now()-maturityLiveLastRequest<10*60000)return;
+  maturityLiveLoading=true;
+  maturityLiveLastRequest=Date.now();
+  try{
+    const data=await api('/api/maturity/live','GET',null,{timeoutMs:12500});
+    if(!data?.ok)throw Error(data?.error||'Compteurs automatiques indisponibles');
+    const nf=new Intl.NumberFormat('fr-FR'),count=n=>nf.format(Math.max(0,Number(n)||0));
+    const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+    if(data.events!=null)set('maturity-events',count(data.events));
+    if(data.odds_snapshots!=null)set('maturity-odds',(data.odds_estimated?'≈ ':'')+count(data.odds_snapshots));
+    if(data.pmu_races!=null){
+      const races=Math.max(0,Number(data.pmu_races)||0);
+      const target=Math.max(1,Number(collectionDiagnostic?.pmu?.target_races||500));
+      const stage=races<100?'construction':races<500?'préliminaire':races<1000?'validation étendue':'volume historique solide';
+      set('maturity-pmu',count(races));
+      set('maturity-pmu-label','PMU France : '+stage);
+      set('maturity-pmu-value',count(races)+' / '+count(target)+' courses');
+      const bar=document.getElementById('maturity-pmu-bar');
+      if(bar)bar.style.width=Math.min(100,Math.round(races*100/target))+'%';
+    }
+    if(data.hkjc_races!=null)set('maturity-hkjc',count(data.hkjc_races));
+    if(data.hkjc_verified_odds!=null)set('maturity-hkjc-odds','Cotes vérifiées : '+count(data.hkjc_verified_odds));
+    if(data.active_models!=null){
+      set('maturity-models',count(data.active_models));
+      set('maturity-decision',Number(data.active_models)>0
+        ?'Multisports : segments actifs, admissibilité contrôlée carte par carte.'
+        :'Multisports : aucun segment Benter actif actuellement.');
+    }
+    // Synchronise aussi l'export avec les derniers chiffres affichés.
+    if(collectionDiagnostic){
+      const d=collectionDiagnostic;
+      if(data.odds_snapshots!=null)d.collection={...(d.collection||{}),odds_snapshots:Number(data.odds_snapshots)};
+      if(data.pmu_races!=null)d.pmu={...(d.pmu||{}),detailed_races:Number(data.pmu_races)};
+      if(data.hkjc_races!=null||data.hkjc_verified_odds!=null){
+        d.hkjc={...(d.hkjc||{}),...(data.hkjc_races!=null?{races:Number(data.hkjc_races)}:{}),
+          ...(data.hkjc_verified_odds!=null?{verified_odds_snapshots:Number(data.hkjc_verified_odds)}:{})};
+      }
+      if(data.active_models!=null)d.benter={...(d.benter||{}),active_models:Number(data.active_models)};
+    }
+    const date=x=>x&&Number.isFinite(Date.parse(x))?new Date(x).toLocaleString('fr-FR',{timeZone:'Europe/Paris'}):'non disponible';
+    const source=document.getElementById('maturity-checked');
+    if(source){
+      source.textContent='État : '+date(collectionDiagnostic?.checked_at)
+        +' · compteurs auto : '+date(data.counted_at||data.checked_at)
+        +(data.odds_estimated?' · cotes ≈ (recalage exact quotidien)':' · cotes exactes au dernier recalage');
+    }
+  }catch(e){
+    // Conserver les chiffres précédents ; ne jamais les réinitialiser à zéro.
+    maturityLiveLastRequest=Date.now()-8*60000;
+    console.warn('Actualisation automatique des compteurs:',e?.message||e);
+  }finally{maturityLiveLoading=false;}
+}
+
 function collectionDiagnosticText(s){
   const n=v=>v===null||v===undefined||v===''?'non mesuré':Number.isFinite(Number(v))?new Intl.NumberFormat('fr-FR').format(Number(v)):'inconnu';
   const date=v=>v&&Number.isFinite(Date.parse(v))?new Date(v).toLocaleString('fr-FR',{timeZone:'Europe/Paris'}):'non disponible';
@@ -6546,7 +6603,11 @@ async function loadProfessionalMaturity(){
     const badge=document.getElementById('maturity-health');if(badge){badge.textContent='CONTRÔLE INDISPONIBLE';badge.style.color='var(--re)';}
     const details=document.getElementById('maturity-details');if(details){details.textContent='Erreur de diagnostic : '+String(e?.message||e).slice(0,240);details.style.whiteSpace='pre-wrap';}
     const checked=document.getElementById('maturity-checked');if(checked)checked.textContent=collectionDiagnostic?'Actualisation impossible. Dernier état : '+new Date(collectionDiagnostic.checked_at).toLocaleString('fr-FR')+' · compteurs : '+new Date(collectionDiagnostic.volume_checked_at||collectionDiagnostic.checked_at).toLocaleString('fr-FR')+'.':'Actualisation impossible. Aucun diagnostic reçu.';
-  }finally{maturityLoading=false;}
+  }finally{
+    maturityLoading=false;
+    if(!document.hidden&&document.getElementById('s-dash')?.classList.contains('on'))
+      void loadMaturityLiveCounters();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -6586,6 +6647,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(()=>{if(!document.hidden && document.getElementById('s-results')?.classList.contains('on'))loadResults();},10*60*1000);
   loadProfessionalMaturity();
   setInterval(()=>{if(!document.hidden && document.getElementById('s-dash')?.classList.contains('on'))loadProfessionalMaturity();},60*60*1000);
+  setInterval(()=>{if(!document.hidden && document.getElementById('s-dash')?.classList.contains('on'))void loadMaturityLiveCounters();},10*60*1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&document.getElementById('s-dash')?.classList.contains('on'))void loadMaturityLiveCounters();});
   loadValidSportKeys();
   lossLoadCloud().then(()=>{
     if(document.getElementById('s-methods')?.classList.contains('on')) lossRender();
