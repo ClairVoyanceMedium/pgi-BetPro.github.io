@@ -634,6 +634,50 @@ a{color:var(--neon);text-decoration:none}
 .betpro-results-row:last-child{border-bottom:0}
 .betpro-results-more{color:#ff9369;cursor:pointer;font:700 11px var(--mo);padding:7px 0}
 .betpro-results-more:focus-visible{outline:2px solid #ff9369;outline-offset:3px}
+
+/* BetPro : suivi clair et confortable, sans modification des cartes ni des calculs. */
+#s-results .ph{margin-bottom:18px}
+#s-results .bg{gap:10px;margin-bottom:22px!important}
+#s-results #res-cnt{display:flex;flex-direction:column;gap:16px}
+#s-results .betpro-result-intro{padding:15px 17px;background:rgba(25,42,58,.5);border:1px solid rgba(111,164,190,.18);border-radius:11px;color:var(--mu);font-size:12px;line-height:1.7}
+#s-results .betpro-results-kpis{gap:12px;margin:0 0 6px!important}
+#s-results .betpro-results-kpis .tsm-cell{padding:15px 12px;border-radius:10px;min-height:75px}
+#s-results .betpro-results-kpis .sv{font-size:22px;line-height:1.25;margin-bottom:5px}
+#s-results .betpro-results-section{margin:0;padding:20px;border-radius:13px;overflow:visible}
+#s-results .betpro-results-section-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:0 0 14px}
+#s-results .betpro-results-section-heading h3{margin:0;color:#f7dda0;font-size:15px;line-height:1.35;font-family:var(--hd)}
+#s-results .betpro-results-count{white-space:nowrap;color:#f6b999;background:rgba(255,147,105,.10);border:1px solid rgba(255,147,105,.22);border-radius:999px;padding:5px 10px;font:700 10px var(--mo)}
+#s-results .betpro-chosen-card{padding:15px 14px;margin-top:12px;background:rgba(7,18,32,.55);border:1px solid rgba(120,154,177,.2);border-radius:10px}
+#s-results .betpro-chosen-card+.betpro-chosen-card{border-top:1px solid rgba(120,154,177,.2);padding-top:15px}
+#s-results .betpro-results-row{padding:0 0 12px;border:0;line-height:1.65}
+#s-results .betpro-results-row strong{font-size:13px!important;line-height:1.45}
+#s-results .betpro-results-row>div+div{margin-top:9px!important;font-size:11px!important;line-height:1.75!important}
+#s-results .betpro-chosen-card .betpro-follow-btn{min-height:34px;padding:7px 13px}
+#s-results .betpro-result-empty{font-size:12px;color:var(--mu);line-height:1.7;margin:10px 0}
+#s-results .betpro-results-toggle{display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;min-height:36px}
+#s-results .betpro-results-toggle::-webkit-details-marker{display:none}
+#s-results .betpro-results-toggle::marker{content:""}
+#s-results .betpro-results-toggle:focus-visible{outline:2px solid var(--neon);outline-offset:5px;border-radius:5px}
+#s-results .betpro-results-toggle-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+#s-results .betpro-results-toggle-text strong{color:var(--tx);font-size:14px;font-family:var(--hd)}
+#s-results .betpro-results-toggle-text small{color:var(--mu);font:11px var(--mo);line-height:1.5}
+#s-results .betpro-results-chevron{font-size:23px;color:#ffb08c;transition:transform .2s ease}
+#s-results details[open]>.betpro-results-toggle .betpro-results-chevron{transform:rotate(180deg)}
+#s-results .betpro-finished-content{padding-top:16px;margin-top:17px;border-top:1px solid var(--bd)}
+#s-results .betpro-result-more-panel{margin-top:14px}
+#s-results .betpro-result-more-panel>summary{cursor:pointer;color:#ffb08c;font-size:12px;padding:9px 0;list-style:revert}
+#s-results .betpro-result-more-content{padding-top:4px}
+#s-results .betpro-stats-collapsible .betpro-results-section{margin:10px 0;padding:13px}
+@media(max-width:600px){
+ #s-results #res-cnt{gap:14px}
+ #s-results .betpro-results-section{padding:16px 13px}
+ #s-results .betpro-chosen-card{padding:13px 12px}
+ #s-results .betpro-results-kpis{gap:9px}
+ #s-results .betpro-results-kpis .tsm-cell{padding:12px 9px;min-height:70px}
+ #s-results .betpro-results-toggle{flex-wrap:wrap;gap:8px}
+ #s-results .betpro-results-count{font-size:9px}
+}
+
 /* Rapport de collecte repliable : état compact au chargement, contenu conservé. */
 #maturity-panel>summary::-webkit-details-marker{display:none}
 #maturity-panel>summary::marker{content:""}
@@ -1128,7 +1172,7 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
-  <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Analyse senior ultra-poussée.</div></div>
+  <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Analyses fondées sur des sources vérifiables. Si les données manquent, le Chat Expert le signale et ne prétend pas connaître le résultat.</div></div>
   <div class="ctx-bar">
     <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Contexte du match (optionnel)</div>
     <div class="ctx-grid">
@@ -1853,7 +1897,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261120-maturity-autolive-v174"></script>
+<script defer src="./betpro-app.js?v=20261120-expert-results-v175"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
