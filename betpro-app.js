@@ -152,6 +152,47 @@ function toast(msg, type='') {
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
+
+/* Recharger intégralement le code et les vues sans supprimer les données.
+   Seul le petit cache de réponses API en localStorage est invalidé. */
+async function betproRefreshAll(trigger){
+  if(trigger?.disabled)return;
+  document.querySelectorAll('.betpro-refresh-btn').forEach(btn=>{
+    btn.disabled=true;
+    btn.setAttribute('aria-busy','true');
+    const label=btn.querySelector('.betpro-refresh-label');
+    if(label)label.textContent='Actualisation…';
+  });
+  try{
+    const active=document.querySelector('.sec.on')?.id?.slice(2)||'dash';
+    sessionStorage.setItem('betpro:refresh:section',active);
+  }catch(_){}
+  try{
+    const prefix=BETPRO_READ_CACHE_PREFIX;
+    for(let i=localStorage.length-1;i>=0;i--){
+      const key=localStorage.key(i);
+      if(key?.startsWith(prefix))localStorage.removeItem(key);
+    }
+    BETPRO_READ_CACHE_MEMORY.clear();
+  }catch(_){}
+  // Actualiser le service worker existant, sans le désinscrire ni toucher
+  // au stockage utilisateur. Ne pas bloquer la navigation si indisponible.
+  try{
+    if('serviceWorker' in navigator){
+      const registration=await navigator.serviceWorker.getRegistration();
+      if(registration)await Promise.race([
+        registration.update().catch(()=>{}),
+        new Promise(resolve=>setTimeout(resolve,1400))
+      ]);
+    }
+  }catch(_){}
+  const next=new URL(window.location.href);
+  next.searchParams.set('betpro_actualiser',String(Date.now()));
+  // La nouvelle URL contourne le cache HTML, le SW sert déjà le JS
+  // avec cache:no-store. Le fragment et les autres paramètres sont conservés.
+  window.location.replace(next.href);
+}
+
 function go(name) {
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
@@ -6364,6 +6405,13 @@ async function loadProfessionalMaturity(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  try{
+    const previous=sessionStorage.getItem('betpro:refresh:section');
+    if(previous){
+      sessionStorage.removeItem('betpro:refresh:section');
+      if(previous!=='dash'&&document.getElementById('s-'+previous))go(previous);
+    }
+  }catch(_){}
   bookieApply();
   notesLoad();
   notesRender();
