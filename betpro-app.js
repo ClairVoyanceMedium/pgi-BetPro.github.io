@@ -4038,7 +4038,64 @@ function appendMsg(role,msgContent,meta){
   if(role==='bot'&&TTS.enabled&&msgContent.length>2){setTimeout(()=>ttsSpeak(msgContent,'tts-r-'+msgId),300);}
 }
 
-async function sendChat(){const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn'),q=input.value.trim();if(!q)return;chatHistory.push({role:'user',content:q});appendMsg('user',q);input.value='';btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';const wrap=document.getElementById('chat-wrap');const typing=document.createElement('div');typing.className='msg bot';typing.id='typing';typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Analyse…</div>';wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;try{const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:getCtx()});typing.remove();chatHistory.push({role:'assistant',content:d.response||''});appendMsg('bot',d.response||'Pas de réponse.',d.provider&&d.model?d.provider+' · '+d.model:null);}catch(e){typing.remove();appendMsg('bot','❌ Erreur: '+e.message);}btn.disabled=false;btn.innerHTML='▶';}
+
+function betproChatShowResearchSources(data){
+ const wrap=document.getElementById('chat-wrap');
+ if(!wrap)return;
+ const sources=Array.isArray(data?.sources)?data.sources.slice(0,8):[];
+ const warnings=Array.isArray(data?.warnings)?data.warnings.slice(0,3):[];
+ const time=data?.checked_at&&Number.isFinite(Date.parse(data.checked_at))
+   ?new Date(data.checked_at).toLocaleString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})
+   :'indisponible';
+ const makeLink=url=>{
+   try{
+     const u=new URL(url);
+     return u.protocol==='https:'&&u.hostname==='site.api.espn.com'?u.href:null;
+   }catch(_){return null;}
+ };
+ const items=sources.map(s=>{
+   const href=makeLink(s.url);
+   const title=esc(s.label||'Source');
+   return '<div class="betpro-chat-source-item"><span>'+title+'</span>'+
+     (href?'<a target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">Consulter</a>':'')+
+     '<small>'+esc(s.detail||'')+'</small></div>';
+ }).join('');
+ const level=data?.research_level==='event_found'?'Match recherché dans les données sportives':'Recherche ciblée limitée';
+ const node=document.createElement('div');
+ node.className='betpro-chat-research';
+ node.innerHTML='<div class="betpro-chat-research-heading"><strong>Sources réellement consultées</strong><span>'+esc(time)+'</span></div>'+
+  '<div class="betpro-chat-research-label">'+esc(level)+'</div>'+
+  (items||'<p>Aucune source sportive consultée. Indique les deux équipes pour une recherche de match.</p>')+
+  (warnings.length?'<div class="betpro-chat-research-notices">'+warnings.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>':'');
+ wrap.appendChild(node);
+ wrap.scrollTop=wrap.scrollHeight;
+}
+async function sendChat(){
+ const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
+ const q=input?.value.trim();
+ if(!q||btn?.disabled)return;
+ chatHistory.push({role:'user',content:q});
+ appendMsg('user',q);
+ input.value='';btn.disabled=true;
+ btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
+ const wrap=document.getElementById('chat-wrap'),typing=document.createElement('div');
+ typing.className='msg bot';typing.id='typing';
+ typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Consultation des données et analyse…</div>';
+ wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;
+ try{
+   const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:getCtx()},
+     {timeoutMs:26000,noCache:true});
+   typing.remove();
+   const answer=String(d?.response||'Analyse indisponible.');
+   chatHistory.push({role:'assistant',content:answer});
+   appendMsg('bot',answer,d?.provider&&d?.model?d.provider+' · '+d.model:null);
+   betproChatShowResearchSources(d);
+ }catch(e){
+   typing.remove();appendMsg('bot','Analyse indisponible : '+(e?.message||'erreur réseau')+'. Les informations ne sont pas vérifiées.');
+ }
+ btn.disabled=false;btn.innerHTML='▶';
+}
+
 async function loadAIStatus(){const box=document.getElementById('ai-status-box');if(!box)return;try{const d=await api('/api/ai-info');box.innerHTML=d.configured?`<div class="ok-box">✅ IA opérationnelle — <span class="provider-badge pb-${d.provider}">${d.provider} · ${d.model}</span></div>`:`<div class="warn">⚠️ IA non configurée — exécutez <code>wrangler secret put AI_PROVIDER</code></div>`;const badge=document.getElementById('ai-badge');if(badge&&d.configured){badge.className='provider-badge pb-'+d.provider;badge.textContent='⚡ '+d.provider+' · '+d.model;}}catch(_){}}
 async function runLiveModelUI(){const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim();if(!home||!away){toast('Renseignez les équipes','err');return;}const sh=parseInt(document.getElementById('ctx-sh')?.value)||0,sa=parseInt(document.getElementById('ctx-sa')?.value)||0,min=parseInt(document.getElementById('ctx-min')?.value)||45,comp=document.getElementById('ctx-comp')?.value.trim();const btn=document.getElementById('live-model-btn'),res=document.getElementById('live-model-res');btn.disabled=true;btn.innerHTML='<span class="sp" style="width:11px;height:11px;border-width:2px"></span> Modèle…';res.innerHTML='<div class="ls" style="padding:24px"><div class="sp"></div><p>Calcul Poisson…</p></div>';try{const d=await api('/api/live-analysis','POST',{home,away,competition:comp||null,minute:min,score_home:sh,score_away:sa});let html='<div style="background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(245,158,11,.05));border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:18px;margin-bottom:13px">';html+=`<div style="text-align:center;margin-bottom:10px"><span style="font-family:var(--mo);font-size:13px;font-weight:700;color:var(--re);padding:3px 10px;background:rgba(239,68,68,.15);border-radius:5px;display:inline-block">⏱ ${min}'</span></div>`;const m=d.model;if(m){const pHW=m.outcomes.home_win,pD=m.outcomes.draw,pAW=m.outcomes.away_win;html+=`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu);font-family:var(--mo);margin-bottom:3px"><span style="color:var(--neon)">${esc(home)} ${pHW}%</span><span>Nul ${pD}%</span><span style="color:var(--pu)">${pAW}% ${esc(away)}</span></div><div style="height:6px;background:var(--bd);border-radius:4px;overflow:hidden;display:flex"><div style="width:${pHW}%;background:var(--neon)"></div><div style="width:${pD}%;background:var(--mu)"></div><div style="width:${pAW}%;background:var(--pu)"></div></div></div>`;html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;margin-bottom:12px"><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.totals.over_15}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">Over 1.5</label></div><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.totals.over_25}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">Over 2.5</label></div><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.btts}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">BTTS</label></div><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.next_goal.within_5min}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">But/5min</label></div></div>`;}const ai=d.ai_analysis;if(ai&&!ai.parse_error){html+='<div style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:13px;margin-top:12px"><div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🤖 Analyse IA</div>';if(ai.resume)html+=`<div style="font-size:12px;color:var(--mu);line-height:1.65;margin-bottom:11px;padding:8px 11px;background:var(--sf2);border-radius:6px">${esc(ai.resume)}</div>`;if(ai.paris_recommandes?.length)ai.paris_recommandes.forEach(p=>{const cc=p.confiance>=70?'var(--neon)':p.confiance>=55?'var(--gr)':p.confiance>=40?'var(--am)':'var(--re)';html+=`<div style="background:var(--sf2);border-radius:6px;padding:9px 11px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--neon)">${esc(p.pari||'?')}</span><span style="font-size:10px;font-family:var(--mo);color:${cc}">${p.confiance||'?'}%</span></div>${p.raisonnement?`<div style="font-size:11px;color:var(--mu)">${esc(p.raisonnement)}</div>`:''}</div>`;});if(ai.verdict_final)html+=`<div style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:7px;padding:10px 13px"><div style="font-size:12px;color:var(--mu)">${esc(ai.verdict_final)}</div></div>`;html+='</div>';}html+=`<p style="font-size:10px;color:var(--dm);margin-top:11px">⚠️ Modèle probabiliste. Aucun gain garanti.</p></div>`;res.innerHTML=html;toast('Analyse terminée','ok');}catch(e){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}btn.disabled=false;btn.innerHTML='📡 Analyse Poisson';}
 
