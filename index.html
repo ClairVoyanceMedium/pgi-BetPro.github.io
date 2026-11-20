@@ -1254,9 +1254,9 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ STRATÉGIE ═══════════════ -->
 <section class="sec" id="s-strategy">
-  <div class="ph"><div class="pt">&#127942; Value Betting Pro</div><div class="ps">Comparaison de cotes vérifiées, estimation prudente et mise plafonnée. Aucune promesse de gain.</div></div>
+  <div class="ph"><div class="pt">&#127942; Value Betting Pro</div><div class="ps">Compare les bookmakers disponibles et indique clairement : écart de cote à examiner ou abstention. Aucun gain garanti.</div></div>
   <div class="card">
-    <div class="ct">&#128247; Vos paris à analyser</div><p style="font-size:11px;color:var(--mu);line-height:1.65;margin:0 0 11px">Une ligne par pari. Exemple : <strong>Arsenal vs Chelsea — Arsenal @ 2.10</strong>. L'analyse exige des données récentes dans BetPro et peut conclure à une abstention.</p>
+    <div class="ct">&#128247; Vos paris à analyser</div><p style="font-size:11px;color:var(--mu);line-height:1.65;margin:0 0 11px">Une ligne suffit : <strong>Arsenal vs Chelsea — Arsenal</strong>. La cote est facultative. BetPro recherche les prix disponibles, compare les opérateurs et affiche la direction à suivre sans inventer de données.</p>
     <div class="upload-zone" id="upload-zone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
       <input type="file" id="strat-img" accept="image/*" onchange="handleImgChange(event)">
       <div class="upload-ico">&#128247;</div>
@@ -1264,7 +1264,7 @@ a{color:var(--neon);text-decoration:none}
       <img id="img-preview" class="img-preview" alt="">
     </div>
     <div style="text-align:center;margin:0 0 12px;font-size:11px;color:var(--dm)">— OU —</div>
-    <div class="fgrp" style="margin-bottom:14px"><label>Paris en texte</label><textarea id="strat-text" style="min-height:100px" placeholder="Arsenal vs Chelsea — Arsenal @ 2.10"></textarea></div>
+    <div class="fgrp" style="margin-bottom:14px"><label>Match et sélection (cote facultative)</label><textarea id="strat-text" style="min-height:86px" placeholder="Arsenal vs Chelsea — Arsenal"></textarea></div>
   </div>
   <div class="card">
     <div class="ct">&#128176; Capital et niveau de prudence</div><p style="font-size:11px;color:var(--mu);line-height:1.6;margin:0 0 11px">Calcul Kelly fractionnaire, avec un plafond de 1 à 2 % par pari et de 4 % pour l'ensemble de la session. Le capital déclaré n'est pas débité.</p>
@@ -1279,7 +1279,7 @@ a{color:var(--neon);text-decoration:none}
         <div class="risk-opt" id="rp-agressif" onclick="selectRisk('agressif')"><div class="ri">&#128640;</div><div class="rt">Agressif</div><div class="rs">Kelly 50%</div></div>
       </div>
     </div>
-    <div class="bg"><button class="btn bp" id="strat-btn" onclick="doStrategy()" style="font-size:13px;padding:11px 22px">&#127942; Analyser les cotes</button><button class="btn bs" onclick="resetStrategy()">&#8617; Réinitialiser</button></div>
+    <div class="bg"><button class="btn bp" id="strat-btn" onclick="doStrategy()" style="font-size:13px;padding:11px 22px">&#127942; Comparer et obtenir une direction</button><button class="btn bs" onclick="resetStrategy()">&#8617; Réinitialiser</button></div>
   </div>
   <div id="strat-res"></div>
 </section>
@@ -1921,7 +1921,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261120-valuebetpro-v179"></script>
+<script defer src="./betpro-app.js?v=20261120-valuebetpro-books-v180"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
