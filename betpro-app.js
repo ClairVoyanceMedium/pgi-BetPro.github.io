@@ -4216,11 +4216,22 @@ async function sendChat(){
    const research=await betproExpertFreshFixture(q,ctx).catch(e=>({warnings:['Recherche ESPN non disponible : '+String(e?.message||'erreur')],sources:[],research_level:'limited',checked_at:new Date().toISOString()}));
    const verified=betproExpertContextFromResearch(research);
    if(verified)ctx.extra=verified;
-   const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},
-     {timeoutMs:35000,noCache:true});
+   const nq=betproExpertNorm(q);
+   const predictionQuestion=/\b(gagner|gagnant|favori|pronostic|pari|parier|mise|cote|proba|chance|analyse|conseil|rentable|value)\b/.test(nq);
+   const factualQuestion=/\b(quelle heure|a quelle heure|quel jour|quelle date|quand|horaire|date du match|debut du match)\b/.test(nq);
+   const directFixtureAnswer=Boolean(factualQuestion&&!predictionQuestion&&research?.fixture);
+   const d=directFixtureAnswer
+     ? {response:'Horaire récupéré dans le calendrier ESPN lors de cette consultation. La programmation reste susceptible de changer.',
+        checked_at:research.checked_at,sources:[],warnings:[]}
+     : await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},
+       {timeoutMs:35000,noCache:true});
    typing.remove();
    const evidence=research?.fixture?('**Rencontre vérifiée (ESPN)** : '+research.fixture.home+' - '+research.fixture.away+' | '+betproExpertDateParis(research.fixture.date)+' (heure de Paris) | '+research.fixture.status+(research.fixture.score?' | Score '+research.fixture.score:'')+'\n\n'):'';
-   const answer=evidence+String(d?.response||'Analyse indisponible.');
+   const sSources=Array.isArray(d?.sources)?d.sources:[];
+   const unverified=predictionQuestion&&!research?.fixture&&!sSources.length;
+   const answer=unverified
+    ? 'Impossible de fournir un pronostic fiable pour cette rencontre : aucune donnée de match récente et vérifiée n’a été retrouvée. Merci de préciser les deux adversaires, le sport et la compétition.'
+    : evidence+String(d?.response||'Analyse indisponible.');
    chatHistory.push({role:'assistant',content:answer});
    appendMsg('bot',answer,d?.provider&&d?.model?d.provider+' · '+d.model:null);
    betproChatShowResearchSources({...research,...d,checked_at:d?.checked_at||research?.checked_at,sources:[...(research?.sources||[]),...(Array.isArray(d?.sources)?d.sources:[])],warnings:[...(research?.warnings||[]),...(Array.isArray(d?.warnings)?d.warnings:[])],research_level:d?.research_level==='event_found'||research?.research_level==='event_found'?'event_found':'limited',research_coverage:{...(research?.research_coverage||{}),...(d?.research_coverage||{})}});
