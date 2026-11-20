@@ -4291,10 +4291,12 @@ async function doStrategy(){
   const d=await api('/api/strategy','POST',payload,{timeoutMs:40000,noCache:true});
   const accepted=Array.isArray(d?.strategy)?d.strategy:[],rejected=Array.isArray(d?.bets_rejected)?d.bets_rejected:[];
   const sum=d?.bankroll_summary||{},positive=accepted.length>0;
+  const timeReady=accepted.some(b=>b.timing_signal?.state==='verify_now'&&Date.now()<Date.parse(b.timing_signal.price_window_expires_at||''));
+  const pending=positive&&!timeReady;
   let html='<div class="card" style="padding:17px 16px;border:1px solid var(--bd);margin-bottom:14px;line-height:1.65">';
   html+='<div style="font-size:10px;color:var(--dm);font-weight:800;letter-spacing:.08em;margin-bottom:5px">DIRECTION À PRENDRE</div>';
   html+='<div style="font-family:var(--hd);font-weight:900;font-size:20px;color:'+(positive?'var(--neon)':'var(--am)')+';margin-bottom:7px">'+
-    (positive?'ÉCART DE COTE À VÉRIFIER':'NE PAS MISER POUR LE MOMENT')+'</div>';
+    (timeReady?'COTE RÉCENTE : CONTRÔLER MAINTENANT':pending?'ATTENDRE : RECONTRÔLER LES COTES':'NE PAS MISER POUR LE MOMENT')+'</div>';
   html+='<div style="font-size:12px;color:var(--mu)">'+esc(d?.verdict||d?.message||'Les données disponibles ne permettent pas une décision vérifiée.')+'</div>';
   html+='<div style="font-size:11px;color:var(--dm);margin-top:10px">Actualisé : '+esc(valueProDate(d?.checked_at))+' · '+esc(d?.provider||'BetPro D1')+'</div>';
   html+='</div>';
@@ -4304,6 +4306,18 @@ async function doStrategy(){
     html+='<div style="font-size:10px;color:var(--dm);font-weight:800;margin-bottom:5px">OPPORTUNITÉ '+(idx+1)+' · À CONTRÔLER</div>';
     html+='<div style="font-family:var(--hd);font-size:15px;font-weight:900;margin-bottom:9px">'+esc(b.match||'Match')+'</div>';
     html+='<div style="font-size:13px;font-weight:800;color:var(--neon);margin-bottom:4px">Sélection : '+esc(b.selection||'')+'</div>';
+    const timing=b.timing_signal||{};
+    const stillFresh=timing.state==='verify_now'&&Date.now()<Date.parse(timing.price_window_expires_at||'');
+    html+='<div style="padding:12px 13px;margin:9px 0 12px;background:var(--sf2);border:1px solid '+(stillFresh?'var(--gr)':'var(--am)')+';border-radius:9px">';
+    html+='<div style="font:800 13px var(--hd);color:'+(stillFresh?'var(--gr)':'var(--am)')+'">'+
+       (stillFresh?'FENÊTRE DE CONTRÔLE : MAINTENANT':'ATTENDRE OU S ABSTENIR : RECONTRÔLE NÉCESSAIRE')+'</div>';
+    html+='<div style="font-size:11px;color:var(--mu);line-height:1.7;margin-top:6px">'+
+      esc(stillFresh?timing.reason||'Cote récemment relevée, à vérifier chez le bookmaker.':
+         timing.state==='too_close'?'Rencontre trop proche du début pour valider cette cote.':
+         'Le prix a changé ou peut être périmé. Actualisez les données avant toute décision.')+'</div>';
+    html+='<div style="font-size:11px;color:var(--mu);margin-top:6px">Début du match : <strong>'+esc(valueProDate(b.start_at))+'</strong> (Paris) · Cote relevée depuis '+esc(String(timing.quote_age_minutes??'?'))+' min</div>';
+    if(stillFresh)html+='<div style="font-size:11px;color:var(--mu);margin-top:5px">Ce contrôle expire à '+esc(valueProDate(timing.price_window_expires_at))+' (Paris). Il faut relancer ensuite.</div>';
+    html+='<button class="btn bs" style="margin-top:10px;font-size:11px" onclick="doStrategy()">Actualiser les cotes et la fenêtre</button></div>';
     html+='<div style="font-size:13px;margin-bottom:9px">Cote retenue (marché complet, relevé récent) : <strong>'+esc(Number(b.odds).toFixed(2))+'</strong> · '+esc(b.bookmaker||'bookmaker')+'</div>';
     html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px">';
     html+='<div style="padding:10px;border:1px solid var(--bd);border-radius:8px"><div style="font-size:9px;color:var(--dm)">PLAFOND INDICATIF</div><strong style="font-size:18px">'+esc(valueProMoney(b.stake))+'</strong></div>';
@@ -4339,6 +4353,7 @@ async function doStrategy(){
    for(const item of rejected)html+='<div style="padding:9px 0;border-bottom:1px solid var(--bd);font-size:11px"><strong>'+esc(item.match||'Ticket')+'</strong><div style="color:var(--mu)">'+esc(item.raison||'Non vérifié')+'</div></div>';
    html+='</details>';
   }
+  html+='<p style="font-size:11px;line-height:1.65;color:var(--mu)">Le système n annonce pas une heure universelle pour parier : il signale une fenêtre de contrôle uniquement si le prix date de moins de cinq minutes et si le match commence dans plus de trente minutes. Une cote favorable ne prouve pas une rentabilité. Aucune mise automatique.</p>';
   html+='<p style="font-size:11px;line-height:1.65;color:var(--mu)">Source des calculs : cotes historisées BetPro. Les cotes au-delà de 20 minutes restent consultables pour comparaison, mais elles ne servent jamais à justifier une mise. Les probabilités de marché ne sont pas des prévisions sportives calibrées. Aucun gain garanti.</p>';
   if(d?.disclaimer)html+='<p style="font-size:10px;color:var(--dm)">'+esc(d.disclaimer)+'</p>';
   res.innerHTML=html;
