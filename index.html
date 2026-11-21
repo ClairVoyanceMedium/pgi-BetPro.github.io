@@ -1513,6 +1513,53 @@ a{color:var(--neon);text-decoration:none}
 }
 
 
+/* Analyse manuelle : harmonisation de la presentation premium.
+   Palette saumon existante preservee, aucun changement de logique. */
+#s-manual .betpro-manual-intro{
+  position:relative;isolation:isolate;overflow:hidden;
+  padding:23px 25px 21px;margin:0 0 19px;
+  border:1px solid var(--manual-edge);border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(255,147,111,.16),transparent 56%),
+             linear-gradient(135deg,rgba(255,147,111,.065),rgba(14,21,34,.96) 58%,rgba(13,19,31,.97));
+  box-shadow:0 12px 26px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.055);
+}
+#s-manual .betpro-manual-intro::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--manual-salmon),rgba(255,147,111,.55),transparent);
+  box-shadow:0 0 13px rgba(255,147,111,.35);
+}
+#s-manual .betpro-manual-intro .pt{
+  font-size:clamp(24px,3vw,34px);font-weight:900;line-height:1.2;
+  letter-spacing:.02em;margin-bottom:7px;
+}
+#s-manual .betpro-manual-intro .ps{margin-top:6px;max-width:760px;line-height:1.7}
+#s-manual .betpro-manual-card,
+#s-manual .betpro-manual-import{
+  position:relative;overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.035);
+}
+#s-manual .betpro-manual-card::before,
+#s-manual .betpro-manual-import::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,var(--manual-salmon),rgba(255,147,111,.20),transparent 87%);
+  pointer-events:none;
+}
+#s-manual .betpro-manual-card-head{padding-bottom:14px;border-bottom:1px solid rgba(255,147,111,.15)}
+#s-manual .betpro-manual-middle{padding:15px 0 8px;margin-top:0}
+#s-manual .betpro-manual-import>summary{min-height:35px}
+#s-manual .betpro-manual-markets label{transition:border-color .16s,background .16s}
+#s-manual .betpro-manual-markets label:hover{border-color:var(--manual-edge)}
+@media(max-width:768px){
+  #s-manual .betpro-manual-intro{padding:18px 16px;margin-bottom:15px}
+  #s-manual .betpro-manual-intro .pt{font-size:clamp(23px,5.7vw,30px)}
+}
+@media(max-width:425px){
+  #s-manual .betpro-manual-intro{padding:17px 13px}
+  #s-manual .betpro-manual-card-head{padding-bottom:12px}
+}
+@media(prefers-reduced-motion:reduce){#s-manual .betpro-manual-markets label{transition:none}}
+
+
 /* BetPro : module Trouver un pari, vert pomme comme le Scan classique et le Chat Expert.
    Couleurs et composants strictement limites au module du tableau de bord. */
 #s-dash #betpro-pari-finder{
