@@ -984,6 +984,28 @@ a{color:var(--neon);text-decoration:none}
  #s-chat #chat-btn.betpro-expert-submit{transition:none}
 }
 
+
+/* Fonds neutres du Chat Expert, contours et commandes vert pomme conserves. */
+#s-chat .betpro-expert-zone{background:linear-gradient(155deg,#111b2a 0%,#0e1523 56%,#0a101d 100%)}
+#s-chat .betpro-expert-quick,#s-chat .betpro-expert-card{background:rgba(10,15,27,.96)}
+#s-chat .betpro-expert-zone .tts-mini-bar{background:rgba(17,24,39,.93)}
+#s-chat .betpro-expert-zone .tts-mini-bar select{background:#111827!important}
+#s-chat .betpro-expert-zone .chat-wrap{background:rgba(6,11,23,.9)}
+#s-chat .betpro-expert-zone .msg.bot .msg-bub{background:rgba(21,30,47,.94);border-color:rgba(182,255,0,.22);color:#e3eef8}
+#s-chat .betpro-expert-zone .betpro-chat-research{background:rgba(12,20,35,.96);border-color:rgba(182,255,0,.26)}
+#s-chat .betpro-expert-zone .chat-input-wrap textarea{background:#111827;color:#e6f3ff}
+#s-chat .betpro-tts-controls{margin-top:9px}
+#s-chat .betpro-tts-play{
+ display:inline-flex;align-items:center;justify-content:center;min-height:34px;min-width:92px;
+ padding:7px 12px;border:1px solid rgba(182,255,0,.47);border-radius:8px;
+ background:rgba(182,255,0,.075);color:#d7ffad;font:750 11px var(--hd);
+ letter-spacing:.01em;line-height:1.25;cursor:pointer;transition:background .18s,border-color .18s;
+}
+#s-chat .betpro-tts-play:hover,#s-chat .betpro-tts-play:focus-visible{border-color:#b6ff00;background:rgba(182,255,0,.17)}
+#s-chat .betpro-tts-play[aria-pressed="true"]{background:rgba(182,255,0,.18);border-color:#b6ff00;color:#f4ffe0}
+#s-chat .betpro-tts-play:disabled{opacity:.55;cursor:not-allowed}
+@media(prefers-reduced-motion:reduce){#s-chat .betpro-tts-play{transition:none}}
+
 /* Chat Expert : sources étendues et couverture des recherches. */
 #s-chat .betpro-chat-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 15px}
 #s-chat .betpro-chat-coverage>div{padding:10px 11px;border:1px solid rgba(101,163,185,.17);border-radius:8px;background:rgba(15,40,55,.5);min-width:0}
@@ -2316,7 +2338,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-chat-green-v197"></script>
+<script defer src="./betpro-app.js?v=20261121-chat-audio-neutral-v198"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
