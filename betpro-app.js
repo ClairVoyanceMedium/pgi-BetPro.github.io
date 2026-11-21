@@ -2730,7 +2730,7 @@ function syncBetProFindMarkets(){
     option.disabled=!soccer;
     option.hidden=!soccer;
   }
-  if(market.selectedOptions[0]?.disabled)market.value='h2h';
+  if(!soccer&&(market.value==='btts'||market.value==='double_chance'))market.value='h2h';
   const hint=document.getElementById('betpro-find-market-note');
   if(hint)hint.textContent=soccer
     ? 'Football : vainqueur, buts, les deux équipes marquent, double chance ou handicap.'
@@ -2779,7 +2779,7 @@ async function doAnalyze(){
     }
     cnt.innerHTML=content;
     loadQuotas();
-    toast(opps.length+' pari'+(opps.length>1?'s':'')+' validé'+(opps.length>1?'s':''),'ok');
+    if(opps.length)toast(opps.length+' pari'+(opps.length>1?'s':'')+' validé'+(opps.length>1?'s':''),'ok');
   }catch(e){
     cnt.innerHTML='<div class="betpro-find-empty"><strong>Recherche indisponible</strong><p>'+esc(e?.message||String(e))+'</p></div>';
     toast('Recherche impossible : '+(e?.message||String(e)),'err');
