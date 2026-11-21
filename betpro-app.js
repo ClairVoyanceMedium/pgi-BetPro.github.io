@@ -8101,20 +8101,58 @@ function bookieModalSave() {
   toast(name + ' sauvegardé', 'ok');
 }
 
+let betproBadgesLoading=false,betproLastBadgeCheck=0;
 async function initStatusBadges() {
+  if(betproBadgesLoading||document.hidden)return;
+  betproBadgesLoading=true;
+  betproLastBadgeCheck=Date.now();
+  const setDot=(id,c)=>{const el=document.getElementById(id);if(el)el.style.background=c;};
+  const setLbl=(id,txt,c)=>{const el=document.getElementById(id);if(el){el.textContent=txt;el.style.color=c;}};
+  const setInfo=(id,txt)=>{const el=document.getElementById(id);if(el)el.textContent=txt;};
+  const setTech=(id,txt,c,tip)=>{const el=document.getElementById(id);if(el){el.textContent=txt;el.style.color=c;if(tip)el.title=tip;}};
+  const muted='var(--dm)',green='var(--gr)',amber='var(--am)',red='var(--re)';
+  const checkTime=()=>new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   try {
-    const q = await api('/api/quotas');
-    const ok = q.odds_api_credits_remaining > 0;
-    const setDot = (id, c) => { const el=document.getElementById(id); if(el) el.style.background=c; };
-    const setLbl = (id, txt, c) => { const el=document.getElementById(id); if(el){el.textContent=txt;if(c)el.style.color=c;} };
-    const setInfo = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
-    setDot('cf-dot','var(--gr)'); setLbl('cf-label','CLOUDFLARE','var(--gr)'); setInfo('cf-info','Connecte');
-    setDot('odds-dot', ok?'var(--neon)':'var(--re)');
-    setLbl('odds-label','ODDS API', ok?'var(--neon)':'var(--re)');
-    setInfo('odds-info', ok ? q.odds_api_credits_remaining+' cr. restants' : 'Quota epuise');
-    setDot('m-cf-dot','var(--gr)'); setLbl('m-cf-lbl','CF','var(--gr)');
-    setDot('m-odds-dot', ok?'var(--neon)':'var(--re)'); setLbl('m-odds-lbl','OA', ok?'var(--neon)':'var(--re)');
-  } catch(_) {}
+    // Aucun cache ni valeur de repli : une latence et un état réseau doivent être réels.
+    // Réutilise le point de contrôle léger déjà employé par BetPro, sans lire la base D1.
+    const start=performance.now();
+    const q=await api('/api/quotas','GET',null,{noCache:true,timeoutMs:12000});
+    if(!q||q.error||q.ok===false||q._snapshotFallback)throw Error('Contrôle API indisponible');
+    const latency=Math.max(0,Math.round(performance.now()-start));
+    const latencyColor=latency<1000?green:latency<2500?amber:red;
+    const credits=Number(q.odds_api_credits_remaining);
+    const hasCredits=q.odds_api_credits_remaining!=null&&Number.isFinite(credits);
+    const oaColor=!hasCredits?muted:credits>0?'var(--neon)':red;
+    const oaLabel=!hasCredits?'Quota inconnu':credits>0?credits.toLocaleString('fr-FR')+' cr. restants':'Quota épuisé';
+    const total=Number(q.keys_total),active=Number(q.active_key_idx);
+    const validKeys=Number.isInteger(total)&&total>0&&Number.isInteger(active)&&active>=0&&active<total;
+    const keyLabel=validKeys?(active+1)+'/'+total:'--';
+    const checked=checkTime();
+    setDot('cf-dot',green);setLbl('cf-label','CLOUDFLARE',green);setInfo('cf-info','API joignable');
+    setDot('m-cf-dot',green);setLbl('m-cf-lbl','CF',green);
+    setDot('odds-dot',oaColor);setLbl('odds-label','ODDS API',oaColor);setInfo('odds-info',oaLabel);
+    setDot('m-odds-dot',oaColor);setLbl('m-odds-lbl','OA',oaColor);
+    setTech('m-tech-lat','LAT '+latency+'ms',latencyColor,'Temps aller-retour API : '+latency+' ms (pas le temps de calcul Cloudflare seul)');
+    setTech('m-tech-cr','CR '+(hasCredits?credits.toLocaleString('fr-FR'):'--'),oaColor,'Crédits Odds API restants');
+    setTech('m-tech-key','K '+keyLabel,muted,'Clé active Odds API : '+(validKeys?keyLabel:'information indisponible'));
+    setTech('m-tech-check','CTRL '+checked,green,'Dernier contrôle API réussi à '+checked+', sans indication de fraîcheur des cotes');
+    setTech('sb-tech-lat','Latence : '+latency+' ms',latencyColor);
+    setTech('sb-tech-key','Clé : '+keyLabel,muted);
+    setTech('sb-tech-check','Contrôle : '+checked,green);
+  } catch(error) {
+    const checked=checkTime();
+    setDot('cf-dot',red);setLbl('cf-label','CLOUDFLARE',red);setInfo('cf-info','API indisponible');
+    setDot('m-cf-dot',red);setLbl('m-cf-lbl','CF',red);
+    setDot('odds-dot',muted);setLbl('odds-label','ODDS API',muted);setInfo('odds-info','État inconnu');
+    setDot('m-odds-dot',muted);setLbl('m-odds-lbl','OA',muted);
+    setTech('m-tech-lat','LAT --',muted,'Latence non mesurable : requête échouée');
+    setTech('m-tech-cr','CR --',muted,'Quota indisponible, ne signifie pas épuisé');
+    setTech('m-tech-key','K --',muted,'Clé active inconnue');
+    setTech('m-tech-check','CTRL !'+checked,red,'Contrôle API échoué à '+checked);
+    setTech('sb-tech-lat','Latence : --',muted);
+    setTech('sb-tech-key','Clé : --',muted);
+    setTech('sb-tech-check','Contrôle échoué : '+checked,red);
+  } finally {betproBadgesLoading=false;}
 }
 
 let maturityLoading=false,collectionDiagnostic=null;
@@ -8282,6 +8320,9 @@ document.addEventListener('DOMContentLoaded', () => {
   notesRender();
   notesSyncCloud();
   initStatusBadges();
+  // Une vérification toutes les 5 minutes au plus, uniquement sur un onglet visible.
+  setInterval(()=>{if(!document.hidden)void initStatusBadges();},5*60*1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-betproLastBadgeCheck>5*60*1000)void initStatusBadges();});
   initQuickQuestions();
   loadQuotas();
   ttsInit();
