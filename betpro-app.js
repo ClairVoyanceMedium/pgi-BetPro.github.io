@@ -3617,6 +3617,8 @@ const BETPRO_SCAN_RESULT_ARCHIVE='betpro_scan_result_archive_v1';
 let betproResultsSequence=0;
 let betproResultsLastData=null;
 let betproResultsVerifyPromise=null,betproResultsLastVerify=0;
+let betproResultsLastSync=0;
+let betproResultsAutoPoll=null;
 function betproReadScanArchive(){
   try{const data=JSON.parse(localStorage.getItem(BETPRO_SCAN_RESULT_ARCHIVE)||'[]');return Array.isArray(data)?data:[];}catch(_){return[];}
 }
@@ -3945,6 +3947,8 @@ function betproRenderChosenResults(items,stats){
       +(rows.length>max?'<details class="betpro-result-more-panel"><summary>Afficher '+(rows.length-max)+' autres sélections</summary><div class="betpro-result-more-content">'+rows.slice(max).map(betproChosenResultRow).join('')+'</div></details>':'')
     :'<p class="betpro-result-empty">Aucune sélection dans cette catégorie.</p>';
  let html='<div class="betpro-result-intro">Retrouve uniquement les matchs que tu as choisi de suivre. Les scores restent non réglés tant qu’ils ne sont pas vérifiés auprès d’une source.</div>'
+  +'<p class="betpro-results-sync"><span class="betpro-results-live-dot"></span>Suivi automatique actif · Mise à jour de cette page chaque minute (si elle reste ouverte) · Dernière synchronisation : '+betproResultDate(new Date().toISOString())
+  +(stats?.last_check?' · Dernier contrôle ESPN : '+betproResultDate(stats.last_check):' · Contrôle ESPN en attente')+'</p>'
   +'<div class="tracker-summary betpro-results-kpis">'
   +stat('Sélections suivies',chosen.length)+stat('À confirmer',pending.length)
   +stat('Gagnées',won)+stat('Perdues',lost)+'</div>';
@@ -3977,10 +3981,12 @@ function betproRenderChosenResults(items,stats){
  target.querySelector('#betpro-results-analytics')?.addEventListener('toggle',e=>{betproAnalyticsOpen=e.target.open;});
 }
 
-async function loadResults(){
+async function loadResults(options={}){
  const target=document.getElementById('res-cnt');if(!target)return;
  const seq=++betproResultsSequence;
- target.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement de mes pronostics suivis…</p></div>';
+ betproResultsLastSync=Date.now();
+ if(!options.quiet||!target.childElementCount)
+   target.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement de mes pronostics suivis…</p></div>';
  const responses=await Promise.allSettled([
   api('/api/results/tracked','GET',null,{timeoutMs:16000,noCache:true}),
   api('/api/results/settlement-stats','GET',null,{timeoutMs:16000,noCache:true})
@@ -3997,13 +4003,14 @@ async function loadResults(){
  // Lorsque le lecteur consulte des scores deja termines, relancer une seule
  // verification serveur, espacee de 10 minutes, sans aucune supposition de score.
  const overdue=items.some(x=>String(x?.status||'')==='pending'&&
-   Number.isFinite(Date.parse(x.startTime||''))&&Date.parse(x.startTime)<Date.now()-3*3600000);
- if(overdue&&!betproResultsVerifyPromise&&Date.now()-betproResultsLastVerify>10*60*1000){
+   Number.isFinite(Date.parse(x.startTime||''))&&Date.parse(x.startTime)<Date.now()-
+     (x.sport==='basketball_ncaab'?105*60000:2*3600000));
+ if(overdue&&!betproResultsVerifyPromise&&Date.now()-betproResultsLastVerify>5*60*1000){
    betproResultsLastVerify=Date.now();
-   betproResultsVerifyPromise=api('/api/results/verify','POST',{}, {timeoutMs:17000})
+   betproResultsVerifyPromise=api('/api/results/verify?mode=auto','POST',{}, {timeoutMs:17000})
      .then(result=>{
        if(Number(result?.verified||0)>0&&document.getElementById('s-results')?.classList.contains('on'))
-         return loadResults();
+         return loadResults({quiet:true});
      })
      .catch(e=>console.warn('Vérification automatique ESPN indisponible:',e?.message||e))
      .finally(()=>{betproResultsVerifyPromise=null;});
@@ -4011,6 +4018,20 @@ async function loadResults(){
 }
 
 
+function betproResultsVisible(){
+ return document.visibilityState==='visible'&&document.getElementById('s-results')?.classList.contains('on');
+}
+// L'affichage se synchronise sans faire disparaître les cartes ni refermer les historiques.
+if(!betproResultsAutoPoll){
+ betproResultsAutoPoll=setInterval(()=>{
+   if(betproResultsVisible()&&Date.now()-betproResultsLastSync>=50000)
+     loadResults({quiet:true}).catch(e=>console.warn('Rafraîchissement résultats:',e?.message||e));
+ },60000);
+ document.addEventListener('visibilitychange',()=>{
+   if(betproResultsVisible()&&Date.now()-betproResultsLastSync>=25000)
+     loadResults({quiet:true}).catch(()=>{});
+ });
+}
 // ═══════════════════════════════════════════════
 //  SETTINGS
 // ═══════════════════════════════════════════════
