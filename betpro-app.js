@@ -4048,78 +4048,166 @@ async function loadQuotas(){const el=document.getElementById('qfoot');try{const 
 let chatHistory=[];
 function getCtx(){const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim(),sh=document.getElementById('ctx-sh')?.value,sa=document.getElementById('ctx-sa')?.value,min=document.getElementById('ctx-min')?.value,comp=document.getElementById('ctx-comp')?.value.trim();const ctx={};if(home)ctx.home=home;if(away)ctx.away=away;if(sh)ctx.score_home=parseInt(sh)||0;if(sa)ctx.score_away=parseInt(sa)||0;if(min)ctx.minute=parseInt(min);if(comp)ctx.competition=comp;return Object.keys(ctx).length?ctx:null;}
 function clearCtx(){['ctx-home','ctx-away','ctx-sh','ctx-sa','ctx-min','ctx-comp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
-function clearChat(){chatHistory=[];document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico">🤖</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
+function clearChat(){chatHistory=[];ttsStop(true);document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp"><span class="betpro-chat-bp-mark" aria-hidden="true">BP</span></div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
 
-const TTS={enabled:false,speed:1.0,volume:1.0,voiceIdx:-1,utterance:null,msgId:0};
-function ttsGetVoices(){return new Promise(res=>{const v=speechSynthesis.getVoices();if(v.length){res(v);return;}speechSynthesis.onvoiceschanged=()=>res(speechSynthesis.getVoices());});}
-async function ttsInit(){if(!('speechSynthesis' in window))return;const voices=await ttsGetVoices();const sel=document.getElementById('tts-voice');if(!sel)return;sel.innerHTML='<option value="">Voix auto</option>';voices.forEach((v,i)=>{const opt=document.createElement('option');opt.value=i;opt.textContent=v.name+(v.lang?' ('+v.lang+')':'');if(v.lang&&v.lang.startsWith('fr'))opt.style.color='#22d3a5';sel.appendChild(opt);});}
-function ttsBestFrVoice(voices){return voices.find(v=>v.lang==='fr-FR'&&v.localService!==false)||voices.find(v=>v.lang==='fr-FR')||voices.find(v=>v.lang&&v.lang.startsWith('fr'))||voices[0];}
-function ttsSpeak(text,replayBtnId){
-  if(!('speechSynthesis' in window))return;
-  ttsStop();
-  const voices=speechSynthesis.getVoices();
-  const voice=TTS.voiceIdx>=0?voices[TTS.voiceIdx]:ttsBestFrVoice(voices);
-  const clean = text
-    .replace(/\*\*(.*?)\*\*/g,'$1')
-    .replace(/`(.*?)`/g,'$1')
-    .replace(/#{1,3}\s/g,'')
-    .replace(/(\d+\.\d+)/g, n => n.replace('.', ' virgule '))
-    .replace(/([\d]+)%/g, '$1 pourcent')
-    .replace(/([\d]+)€/g, '$1 euros')
-    .replace(/\+([\d]+)/g, 'plus $1')
-    .replace(/EV\s*/g, 'espérance de valeur ')
-    .replace(/\bEPL\b/g, 'Premier League')
-    .replace(/\bMMA\b/g, 'MMA')
-    .replace(/\bNBA\b/g, 'NBA')
-    .replace(/\bUCL\b/g, 'Ligue des Champions')
-    .replace(/\b1X2\b/g, 'un X deux')
-    .replace(/\bBTTS\b/g, 'les deux équipes marquent')
-    .replace(/\bO\/U\b/g, 'Over Under')
-    .replace(/\bHC\b/g, 'handicap')
-    .replace(/→/g, 'vers')
-    .replace(/·/g, ',')
-    .replace(/—/g, ',')
-    .replace(/\n{2,}/g, '. ')
-    .replace(/\n/g, ' ')
-    .replace(/[^\wÀ-ÿ\s.,!?;:€%+\-°]/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-  const utter=new SpeechSynthesisUtterance(clean);
-  utter.voice=voice||null;utter.rate=TTS.speed;utter.volume=TTS.volume;utter.lang='fr-FR';
-  TTS.utterance=utter;
-  const stopBtn=document.getElementById('tts-stop-btn');
-  const statusEl=document.getElementById('tts-status');
-  const replayBtn=replayBtnId?document.getElementById(replayBtnId):null;
-  if(stopBtn)stopBtn.style.display='';
-  if(statusEl)statusEl.textContent='🔊 Lecture…';
-  if(replayBtn)replayBtn.textContent='🔊…';
-  utter.onend=utter.onerror=()=>{TTS.utterance=null;if(stopBtn)stopBtn.style.display='none';if(statusEl)statusEl.textContent='';if(replayBtn)replayBtn.textContent='🔊 Relire';};
-  speechSynthesis.speak(utter);
+
+const BETPRO_CHAT_BOT_ICON='<span class="betpro-chat-bp-mark" aria-hidden="true">BP</span>';
+const TTS={enabled:false,speed:1,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false};
+const CHAT_MIC={recognition:null,active:false,base:'',error:null};
+function ttsSupported(){return typeof window!=='undefined'&&'speechSynthesis' in window&&'SpeechSynthesisUtterance' in window;}
+function ttsStatus(t){const el=document.getElementById('tts-status');if(el)el.textContent=t||'';}
+function ttsGetVoices(){if(!ttsSupported())return[];try{return window.speechSynthesis.getVoices()||[];}catch(_){return[];}}
+function ttsInit(){
+ const sel=document.getElementById('tts-voice');
+ if(!ttsSupported()){ttsStatus('Lecture vocale indisponible sur ce navigateur');chatMicInit();return;}
+ const refresh=()=>{
+  const voices=ttsGetVoices();TTS.voices=voices;if(!sel)return;
+  const selected=sel.value;sel.innerHTML='<option value="">Voix française auto</option>';
+  voices.forEach((v,i)=>{const option=document.createElement('option');option.value=String(i);
+    option.textContent=v.name+(v.lang?' ('+v.lang+')':'');if(/^fr/i.test(v.lang||''))option.style.color='#22d3a5';sel.appendChild(option);});
+  if(selected&&voices[Number(selected)])sel.value=selected;
+  if(TTS.voiceIdx>=voices.length)TTS.voiceIdx=-1;
+ };
+ refresh();
+ if(!TTS.initDone){
+  TTS.initDone=true;
+  try{speechSynthesis.addEventListener('voiceschanged',refresh);}catch(_){speechSynthesis.onvoiceschanged=refresh;}
+  setTimeout(refresh,600);setTimeout(refresh,1800);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+ }
+ chatMicInit();
 }
-function ttsStop(){if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();TTS.utterance=null;const stopBtn=document.getElementById('tts-stop-btn');const statusEl=document.getElementById('tts-status');if(stopBtn)stopBtn.style.display='none';if(statusEl)statusEl.textContent='';}
+function ttsBestFrVoice(v){return v.find(x=>x.lang==='fr-FR'&&x.localService!==false)||v.find(x=>x.lang==='fr-FR')||v.find(x=>/^fr/i.test(x.lang||''))||null;}
+function ttsClean(text){
+ return String(text||'').replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g,'$1')
+ .replace(/https?:\/\/\S+/g,' ').replace(/[\x60*_#~]/g,' ')
+ .replace(/(\d+)\.(\d+)/g,'$1 virgule $2').replace(/(\d+)%/g,'$1 pourcent')
+ .replace(/(\d+)\s*€/g,'$1 euros').replace(/\bBTTS\b/gi,'les deux équipes marquent')
+ .replace(/\bEPL\b/g,'Premier League').replace(/\bUCL\b/g,'Ligue des Champions')
+ .replace(/\bO\/U\b/g,'Over Under').replace(/\b1X2\b/g,'un X deux')
+ .replace(/[→·—|]/g,',').replace(/\n{2,}/g,'. ').replace(/\n/g,' ')
+ .replace(/\s{2,}/g,' ').trim().slice(0,7000);
+}
+function ttsChunks(text){
+ const words=ttsClean(text).split(/\s+/).filter(Boolean),parts=[];let part='';
+ for(const word of words){
+  if(part&&(part+' '+word).length>170){parts.push(part);part='';}
+  if(word.length>170){for(let i=0;i<word.length;i+=170)parts.push(word.slice(i,i+170));}
+  else part+=(part?' ':'')+word;
+ }
+ if(part)parts.push(part);return parts.slice(0,46);
+}
+function ttsFinish(status){
+ TTS.utterance=null;TTS.chunks=[];TTS.i=0;TTS.hasStarted=false;
+ const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='none';
+ const replay=TTS.replay?document.getElementById(TTS.replay):null;
+ if(replay)replay.textContent='Écouter';
+ TTS.replay=null;if(status!==undefined)ttsStatus(status);
+}
+function ttsStop(silent=false){
+ TTS.token++;
+ if(ttsSupported())try{speechSynthesis.cancel();}catch(_){}
+ ttsFinish(silent?'':'Lecture arrêtée');
+}
+function ttsSpeak(text,replayId){
+ if(!ttsSupported()){ttsStatus('Lecture non prise en charge. Utilise Chrome sur Android.');return;}
+ if(CHAT_MIC.active)chatMicStop();
+ ttsStop(true);const chunks=ttsChunks(text);if(!chunks.length)return;
+ const token=++TTS.token;TTS.chunks=chunks;TTS.i=0;TTS.hasStarted=false;TTS.replay=replayId||null;
+ const replay=replayId?document.getElementById(replayId):null;if(replay)replay.textContent='Lecture…';
+ const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='';
+ ttsStatus('Lecture en cours…');
+ const next=()=>{
+  if(token!==TTS.token)return;
+  if(TTS.i>=TTS.chunks.length){ttsFinish('Lecture terminée');return;}
+  const voices=ttsGetVoices(),voice=TTS.voiceIdx>=0?voices[TTS.voiceIdx]:ttsBestFrVoice(voices);
+  const utter=new SpeechSynthesisUtterance(TTS.chunks[TTS.i++]);
+  utter.lang='fr-FR';utter.rate=TTS.speed;utter.volume=TTS.volume;if(voice)utter.voice=voice;
+  TTS.utterance=utter;let settled=false;
+  utter.onstart=()=>{if(token===TTS.token){TTS.hasStarted=true;ttsStatus('Lecture en cours…');}};
+  utter.onend=()=>{if(settled||token!==TTS.token)return;settled=true;setTimeout(next,50);};
+  utter.onerror=e=>{if(settled||token!==TTS.token)return;settled=true;
+    if(['canceled','interrupted'].includes(e.error||''))return;
+    ttsFinish('Lecture interrompue. Appuie sur Écouter pour réessayer.');};
+  try{speechSynthesis.speak(utter);if(speechSynthesis.paused)speechSynthesis.resume();}
+  catch(_){ttsFinish('Lecture indisponible sur ce navigateur.');}
+ };
+ // Important on Android: first utterance is called synchronously by the click.
+ next();
+ setTimeout(()=>{if(token===TTS.token&&!TTS.hasStarted&&TTS.utterance)
+  ttsStatus('Lecture bloquée par le navigateur. Appuie sur Écouter.');},3000);
+}
 function ttsToggleAuto(){
-  TTS.enabled=!TTS.enabled;
-  const btn=document.getElementById('tts-main-btn');
-  const lbl=document.getElementById('tts-main-lbl');
-  if(TTS.enabled){btn?.classList.add('on');if(lbl)lbl.textContent='Voix ON';}
-  else{btn?.classList.remove('on');if(lbl)lbl.textContent='Voix OFF';ttsStop();}
-  toast(TTS.enabled?'🔊 Lecture auto activée':'🔇 Lecture auto désactivée','ok');
+ if(!ttsSupported()){ttsStatus('Fonction vocale indisponible');toast('Lecture vocale non prise en charge ici','err');return;}
+ TTS.enabled=!TTS.enabled;
+ const button=document.getElementById('tts-main-btn'),label=document.getElementById('tts-main-lbl');
+ if(button){button.classList.toggle('on',TTS.enabled);button.setAttribute('aria-pressed',String(TTS.enabled));}
+ if(label)label.textContent=TTS.enabled?'Voix ON':'Voix OFF';
+ if(TTS.enabled){ttsSpeak('Lecture vocale activée. Les réponses du chat seront lues automatiquement.');toast('Lecture vocale activée','ok');}
+ else{ttsStop(true);ttsStatus('Lecture automatique désactivée');toast('Lecture vocale désactivée','ok');}
 }
-function ttsSetSpeed(v){TTS.speed=parseFloat(v)||1.0;}
-function ttsSetVoice(v){TTS.voiceIdx=v===''?-1:parseInt(v);}
-function ttsReplay(msgId){const el=document.getElementById('tts-msg-'+msgId);if(!el)return;ttsSpeak(el.dataset.raw||el.textContent,'tts-r-'+msgId);}
+function ttsSetSpeed(v){TTS.speed=Math.min(1.5,Math.max(.7,parseFloat(v)||1));}
+function ttsSetVoice(v){TTS.voiceIdx=v===''?-1:Number(v);}
+function ttsReplay(id){const el=document.getElementById('tts-msg-'+id);if(el)ttsSpeak(el.dataset.raw||el.textContent,'tts-r-'+id);}
+function chatMicInit(){
+ const el=document.getElementById('chat-mic-btn');if(!el)return;
+ const available=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
+ el.title=available?'Dicter la question':'Dictée indisponible : utilise le micro du clavier Android';
+}
+function chatMicStatus(message){
+ const el=document.getElementById('chat-mic-status');if(el)el.textContent=message||'';
+ const button=document.getElementById('chat-mic-btn');
+ if(button){button.classList.toggle('listening',CHAT_MIC.active);button.setAttribute('aria-pressed',String(CHAT_MIC.active));}
+}
+function chatMicStop(){
+ try{CHAT_MIC.recognition?.stop();}catch(_){}
+ CHAT_MIC.active=false;chatMicStatus(CHAT_MIC.error||'Dictée terminée. Envoie ta question.');
+}
+function chatMicToggle(){
+ if(CHAT_MIC.active){chatMicStop();return;}
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!Recognition){chatMicStatus('Dictée non prise en charge. Utilise le microphone du clavier Android.');toast('Dictée non disponible ici','err');return;}
+ if(ttsSupported())ttsStop(true);
+ const input=document.getElementById('chat-input');if(!input)return;
+ const r=new Recognition();CHAT_MIC.recognition=r;CHAT_MIC.error=null;
+ CHAT_MIC.base=input.value.trim()?input.value.trim()+' ':'';
+ r.lang='fr-FR';r.continuous=false;r.interimResults=true;r.maxAlternatives=1;
+ r.onstart=()=>{CHAT_MIC.active=true;chatMicStatus('Micro actif. Dicte ta question…');};
+ r.onresult=e=>{
+  let final='',partial='';
+  for(let i=0;i<e.results.length;i++){
+   const phrase=String(e.results[i]?.[0]?.transcript||'').trim();
+   if(e.results[i].isFinal)final+=(final?' ':'')+phrase;
+   else partial+=(partial?' ':'')+phrase;
+  }
+  input.value=CHAT_MIC.base+final+(partial?' '+partial:'');
+  input.style.height='auto';input.style.height=Math.min(200,input.scrollHeight)+'px';
+ };
+ r.onerror=e=>{
+  const errors={'not-allowed':'Micro refusé : autorise le microphone pour BetPro.',
+   'audio-capture':'Micro introuvable ou déjà utilisé.',
+   'network':'Dictée indisponible : erreur réseau.',
+   'no-speech':'Aucune parole détectée.','service-not-allowed':'Dictée bloquée par ce navigateur.'};
+  CHAT_MIC.error=errors[e.error]||'Échec de la dictée ('+String(e.error||'inconnu')+').';
+  chatMicStatus(CHAT_MIC.error);
+ };
+ r.onend=()=>{if(CHAT_MIC.recognition!==r)return;CHAT_MIC.active=false;CHAT_MIC.recognition=null;
+  chatMicStatus(CHAT_MIC.error||'Question dictée. Vérifie le texte puis appuie sur Envoyer.');input.focus();};
+ try{CHAT_MIC.active=true;chatMicStatus('Activation du microphone…');r.start();}
+ catch(_){CHAT_MIC.active=false;CHAT_MIC.recognition=null;chatMicStatus('Impossible d’activer le microphone.');}
+}
 
 function appendMsg(role,msgContent,meta){
   const wrap=document.getElementById('chat-wrap');const div=document.createElement('div');div.className='msg '+role;
   const msgId=++TTS.msgId;
   const formatted=esc(msgContent).replace(/\*\*(.+?)\*\*/g,'<strong style="color:var(--tx)">$1</strong>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/\n/g,'<br>');
-  const ico=role==='user'?'👤':'🤖';
+  const ico=role==='user'?'👤':BETPRO_CHAT_BOT_ICON;
   const replayHtml=role==='bot'?`<div style="margin-top:5px"><button id="tts-r-${msgId}" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:5px;color:var(--pu);font-size:9px;font-family:var(--mo);padding:3px 8px;cursor:pointer" onclick="ttsReplay(${msgId})">🔊 Relire</button></div>`:'';
-  div.innerHTML=`<div class="msg-ico">${ico}</div><div style="flex:1;min-width:0"><div class="msg-bub" id="tts-msg-${msgId}" data-raw="${esc(msgContent).replace(/"/g,'&quot;')}">${formatted}</div>${meta?`<div class="chat-meta">${esc(meta)}</div>`:''} ${replayHtml}</div>`;
+  div.innerHTML=`<div class="msg-ico ${role==='bot'?'msg-ico-bp':''}">${ico}</div><div style="flex:1;min-width:0"><div class="msg-bub" id="tts-msg-${msgId}" data-raw="${esc(msgContent).replace(/"/g,'&quot;')}">${formatted}</div>${meta?`<div class="chat-meta">${esc(meta)}</div>`:''} ${replayHtml}</div>`;
   wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
-  if(role==='bot'&&TTS.enabled&&msgContent.length>2){setTimeout(()=>ttsSpeak(msgContent,'tts-r-'+msgId),300);}
+  if(role==='bot'&&TTS.enabled&&msgContent.length>2){setTimeout(()=>ttsSpeak(msgContent,'tts-r-'+msgId),80);}
 }
 
 
@@ -4286,11 +4374,13 @@ function betproExpertContextFromResearch(research){
 async function sendChat(){
  const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
  const q=input?.value.trim();if(!q||btn?.disabled)return;
+ if(CHAT_MIC.active)chatMicStop();
+ if(TTS.enabled&&ttsSupported())try{speechSynthesis.resume();}catch(_){}
  chatHistory.push({role:'user',content:q});appendMsg('user',q);input.value='';
  btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
  const wrap=document.getElementById('chat-wrap'),typing=document.createElement('div');
  typing.className='msg bot';typing.id='typing';
- typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Recherche sportive multi-sources en cours…</div>';
+ typing.innerHTML='<div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div class="msg-bub" style="color:var(--dm)">Recherche sportive multi-sources en cours…</div>';
  wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;
  try{
   const ctx=getCtx()||{};
