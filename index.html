@@ -2554,6 +2554,138 @@ a{color:var(--neon);text-decoration:none}
   #s-live .fbtn,#s-live .live-card{transition:none}
 }
 
+/* Results Pro : design PMU saumon fluo, limité à la rubrique Résultats.
+   Conserve le contour or des pronostics en attente, le bouton argent/chrome
+   et les couleurs métier des résultats gagnants/perdants. */
+#s-results{
+  --results-hot:#ff936f;--results-edge:#ff785e;--results-light:#ffd7c9;
+  --neon:#ff936f;--neon2:#ffb08e;--nbg:rgba(255,147,111,.09);
+  --ng:0 0 8px rgba(255,147,111,.38),0 0 22px rgba(255,147,111,.19);
+  --ngd:0 0 5px rgba(255,147,111,.27),0 0 14px rgba(255,147,111,.13);
+  --bd:rgba(255,148,121,.20);--bd2:rgba(255,148,121,.30);
+}
+.ni[data-s="results"].on{
+  color:#ffac93;border-left-color:#ff846a;
+  background:rgba(255,132,101,.10);text-shadow:0 0 12px rgba(255,133,102,.20);
+}
+#s-results .results-pro-hero{
+  position:relative;overflow:hidden;margin:0 0 19px;
+  padding:23px 25px 21px;border:1px solid rgba(255,156,130,.46);
+  border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(255,125,95,.22),transparent 54%),
+             linear-gradient(135deg,#1c2332 0%,#131a29 62%,#191b28 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,220,210,.12),0 0 18px rgba(255,115,92,.08);
+}
+#s-results .results-pro-hero::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#ff725e 0%,#ffb18d 53%,rgba(255,170,140,.05) 100%);
+  box-shadow:0 0 13px rgba(255,129,98,.36);
+}
+#s-results .results-pro-overline{
+  display:flex;align-items:center;gap:9px;margin-bottom:9px;color:var(--results-light);
+  font:750 10px/1.4 var(--mo);letter-spacing:.13em;
+}
+#s-results .results-pro-pulse{
+  display:block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;
+  background:var(--results-edge);box-shadow:0 0 11px rgba(255,114,90,.65);
+}
+#s-results .results-pro-hero .pt{
+  font:900 clamp(24px,3vw,34px)/1.17 var(--hd);letter-spacing:.028em;
+  color:#fff1e9;text-shadow:0 2px 16px rgba(255,131,94,.13);
+}
+#s-results .results-pro-hero .pt .results-pro-slash{
+  color:var(--results-edge);padding:0 .12em;
+}
+#s-results .results-pro-hero .ps{
+  max-width:720px;margin-top:8px;color:#d9cbd0;font-size:12px;line-height:1.65;
+}
+#s-results .results-pro-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+#s-results .results-pro-tags span{
+  font:650 10px/1.4 var(--mo);color:#ffbaa5;white-space:normal;
+  border:1px solid rgba(255,157,130,.27);background:rgba(255,123,98,.075);
+  border-radius:20px;padding:6px 10px;
+}
+#s-results .results-pro-panel{
+  position:relative;overflow:hidden;margin-bottom:17px;
+  padding:17px 20px;border:1px solid rgba(255,150,124,.27);
+  border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9),rgba(17,25,39,.96));
+  box-shadow:0 6px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,223,212,.025);
+}
+#s-results .results-pro-panel::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,#ff826b,rgba(255,166,138,.32),transparent 86%);
+}
+#s-results .results-pro-panel .ct{
+  color:#ffb99e;font:800 14px/1.4 var(--hd);letter-spacing:.025em;
+  padding-bottom:12px;margin-bottom:14px;border-bottom-color:rgba(255,154,128,.17);
+}
+#s-results .results-pro-actions{margin-bottom:0!important}
+#s-results .results-pro-actions .btn{
+  min-height:39px;padding:10px 15px;border-radius:9px;font-weight:850;
+}
+#s-results .results-pro-actions .btn.bs{
+  background:#20283a;color:#ffe2d5;border:1px solid rgba(255,151,122,.28);
+}
+#s-results .results-pro-actions .btn.bs:hover{
+  border-color:#ff997e;color:#ffb9a1;background:#292b3c;
+}
+#s-results .results-pro-actions .btn.bp{
+  border:1px solid rgba(255,210,183,.65);color:#2f110a;
+  background:linear-gradient(112deg,#ffbb91 0%,#ff956f 49%,#ff685d 100%);
+  box-shadow:0 0 15px rgba(255,117,91,.30);
+}
+#s-results .results-pro-actions .btn.bp:hover{
+  opacity:1;filter:brightness(1.06);box-shadow:0 0 22px rgba(255,123,96,.46);
+}
+#s-results .results-pro-actions .btn:focus-visible{
+  outline:2px solid #ffd0ae;outline-offset:3px;
+}
+#s-results #res-cnt>.betpro-results-section:not(.betpro-pending-section),
+#s-results #res-cnt>.betpro-results-kpis .tsm-cell,
+#s-results .betpro-results-section:not(.betpro-pending-section){
+  border-color:rgba(255,150,124,.24);
+  background:linear-gradient(155deg,rgba(30,39,56,.90),rgba(17,25,39,.96));
+  box-shadow:0 5px 15px rgba(0,0,0,.12);
+}
+#s-results .betpro-results-section:not(.betpro-pending-section)>.ct{
+  color:#ffc3ad;border-bottom-color:rgba(255,154,128,.19);
+}
+#s-results .betpro-results-section:not(.betpro-pending-section) .betpro-results-section-heading h3{
+  color:#ffc3ad;
+}
+#s-results .betpro-chosen-card{
+  background:linear-gradient(110deg,#212a39,#171f2e 90%);
+  border-color:rgba(255,151,122,.25);
+  box-shadow:inset 3px 0 0 #ff9c7c,0 4px 12px rgba(0,0,0,.12);
+}
+#s-results .betpro-results-section.betpro-pending-section{
+  background:linear-gradient(var(--sf),var(--sf)) padding-box,
+   linear-gradient(125deg,#90682b 0%,#fff2c7 24%,#e2bb65 46%,#a47731 72%,#f3d995 100%) border-box;
+}
+#s-results .betpro-result-intro,
+#s-results .betpro-results-sync{
+  border-color:rgba(255,147,114,.20);background:rgba(255,132,103,.055);color:#f0c4b3;
+}
+#s-results .betpro-results-kpis .tsm-cell label{color:#d5b9b3}
+#s-results .betpro-results-count{
+  border-color:rgba(255,147,105,.30);background:rgba(255,147,105,.11);color:#ffc4ad;
+}
+#s-results .betpro-analytics-table th{color:#ffc6b3}
+@media(max-width:768px){
+  #s-results .results-pro-hero{padding:18px 16px;margin-bottom:15px}
+  #s-results .results-pro-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-results .results-pro-panel{padding:16px}
+  #s-results .results-pro-tags span{font-size:9px}
+}
+@media(max-width:425px){
+  #s-results .results-pro-hero{padding:17px 13px}
+  #s-results .results-pro-tags{gap:5px}
+  #s-results .results-pro-tags span{padding:5px 8px}
+  #s-results .results-pro-panel{padding:13px}
+  #s-results .results-pro-actions .btn{max-width:100%;white-space:normal}
+}
+
 /* Mes Notes : palette orange existante (#ff7043 / #ff5722).
    Styles strictement confines aux notes ; sauvegarde et synchronisation intactes. */
 #s-notes{
@@ -3113,10 +3245,20 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ RÉSULTATS ═══════════════ -->
 <section class="sec" id="s-results">
-  <div class="ph"><div class="pt">&#128202; Mes résultats à suivre</div><div class="ps">Uniquement tes pronostics sélectionnés sur Scan Live : en attente ou vérifiés.</div></div>
-  <div class="bg" style="margin-bottom:14px;flex-wrap:wrap">
-    <button class="btn bs" onclick="loadResults()">&#128260; Actualiser</button>
-    <button class="btn bp" type="button" id="betpro-results-verify" onclick="betproVerifyResultsNow()">Vérifier les scores</button>
+  <div class="ph results-pro-hero">
+    <div class="results-pro-overline"><span class="results-pro-pulse" aria-hidden="true"></span> SUIVI MULTISPORTS · RÉSULTATS</div>
+    <div class="pt">RÉSULTATS <span class="results-pro-slash">/</span> À SUIVRE</div>
+    <div class="ps">Retrouvez vos pronostics sélectionnés sur Scan Live, leur statut et leurs résultats vérifiés.</div>
+    <div class="results-pro-tags" aria-label="Fonctions de suivi">
+      <span>Pronostics en attente</span><span>Scores vérifiés</span><span>Historique et statistiques</span>
+    </div>
+  </div>
+  <div class="card results-pro-panel">
+    <div class="ct">&#128202; Suivi des pronostics</div>
+    <div class="bg results-pro-actions" style="flex-wrap:wrap">
+      <button class="btn bs" onclick="loadResults()">&#128260; Actualiser</button>
+      <button class="btn bp" type="button" id="betpro-results-verify" onclick="betproVerifyResultsNow()">Vérifier les scores</button>
+    </div>
   </div>
   <div id="res-cnt"><div class="ls"><div class="sp"></div><p>Chargement…</p></div></div>
 </section>
