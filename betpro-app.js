@@ -4075,11 +4075,11 @@ function ttsInit(){
  if(!ttsSupported()){ttsStatus('Lecture vocale indisponible sur ce navigateur');chatMicInit();return;}
  const refresh=()=>{
   const voices=ttsGetVoices();TTS.voices=voices;if(!sel)return;
-  const selected=sel.value;sel.innerHTML='<option value="">Voix française auto</option>';
-  voices.forEach((v,i)=>{const option=document.createElement('option');option.value=String(i);
+  const selected=TTS.voiceKey||sel.value;sel.innerHTML='<option value="">Voix française auto</option>';
+  voices.forEach((v,i)=>{const option=document.createElement('option');option.value=v.voiceURI||v.name;
     option.textContent=v.name+(v.lang?' ('+v.lang+')':'');if(/^fr/i.test(v.lang||''))option.style.color='#22d3a5';sel.appendChild(option);});
-  if(selected&&voices[Number(selected)])sel.value=selected;
-  if(TTS.voiceKey&&!voices.some(v=>v.voiceURI===TTS.voiceKey))TTS.voiceKey='';
+  if(selected&&voices.some(v=>(v.voiceURI||v.name)===selected))sel.value=selected;
+  if(TTS.voiceKey&&!voices.some(v=>(v.voiceURI||v.name)===TTS.voiceKey))TTS.voiceKey='';
  };
  refresh();
  if(!TTS.initDone){
@@ -4146,7 +4146,7 @@ function ttsSpeak(text,replayId,automatic=false){
  }
  if(CHAT_MIC.active)chatMicStop();
  const chunks=ttsChunks(text);if(!chunks.length){ttsStatus('Aucun texte à lire.');return false;}
- const synth=window.speechSynthesis,wasBusy=!!(TTS.utterance||synth.speaking||synth.pending||synth.paused);
+ const synth=window.speechSynthesis;
  ttsStop(true);
  const token=++TTS.token;TTS.chunks=chunks;TTS.i=0;TTS.retried=false;TTS.replay=replayId||null;
  ttsPlayLabel(true);
@@ -4159,7 +4159,7 @@ function ttsSpeak(text,replayId,automatic=false){
   ttsClearTimers();
   const utter=new window.SpeechSynthesisUtterance(TTS.chunks[TTS.i]);
   utter.lang='fr-FR';utter.rate=TTS.speed;utter.volume=TTS.volume;
-  const voice=defaultVoice?null:(TTS.voiceKey?ttsGetVoices().find(v=>v.voiceURI===TTS.voiceKey):ttsBestFrVoice(ttsGetVoices()));
+  const voice=defaultVoice?null:(TTS.voiceKey?ttsGetVoices().find(v=>(v.voiceURI||v.name)===TTS.voiceKey):ttsBestFrVoice(ttsGetVoices()));
   if(voice)utter.voice=voice;
   TTS.utterance=utter;
   let settled=false,started=false;
@@ -4168,7 +4168,7 @@ function ttsSpeak(text,replayId,automatic=false){
   utter.onerror=e=>{
    if(settled||token!==TTS.token)return;settled=true;ttsClearTimers();
    const type=String(e?.error||'inconnue');
-   if(!TTS.retried&&['canceled','interrupted','audio-busy','synthesis-failed','voice-unavailable'].includes(type)){
+   if(!TTS.retried&&['canceled','interrupted','audio-busy','synthesis-failed','voice-unavailable','synthesis-unavailable'].includes(type)){
     TTS.retried=true;try{synth.cancel();}catch(_){}
     TTS.nextTimer=setTimeout(()=>next(true),180);return;
    }
@@ -4188,10 +4188,12 @@ function ttsSpeak(text,replayId,automatic=false){
    try{if(synth.paused)synth.resume();}catch(_){}
    if(!synth.speaking&&!synth.pending)fail('Lecture interrompue. Appuyez sur « Écouter ».');
    else TTS.chunkTimer=setTimeout(()=>{if(token===TTS.token&&!settled)fail('Lecture bloquée. Appuyez à nouveau sur « Écouter ».');},6000);
-  },16000);
+  },24000);
  };
  // On a fresh user click: start synchronously to keep audio permission.
- if(wasBusy)TTS.nextTimer=setTimeout(()=>next(),110);else next();
+ // Always call speak() inside the real click on Chrome Android; deferring it can lose activation.
+ // If cancel() causes a transient interrupted error, the event handler retries with the default voice.
+ next();
  return true;
 }
 function ttsToggleAuto(){
