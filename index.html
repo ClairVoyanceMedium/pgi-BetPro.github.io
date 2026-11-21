@@ -823,6 +823,167 @@ a{color:var(--neon);text-decoration:none}
   #s-chat #live-model-btn.betpro-poisson-submit{transition:none}
 }
 
+
+/* Chat Expert vert pomme, aligné visuellement sur la carte Poisson. */
+#s-chat .betpro-expert-zone{
+ position:relative;overflow:hidden;margin:16px 0 18px;padding:19px 20px 17px;
+ border:1px solid rgba(182,255,0,.48);border-radius:15px;
+ background:linear-gradient(155deg,rgba(182,255,0,.12),rgba(24,42,34,.88) 31%,rgba(12,26,29,.97));
+ box-shadow:0 12px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(222,255,165,.08);
+}
+#s-chat .betpro-expert-zone::before{
+ content:"";position:absolute;top:0;left:0;right:0;height:3px;
+ background:linear-gradient(90deg,#b6ff00,#78ec25 70%,rgba(182,255,0,.06));
+}
+#s-chat .betpro-expert-intro{
+ padding:2px 0 15px;margin-bottom:15px;border-bottom:1px solid rgba(182,255,0,.23);
+}
+#s-chat .betpro-expert-eyebrow{
+ display:flex;align-items:center;gap:8px;margin-bottom:8px;
+ color:#d5ffa7;font:750 10px var(--mo);letter-spacing:.09em;
+}
+#s-chat .betpro-expert-dot{
+ width:7px;height:7px;border-radius:50%;flex:0 0 7px;
+ background:#b6ff00;box-shadow:0 0 9px rgba(182,255,0,.7);
+}
+#s-chat .betpro-expert-title{
+ margin:0 0 7px;color:#efffdf;font:800 21px var(--hd);
+ letter-spacing:.005em;line-height:1.25;
+}
+#s-chat .betpro-expert-description{
+ max-width:830px;color:#d9ebd0;font-size:12px;line-height:1.65;margin:0 0 12px;
+}
+#s-chat .betpro-expert-tips{display:flex;flex-wrap:wrap;gap:8px}
+#s-chat .betpro-expert-tips span{
+ display:inline-flex;align-items:center;min-height:24px;padding:4px 9px;
+ border-radius:7px;border:1px solid rgba(182,255,0,.24);
+ background:rgba(182,255,0,.07);color:#dcffb8;font-size:10px;line-height:1.4;
+}
+#s-chat .betpro-expert-quick,
+#s-chat .betpro-expert-card{
+ margin-bottom:12px;padding:15px 15px 14px;
+ border:1px solid rgba(182,255,0,.27);border-radius:11px;
+ background:rgba(7,23,24,.67);
+}
+#s-chat .betpro-expert-card{padding:16px;margin-bottom:0}
+#s-chat .betpro-expert-step{
+ display:flex;align-items:center;gap:9px;margin-bottom:13px;
+ color:#e4ffd2;font-size:12px;font-weight:800;
+}
+#s-chat .betpro-expert-number{
+ display:flex;align-items:center;justify-content:center;
+ width:26px;height:26px;flex:0 0 26px;border-radius:7px;
+ border:1px solid rgba(182,255,0,.38);background:rgba(182,255,0,.13);
+ color:#c8ff79;font:800 11px var(--mo);
+}
+#s-chat .betpro-expert-quick .fbtn{
+ min-height:34px;padding:7px 11px;border-radius:8px;
+ border:1px solid rgba(182,255,0,.29);background:rgba(182,255,0,.085);
+ color:#e0ffc7;font-weight:650;white-space:normal;text-align:left;line-height:1.45;
+}
+#s-chat .betpro-expert-quick .fbtn:hover,
+#s-chat .betpro-expert-quick .fbtn:focus-visible{
+ background:rgba(182,255,0,.18);border-color:#b6ff00;color:white;
+}
+#s-chat .betpro-expert-toolbar{
+ display:flex;justify-content:space-between;align-items:center;
+ margin-bottom:13px;flex-wrap:wrap;gap:9px;
+}
+#s-chat .betpro-expert-toolbar .provider-badge{
+ min-height:28px;padding:5px 9px;border:1px solid rgba(182,255,0,.3);
+ background:rgba(182,255,0,.07);color:#d5ffb2;font-weight:700;
+}
+#s-chat .betpro-expert-clear{
+ min-height:33px;padding:6px 12px;border-radius:8px;
+ border:1px solid rgba(182,255,0,.25);background:rgba(182,255,0,.055);
+ color:#e0edd7;font-size:11px;
+}
+#s-chat .betpro-expert-zone .tts-mini-bar{
+ padding:11px 12px;margin:0 0 15px;
+ border:1px solid rgba(182,255,0,.24);border-radius:9px;
+ background:rgba(11,30,26,.66);
+}
+#s-chat .betpro-expert-zone .tts-toggle{
+ border-color:rgba(182,255,0,.46);background:rgba(182,255,0,.09);
+ color:#d8ffa5;
+}
+#s-chat .betpro-expert-zone .tts-toggle.on{
+ background:rgba(182,255,0,.21);border-color:#b6ff00;color:#f2ffe2;
+}
+#s-chat .betpro-expert-zone .tts-toggle .tts-dot{background:#b6ff00}
+#s-chat .betpro-expert-zone .tts-mini-bar select{
+ background:#122a29!important;border-color:rgba(182,255,0,.29)!important;
+ color:#e4fbd5!important;
+}
+#s-chat .betpro-expert-zone .tts-mini-bar #tts-status{color:#d5e8c3!important}
+#s-chat .betpro-expert-zone .chat-wrap{
+ min-height:126px;padding:10px;margin-bottom:13px;
+ border:1px solid rgba(182,255,0,.2);border-radius:10px;
+ background:rgba(4,17,20,.62);
+}
+#s-chat .betpro-expert-zone .msg.bot .msg-bub{
+ background:rgba(91,149,49,.105);border-color:rgba(182,255,0,.25);
+ color:#e9f5e5;
+}
+#s-chat .betpro-expert-zone .betpro-chat-research{
+ background:rgba(18,38,29,.78);border-color:rgba(182,255,0,.28);
+}
+#s-chat .betpro-expert-zone .betpro-chat-research-heading strong{color:#d4ff9e}
+#s-chat .betpro-expert-input-label{
+ display:block;margin:0 0 8px;color:#e4fbd2;font-size:11px;font-weight:750;
+}
+#s-chat .betpro-expert-zone .chat-input-wrap{gap:9px;align-items:stretch}
+#s-chat .betpro-expert-zone .chat-input-wrap textarea{
+ min-width:0;min-height:50px;padding:12px;border-radius:9px;
+ border:1px solid rgba(182,255,0,.39);background:#142930;
+ color:#f0fced;font-size:12px;line-height:1.5;
+}
+#s-chat .betpro-expert-zone .chat-input-wrap textarea::placeholder{
+ color:#b7c7b7;opacity:1;
+}
+#s-chat .betpro-expert-zone .chat-input-wrap textarea:focus{
+ outline:2px solid rgba(182,255,0,.5);outline-offset:1px;border-color:#b6ff00;
+}
+#s-chat .betpro-expert-zone .chat-mic-btn{
+ align-self:stretch;width:48px;min-height:50px;border-radius:9px;
+ border-color:rgba(182,255,0,.45);background:rgba(182,255,0,.08);color:#d1ff9d;
+}
+#s-chat .betpro-expert-zone .chat-mic-btn.listening{
+ border-color:#ff645b;background:rgba(255,99,90,.18);color:#ff9b8b;
+}
+#s-chat #chat-btn.betpro-expert-submit{
+ flex:0 0 61px;align-self:stretch;min-height:50px;padding:11px 13px;
+ border:1px solid rgba(239,255,213,.4);border-radius:10px;
+ background:linear-gradient(180deg,#caff62,#b6ff00 60%,#90ee26);
+ color:#172600!important;font:900 15px var(--hd);cursor:pointer;
+ box-shadow:0 7px 18px rgba(150,255,35,.22),inset 0 1px 0 rgba(255,255,255,.36);
+ transition:transform .18s,filter .18s;
+}
+#s-chat #chat-btn.betpro-expert-submit:hover:not(:disabled){
+ filter:brightness(1.08);transform:translateY(-1px);
+}
+#s-chat #chat-btn.betpro-expert-submit:disabled{opacity:.68;cursor:progress;transform:none}
+#s-chat .betpro-expert-zone .chat-mic-status{color:#d1e9ba;margin-top:7px}
+#s-chat .betpro-expert-zone button:focus-visible{outline:2px solid #e3ffc1;outline-offset:3px}
+@media(max-width:640px){
+ #s-chat .betpro-expert-zone{padding:16px 13px 14px;margin-top:14px}
+ #s-chat .betpro-expert-title{font-size:19px}
+ #s-chat .betpro-expert-description{font-size:11.5px}
+ #s-chat .betpro-expert-quick,#s-chat .betpro-expert-card{padding:12px 10px}
+ #s-chat .betpro-expert-zone .chat-wrap{padding:8px}
+ #s-chat .betpro-expert-zone .chat-input-wrap{gap:7px}
+ #s-chat .betpro-expert-zone .chat-mic-btn{width:44px}
+ #s-chat #chat-btn.betpro-expert-submit{flex-basis:54px;padding:9px}
+}
+@media(max-width:355px){
+ #s-chat .betpro-expert-eyebrow{font-size:9px;letter-spacing:.025em}
+ #s-chat .betpro-expert-zone .chat-mic-btn{width:40px}
+ #s-chat #chat-btn.betpro-expert-submit{flex-basis:45px}
+}
+@media(prefers-reduced-motion:reduce){
+ #s-chat #chat-btn.betpro-expert-submit{transition:none}
+}
+
 /* Chat Expert : sources étendues et couverture des recherches. */
 #s-chat .betpro-chat-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 15px}
 #s-chat .betpro-chat-coverage>div{padding:10px 11px;border:1px solid rgba(101,163,185,.17);border-radius:8px;background:rgba(15,40,55,.5);min-width:0}
@@ -1092,7 +1253,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="manual"    onclick="go('manual')"  ><span class="ni-i">&#127919;</span>Analyse manuelle</div>
     <div class="ni"    data-s="live"      onclick="go('live')"    ><span class="ni-i">&#128308;</span>Matchs Live / À venir</div>
     <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats à suivre</div>
-    <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert / Analyse Poisson +</div>
+    <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert / Analyse Poisson</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Value Betting Pro</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Se refaire intelligemment</div>
     <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128014;</span>PMU / Turf France</div>
@@ -1397,11 +1558,11 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
-  <div class="ph"><div class="pt">&#128172; Chat Expert / Analyse Poisson +</div><div class="ps">Chat Expert et Analyse Poisson + Multisports : football, basketball, MLB, NFL, hockey et rugby. Chaque discipline dispose d'une distribution de scores adaptée.</div></div>
+  <div class="ph"><div class="pt">&#128172; Chat Expert / Analyse Poisson</div><div class="ps">Chat Expert et Analyse Poisson Multisports : football, basketball, MLB, NFL, hockey et rugby. Chaque discipline dispose d'une distribution de scores adaptée.</div></div>
   <div class="ctx-bar betpro-poisson-zone" aria-labelledby="betpro-poisson-title">
     <div class="betpro-poisson-intro">
       <div class="betpro-poisson-eyebrow"><span class="betpro-poisson-eyebrow-dot"></span> MODÈLE STATISTIQUE MULTISPORTS</div>
-      <h3 id="betpro-poisson-title" class="betpro-poisson-title">Analyse Poisson <span>+</span></h3>
+      <h3 id="betpro-poisson-title" class="betpro-poisson-title">Analyse Poisson</h3>
       <p class="betpro-poisson-description">Football, basketball, NFL, MLB, NHL et rugby. Sélectionnez vos équipes et votre discipline pour obtenir une projection lisible, fondée sur les résultats disponibles.</p>
       <div class="betpro-poisson-tips"><span>Avant-match : minute 0 et score 0-0</span><span>Détection automatique du sport</span></div>
     </div>
@@ -1428,20 +1589,27 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div class="betpro-poisson-actions">
       <button class="btn bs betpro-poisson-clear" type="button" onclick="clearCtx()">&#10005; Effacer</button>
-      <button class="btn betpro-poisson-submit" type="button" id="live-model-btn" onclick="runLiveModelUI()">Lancer Analyse Poisson + Multisports</button>
+      <button class="btn betpro-poisson-submit" type="button" id="live-model-btn" onclick="runLiveModelUI()">Lancer Analyse Poisson Multisports</button>
     </div>
     <p class="betpro-poisson-help">Les pourcentages sont des estimations statistiques, pas des certitudes. Sans historique fiable, aucun résultat n'est inventé.</p>
   </div>
   <div id="live-model-res" aria-live="polite"></div>
-  <div class="betpro-expert-separator" role="separator" aria-label="Chat Expert"><span>CHAT EXPERT</span><small>Questions et recherche sportive</small></div>
-  <div class="card" style="padding:12px 14px;margin-bottom:12px">
-    <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Questions rapides</div>
+  <div class="betpro-expert-zone" aria-labelledby="betpro-expert-title">
+    <div class="betpro-expert-intro">
+      <div class="betpro-expert-eyebrow"><span class="betpro-expert-dot"></span> RECHERCHE SPORTIVE & IA</div>
+      <h3 id="betpro-expert-title" class="betpro-expert-title">Chat Expert</h3>
+      <p class="betpro-expert-description">Prochains matchs, compositions, blessures, statistiques et pronostics : posez votre question librement. Les recherches affichent leurs sources et leurs limites.</p>
+      <div class="betpro-expert-tips"><span>Questions libres</span><span>Recherche web et calendriers</span><span>Réponses sourcées</span></div>
+    </div>
+  <div class="card betpro-expert-quick">
+    <div class="betpro-expert-step"><span class="betpro-expert-number">01</span><span>Questions rapides</span></div>
     <div id="quick-questions-wrap" style="display:flex;gap:5px;flex-wrap:wrap"></div>
   </div>
-  <div class="card" style="padding:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+  <div class="card betpro-expert-card">
+    <div class="betpro-expert-step"><span class="betpro-expert-number">02</span><span>Votre question sportive</span></div>
+    <div class="betpro-expert-toolbar">
       <span id="ai-badge" class="provider-badge pb-groq">&#9889; Groq · Llama 3.3 70B</span>
-      <button class="btn bs" style="font-size:10px;padding:4px 9px" onclick="clearChat()">&#128465; Effacer</button>
+      <button class="btn bs betpro-expert-clear" type="button" onclick="clearChat()">&#128465; Effacer</button>
     </div>
 
     <!-- TTS — bouton simple unique -->
@@ -1466,15 +1634,17 @@ a{color:var(--neon);text-decoration:none}
     <div class="chat-wrap" id="chat-wrap">
       <div class="msg bot"><div class="msg-ico msg-ico-bp"><img class="betpro-chat-bp-image" src="./betpro-icon-192.png" width="34" height="34" alt="BP"></div><div><div class="msg-bub">Bonjour. Posez directement votre question sportive, même avec une seule équipe. Le contexte ci-dessus est facultatif.</div></div></div>
     </div>
+    <label class="betpro-expert-input-label" for="chat-input">Saisir ou dicter votre question</label>
     <div class="chat-input-wrap">
       <textarea id="chat-input" placeholder="Ex. : Quel est le prochain match de Liverpool ? Quelle composition pour le PSG ? Qui est blessé ?" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px'" style="resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
       <button class="chat-mic-btn" id="chat-mic-btn" type="button" onclick="chatMicToggle()" title="Dicter une question" aria-label="Dicter une question" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>
       </button>
-      <button class="btn bp" id="chat-btn" type="button" onclick="sendChat()" style="flex-shrink:0;align-self:flex-end;padding:10px 14px" aria-label="Envoyer la question">&#9654;</button>
+      <button class="btn betpro-expert-submit" id="chat-btn" type="button" onclick="sendChat()" style="flex-shrink:0;align-self:flex-end;padding:10px 14px" aria-label="Envoyer la question">&#9654;</button>
     </div>
     <div id="chat-mic-status" class="chat-mic-status" role="status" aria-live="polite"></div>
   </div>
+</div>
 </section>
 
 <!-- ═══════════════ STRATÉGIE ═══════════════ -->
@@ -2146,7 +2316,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-poisson-multisports-v196"></script>
+<script defer src="./betpro-app.js?v=20261121-chat-green-v197"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
