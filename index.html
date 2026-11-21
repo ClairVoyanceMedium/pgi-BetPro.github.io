@@ -1028,6 +1028,18 @@ a{color:var(--neon);text-decoration:none}
 }
 #s-chat .betpro-expert-quick{background:#0b1220}
 
+
+/* Audio status: Chrome Android must not squeeze an error into a narrow column. */
+#s-chat .betpro-expert-zone .tts-mini-bar{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0;
+}
+#s-chat .betpro-expert-zone #tts-status{
+ flex:1 1 100%!important;width:100%;order:20;text-align:left!important;
+ color:#e8edf6!important;font-size:10px!important;line-height:1.55;
+ word-break:break-word;margin-top:2px;
+}
+#s-chat .betpro-expert-zone .tts-mini-bar select{max-width:min(42vw,180px)}
+
 /* Chat Expert : sources étendues et couverture des recherches. */
 #s-chat .betpro-chat-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 15px}
 #s-chat .betpro-chat-coverage>div{padding:10px 11px;border:1px solid rgba(101,163,185,.17);border-radius:8px;background:rgba(15,40,55,.5);min-width:0}
@@ -2360,7 +2372,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-chat-audio-fallback-v200"></script>
+<script defer src="./betpro-app.js?v=20261121-chat-audio-local-v201"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
