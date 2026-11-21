@@ -4121,11 +4121,19 @@ function ttsLocalReady(){
    };
    try{
     if(typeof api.isConfigLoaded==='function'&&api.isConfigLoaded())loadVoice();
-    else if(typeof api.loadConfig==='function')api.loadConfig(config,ok=>{
-     if(ok===false)finish(new Error('Configuration de synthèse indisponible'));
-     else loadVoice();
-    });
-    else loadVoice();
+    else if(typeof api.loadConfig==='function'){
+     // This meSpeak v1.9.6 loadConfig(url) has NO completion callback.
+     // Wait for isConfigLoaded() rather than waiting for a callback it never calls.
+     api.loadConfig(config);
+     const until=Date.now()+13500;
+     const poll=()=>{
+      if(done)return;
+      if(api.isConfigLoaded?.()){loadVoice();return;}
+      if(Date.now()>until){finish(new Error('Configuration audio locale non chargée'));return;}
+      setTimeout(poll,110);
+     };
+     poll();
+    }else loadVoice();
    }catch(e){finish(e);}
   }
   if(window.meSpeak){setup();return;}
