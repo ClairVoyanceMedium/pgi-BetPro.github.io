@@ -2791,6 +2791,8 @@ function betproFindFamily(key,providerGroup=''){
  return'Autres sports';
 }
 function betproFindGroupCode(key,providerGroup=''){
+ const raw=String(key||'').trim().toLowerCase();
+ if(Object.values(BETPRO_FIND_FAMILY_CODES).includes(raw))return raw;
  const label=betproFindFamily(key,providerGroup);
  return BETPRO_FIND_FAMILY_CODES[label]||'other';
 }
@@ -3031,7 +3033,8 @@ async function doAnalyze(engine='classic'){
        (res.reason?.message||res.reason||'Erreur de connexion'))});
       continue;
      }
-     const d=res.value,found=Array.isArray(d.events)?d.events:[];
+     const d=res.value||{},rawEvents=Array.isArray(d.events)?d.events:[];
+     const found=allSports?rawEvents.filter(event=>betproFindGroupCode(event?.sport||event?.sport_key||'')===item.key):rawEvents;
      counts.push({label:item.label,received:found.length,source:item.key});
      successful.push(d);
      usedCache=usedCache||!!(d.cached||d._snapshotFallback||d.stale_cache);
@@ -3061,7 +3064,7 @@ async function doAnalyze(engine='classic'){
    // Diversité à l'écran, uniquement parmi les vraies sélections admissibles.
    const balanced=allSports?betproFindClassicDiversify(eligible):eligible;
    const cards=balanced.slice(0,30).map((e,i)=>betproClassicCard(e,i)).filter(Boolean);
-   const latest=successful.map(x=>x.generated_at).filter(Boolean).sort().at(-1);
+   const latest=successful.map(x=>x?.generated_at).filter(Boolean).sort().at(-1);
    let html='<div class="betpro-find-results-head"><span>'+esc(name)+' · '+scope+
     '</span><small>'+esc(latest?fmtDT(latest):'Horodatage indisponible')+'</small></div>';
    if(usedCache)html+='<div class="warn">Certaines données sont en cache ou sauvegardées. Les cotes doivent être revérifiées avant toute mise.</div>';
