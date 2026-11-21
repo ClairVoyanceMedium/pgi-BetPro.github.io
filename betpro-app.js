@@ -4444,7 +4444,7 @@ function betproPoissonMultisportRender(d,ctx,res){
    '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">ESPN '+esc(url.pathname.split('/').slice(-4).join(' / '))+'</a>':'';}
   catch(_){return'';}
  }).filter(Boolean).join(' ');
- let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>Analyse Poisson + Multisports · '+esc(sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
+ let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>Analyse Poisson Multisports · '+esc(sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
    '<p class="betpro-poisson-match">'+esc(home)+' <span>vs</span> '+esc(away)+'</p>';
  if(!m){
   html+='<div class="betpro-poisson-warning">'+esc(d.explanation||'Données récentes insuffisantes.')+'</div>'+
@@ -4576,7 +4576,7 @@ async function runLiveModelUI(){
   res.innerHTML='<div class="betpro-poisson-panel"><div class="betpro-poisson-warning">Analyse impossible : '+
    esc(String(e?.message||e))+'. Aucun pourcentage n’a été inventé.</div></div>';
   toast('Analyse Poisson indisponible','err');
- }finally{btn.disabled=false;btn.textContent='Lancer Analyse Poisson + Multisports';}
+ }finally{btn.disabled=false;btn.textContent='Lancer Analyse Poisson Multisports';}
 }
 function betproPoissonAskChat(){
  const d=betproPoissonLastAnalysis;if(!d?.model)return;
