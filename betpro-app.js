@@ -4134,7 +4134,7 @@ function betproChatShowResearchSources(data){
  const makeLink=url=>{
    try{
      const u=new URL(url);
-     return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&!/^(?:localhost|127\\.|10\\.|192\\.168\\.|169\\.254\\.)/i.test(u.hostname)?u.href:null;
+     return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&!['localhost','::1'].includes(u.hostname)&&!(/^(?:127|10|192[.]168|169[.]254)[.]/.test(u.hostname))?u.href:null;
    }catch(_){return null;}
  };
  const items=sources.map(s=>{
