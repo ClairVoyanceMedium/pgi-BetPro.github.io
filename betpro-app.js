@@ -4046,6 +4046,20 @@ async function loadQuotas(){const el=document.getElementById('qfoot');try{const 
 //  CHAT + TTS simplifié
 // ═══════════════════════════════════════════════
 let chatHistory=[];
+let BETPRO_CHAT_LAST_RESEARCH=null;
+// Les recherches et leurs sources sont conservees pour consultation a la demande,
+// sans ajouter de panneaux techniques sous les réponses.
+function betproChatWantsSources(question){
+ return /\b(?:sources?|références?|references?|liens?|provenance|citations?)\b|d['’]où\s+(?:viens?|sors|tiens|provient)|sur\s+quoi\s+(?:te\s+)?bases/i.test(String(question||''));
+}
+function betproChatOnlySources(question){
+ const q=String(question||'').trim();
+ return q.length<170&&(
+  /^(?:(?:tes|les|ces)\s+)?(?:sources?|références?|references?|liens?)\s*[?!.]*$/i.test(q)||
+  /^(?:donne|montre|affiche|liste|cite|indique)\s*[- ]?\s*(?:moi\s+)?(?:(?:tes|les|ces|des)\s+)?(?:sources?|références?|references?|liens?)/i.test(q)||
+  /^(?:d['’]où\s+(?:viens?|sors|tiens)|sur\s+quoi\s+(?:te\s+)?bases)/i.test(q)
+ );
+}
 function getCtx(){
  const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim();
  const sh=document.getElementById('ctx-sh')?.value,sa=document.getElementById('ctx-sa')?.value,
@@ -4059,7 +4073,7 @@ function getCtx(){
  return Object.keys(ctx).length?ctx:null;
 }
 function clearCtx(){['ctx-home','ctx-away','ctx-sh','ctx-sa','ctx-min','ctx-comp','ctx-total-line'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sport=document.getElementById('ctx-sport');if(sport)sport.value='auto';betproPoissonSportChanged();const results=document.getElementById('live-model-res');if(results)results.innerHTML='';betproPoissonLastAnalysis=null;}
-function clearChat(){chatHistory=[];ttsStop(true);TTS.messages.clear();document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
+function clearChat(){chatHistory=[];BETPRO_CHAT_LAST_RESEARCH=null;ttsStop(true);TTS.messages.clear();document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
 
@@ -4732,6 +4746,13 @@ async function sendChat(){
  if(CHAT_MIC.active)chatMicStop();
  if(TTS.enabled&&ttsSupported())try{speechSynthesis.resume();}catch(_){}
  chatHistory.push({role:'user',content:q});appendMsg('user',q);input.value='';
+ if(betproChatOnlySources(q)&&BETPRO_CHAT_LAST_RESEARCH?.sources?.length){
+  const reply='Voici les sources utilisées pour ma réponse précédente.';
+  chatHistory.push({role:'assistant',content:reply});
+  appendMsg('bot',reply);
+  betproChatShowResearchSources(BETPRO_CHAT_LAST_RESEARCH);
+  return;
+ }
  btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
  const wrap=document.getElementById('chat-wrap'),typing=document.createElement('div');
  typing.className='msg bot';typing.id='typing';
@@ -4743,8 +4764,10 @@ async function sendChat(){
   typing.remove();
   const answer=String(d?.response||'Recherche indisponible : aucune donnée vérifiée retournée.');
   chatHistory.push({role:'assistant',content:answer});
-  appendMsg('bot',answer,d?.provider&&d?.model?d.provider+' · '+d.model:null);
-  betproChatShowResearchSources(d||{});
+  appendMsg('bot',answer);
+  BETPRO_CHAT_LAST_RESEARCH=d||null;
+  // Afficher l'annexe de sources uniquement quand elle a ete demandee.
+  if(betproChatWantsSources(q))betproChatShowResearchSources(d||{});
  }catch(e){typing.remove();appendMsg('bot','La recherche sportive n’a pas abouti : '+(e?.message||'erreur réseau')+'. Aucun résultat n’a été inventé.');}
  finally{btn.disabled=false;btn.innerHTML='▶';}
 }
