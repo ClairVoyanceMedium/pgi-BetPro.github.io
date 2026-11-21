@@ -1616,6 +1616,15 @@ a{color:var(--neon);text-decoration:none}
 }
 @media(prefers-reduced-motion:reduce){.betpro-mobile-wordmark{animation:none}}
 
+
+/* Télémétrie réelle, compacte et lisible sur petit écran. */
+.betpro-mobile-status{flex-wrap:wrap;row-gap:3px;max-width:100%;align-content:center}
+.betpro-mobile-status .betpro-tech-pill{display:inline-flex;align-items:center;min-height:14px;box-sizing:border-box;padding:2px 5px;border-radius:4px;border:1px solid rgba(44,64,96,.6);background:rgba(6,8,16,.6);font:700 8px/1.1 var(--mo);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dm)}
+.betpro-sidebar-tech{display:flex;gap:5px;flex-wrap:wrap;padding:6px 4px 0;font:600 9px/1.5 var(--mo);color:var(--dm);font-variant-numeric:tabular-nums}
+.betpro-sidebar-tech span{border:1px solid rgba(44,64,96,.5);border-radius:4px;padding:2px 5px;background:rgba(6,8,16,.35)}
+@media(max-width:768px){.mb{height:88px}.mn{padding-top:100px!important}}
+@media(max-width:425px){.mb{height:90px}.mn{padding-top:102px!important}.betpro-mobile-status{gap:3px;padding-left:37px}.betpro-mobile-status .betpro-tech-pill{padding:2px 4px;font-size:7.5px}}
+@media(max-width:355px){.mb{height:96px}.mn{padding-top:108px!important}.betpro-mobile-status{padding-left:33px;gap:2px}}
 </style>
 </head>
 <body>
@@ -1628,7 +1637,7 @@ a{color:var(--neon);text-decoration:none}
       <img src="./betpro-icon-192.png" alt="Icône de l’application BetPro" class="betpro-mobile-app-icon" width="38" height="38" decoding="async">
       <span class="betpro-mobile-wordmark">PGI<span class="ldot">•</span>BETPRO</span>
     </div>
-    <div class="betpro-mobile-status" aria-label="État des services Cloudflare et Odds API">
+    <div class="betpro-mobile-status" aria-label="Télémétrie des services Cloudflare et Odds API : réseau, quota, clé et contrôle">
       <div id="m-cf-badge" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;border:1px solid rgba(44,64,96,.6);background:rgba(6,8,16,.6)">
         <div id="m-cf-dot" style="width:5px;height:5px;border-radius:50%;background:var(--dm);flex-shrink:0"></div>
         <span id="m-cf-lbl" style="font-size:8px;font-family:var(--mo);font-weight:700;color:var(--dm)">CF</span>
@@ -1637,6 +1646,10 @@ a{color:var(--neon);text-decoration:none}
         <div id="m-odds-dot" style="width:5px;height:5px;border-radius:50%;background:var(--dm);flex-shrink:0"></div>
         <span id="m-odds-lbl" style="font-size:8px;font-family:var(--mo);font-weight:700;color:var(--dm)">OA</span>
       </div>
+      <span class="betpro-tech-pill" id="m-tech-lat" title="Latence réseau aller-retour du contrôle API (ms)" aria-label="Latence API">LAT --</span>
+      <span class="betpro-tech-pill" id="m-tech-cr" title="Crédits Odds API restants" aria-label="Crédits Odds API">CR --</span>
+      <span class="betpro-tech-pill" id="m-tech-key" title="Clé Odds API active sur le nombre de clés disponibles" aria-label="Clé Odds API active">K --</span>
+      <span class="betpro-tech-pill" id="m-tech-check" title="Heure du dernier contrôle des services, pas des cotes" aria-label="Dernier contrôle">CTRL --</span>
     </div>
   </div>
   <button type="button" class="betpro-refresh-btn" onclick="betproRefreshAll(this)" aria-label="Actualiser tout le site BetPro" title="Actualiser tout le site BetPro">
@@ -1676,6 +1689,11 @@ a{color:var(--neon);text-decoration:none}
           <div id="odds-label" style="font-size:9px;font-family:var(--mo);font-weight:700;color:var(--dm)">ODDS API</div>
           <div id="odds-info" style="font-size:8px;font-family:var(--mo);color:var(--dm);margin-top:1px">—</div>
         </div>
+      </div>
+      <div class="betpro-sidebar-tech" aria-label="Télémétrie technique">
+        <span id="sb-tech-lat" title="Durée réseau aller-retour du contrôle API">Latence : --</span>
+        <span id="sb-tech-key" title="Clé Odds API active">Clé : --</span>
+        <span id="sb-tech-check" title="Heure du dernier contrôle, non la fraîcheur des cotes">Contrôle : --</span>
       </div>
     </div>
   </div>
@@ -2858,7 +2876,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-sports-repartition-v218"></script>
+<script defer src="./betpro-app.js?v=20261122-header-telemetry-v219"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
