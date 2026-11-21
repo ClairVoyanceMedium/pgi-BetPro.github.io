@@ -4155,7 +4155,7 @@ function betproChatShowResearchSources(data){
  node.className='betpro-chat-research';
  node.innerHTML='<div class="betpro-chat-research-heading"><strong>Sources réellement consultées</strong><span>'+esc(time)+'</span></div>'+
   '<div class="betpro-chat-research-label">'+esc(level)+'</div>'+expanded+
-  (items||'<p>Aucune source sportive consultée. Indique les deux équipes pour une recherche de match.</p>')+
+  (items||'<p>Aucune source sportive disponible pour cette question. Précise une équipe, un joueur, un sport ou une compétition si nécessaire.</p>')+
   (warnings.length?'<div class="betpro-chat-research-notices">'+warnings.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>':'');
  wrap.appendChild(node);
  wrap.scrollTop=wrap.scrollHeight;
@@ -6740,8 +6740,12 @@ function notesDelete(i){if(notes[i])notesDeleteById(notes[i].id);}
 
 
 const QUICK_QUESTIONS = [
-  'Quel est le meilleur signal probabiliste ce match ?','Over 2.5 ou Under 2.5 ?','Quelle est la probabilité BTTS ?',
-  'Quelle mise avec Kelly ?','Y a-t-il de la valeur sur la cote ?','Analyse la forme des équipes.',
+  'Quel est le prochain match de Liverpool ?',
+  'Quand joue le PSG et contre qui ?',
+  'Quels sont les trois prochains matchs des Lakers ?',
+  'Quelle est la composition probable de Liverpool pour son prochain match ?',
+  'Quels joueurs sont blessés avant le prochain match du PSG ?',
+  'Qui a le plus de chances de gagner entre Arsenal et Chelsea ?',
 ];
 function initQuickQuestions() {
   const wrap=document.getElementById('quick-questions-wrap');
