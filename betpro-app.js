@@ -4122,6 +4122,7 @@ function ttsPlayLabel(active){
   el.textContent=active?'■ Arrêter':'▶ Écouter';
   el.setAttribute('aria-pressed',String(!!active));
   el.title=active?'Arrêter la lecture':'Écouter cette réponse';
+  el.setAttribute('aria-label',active?'Arrêter la lecture':'Écouter cette réponse');
  }
 }
 function ttsFinish(status){
@@ -4175,10 +4176,11 @@ function ttsSpeak(text,replayId,automatic=false){
   };
   try{if(synth.paused)synth.resume();synth.speak(utter);}
   catch(e){fail('Impossible de lire la réponse : '+String(e?.message||e).slice(0,80));return;}
+  if(token!==TTS.token||settled)return;
   TTS.startupTimer=setTimeout(()=>{
    if(token!==TTS.token||settled||started)return;
    if(synth.speaking){started=true;ttsStatus('Lecture vocale en cours…');return;}
-   if(!TTS.retried){TTS.retried=true;try{synth.cancel();}catch(_){}TTS.nextTimer=setTimeout(()=>next(true),180);}
+   if(!TTS.retried){TTS.retried=true;settled=true;ttsClearTimers();try{synth.cancel();}catch(_){}TTS.nextTimer=setTimeout(()=>next(true),180);}
    else fail('La voix ne démarre pas. Vérifiez la synthèse vocale Android ou utilisez Chrome.');
   },3000);
   TTS.chunkTimer=setTimeout(()=>{
