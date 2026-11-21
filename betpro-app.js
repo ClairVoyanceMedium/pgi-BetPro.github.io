@@ -4087,6 +4087,7 @@ function ttsUnlockWebAudio(){
  }catch(_){return false;}
 }
 function ttsLocalStop(){
+ ttsNeuralStop();
  if(BETPRO_AUDIO_LOCAL.source){
   const src=BETPRO_AUDIO_LOCAL.source;BETPRO_AUDIO_LOCAL.source=null;
   try{src.onended=null;src.stop(0);src.disconnect();}catch(_){}
@@ -4203,6 +4204,68 @@ async function ttsLocalSpeak(token,reason){
  }
 }
 
+/* Voix neuronale française : moteur MeloTTS distant, audio MP3.
+   Priorité à ce moteur. La synthèse du système reste le seul secours automatique. */
+const BETPRO_NEURAL_TTS_URL='https://betpro-voice-fr.peritoregroupindustries.workers.dev/tts';
+const BETPRO_AUDIO_NEURAL={source:null,controller:null,playing:false};
+function ttsNeuralStop(){
+ try{BETPRO_AUDIO_NEURAL.controller?.abort();}catch(_){}
+ BETPRO_AUDIO_NEURAL.controller=null;
+ const src=BETPRO_AUDIO_NEURAL.source;BETPRO_AUDIO_NEURAL.source=null;
+ if(src)try{src.onended=null;src.stop(0);src.disconnect();}catch(_){}
+ BETPRO_AUDIO_NEURAL.playing=false;
+}
+async function ttsNeuralSpeak(token,onFailure){
+ if(token!==TTS.token)return;
+ BETPRO_AUDIO_NEURAL.playing=true;
+ try{
+  const ctx=BETPRO_AUDIO_LOCAL.ctx;
+  if(!ctx)throw new Error('Audio Web indisponible');
+  if(ctx.state!=='running')await ctx.resume();
+  if(ctx.state!=='running')throw new Error('Audio bloqué par le navigateur');
+  while(token===TTS.token&&TTS.i<TTS.chunks.length){
+   ttsStatus('Voix française naturelle · '+(TTS.i+1)+'/'+TTS.chunks.length);
+   const controller=new AbortController();
+   BETPRO_AUDIO_NEURAL.controller=controller;
+   let response,mp3;
+   const timeout=setTimeout(()=>controller.abort(),38000);
+   try{
+    response=await fetch(BETPRO_NEURAL_TTS_URL,{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({text:TTS.chunks[TTS.i]}),signal:controller.signal,cache:'no-store'
+    });
+    if(!response.ok)throw new Error('Service vocal temporairement indisponible ('+response.status+')');
+    mp3=await response.arrayBuffer();
+   }finally{
+    clearTimeout(timeout);
+    if(BETPRO_AUDIO_NEURAL.controller===controller)BETPRO_AUDIO_NEURAL.controller=null;
+   }
+   if(token!==TTS.token)return;
+   if(mp3.byteLength<100)throw new Error('Audio vocal vide');
+   const decoded=await ctx.decodeAudioData(mp3);
+   if(token!==TTS.token)return;
+   await new Promise((resolve,reject)=>{
+    if(token!==TTS.token){resolve();return;}
+    const src=ctx.createBufferSource();
+    BETPRO_AUDIO_NEURAL.source=src;
+    src.buffer=decoded;
+    // Debut proche du debit naturel pour conserver le timbre humain.
+    src.playbackRate.value=Math.max(.82,Math.min(1.15,1+(TTS.speed-.95)*.40));
+    src.connect(ctx.destination);
+    src.onended=()=>{if(BETPRO_AUDIO_NEURAL.source===src)BETPRO_AUDIO_NEURAL.source=null;try{src.disconnect();}catch(_){}resolve();};
+    try{src.start(0);}catch(e){BETPRO_AUDIO_NEURAL.source=null;reject(e);}
+   });
+   if(token!==TTS.token)return;
+   TTS.i++;
+  }
+  if(token===TTS.token){BETPRO_AUDIO_NEURAL.playing=false;ttsFinish('Lecture en français terminée.');}
+ }catch(e){
+  if(token!==TTS.token)return;
+  ttsNeuralStop();
+  onFailure(e);
+ }
+}
+
 function ttsSupported(){return typeof window!=='undefined'&&!!window.speechSynthesis&&typeof window.SpeechSynthesisUtterance==='function';}
 function ttsStatus(t){const el=document.getElementById('tts-status');if(el)el.textContent=t||'';}
 function ttsGetVoices(){if(!ttsSupported())return[];try{return window.speechSynthesis.getVoices()||[];}catch(_){return[];}}
@@ -4276,12 +4339,14 @@ function ttsClean(text){
 }
 function ttsChunks(text){
  const words=ttsClean(text).split(/\s+/).filter(Boolean),parts=[];let part='';
+ // Des phrases suffisamment longues rendent la prosodie neuronale plus naturelle.
  for(const word of words){
-  if(part&&(part+' '+word).length>135){parts.push(part);part='';}
-  if(word.length>135){for(let i=0;i<word.length;i+=135)parts.push(word.slice(i,i+135));}
+  if(part&&(part+' '+word).length>380){parts.push(part);part='';}
+  if(word.length>380){for(let i=0;i<word.length;i+=380)parts.push(word.slice(i,i+380));}
   else part+=(part?' ':'')+word;
+  if(part.length>=210&&/[.!?;:]$/.test(word)){parts.push(part);part='';}
  }
- if(part)parts.push(part);return parts.slice(0,46);
+ if(part)parts.push(part);return parts.slice(0,30);
 }
 
 function ttsClearTimers(){
@@ -4301,7 +4366,7 @@ function ttsPlayLabel(active){
 function ttsFinish(status){
  ttsClearTimers();ttsPlayLabel(false);
  TTS.utterance=null;TTS.chunks=[];TTS.i=0;TTS.hasStarted=false;TTS.retried=false;TTS.replay=null;
- BETPRO_AUDIO_LOCAL.playing=false;
+ BETPRO_AUDIO_LOCAL.playing=false;BETPRO_AUDIO_NEURAL.playing=false;
  const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='none';
  if(status!==undefined)ttsStatus(status);
 }
@@ -4324,7 +4389,7 @@ function ttsSpeak(text,replayId,automatic=false){
  ttsPlayLabel(true);
  const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='';
  ttsStatus(automatic?'Préparation de la lecture automatique…':'Lecture en préparation…');
- if(!synth){ttsLocalSpeak(token,'native-unavailable');return true;}
+ // Ne jamais basculer automatiquement vers l'ancienne voix robotique meSpeak.
  const fail=message=>{if(token!==TTS.token)return;ttsStop(true);ttsStatus(message);};
  const next=()=>{
   if(token!==TTS.token)return;
@@ -4345,13 +4410,13 @@ function ttsSpeak(text,replayId,automatic=false){
    if(settled||token!==TTS.token)return;settled=true;ttsClearTimers();
    const type=String(e?.error||'inconnue');
    if(['synthesis-failed','synthesis-unavailable','voice-unavailable','not-allowed'].includes(type)){
-    ttsLocalSpeak(token,type);return;
+    fail('La lecture française est momentanément indisponible.');return;
    }
    if(!TTS.retried&&['canceled','interrupted','audio-busy'].includes(type)){
     TTS.retried=true;try{synth.cancel();}catch(_){}
     TTS.nextTimer=setTimeout(()=>next(),350);return;
    }
-   ttsLocalSpeak(token,type);
+   fail('Lecture impossible sur cet appareil.');
   };
   try{if(synth.paused)synth.resume();synth.speak(utter);}
   catch(e){fail('Impossible de lire la réponse : '+String(e?.message||e).slice(0,80));return;}
@@ -4360,19 +4425,24 @@ function ttsSpeak(text,replayId,automatic=false){
    if(token!==TTS.token||settled||started)return;
    if(synth.speaking){started=true;ttsStatus('Lecture vocale en cours…');return;}
    if(!TTS.retried){TTS.retried=true;settled=true;ttsClearTimers();try{synth.cancel();}catch(_){}TTS.nextTimer=setTimeout(()=>next(),350);}
-   else ttsLocalSpeak(token,'timeout-android');
+   else fail('La voix native ne démarre pas.');
   },3000);
   TTS.chunkTimer=setTimeout(()=>{
    if(token!==TTS.token||settled)return;
    try{if(synth.paused)synth.resume();}catch(_){}
-   if(!synth.speaking&&!synth.pending)ttsLocalSpeak(token,'interruption-android');
-   else TTS.chunkTimer=setTimeout(()=>{if(token===TTS.token&&!settled)ttsLocalSpeak(token,'blocage-android');},6000);
+   if(!synth.speaking&&!synth.pending)fail('Lecture vocale interrompue.');
+   else TTS.chunkTimer=setTimeout(()=>{if(token===TTS.token&&!settled)fail('Le lecteur vocal a cessé de répondre.');},6000);
   },24000);
  };
- // On a fresh user click: start synchronously to keep audio permission.
- // Always call speak() inside the real click on Chrome Android; deferring it can lose activation.
- // If cancel() causes a transient interrupted error, the event handler retries with the default voice.
- next();
+ // WebAudio a été activé synchroniquement par le bouton, avant la requête.
+ // Le TTS neuronal prime; seul le vrai TTS français natif peut prendre le relais.
+ ttsNeuralSpeak(token,()=>{
+  if(token!==TTS.token)return;
+  if(synth&&ttsBestFrVoice(ttsGetVoices())){
+   ttsStatus('Voix française de l’appareil en secours…');
+   next();
+  }else fail('Voix naturelle momentanément indisponible. Réessayez avec Écouter.');
+ });
  return true;
 }
 function ttsToggleAuto(){
@@ -4389,7 +4459,7 @@ function ttsSetVoice(v){const match=ttsGetVoices().find(x=>ttsFrenchVoice(x)&&(x
 function ttsReplay(msgId){
  const text=TTS.messages.get(Number(msgId))||document.getElementById('tts-msg-'+msgId)?.textContent||'';
  const id='tts-r-'+msgId;
- if(TTS.replay===id&&(TTS.utterance||BETPRO_AUDIO_LOCAL.playing)){ttsStop();return;}
+ if(TTS.replay===id&&(TTS.utterance||BETPRO_AUDIO_LOCAL.playing||BETPRO_AUDIO_NEURAL.playing)){ttsStop();return;}
  if(!text){ttsStatus('Réponse introuvable pour la lecture.');return;}
  ttsSpeak(text,id,false);
 }
