@@ -1777,6 +1777,146 @@ a{color:var(--neon);text-decoration:none}
   #s-turf #turf-races-list>.dir-card,#s-turf .fbtn{transition:none}
 }
 
+
+/* BetPro HKJC · même design saumon fluorescent que le PMU France.
+   Encapsulation stricte dans #s-hkjc, sans modifier les couleurs des verdicts. */
+#s-hkjc{
+  --hkjc-salmon:#ff997e;
+  --hkjc-hot:#ff785f;
+  --hkjc-light:#ffd7c9;
+  --hkjc-border:rgba(255,148,121,.32);
+}
+#s-hkjc .hkjc-hero{
+  position:relative;overflow:hidden;
+  margin:0 0 19px;padding:23px 25px 21px;
+  border:1px solid rgba(255,156,130,.46);border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(255,125,95,.22),transparent 54%),
+             linear-gradient(135deg,#1c2332 0%,#131a29 62%,#191b28 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,220,210,.12),0 0 18px rgba(255,115,92,.08);
+}
+#s-hkjc .hkjc-hero::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#ff725e 0%,#ffb18d 53%,rgba(255,170,140,.05) 100%);
+  box-shadow:0 0 13px rgba(255,129,98,.36);
+}
+#s-hkjc .hkjc-hero-overline{
+  display:flex;align-items:center;gap:9px;margin-bottom:9px;
+  color:var(--hkjc-light);font:750 10px/1.4 var(--mo);letter-spacing:.13em;
+}
+#s-hkjc .hkjc-hero-pulse{
+  display:block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;
+  background:var(--hkjc-hot);box-shadow:0 0 11px rgba(255,114,90,.65);
+}
+#s-hkjc .hkjc-hero .pt{font:900 clamp(24px,3vw,34px)/1.17 var(--hd);letter-spacing:.028em;color:#fff1e9;text-shadow:0 2px 16px rgba(255,131,94,.13)}
+#s-hkjc .hkjc-hero .pt .hkjc-hero-slash{color:var(--hkjc-hot);padding:0 .12em}
+#s-hkjc .hkjc-hero .ps{max-width:720px;margin-top:8px;color:#d9cbd0;font-size:12px;line-height:1.65}
+#s-hkjc .hkjc-hero-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+#s-hkjc .hkjc-hero-tags span{
+  font:650 10px/1.4 var(--mo);color:#ffbaa5;
+  border:1px solid rgba(255,157,130,.27);background:rgba(255,123,98,.075);
+  border-radius:20px;padding:6px 10px;
+}
+#s-hkjc .hkjc-panel{
+  position:relative;overflow:hidden;margin-bottom:17px;
+  border:1px solid rgba(255,150,124,.22);border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9) 0%,rgba(17,25,39,.96) 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,223,212,.025);
+}
+#s-hkjc .hkjc-panel:not(.hkjc-panel-status)::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,#ff826b,rgba(255,166,138,.32),transparent 86%);
+}
+#s-hkjc .hkjc-panel>.ct{
+  font:800 14px/1.4 var(--hd);letter-spacing:.025em;color:#ffb99e;
+  border-bottom-color:rgba(255,154,128,.17);padding:4px 0 12px;margin-bottom:15px;
+}
+#s-hkjc .hkjc-control-label{
+  margin:0 0 7px;color:#ccbdb9;
+  font:750 10px/1.35 var(--mo);letter-spacing:.075em;text-transform:uppercase;
+}
+#s-hkjc #hkjc-track-buttons,#s-hkjc #hkjc-market-buttons{gap:7px!important;margin-bottom:16px!important}
+#s-hkjc .fbtn{
+  min-height:33px;padding:7px 12px;border:1px solid rgba(255,148,121,.23);
+  border-radius:8px;background:#192334;color:#d6c6c4;
+  font-weight:700;transition:border-color .18s,background .18s,color .18s,box-shadow .18s;
+}
+#s-hkjc .fbtn:hover{border-color:var(--hkjc-hot);color:#ffd4c4;background:rgba(255,131,105,.10)}
+#s-hkjc .fbtn.on{
+  color:#32140f;border-color:#ff9a78;
+  background:linear-gradient(120deg,#ffc09a 0%,#ff936f 55%,#ff785e 100%);
+  box-shadow:0 0 13px rgba(255,119,88,.18);
+}
+#s-hkjc .btn.bp{
+  min-height:39px;padding:10px 15px;border:1px solid rgba(255,210,183,.65);
+  border-radius:9px;color:#2f110a;
+  background:linear-gradient(112deg,#ffbb91 0%,#ff956f 49%,#ff685d 100%);
+  box-shadow:0 0 15px rgba(255,117,91,.30);font-weight:850;
+}
+#s-hkjc .btn.bp:hover{opacity:1;filter:brightness(1.06);box-shadow:0 0 22px rgba(255,123,96,.46)}
+#s-hkjc .btn:focus-visible,#s-hkjc .fbtn:focus-visible,#s-hkjc #hkjc-date-filter:focus-visible{
+  outline:2px solid #ffd0ae;outline-offset:3px;
+}
+#s-hkjc #hkjc-market-buttons label{color:#d4c2bd!important;font:700 10px/1.4 var(--mo)!important}
+#s-hkjc #hkjc-date-filter{
+  min-height:37px;border:1px solid rgba(255,146,113,.24)!important;
+  border-radius:8px!important;background:#111b2b!important;color:#f4e6e0!important;
+  color-scheme:dark;
+}
+#s-hkjc .hkjc-panel-status .warn{margin-bottom:0!important}
+#s-hkjc .sp{border-top-color:var(--hkjc-hot)}
+#s-hkjc #hkjc-status{line-height:1.8}
+#s-hkjc #hkjc-status .bdg{margin:2px 1px;padding:5px 8px;border-radius:7px}
+#s-hkjc #hkjc-status .bdg.bsp{
+  color:#ffc3ad;background:rgba(255,135,104,.12);
+}
+#s-hkjc #hkjc-races .live-card{
+  background:linear-gradient(110deg,#212a39,#171f2e 90%);
+  border:1px solid rgba(255,150,124,.23);border-radius:11px;
+  box-shadow:inset 3px 0 0 #ff9c7c,0 4px 12px rgba(0,0,0,.14);
+  margin-bottom:9px;transition:transform .18s,box-shadow .18s;
+}
+#s-hkjc #hkjc-races .live-card:hover{
+  transform:translateY(-2px);
+  box-shadow:inset 3px 0 0 #ff9c7c,0 7px 18px rgba(255,124,94,.13);
+}
+#s-hkjc #hkjc-races .lc-teams{color:#ffe0d5}
+#s-hkjc #hkjc-races .bdg.bsp{color:#ffc3ad;background:rgba(255,135,104,.12)}
+#s-hkjc #hkjc-verdict.info{border-color:rgba(255,147,114,.20);background:rgba(255,132,103,.06);color:#f0c4b3}
+#s-hkjc #hkjc-cards>.card:not(.pgi-signal-tres-fort){
+  border-radius:11px;
+  background:linear-gradient(155deg,rgba(29,37,52,.96),rgba(15,23,37,.98));
+  box-shadow:0 5px 16px rgba(0,0,0,.13);
+}
+#s-hkjc #hkjc-cards .ct{color:#ffd1bf;border-bottom-color:rgba(255,150,124,.16)}
+#s-hkjc #hkjc-cards .card>div[style*="grid"]>div{
+  border-color:rgba(255,150,124,.21)!important;background:#172131!important;
+}
+#s-hkjc #hkjc-cards .card .bdg.bsp{color:#ffc3ad;background:rgba(255,135,104,.12)}
+#s-hkjc .hkjc-panel-decisions{overflow:visible}
+.ni[data-s="hkjc"].on{
+  color:#ffac93;border-left-color:#ff846a;
+  background:rgba(255,132,101,.10);text-shadow:0 0 12px rgba(255,133,102,.2);
+}
+@media(max-width:768px){
+  #s-hkjc .hkjc-hero{padding:18px 16px;margin-bottom:15px}
+  #s-hkjc .hkjc-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-hkjc .hkjc-panel{padding:16px}
+  #s-hkjc .hkjc-panel-status{padding:12px 14px!important}
+  #s-hkjc .hkjc-hero-tags span{font-size:9px}
+  #s-hkjc #hkjc-market-buttons label{margin-left:0!important}
+}
+@media(max-width:425px){
+  #s-hkjc .hkjc-hero{padding:17px 13px}
+  #s-hkjc .hkjc-hero-tags{gap:5px}
+  #s-hkjc .hkjc-hero-tags span{padding:5px 8px}
+  #s-hkjc #hkjc-track-buttons,#s-hkjc #hkjc-market-buttons{gap:5px!important}
+  #s-hkjc .fbtn{padding:7px 9px;font-size:10px}
+  #s-hkjc .hkjc-panel>.ct{font-size:13px}
+  #s-hkjc #hkjc-races .live-card{padding:0}
+  #s-hkjc #hkjc-market-buttons .btn.bp{width:100%;justify-content:center}
+}
+@media(prefers-reduced-motion:reduce){#s-hkjc #hkjc-races .live-card,#s-hkjc .fbtn{transition:none}}
+
 </style>
 </head>
 <body>
@@ -2654,18 +2794,25 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ HKJC HONG KONG ═══════════════ -->
 <section class="sec" id="s-hkjc">
-  <div class="ph"><div class="pt">&#127464;&#127475; HKJC Hong Kong</div><div class="ps">Sha Tin · Happy Valley · Conghua — Simple Gagnant et Simple Placé séparés, value et calibration par piste.</div></div>
-  <div class="card" style="padding:12px 14px">
+  <div class="ph hkjc-hero">
+    <div class="hkjc-hero-overline"><span class="hkjc-hero-pulse" aria-hidden="true"></span> HIPPISME INTERNATIONAL · HONG KONG</div>
+    <div class="pt">&#127464;&#127475; HKJC <span class="hkjc-hero-slash">/</span> HONG KONG</div>
+    <div class="ps">Sha Tin, Happy Valley et Conghua : calendrier, marchés Gagnant et Placé et calibration propre à chaque piste.</div>
+    <div class="hkjc-hero-tags" aria-label="Fonctions Hong Kong disponibles"><span>Réunions hippiques</span><span>Gagnant / Placé</span><span>Cartes décisionnelles</span></div>
+  </div>
+  <div class="card hkjc-panel hkjc-panel-status" style="padding:12px 14px">
     <div id="hkjc-status"><div class="ls"><div class="sp"></div><p>État HKJC en attente…</p></div></div>
     <div class="warn" style="margin:10px 0 0">&#9888;&#65039; Le moteur peut conclure qu’aucune sélection n’est fiable. Il s’agit d’une aide probabiliste : aucun gain n’est garanti.</div>
   </div>
-  <div class="card">
+  <div class="card hkjc-panel hkjc-panel-markets">
     <div class="ct">&#128205; Hippodrome et marché</div>
+    <div class="hkjc-control-label">Choisir un hippodrome</div>
     <div class="bg" id="hkjc-track-buttons" style="margin-bottom:10px;flex-wrap:wrap">
       <button class="fbtn on" data-track="ST" onclick="hkjcSetTrack('ST',this)">Sha Tin</button>
       <button class="fbtn" data-track="HV" onclick="hkjcSetTrack('HV',this)">Happy Valley</button>
       <button class="fbtn" data-track="CH" onclick="hkjcSetTrack('CH',this)">Conghua (entraînement)</button>
     </div>
+    <div class="hkjc-control-label">Marché et date de réunion</div>
     <div class="bg" id="hkjc-market-buttons" style="margin-bottom:10px;flex-wrap:wrap">
       <button class="fbtn" data-market="WIN" onclick="hkjcSetMarket('WIN',this)">&#129351; Simple Gagnant</button>
       <button class="fbtn on" data-market="PLACE" onclick="hkjcSetMarket('PLACE',this)">&#127942; Simple Placé</button>
@@ -2675,7 +2822,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div id="hkjc-races"></div>
   </div>
-  <div class="card">
+  <div class="card hkjc-panel hkjc-panel-decisions">
     <div class="ct">&#129504; Cartes décisionnelles HKJC</div>
     <div id="hkjc-verdict" class="info" style="margin-bottom:10px">Chargement de la calibration…</div>
     <div id="hkjc-cards"></div>
