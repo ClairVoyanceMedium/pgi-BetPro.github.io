@@ -4134,7 +4134,7 @@ function betproChatShowResearchSources(data){
  const makeLink=url=>{
    try{
      const u=new URL(url);
-     return u.protocol==='https:'&&['site.api.espn.com','news.google.com','www.espn.com','espn.com','www.leparisien.fr','leparisien.fr','www.reddit.com','reddit.com'].includes(u.hostname)?u.href:null;
+     return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&!/^(?:localhost|127\\.|10\\.|192\\.168\\.|169\\.254\\.)/i.test(u.hostname)?u.href:null;
    }catch(_){return null;}
  };
  const items=sources.map(s=>{
@@ -4144,7 +4144,7 @@ function betproChatShowResearchSources(data){
      (href?'<a target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">Consulter</a>':'')+
      '<small>'+esc(s.detail||'')+'</small></div>';
  }).join('');
- const level=data?.research_level==='event_found'?'Match recherché dans les données sportives':'Recherche ciblée limitée';
+ const level=data?.research_level==='event_found'?'Match et calendrier recherchés dans les sources sportives':sources.length?'Recherche web élargie, faits à vérifier':'Recherche sportive limitée';
  const coverage=data?.research_coverage&&typeof data.research_coverage==='object'?data.research_coverage:{};
  const labels={injuries:'Blessures',suspensions:'Suspensions',lineups:'Compositions',
   recent_form:'Forme récente',standings:'Classement',match_stats:'Statistiques',news:'Actualités'};
@@ -4153,7 +4153,7 @@ function betproChatShowResearchSources(data){
  const expanded=checks?'<div class="betpro-chat-coverage">'+checks+'</div>':'';
  const node=document.createElement('div');
  node.className='betpro-chat-research';
- node.innerHTML='<div class="betpro-chat-research-heading"><strong>Sources réellement consultées</strong><span>'+esc(time)+'</span></div>'+
+ node.innerHTML='<div class="betpro-chat-research-heading"><strong>Sources consultées et résultats du web</strong><span>'+esc(time)+'</span></div>'+
   '<div class="betpro-chat-research-label">'+esc(level)+'</div>'+expanded+
   (items||'<p>Aucune source sportive disponible pour cette question. Précise une équipe, un joueur, un sport ou une compétition si nécessaire.</p>')+
   (warnings.length?'<div class="betpro-chat-research-notices">'+warnings.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>':'');
