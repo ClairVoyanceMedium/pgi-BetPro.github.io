@@ -1546,6 +1546,23 @@ a{color:var(--neon);text-decoration:none}
 #s-dash #betpro-pari-finder .betpro-find-advanced .fgrp select{height:45px;min-height:45px;width:100%;border:1px solid #354750;border-radius:10px;background:#0d1721;color:#ecf5ef;font:600 12px var(--hd);padding:10px}
 @media(max-width:680px){#s-dash #betpro-pari-finder .betpro-find-advanced-grid{grid-template-columns:1fr;gap:12px}#s-dash #betpro-pari-finder .betpro-find-advanced summary{padding:12px}}
 
+
+/* Sélection sur mesure v216 : une seule sélection de sport, deux moteurs expliqués en une ligne. */
+#s-dash #betpro-pari-finder .betpro-find-heading{margin-bottom:20px}
+#s-dash #betpro-pari-finder .betpro-find-heading .ps{max-width:640px}
+#s-dash #betpro-pari-finder .betpro-find-pmu-link{appearance:none;border:0;border-bottom:1px solid rgba(56,232,255,.5);background:none;color:#38e8ff;cursor:pointer;margin-top:9px;padding:0 0 2px;font:650 11px var(--hd);text-decoration:none}
+#s-dash #betpro-pari-finder .betpro-find-pmu-link:hover{color:#b4f7ff}
+#s-dash #betpro-pari-finder .betpro-find-odds-controls{margin-top:3px}
+#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:12px 9px;min-height:66px}
+#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-btn-title{display:block;line-height:1.3;letter-spacing:.02em}
+#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch small{display:block;font:650 11px var(--hd);line-height:1.4;opacity:.85}
+#s-dash #betpro-pari-finder .betpro-find-advanced{margin-bottom:16px}
+#s-dash #betpro-pari-finder .betpro-find-advanced-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+#s-dash #betpro-pari-finder .betpro-find-advanced .fgrp select{min-width:0}
+#s-dash #betpro-pari-finder .betpro-find-help{margin-top:4px;margin-bottom:13px}
+#s-dash #betpro-pari-finder .betpro-find-odds-chip strong{font-size:11px}
+@media(max-width:680px){#s-dash #betpro-pari-finder .betpro-find-advanced-grid{grid-template-columns:1fr}#s-dash #betpro-pari-finder .betpro-find-actions{grid-template-columns:repeat(2,minmax(0,1fr))}#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch{min-height:72px;padding:10px 6px}#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-btn-title{font-size:11px}#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch small{font-size:10px}}
+
 </style>
 </head>
 <body>
@@ -1754,21 +1771,13 @@ a{color:var(--neon);text-decoration:none}
   <div style="height:1px;background:var(--bd);margin:22px 0"></div>
   <div id="betpro-pari-finder" class="betpro-pari-finder">
     <div class="ph betpro-find-heading">
-      <div class="betpro-find-eyebrow">TOUS LES SPORTS · COURSES PMU · DEUX MÉTHODES</div>
+      <div class="betpro-find-eyebrow">RECHERCHE MULTISPORTS</div>
       <div class="pt">Sélection de paris sur mesure</div>
-      <div class="ps">Football, basketball, tennis, boxe, MMA et autres disciplines : choisissez votre sport, un style de cotes et le moteur de recherche. Les courses PMU restent accessibles depuis ce même espace.</div>
+      <div class="ps">Choisissez un sport, une période et les cotes qui vous intéressent. Lancez ensuite une des deux méthodes de recherche.</div>
+      <button type="button" class="betpro-find-pmu-link" onclick="go('turf')">Courses hippiques PMU</button>
     </div>
-    <div class="betpro-find-steps" aria-label="Étapes de la sélection"><span><b>01</b> Votre sport</span><span><b>02</b> Votre profil de cotes</span><span><b>03</b> Vos sélections</span></div>
-  <div class="betpro-find-quick-sports" role="group" aria-label="Accès rapide par sport">
-    <button type="button" class="betpro-find-sport-chip on" data-sport="all" onclick="betproFindQuickSport('all')" aria-pressed="true">Tous les sports</button>
-    <button type="button" class="betpro-find-sport-chip" data-sport="soccer" onclick="betproFindQuickSport('soccer')" aria-pressed="false">Football</button>
-    <button type="button" class="betpro-find-sport-chip" data-sport="basketball" onclick="betproFindQuickSport('basketball')" aria-pressed="false">Basketball</button>
-    <button type="button" class="betpro-find-sport-chip" data-sport="tennis" onclick="betproFindQuickSport('tennis')" aria-pressed="false">Tennis</button>
-    <button type="button" class="betpro-find-sport-chip" data-sport="mma" onclick="betproFindQuickSport('mma')" aria-pressed="false">MMA</button>
-    <button type="button" class="betpro-find-sport-chip pmu" onclick="go('turf')">PMU / Courses</button>
-  </div>
   <div class="card">
-    <div class="ct">Vos critères de sélection <small>Recherche personnalisée</small></div>
+    <div class="ct">Votre recherche <small>3 choix essentiels</small></div>
     <div class="fg">
       <div class="fgrp"><label for="sel-sport">Sport</label>
         <select id="sel-sport" onchange="betproFindSportOptions(true)">
@@ -1801,16 +1810,6 @@ a{color:var(--neon);text-decoration:none}
         </select>
         <div id="betpro-find-sports-count" class="betpro-find-sports-count">Mise à jour des compétitions disponibles à partir du catalogue sportif.</div>
       </div>
-      <div class="fgrp betpro-find-odds-controls">
-        <div class="betpro-find-odds-title">Quel type de cotes recherchez-vous ?</div>
-        <div class="betpro-find-odds-choices" role="group" aria-label="Style de cotes">
-          <button type="button" class="betpro-find-odds-chip on" data-odds="all" aria-pressed="true" onclick="betproFindSetOdds('all')"><strong>Sans préférence</strong><small>Toutes les cotes</small></button>
-          <button type="button" class="betpro-find-odds-chip" data-odds="favorites" aria-pressed="false" onclick="betproFindSetOdds('favorites')"><strong>Favoris</strong><small>1,01 à 1,79</small></button>
-          <button type="button" class="betpro-find-odds-chip" data-odds="balanced" aria-pressed="false" onclick="betproFindSetOdds('balanced')"><strong>Équilibrées</strong><small>1,80 à 2,99</small></button>
-          <button type="button" class="betpro-find-odds-chip" data-odds="bold" aria-pressed="false" onclick="betproFindSetOdds('bold')"><strong>Ambitieuses</strong><small>3,00 et plus</small></button>
-        </div>
-        <p class="betpro-find-odds-hint">Le style de cotes est un filtre, pas une garantie de réussite.</p>
-      </div>
       <div class="fgrp"><label for="betpro-find-date">Période des rencontres</label>
         <select id="betpro-find-date">
           <option value="14d" selected>14 prochains jours</option>
@@ -1819,14 +1818,25 @@ a{color:var(--neon);text-decoration:none}
           <option value="7d">7 prochains jours</option>
         </select>
       </div>
+      <div class="fgrp betpro-find-odds-controls">
+        <div class="betpro-find-odds-title">Cotes recherchées</div>
+        <div class="betpro-find-odds-choices" role="group" aria-label="Style de cotes">
+          <button type="button" class="betpro-find-odds-chip on" data-odds="all" aria-pressed="true" onclick="betproFindSetOdds('all')"><strong>Toutes</strong><small>Sans limite</small></button>
+          <button type="button" class="betpro-find-odds-chip" data-odds="favorites" aria-pressed="false" onclick="betproFindSetOdds('favorites')"><strong>Cotes basses</strong><small>1,01 à 1,79</small></button>
+          <button type="button" class="betpro-find-odds-chip" data-odds="balanced" aria-pressed="false" onclick="betproFindSetOdds('balanced')"><strong>Cotes moyennes</strong><small>1,80 à 2,99</small></button>
+          <button type="button" class="betpro-find-odds-chip" data-odds="bold" aria-pressed="false" onclick="betproFindSetOdds('bold')"><strong>Cotes élevées</strong><small>3,00 et plus</small></button>
+        </div>
+        <p class="betpro-find-odds-hint">Ce filtre concerne la cote proposée, pas la probabilité de gagner.</p>
+      </div>
 
-      <div class="fgrp"><label for="sel-minscore">Niveau de sélection</label><select id="sel-minscore"><option value="0">Tout (0+)</option><option value="50">&#128992; 50+</option><option value="65" selected>&#127803; 65+</option><option value="75">&#127804; 75+ &#11088;</option><option value="85">&#128142; 85+</option></select></div>
+
     </div>
-    <div id="betpro-find-market-note" class="betpro-find-help">Scan Classique : compare les cotes pour le vainqueur. Scan Benter : ajoute une analyse statistique et peut examiner d’autres types de paris. Les cotes, la période et le niveau de sélection s’appliquent aux deux.</div>
+    <div id="betpro-find-market-note" class="betpro-find-help">Classique : compare les bookmakers. Benter : vérifie aussi des critères statistiques. Les deux utilisent vos filtres.</div>
     <details class="betpro-find-advanced" id="betpro-find-advanced">
-      <summary><span class="betpro-find-advanced-title">Réglages avancés du Scan Benter</span><span class="betpro-find-advanced-hint">Facultatif</span></summary>
-      <p class="betpro-find-advanced-desc">Vous pouvez laisser ces réglages tels quels. Ils ne modifient pas le Scan Classique.</p>
+      <summary><span class="betpro-find-advanced-title">Plus de réglages</span><span class="betpro-find-advanced-hint">Facultatif</span></summary>
+      <p class="betpro-find-advanced-desc">Les réglages ci-dessous sont facultatifs. Le type de pari et l’actualisation concernent seulement Benter. Le score minimum s’applique aux deux moteurs, avec des calculs différents.</p>
       <div class="betpro-find-advanced-grid">
+        <div class="fgrp"><label for="sel-minscore">Niveau de sélection</label><select id="sel-minscore"><option value="0">Tout (0+)</option><option value="50">&#128992; 50+</option><option value="65" selected>&#127803; 65+</option><option value="75">&#127804; 75+ &#11088;</option><option value="85">&#128142; 85+</option></select></div>
         <div class="fgrp"><label for="sel-market">Type de pari à analyser</label>
           <select id="sel-market">
             <option value="h2h">Vainqueur / résultat final (1X2)</option>
@@ -1844,14 +1854,10 @@ a{color:var(--neon);text-decoration:none}
         </div>
       </div>
     </details>
-    <div class="betpro-find-action-caption">Choisissez votre méthode d’analyse</div>
+    <div class="betpro-find-action-caption">Lancer la recherche</div>
     <div class="bg betpro-find-actions" role="group" aria-label="Choisir un moteur de recherche sportive">
-      <button type="button" class="btn betpro-find-launch" id="betpro-find-classic" onclick="doAnalyze('classic')"><span aria-hidden="true">●</span> SCAN CLASSIQUE</button>
-      <button type="button" class="btn betpro-find-launch" id="betpro-find-benter" onclick="doAnalyze('benter')"><span aria-hidden="true">◎</span> SCAN BENTER</button>
-    </div>
-    <div class="betpro-find-engine-legend">
-      <div><strong>Classique</strong><span>Compare les cotes des bookmakers et leurs tendances. Marché vainqueur.</span></div>
-      <div><strong>Scan Benter</strong><span>Ajoute une évaluation statistique des sélections et permet de choisir d’autres marchés. Réglages facultatifs.</span></div>
+      <button type="button" class="btn betpro-find-launch" id="betpro-find-classic" onclick="doAnalyze('classic')"><span class="betpro-find-btn-title">SCAN CLASSIQUE</span><small>Compare les bookmakers</small></button>
+      <button type="button" class="btn betpro-find-launch" id="betpro-find-benter" onclick="doAnalyze('benter')"><span class="betpro-find-btn-title">SCAN BENTER</span><small>Analyse statistique</small></button>
     </div>
     <details class="betpro-find-disclosure">
       <summary>Comprendre les notes, les sources et les limites</summary>
@@ -2790,7 +2796,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-selection-multisports-clarity-v215"></script>
+<script defer src="./betpro-app.js?v=20261122-selection-simplifiee-v216"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
