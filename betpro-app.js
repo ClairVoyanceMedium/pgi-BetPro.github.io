@@ -4048,12 +4048,12 @@ async function loadQuotas(){const el=document.getElementById('qfoot');try{const 
 let chatHistory=[];
 function getCtx(){const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim(),sh=document.getElementById('ctx-sh')?.value,sa=document.getElementById('ctx-sa')?.value,min=document.getElementById('ctx-min')?.value,comp=document.getElementById('ctx-comp')?.value.trim();const ctx={};if(home)ctx.home=home;if(away)ctx.away=away;if(sh)ctx.score_home=parseInt(sh)||0;if(sa)ctx.score_away=parseInt(sa)||0;if(min)ctx.minute=parseInt(min);if(comp)ctx.competition=comp;return Object.keys(ctx).length?ctx:null;}
 function clearCtx(){['ctx-home','ctx-away','ctx-sh','ctx-sa','ctx-min','ctx-comp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
-function clearChat(){chatHistory=[];ttsStop(true);document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp"><span class="betpro-chat-bp-mark" aria-hidden="true">BP</span></div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
+function clearChat(){chatHistory=[];ttsStop(true);document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
 
 
-const BETPRO_CHAT_BOT_ICON='<span class="betpro-chat-bp-mark" aria-hidden="true">BP</span>';
+const BETPRO_CHAT_BOT_ICON='<img class="betpro-chat-bp-image" src="./betpro-icon-192.png" width="34" height="34" alt="BP" loading="lazy" decoding="async">';
 const TTS={enabled:false,speed:1,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false};
 const CHAT_MIC={recognition:null,active:false,base:'',error:null};
 function ttsSupported(){return typeof window!=='undefined'&&'speechSynthesis' in window&&'SpeechSynthesisUtterance' in window;}
