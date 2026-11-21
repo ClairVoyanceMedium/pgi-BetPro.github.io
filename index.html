@@ -1625,6 +1625,158 @@ a{color:var(--neon);text-decoration:none}
 @media(max-width:768px){.mb{height:88px}.mn{padding-top:100px!important}}
 @media(max-width:425px){.mb{height:90px}.mn{padding-top:102px!important}.betpro-mobile-status{gap:3px;padding-left:37px}.betpro-mobile-status .betpro-tech-pill{padding:2px 4px;font-size:7.5px}}
 @media(max-width:355px){.mb{height:96px}.mn{padding-top:108px!important}.betpro-mobile-status{padding-left:33px;gap:2px}}
+
+/* PMU Pro : saumon fluo premium, styles confinés à la section turf.
+   Aucun statut fonctionnel, classe métier ou couleur sémantique n'est modifié. */
+#s-turf{
+  --turf-salmon:#ff997e;
+  --turf-hot:#ff785f;
+  --turf-light:#ffd7c9;
+  --turf-border:rgba(255,148,121,.32);
+  --turf-dark:#121a28;
+}
+#s-turf .turf-hero{
+  position:relative;overflow:hidden;
+  margin:0 0 19px;padding:23px 25px 21px;border:1px solid rgba(255,156,130,.46);
+  border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(255,125,95,.22),transparent 54%),
+             linear-gradient(135deg,#1c2332 0%,#131a29 62%,#191b28 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,220,210,.12),0 0 18px rgba(255,115,92,.08);
+}
+#s-turf .turf-hero::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#ff725e 0%,#ffb18d 53%,rgba(255,170,140,.05) 100%);
+  box-shadow:0 0 13px rgba(255,129,98,.36);
+}
+#s-turf .turf-hero-overline{
+  display:flex;align-items:center;gap:9px;
+  margin-bottom:9px;color:var(--turf-light);
+  font:750 10px/1.4 var(--mo);letter-spacing:.13em;
+}
+#s-turf .turf-hero-pulse{display:block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--turf-hot);box-shadow:0 0 11px rgba(255,114,90,.65)}
+#s-turf .turf-hero .pt{font:900 clamp(24px,3vw,34px)/1.17 var(--hd);letter-spacing:.028em;color:#fff1e9;text-shadow:0 2px 16px rgba(255,131,94,.13)}
+#s-turf .turf-hero .pt .turf-hero-slash{color:var(--turf-hot);padding:0 .12em}
+#s-turf .turf-hero .ps{max-width:720px;margin-top:8px;color:#d9cbd0;font-size:12px;line-height:1.65}
+#s-turf .turf-hero-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+#s-turf .turf-hero-tags span{
+  font:650 10px/1.4 var(--mo);color:#ffbaa5;white-space:normal;
+  border:1px solid rgba(255,157,130,.27);background:rgba(255,123,98,.075);
+  border-radius:20px;padding:6px 10px;
+}
+#s-turf .card{
+  border-color:rgba(255,150,124,.22);
+  border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9) 0%,rgba(17,25,39,.96) 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,223,212,.025);
+}
+#s-turf .turf-panel{position:relative;overflow:hidden;margin-bottom:17px}
+#s-turf .turf-panel:not(.turf-panel-intro)::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,#ff826b,rgba(255,166,138,.32),transparent 86%);
+}
+#s-turf .ct{
+  font:800 12px/1.4 var(--hd);
+  letter-spacing:.055em;color:#ffba9f;
+  border-bottom-color:rgba(255,154,128,.17);padding-bottom:12px;margin-bottom:15px;
+}
+#s-turf .turf-panel > .ct{font-size:14px;letter-spacing:.025em;color:#ffb99e;padding-top:4px}
+#s-turf .turf-panel-intro{border-color:rgba(255,157,127,.26)}
+#s-turf .turf-panel-intro .warn{margin-bottom:0!important}
+#s-turf .turf-control-label{
+  margin:0 0 7px;color:#ccbdb9;
+  font:750 10px/1.35 var(--mo);letter-spacing:.075em;text-transform:uppercase;
+}
+#s-turf .turf-filter-row{gap:7px!important;margin-bottom:16px!important}
+#s-turf .fbtn{
+  min-height:33px;padding:7px 12px;border-radius:8px;
+  background:#192334;border-color:rgba(255,148,121,.23);
+  color:#d6c6c4;font-weight:700;transition:border-color .18s,background .18s,color .18s,box-shadow .18s;
+}
+#s-turf .fbtn:hover{border-color:var(--turf-hot);color:#ffd4c4;background:rgba(255,131,105,.10)}
+#s-turf .fbtn.on{
+  color:#32140f;border-color:#ff9a78;
+  background:linear-gradient(120deg,#ffc09a 0%,#ff936f 55%,#ff785e 100%);
+  box-shadow:0 0 13px rgba(255,119,88,.18);
+}
+#s-turf .btn.bp{
+  min-height:39px;padding:10px 15px;border:1px solid rgba(255,210,183,.65);
+  border-radius:9px;color:#2f110a;
+  background:linear-gradient(112deg,#ffbb91 0%,#ff956f 49%,#ff685d 100%);
+  box-shadow:0 0 15px rgba(255,117,91,.30);
+  font-weight:850;
+}
+#s-turf .btn.bp:hover{opacity:1;filter:brightness(1.06);box-shadow:0 0 22px rgba(255,123,96,.46)}
+#s-turf .btn.bs{
+  min-height:37px;border-radius:9px;border-color:rgba(255,151,122,.28);
+  background:#20283a;color:#ffe2d5;
+}
+#s-turf .btn.bs:hover{border-color:#ff997e;color:#ffb9a1;background:#292b3c}
+#s-turf .turf-recov-type-btn.on{
+  background:rgba(255,130,103,.17);border-color:#ff9c7e;color:#ffc3af;
+  box-shadow:inset 0 0 0 1px rgba(255,159,125,.12);
+}
+#s-turf .btn:focus-visible,#s-turf .fbtn:focus-visible{outline:2px solid #ffd0ae;outline-offset:3px}
+#s-turf :is(input[type=number],input[type=text],select,textarea){
+  border-radius:8px;border-color:rgba(255,146,113,.24);
+  background:#111b2b;color:#f4e6e0;
+}
+#s-turf :is(input[type=number],input[type=text],select,textarea):focus{border-color:#ff9874;box-shadow:0 0 0 2px rgba(255,137,102,.10)}
+#s-turf .fgrp label{color:#d4c2bd}
+#s-turf .info{background:rgba(255,132,103,.06);border-color:rgba(255,147,114,.20);color:#f0c4b3}
+#s-turf .sp{border-top-color:var(--turf-hot)}
+#s-turf #turf-races-list>.dir-card{
+  background:linear-gradient(110deg,#212a39,#171f2e 90%);
+  border-radius:11px;
+  box-shadow:inset 3px 0 0 #ff9c7c,0 4px 12px rgba(0,0,0,.14);
+  margin:0 0 9px;transition:transform .18s,box-shadow .18s;
+}
+#s-turf #turf-races-list>.dir-card:hover{
+  transform:translateY(-2px);
+  box-shadow:inset 3px 0 0 #ff9c7c,0 7px 18px rgba(255,124,94,.13);
+}
+#s-turf #turf-races-list .dir-match{color:#ffe0d5;font-size:12px;line-height:1.45}
+#s-turf #turf-races-list .bdg.bsp,#s-turf #turf-race-detail .bdg.bsp{
+  color:#ffc3ad;background:rgba(255,135,104,.12);
+}
+#s-turf #turf-race-detail{scroll-margin-top:112px}
+#s-turf #turf-race-detail .card{margin-top:13px}
+#s-turf #turf-race-detail table{border-collapse:separate;border-spacing:0;width:100%}
+#s-turf #turf-race-detail th{color:#ffc9b5}
+#s-turf #turf-race-detail tr:hover td{background:rgba(255,144,109,.035)}
+#s-turf #turf-chat-wrap{
+  padding:13px;border:1px solid rgba(255,155,127,.20);
+  border-radius:10px;background:rgba(8,15,27,.45);
+}
+#s-turf #turf-chat-wrap .msg.bot .msg-bub{background:rgba(255,135,105,.07);border-color:rgba(255,161,132,.17);color:#eddcd6}
+#s-turf #turf-chat-wrap .msg.user .msg-bub{background:rgba(255,139,109,.13);border-color:rgba(255,162,130,.28);color:#fff0e9}
+#s-turf .live-card{background:#182234;border-color:rgba(255,150,120,.21);border-radius:10px}
+#s-turf .chat-input-wrap{margin-top:11px}
+#s-turf .turf-panel-history .bg{margin-bottom:13px!important}
+.ni[data-s="turf"].on{color:#ffac93;border-left-color:#ff846a;background:rgba(255,132,101,.10);text-shadow:0 0 12px rgba(255,133,102,.2)}
+@media(max-width:768px){
+  #s-turf .turf-hero{padding:18px 16px;margin-bottom:15px}
+  #s-turf .turf-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-turf .card{padding:16px}
+  #s-turf .turf-panel-intro{padding:12px 14px!important}
+  #s-turf .turf-panel-chat{padding:14px!important}
+  #s-turf .turf-hero-tags span{font-size:9px}
+  #s-turf .turf-panel-upcoming .bg .btn,
+  #s-turf .turf-panel-recovery>.bg .btn{max-width:100%;white-space:normal;line-height:1.35}
+}
+@media(max-width:425px){
+  #s-turf .turf-hero{padding:17px 13px}
+  #s-turf .turf-hero-tags{gap:5px}
+  #s-turf .turf-hero-tags span{padding:5px 8px}
+  #s-turf .turf-filter-row{gap:5px!important}
+  #s-turf .fbtn{padding:7px 9px;font-size:10px}
+  #s-turf .turf-panel>.ct{font-size:13px}
+  #s-turf #turf-races-list .dir-body{padding:12px!important}
+  #s-turf #turf-chat-wrap{padding:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  #s-turf #turf-races-list>.dir-card,#s-turf .fbtn{transition:none}
+}
+
 </style>
 </head>
 <body>
@@ -2364,22 +2516,31 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ PMU / TURF FRANCE ═══════════════ -->
 <section class="sec" id="s-turf">
-  <div class="ph"><div class="pt">&#128014; PMU / Turf France</div><div class="ps">Section entièrement séparée des paris sportifs — analyse probabiliste, mémoire Benter turf dédiée.</div></div>
+  <div class="ph turf-hero">
+    <div class="turf-hero-overline"><span class="turf-hero-pulse" aria-hidden="true"></span> ESPACE HIPPIQUE · FRANCE</div>
+    <div class="pt">PMU <span class="turf-hero-slash">/</span> TURF FRANCE</div>
+    <div class="ps">Courses à venir, partants, cotes et historique dans un espace dédié aux courses hippiques.</div>
+    <div class="turf-hero-tags" aria-label="Fonctions PMU disponibles">
+      <span>Programme des courses</span><span>Analyse des partants</span><span>Historique PMU</span>
+    </div>
+  </div>
 
-  <div class="card" style="padding:12px 14px">
+  <div class="card turf-panel turf-panel-intro" style="padding:12px 14px">
     <div id="turf-sources-status" style="margin-bottom:8px"></div>
     <div class="warn" style="margin-bottom:0">&#9888;&#65039; Analyse probabiliste — aucun pari garanti. Ne misez que ce que vous pouvez perdre. Les performances passées ne garantissent pas les résultats futurs.</div>
   </div>
 
   <!-- Bloc 1 — Courses à venir -->
-  <div class="card">
+  <div class="card turf-panel turf-panel-upcoming">
     <div class="ct">&#128014; Courses PMU à venir</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="turf-date-btns">
+    <div class="turf-control-label">Date des courses</div>
+    <div class="turf-filter-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="turf-date-btns">
       <button class="fbtn" onclick="turfSetDateFilter('now',this)">Maintenant</button>
       <button class="fbtn on" onclick="turfSetDateFilter('today',this)">Aujourd'hui</button>
       <button class="fbtn" onclick="turfSetDateFilter('tomorrow',this)">Demain</button>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="turf-discipline-btns">
+    <div class="turf-control-label">Discipline et type de course</div>
+    <div class="turf-filter-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="turf-discipline-btns">
       <button class="fbtn on" onclick="turfSetDisciplineFilter('all',this)">Tous</button>
       <button class="fbtn" onclick="turfSetDisciplineFilter('trot',this)">Trot</button>
       <button class="fbtn" onclick="turfSetDisciplineFilter('plat',this)">Plat</button>
@@ -2396,7 +2557,7 @@ a{color:var(--neon);text-decoration:none}
   <div id="turf-race-detail"></div>
 
   <!-- ═══ RATTRAPAGE PMU INTELLIGENT ═══ -->
-  <div class="card" style="margin-top:18px">
+  <div class="card turf-panel turf-panel-recovery" style="margin-top:18px">
     <div class="ct">&#127919; Rattrapage PMU intelligent</div>
     <div class="info" style="margin-bottom:12px">Choisissez le type de pari, l'outil scanne les prochaines courses PMU et propose la <strong>meilleure opportunité réelle</strong> pour vous refaire — jamais de Quinté spéculatif en rattrapage (trop risqué), toujours en mode ultra prudent.</div>
 
@@ -2460,7 +2621,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- Bloc 6 — Chat PMU contextuel -->
-  <div class="card" style="padding:14px">
+  <div class="card turf-panel turf-panel-chat" style="padding:14px">
     <div class="ct" style="margin-bottom:8px">&#128172; Chat PMU contextuel</div>
     <div class="fgrp" style="margin-bottom:10px">
       <label>Bankroll session (&#8364;)</label>
@@ -2476,7 +2637,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- Bloc 7 — Historique PMU (séparé) -->
-  <div class="card">
+  <div class="card turf-panel turf-panel-history">
     <div class="ct">&#128202; Historique PMU</div>
     <div class="bg" style="margin-bottom:10px">
       <button class="btn bs" onclick="turfLoadHistory()">&#128260; Actualiser</button>
@@ -2874,7 +3035,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-header-telemetry-v220"></script>
+<script defer src="./betpro-app.js?v=20261122-turf-salmon-v221"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
