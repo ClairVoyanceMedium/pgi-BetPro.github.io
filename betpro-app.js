@@ -4224,7 +4224,7 @@ async function ttsNeuralSpeak(token,onFailure){
   if(ctx.state!=='running')await ctx.resume();
   if(ctx.state!=='running')throw new Error('Audio bloqué par le navigateur');
   while(token===TTS.token&&TTS.i<TTS.chunks.length){
-   ttsStatus('Voix française naturelle · '+(TTS.i+1)+'/'+TTS.chunks.length);
+   ttsStatus('Lecture en français · '+(TTS.i+1)+'/'+TTS.chunks.length);
    const controller=new AbortController();
    BETPRO_AUDIO_NEURAL.controller=controller;
    let response,mp3;
@@ -4234,7 +4234,7 @@ async function ttsNeuralSpeak(token,onFailure){
      method:'POST',headers:{'Content-Type':'application/json'},
      body:JSON.stringify({text:TTS.chunks[TTS.i]}),signal:controller.signal,cache:'no-store'
     });
-    if(!response.ok)throw new Error('Service vocal temporairement indisponible ('+response.status+')');
+    if(!response.ok)throw new Error('Voix française indisponible, code '+response.status);
     mp3=await response.arrayBuffer();
    }finally{
     clearTimeout(timeout);
@@ -4339,14 +4339,20 @@ function ttsClean(text){
 }
 function ttsChunks(text){
  const words=ttsClean(text).split(/\s+/).filter(Boolean),parts=[];let part='';
- // Des phrases suffisamment longues rendent la prosodie neuronale plus naturelle.
+ // La source française accepte 180 caractères max par requête.
+ // Les morceaux courts évitent l'erreur HTTP 400 qui coupait le bouton Écouter.
+ const MAX=165;
  for(const word of words){
-  if(part&&(part+' '+word).length>380){parts.push(part);part='';}
-  if(word.length>380){for(let i=0;i<word.length;i+=380)parts.push(word.slice(i,i+380));}
-  else part+=(part?' ':'')+word;
-  if(part.length>=210&&/[.!?;:]$/.test(word)){parts.push(part);part='';}
+  if(part&&(part+' '+word).length>MAX){parts.push(part);part='';}
+  if(word.length>MAX){
+   for(let i=0;i<word.length;i+=MAX)parts.push(word.slice(i,i+MAX));
+  }else{
+   part+=(part?' ':'')+word;
+   if(part.length>=95&&/[.!?;:]$/.test(word)){parts.push(part);part='';}
+  }
  }
- if(part)parts.push(part);return parts.slice(0,30);
+ if(part)parts.push(part);
+ return parts.slice(0,65);
 }
 
 function ttsClearTimers(){
@@ -4436,12 +4442,13 @@ function ttsSpeak(text,replayId,automatic=false){
  };
  // WebAudio a été activé synchroniquement par le bouton, avant la requête.
  // Le TTS neuronal prime; seul le vrai TTS français natif peut prendre le relais.
- ttsNeuralSpeak(token,()=>{
+ ttsNeuralSpeak(token,(error)=>{
   if(token!==TTS.token)return;
+  const detail=String(error?.message||error||'').slice(0,85);
   if(synth&&ttsBestFrVoice(ttsGetVoices())){
-   ttsStatus('Voix française de l’appareil en secours…');
+   ttsStatus('Voix française en secours · '+detail);
    next();
-  }else fail('Voix naturelle momentanément indisponible. Réessayez avec Écouter.');
+  }else fail('Lecture française indisponible : '+detail+'. Réessayez avec Écouter.');
  });
  return true;
 }
