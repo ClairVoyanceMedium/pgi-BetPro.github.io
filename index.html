@@ -2414,36 +2414,82 @@ a{color:var(--neon);text-decoration:none}
   #s-blackjack .bj-card-btn,#s-blackjack .bj-dbtn{transition:none}
 }
 
-/* Matchs Live / À venir : palette beige Blackjack, portée uniquement par cette rubrique.
-   Les couleurs des moteurs Benter / Classique et des indicateurs de risque sont préservées. */
+/* Matchs Live / À venir : véritable habillage PMU Pro en beige.
+   Styles isolés à #s-live, moteurs, identifiants et couleurs métier inchangés. */
 #s-live{
   --live-beige:#e7cda8;--live-hot:#d7b583;--live-light:#f2e2ca;
-  --neon:#e7cda8;--neon2:#f2e2ca;
-  --nbg:rgba(231,205,168,.10);
+  --live-border:rgba(231,205,168,.32);
+  --neon:#e7cda8;--neon2:#f2e2ca;--nbg:rgba(231,205,168,.10);
   --ng:0 0 8px rgba(231,205,168,.42),0 0 22px rgba(231,205,168,.22);
   --ngd:0 0 5px rgba(231,205,168,.32),0 0 14px rgba(231,205,168,.14);
   --bd:rgba(231,205,168,.20);--bd2:rgba(231,205,168,.32);
 }
-.ni[data-s="live"].on{
-  color:#ecd6b5;border-left-color:#d7b583;
-  background:rgba(231,205,168,.10);text-shadow:0 0 12px rgba(215,181,131,.20);
+#s-live .live-pro-hero{
+  position:relative;overflow:hidden;margin:0 0 19px;
+  padding:23px 25px 21px;border:1px solid rgba(231,205,168,.46);
+  border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(215,181,131,.21),transparent 54%),
+             linear-gradient(135deg,#1c2332 0%,#131a29 62%,#191b28 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(242,226,202,.12),0 0 18px rgba(215,181,131,.08);
 }
-#s-live .ph .pt{color:#f2e2ca;font-weight:850}
-#s-live .ph .ps{color:#d9d0c5}
+#s-live .live-pro-hero::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#d7b583 0%,#f2e2ca 53%,rgba(242,226,202,.05) 100%);
+  box-shadow:0 0 13px rgba(215,181,131,.34);
+}
+#s-live .live-pro-overline{
+  display:flex;align-items:center;gap:9px;margin-bottom:9px;
+  color:var(--live-light);font:750 10px/1.4 var(--mo);letter-spacing:.13em;
+}
+#s-live .live-pro-pulse{
+  display:block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;
+  background:var(--live-hot);box-shadow:0 0 11px rgba(215,181,131,.60);
+}
+#s-live .live-pro-hero .pt{
+  font:900 clamp(24px,3vw,34px)/1.17 var(--hd);letter-spacing:.028em;
+  color:#f8ecdc;text-shadow:0 2px 16px rgba(215,181,131,.13);
+}
+#s-live .live-pro-hero .pt .live-pro-slash{color:var(--live-hot);padding:0 .12em}
+#s-live .live-pro-hero .ps{
+  max-width:720px;margin-top:8px;color:#d9d0c5;font-size:12px;line-height:1.65;
+}
+#s-live .live-pro-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+#s-live .live-pro-tags span{
+  font:650 10px/1.4 var(--mo);color:#eddbbd;white-space:normal;
+  border:1px solid rgba(231,205,168,.27);background:rgba(215,181,131,.075);
+  border-radius:20px;padding:6px 10px;
+}
 #s-live .card{
-  border-color:rgba(231,205,168,.27);border-radius:13px;
-  background:linear-gradient(155deg,rgba(30,39,56,.90),rgba(17,25,39,.96));
+  border-color:rgba(231,205,168,.22);border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9) 0%,rgba(17,25,39,.96) 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(242,226,202,.025);
 }
+#s-live .live-pro-panel{position:relative;overflow:hidden;margin-bottom:17px}
+#s-live .live-pro-panel::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,#e7cda8,rgba(231,205,168,.32),transparent 86%);
+}
+#s-live .ct{
+  font:800 12px/1.4 var(--hd);letter-spacing:.055em;color:#ecd6b5;
+  border-bottom-color:rgba(231,205,168,.17);padding-bottom:12px;margin-bottom:15px;
+}
+#s-live .live-pro-panel>.ct{font-size:14px;letter-spacing:.025em;color:#efdfc4;padding-top:4px}
+#s-live .live-pro-control-label{
+  margin:0 0 7px;color:#d9cbbb;
+  font:750 10px/1.35 var(--mo);letter-spacing:.075em;text-transform:uppercase;
+}
+#s-live .live-pro-filter-row{gap:7px!important;margin-bottom:16px!important}
 #s-live .fbtn{
   min-height:33px;padding:7px 12px;border-radius:8px;
-  border-color:rgba(231,205,168,.26);background:#192334;
-  color:#e8d8c0;font-weight:700;
+  background:#192334;border-color:rgba(231,205,168,.23);
+  color:#d9cbbb;font-weight:700;
+  transition:border-color .18s,background .18s,color .18s,box-shadow .18s;
 }
-#s-live .fbtn:hover{border-color:#e7cda8;color:#f2e2ca;background:rgba(231,205,168,.12)}
+#s-live .fbtn:hover{border-color:var(--live-hot);color:#f2e2ca;background:rgba(215,181,131,.10)}
 #s-live .fbtn.on{
   color:#2d2115;border-color:#f2e2ca;
   background:linear-gradient(112deg,#f4e4cb 0%,#e7cda8 49%,#cda878 100%);
-  box-shadow:0 0 13px rgba(215,181,131,.21);
+  box-shadow:0 0 13px rgba(215,181,131,.18);
 }
 #s-live .btn.bp{
   min-height:39px;padding:10px 15px;border:1px solid rgba(245,230,204,.65);
@@ -2458,17 +2504,54 @@ a{color:var(--neon);text-decoration:none}
 }
 #s-live .btn.bs:hover{border-color:#e7cda8;color:#f4e4cb;background:#292b3c}
 #s-live .btn:focus-visible,#s-live .fbtn:focus-visible{outline:2px solid #f2e2ca;outline-offset:3px}
-#s-live input[type="date"]{border-color:rgba(231,205,168,.26);background:#111b2b;color:#f4e8d9}
+#s-live input[type="date"]{
+  border:1px solid rgba(231,205,168,.24);border-radius:8px;
+  background:#111b2b;color:#f4e8d9;
+}
 #s-live input[type="date"]:focus{border-color:#e7cda8;box-shadow:0 0 0 2px rgba(231,205,168,.10)}
+#s-live .fgrp label{color:#d9cbbb}
+#s-live .classic-engine-mode{
+  padding:10px 12px;border:1px solid rgba(231,205,168,.19);
+  border-radius:8px;background:rgba(215,181,131,.055);color:#e8d8c0;
+}
 #s-live .sbar{border:1px solid rgba(231,205,168,.20);color:#e8d8c0}
 #s-live #upcoming-classic-cnt .sbar span:first-child{color:#ecd6b5!important}
 #s-live .info{background:rgba(215,181,131,.06);border-color:rgba(231,205,168,.20);color:#e8d8c0}
 #s-live .sp{border-top-color:#d7b583}
-#s-live .live-card{border-color:rgba(231,205,168,.22);border-radius:12px}
-#s-live .dir-card{border-radius:11px}
-@media(max-width:480px){
+#s-live .live-card{
+  background:#182234;border-color:rgba(231,205,168,.21);border-radius:10px;
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt)>.opp-grid .dir-card{
+  background:linear-gradient(110deg,#212a39,#171f2e 90%);
+  border-radius:11px;margin-bottom:9px;
+  box-shadow:inset 3px 0 0 #e7cda8,0 4px 12px rgba(0,0,0,.14);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-match{color:#f6e8d8}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card:hover{
+  box-shadow:inset 3px 0 0 #e7cda8,0 7px 18px rgba(215,181,131,.13);
+}
+#s-live .live-pro-actions{margin-bottom:12px}
+.ni[data-s="live"].on{
+  color:#ecd6b5;border-left-color:#d7b583;
+  background:rgba(231,205,168,.10);text-shadow:0 0 12px rgba(215,181,131,.20);
+}
+@media(max-width:768px){
+  #s-live .live-pro-hero{padding:18px 16px;margin-bottom:15px}
+  #s-live .live-pro-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-live .card{padding:16px}
+  #s-live .live-pro-panel .bg .btn{max-width:100%;white-space:normal;line-height:1.35}
+  #s-live .live-pro-tags span{font-size:9px}
+}
+@media(max-width:425px){
+  #s-live .live-pro-hero{padding:17px 13px}
+  #s-live .live-pro-tags{gap:5px}
+  #s-live .live-pro-tags span{padding:5px 8px}
+  #s-live .live-pro-filter-row{gap:5px!important}
   #s-live .fbtn{padding:7px 9px;font-size:10px}
-  #s-live .card{padding:14px!important}
+  #s-live .live-pro-panel>.ct{font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  #s-live .fbtn,#s-live .live-card{transition:none}
 }
 
 /* Mes Notes : palette orange existante (#ff7043 / #ff5722).
@@ -2962,30 +3045,44 @@ a{color:var(--neon);text-decoration:none}
   </details>
 </section>
 
-<!-- ═══════════════ LIVE ═══════════════ -->
+<!-- ═══════════════ LIVE / À VENIR · MÊME DESIGN PMU, EN BEIGE ═══════════════ -->
 <section class="sec" id="s-live">
-  <div class="ph"><div class="pt">&#128308; Matchs Live / À venir</div><div class="ps">Rencontres réellement en cours, score, chronomètre et analyse statistique sur demande. Actualisation automatique toutes les 90 secondes pendant la consultation. Le calendrier est séparé.</div></div>
-  <div class="bg" style="margin-bottom:14px" role="group" aria-label="Stratégie des rencontres en direct">
-    <button class="classic-engine-switch benter" id="live-switch-benter" onclick="setBetProEngine('benter')">SCAN LIVE BENTER</button>
-    <button class="classic-engine-switch on" id="live-switch-classic" onclick="setBetProEngine('classic')">SCAN LIVE CLASSIQUE</button>
+  <div class="ph live-pro-hero">
+    <div class="live-pro-overline"><span class="live-pro-pulse" aria-hidden="true"></span> ESPACE MULTISPORTS · RENCONTRES</div>
+    <div class="pt">MATCHS <span class="live-pro-slash">/</span> LIVE &amp; À VENIR</div>
+    <div class="ps">Rencontres réellement en cours, scores, chronomètres et analyses statistiques. Calendrier des prochains matchs séparé du direct.</div>
+    <div class="live-pro-tags" aria-label="Fonctions de cette rubrique">
+      <span>Matchs en direct</span><span>Prochaines rencontres</span><span>Directions de pari</span>
+    </div>
   </div>
-  <div id="live-engine-explanation" class="classic-engine-mode" style="margin-bottom:11px">Matchs effectivement en cours uniquement. Analyse avancée avec statistiques vérifiées sur demande.</div>
-  <div class="bg" style="margin-bottom:14px">
-    <button class="btn bp" onclick="loadLive()">&#128260; Actualiser live</button>
-    <button class="btn bs" onclick="loadUpcoming()">&#128197; À venir</button>
+
+  <div class="card live-pro-panel live-pro-panel-direct">
+    <div class="ct">&#128308; Matchs en direct</div>
+    <div class="live-pro-control-label">Méthode d'analyse</div>
+    <div class="live-pro-filter-row bg" role="group" aria-label="Stratégie des rencontres en direct">
+      <button class="classic-engine-switch benter" id="live-switch-benter" onclick="setBetProEngine('benter')">SCAN LIVE BENTER</button>
+      <button class="classic-engine-switch on" id="live-switch-classic" onclick="setBetProEngine('classic')">SCAN LIVE CLASSIQUE</button>
+    </div>
+    <div id="live-engine-explanation" class="classic-engine-mode" style="margin-bottom:13px">Matchs effectivement en cours uniquement. Analyse avancée avec statistiques vérifiées sur demande.</div>
+    <div class="bg live-pro-actions">
+      <button class="btn bp" onclick="loadLive()">&#128260; Actualiser live</button>
+      <button class="btn bs" onclick="loadUpcoming()">&#128197; À venir</button>
+    </div>
+    <div id="live-cnt" style="display:none"><div class="ls"><div class="sp"></div><p>Chargement Benter…</p></div></div>
+    <div id="live-classic-cnt"><div class="ls"><div class="sp"></div><p>Chargement des rencontres Classique…</p></div></div>
   </div>
-  <div id="live-cnt" style="display:none"><div class="ls"><div class="sp"></div><p>Chargement Benter…</p></div></div>
-  <div id="live-classic-cnt"><div class="ls"><div class="sp"></div><p>Chargement des rencontres Classique…</p></div></div>
-  <div style="height:1px;background:var(--bd);margin:28px 0 22px"></div>
-  <div class="ph" style="margin-bottom:16px"><div class="pt" style="font-size:17px">&#128197; Matchs à venir — Direction de pari</div></div>
-  <div class="card" style="padding:16px;margin-bottom:14px">
-    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+
+  <div class="card live-pro-panel live-pro-panel-upcoming">
+    <div class="ct">&#128197; Matchs à venir · Direction de pari</div>
+    <div class="live-pro-control-label">Choisir une période</div>
+    <div class="live-pro-filter-row bg">
       <button class="fbtn on" id="upc-tab-h" onclick="setUpcomingTab('h')">&#9201; Par heures</button>
       <button class="fbtn" id="upc-tab-d" onclick="setUpcomingTab('d')">&#128198; Par jours</button>
       <button class="fbtn" id="upc-tab-date" onclick="setUpcomingTab('date')">&#128197; Date précise</button>
     </div>
     <div id="upc-panel-h">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div class="live-pro-control-label">Heures à venir</div>
+      <div class="live-pro-filter-row bg">
         <button class="fbtn" id="h-btn-3" onclick="selectHours(3)">3h</button>
         <button class="fbtn" id="h-btn-6" onclick="selectHours(6)">6h</button>
         <button class="fbtn on" id="h-btn-12" onclick="selectHours(12)">12h</button>
@@ -2993,7 +3090,8 @@ a{color:var(--neon);text-decoration:none}
       </div>
     </div>
     <div id="upc-panel-d" style="display:none">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div class="live-pro-control-label">Jours à venir</div>
+      <div class="live-pro-filter-row bg">
         <button class="fbtn on" id="d-btn-1" onclick="selectDays(1)">Demain</button>
         <button class="fbtn" id="d-btn-3" onclick="selectDays(3)">3 jours</button>
         <button class="fbtn" id="d-btn-7" onclick="selectDays(7)">7 jours</button>
@@ -3001,14 +3099,16 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div id="upc-panel-date" style="display:none">
       <div class="fg" style="margin-bottom:0">
-        <div class="fgrp"><label>Du</label><input type="date" id="upc-from" style="color:var(--tx)"></div>
-        <div class="fgrp"><label>Au</label><input type="date" id="upc-to" style="color:var(--tx)"></div>
+        <div class="fgrp"><label for="upc-from">Du</label><input type="date" id="upc-from" style="color:var(--tx)"></div>
+        <div class="fgrp"><label for="upc-to">Au</label><input type="date" id="upc-to" style="color:var(--tx)"></div>
       </div>
     </div>
-    <div style="margin-top:12px"><button class="btn bp" onclick="loadUpcoming()" id="upc-btn">&#128197; Voir les matchs à venir</button></div>
+    <div class="bg live-pro-actions">
+      <button class="btn bp" onclick="loadUpcoming()" id="upc-btn">&#128197; Voir les matchs à venir</button>
+    </div>
+    <div id="upcoming-cnt" style="display:none"></div>
+    <div id="upcoming-classic-cnt"></div>
   </div>
-  <div id="upcoming-cnt" style="display:none"></div>
-  <div id="upcoming-classic-cnt"></div>
 </section>
 
 <!-- ═══════════════ RÉSULTATS ═══════════════ -->
