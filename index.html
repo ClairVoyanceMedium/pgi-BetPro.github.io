@@ -1233,49 +1233,31 @@ a{color:var(--neon);text-decoration:none}
 .betpro-live-market-note{padding-top:5px;border-top:1px solid rgba(255,255,255,.12);color:var(--mu,#bac7d9)}
 
 /* BetPro : page « Se refaire intelligemment » uniquement.
-   Vert fluo pomme, sans modifier les couleurs des autres sections. */
+   Même design d'origine, palette vert fluo uniquement. */
 #s-methods{
   --neon:#39ff14;--neon2:#baff9c;
   --nbg:rgba(57,255,20,.10);
-  --ng:0 0 8px rgba(57,255,20,.55),0 0 22px rgba(57,255,20,.28);
-  --ngd:0 0 5px rgba(57,255,20,.45),0 0 14px rgba(57,255,20,.20);
-  --bd:rgba(57,255,20,.19);--bd2:rgba(57,255,20,.32);
+  --ng:0 0 8px rgba(57,255,20,.60),0 0 22px rgba(57,255,20,.34);
+  --ngd:0 0 5px rgba(57,255,20,.43),0 0 14px rgba(57,255,20,.22);
+  --bd:rgba(57,255,20,.20);--bd2:rgba(57,255,20,.32);
 }
-.ni[data-s="methods"]{
-  color:#85ff66;border-left-color:rgba(57,255,20,.60);
-  background:rgba(57,255,20,.035);
-}
-.ni[data-s="methods"]:hover{
-  color:#baff9c;background:rgba(57,255,20,.09);
-}
-.ni[data-s="methods"].on{
-  color:#39ff14;border-left-color:#39ff14;
-  background:rgba(57,255,20,.12);
-  text-shadow:0 0 11px rgba(57,255,20,.42);
-}
-#s-methods .ph .pt{color:#39ff14;text-shadow:0 0 12px rgba(57,255,20,.32)}
 #s-methods .methods-hero{
-  background:linear-gradient(135deg,rgba(57,255,20,.105),rgba(57,255,20,.025));
-  border-color:rgba(57,255,20,.33);
+  background:linear-gradient(135deg,rgba(167,139,250,.10),rgba(57,255,20,.085));
 }
-#s-methods .methods-hero>div:first-child{color:#baff9c!important}
-#s-methods #loss-input-card{border-color:rgba(57,255,20,.38)!important}
 #s-methods .recovery-banner{
-  background:linear-gradient(135deg,rgba(57,255,20,.13),rgba(57,255,20,.035));
-  border-color:rgba(57,255,20,.38);
+  background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(57,255,20,.09));
 }
-#s-methods .rb-next-stake{color:#39ff14}
-#s-methods .bp{color:#081208;box-shadow:0 0 14px rgba(57,255,20,.37)}
-#s-methods .bp:hover{box-shadow:0 0 20px rgba(57,255,20,.55)}
+#s-methods .bp{box-shadow:0 0 14px rgba(57,255,20,.42)}
+#s-methods .bp:hover{box-shadow:0 0 20px rgba(57,255,20,.53)}
 #s-methods .info{
-  background:rgba(57,255,20,.055);border-color:rgba(57,255,20,.27);color:#baff9c;
+  background:rgba(57,255,20,.07);border-color:rgba(57,255,20,.30);color:#baff9c;
 }
-#s-methods .sp{border-color:rgba(57,255,20,.24);border-top-color:#39ff14}
+#s-methods .sp{border-color:rgba(57,255,20,.23);border-top-color:#39ff14}
 #s-methods .bsp{background:rgba(57,255,20,.10);color:#baff9c}
 #s-methods .sig-e{border-color:rgba(57,255,20,.35)}
-#s-methods .oc.xp{box-shadow:0 0 0 1px rgba(57,255,20,.23)}
+#s-methods .oc.xp{box-shadow:0 0 0 1px rgba(57,255,20,.20)}
 #s-methods .stake-badge{
-  background:rgba(57,255,20,.12);border-color:rgba(57,255,20,.38);
+  background:rgba(57,255,20,.13);border-color:rgba(57,255,20,.36);
 }
 
 
@@ -2710,7 +2692,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- Saisie express : un montant suffit en cas de perte -->
-  <div class="card" id="loss-input-card" style="margin-bottom:12px;border-color:rgba(255,147,105,.38)">
+  <div class="card" id="loss-input-card" style="margin-bottom:12px;border-color:rgba(57,255,20,.38)">
     <div class="ct">① Enregistrer un résultat en quelques secondes</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px">
       <div class="fgrp"><label for="loss-stake" id="loss-stake-label">Montant perdu (€) *</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="Ex. 20" inputmode="decimal" style="font-size:17px;font-weight:700"></div>
