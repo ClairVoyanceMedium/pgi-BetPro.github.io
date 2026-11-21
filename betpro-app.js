@@ -2762,190 +2762,264 @@ function ssRow(l,v){const n=parseInt(v)||0,c=n>=70?'var(--neon)':n>=50?'var(--am
 // ═══════════════════════════════════════════════════════════════════════
 //  ANALYSE MANUELLE — recherche ancrée sur les VRAIES cotes (The Odds API)
 // ═══════════════════════════════════════════════════════════════════════
-function getCheckedMarkets(){return[...document.querySelectorAll('#m-markets-wrap input:checked')].map(c=>c.value);}
-
-async function findRealMatchOpportunities(home, away, sportFamily, dateStr, markets){
-  const leagues = getLeaguesForSportFilter(sportFamily && sportFamily!=='all' ? sportFamily : 'all', 'complet');
-  const marketsToQuery = (markets && markets.length) ? markets : ['h2h'];
-
-  const queries = [];
-  const seenQ = new Set();
-  leagues.forEach(l => {
-    marketsToQuery.forEach(mk => {
-      const key = l.sport+'|'+mk;
-      if(seenQ.has(key)) return;
-      seenQ.add(key);
-      queries.push({ sport:l.sport, market:mk });
-    });
-  });
-
-  const allRawOpps = [];
-  const chunk = 6;
-  for(let i=0;i<queries.length;i+=chunk){
-    const batch = queries.slice(i,i+chunk);
-    const results = await Promise.allSettled(batch.map(({sport,market}) =>
-      api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick').then(d=>{
-        const opps = (d.opportunities||[]);
-        opps.forEach(o=>{ o._sport=sport; o.sport=sport; o.market=o.market||market; });
-        return opps;
-      }).catch(()=>[])
-    ));
-    results.forEach(r=>{ if(r.status==='fulfilled') allRawOpps.push(...r.value); });
-  }
-
-  const teamMatches = allRawOpps.filter(o => {
-    const h = o.home_team||'', a = o.away_team||'';
-    const directMatch  = teamNamesMatch(home,h) && teamNamesMatch(away,a);
-    const reverseMatch = teamNamesMatch(home,a) && teamNamesMatch(away,h);
-    return directMatch || reverseMatch;
-  });
-
-  if(!teamMatches.length){
-    return { found:false, reason:`Aucun match "${home} vs ${away}" trouvé dans les cotes actuellement disponibles (ni aujourd'hui, ni à venir). Vérifiez l'orthographe des équipes ou réessayez plus près de la date du match — les bookmakers ne publient généralement les cotes que quelques jours à l'avance.` };
-  }
-
-  const byMatch = {};
-  teamMatches.forEach(o=>{
-    const k = (o.home_team||'')+'|'+(o.away_team||'')+'|'+(o.start_time||o.commence_time||'');
-    if(!byMatch[k]) byMatch[k] = [];
-    byMatch[k].push(o);
-  });
-  let candidateKeys = Object.keys(byMatch);
-
-  if(dateStr){
-    const withDate = candidateKeys.filter(k=>{
-      const first = byMatch[k][0];
-      const st = first.start_time||first.commence_time;
-      return st && frenchDateStrClient(st) === dateStr;
-    });
-    if(withDate.length){ candidateKeys = withDate; }
-    else {
-      const sorted = candidateKeys.slice().sort((k1,k2)=>{
-        const t1 = new Date(byMatch[k1][0].start_time||byMatch[k1][0].commence_time||0).getTime();
-        const t2 = new Date(byMatch[k2][0].start_time||byMatch[k2][0].commence_time||0).getTime();
-        return t1-t2;
-      });
-      const nearest = byMatch[sorted[0]][0];
-      const nearestDate = nearest.start_time ? frenchDateStrClient(nearest.start_time) : null;
-      return {
-        found:false,
-        reason: nearestDate
-          ? `Le match "${home} vs ${away}" n'est pas programmé le ${dateStr}. La prochaine rencontre trouvée dans les cotes disponibles est le ${nearestDate} (heure de Paris). Modifiez la date ou laissez le champ vide pour l'analyser automatiquement.`
-          : `Le match "${home} vs ${away}" n'a pas de cote disponible pour le ${dateStr}.`,
-      };
-    }
-  }
-
-  const now = Date.now();
-  candidateKeys = candidateKeys
-    .map(k=>({ k, t: new Date(byMatch[k][0].start_time||byMatch[k][0].commence_time||0).getTime() }))
-    .filter(x=>!dateStr ? (x.t >= now - 3*3600000) : true)
-    .sort((a,b)=>a.t-b.t)
-    .map(x=>x.k);
-
-  if(!candidateKeys.length){
-    return { found:false, reason:`Les seules rencontres "${home} vs ${away}" trouvées dans les cotes sont déjà terminées ou trop anciennes pour être analysées. Aucune analyse n'est produite sur un match déjà joué.` };
-  }
-
-  const chosenKey = candidateKeys[0];
-  const chosenOpps = byMatch[chosenKey];
-  const ref = chosenOpps[0];
-
-  return {
-    found: true,
-    home: ref.home_team, away: ref.away_team,
-    sport: ref.sport||ref._sport, competition: ref.competition||ref.sport_title||ref.sport||'',
-    start_time: ref.start_time||ref.commence_time||null,
-    opportunities: chosenOpps,
-  };
+// Analyse manuelle v207 : parcours rapide, cotes existantes uniquement.
+// Rechercher d'abord le match (1X2), puis ses marchés. Jamais de balayage
+// automatique de tous les marchés de tous les sports.
+const BETPRO_MANUAL_QUOTE_CACHE=new Map();
+const BETPRO_MANUAL_CACHE_MS=110000;
+const BETPRO_MANUAL_MAX_CSV_ROWS=20;
+function getCheckedMarkets(){
+ const chosen=[...document.querySelectorAll('#m-markets-wrap input:checked')].map(c=>c.value);
+ return chosen.length?chosen:['h2h'];
 }
-
+function manualSwapTeams(){
+ const h=document.getElementById('m-home'),a=document.getElementById('m-away');
+ if(!h||!a)return;
+ [h.value,a.value]=[a.value,h.value];
+ h.focus();
+}
+function manualSportChanged(){
+ const sport=document.getElementById('m-sport-family')?.value||'all';
+ const hint=document.getElementById('m-search-hint');
+ if(hint)hint.textContent=sport==='all'?'Choisir le sport peut accélérer la recherche.':'Recherche ciblée sur ce sport pour limiter les requêtes.';
+ for(const label of document.querySelectorAll('#m-markets-wrap [data-soccer-market]')){
+  const allowed=sport==='all'||sport==='soccer';
+  label.hidden=!allowed;
+  const cb=label.querySelector('input');if(cb)cb.disabled=!allowed;
+ }
+}
+function manualTeamKey(v){
+ let s=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/['’]/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+ const aliases={
+  'psg':'paris saint germain','paris sg':'paris saint germain',
+  'om':'olympique marseille','olympique de marseille':'olympique marseille',
+  'marseille':'olympique marseille','ogc nice':'nice','nice':'nice',
+  'barca':'barcelona','fc barcelona':'barcelona','barcelone':'barcelona',
+  'man city':'manchester city','man utd':'manchester united',
+  'ac milan':'milan','inter milan':'internazionale','inter':'internazionale',
+  'lakers':'los angeles lakers','clippers':'los angeles clippers'
+ };
+ if(aliases[s])return aliases[s];
+ // "Paris FC" doit rester distinct de "Paris Saint-Germain".
+ // Pour les autres clubs, "FC" est souvent un suffixe non discriminant.
+ if(s.endsWith(' fc')&&s!=='paris fc')s=s.slice(0,-3).trim();
+ if(s.startsWith('fc ')&&s!=='fc paris')s=s.slice(3).trim();
+ return aliases[s]||s;
+}
+function manualTeamMatches(input,official){
+ const a=manualTeamKey(input),b=manualTeamKey(official);
+ if(!a||!b)return false;
+ if(a===b)return true;
+ const forbidden=new Set(['paris','manchester','london','milan','city','united','new york','los angeles','real','olympique','saint']);
+ if(forbidden.has(a)||forbidden.has(b))return false;
+ if(a.length>=5&&((' '+b+' ').includes(' '+a+' ')||(' '+a+' ').includes(' '+b+' ')))return true;
+ return false;
+}
+function manualMatchConfirmed(o,home,away){
+ const h=o.home_team||'',a=o.away_team||'';
+ return (manualTeamMatches(home,h)&&manualTeamMatches(away,a))||
+  (manualTeamMatches(home,a)&&manualTeamMatches(away,h));
+}
+function manualLeagueOrder(keys,home,away){
+ const words=manualTeamKey(home)+' '+manualTeamKey(away);
+ const priorities=[
+  [/paris saint germain|nice|marseille|monaco|lyon|lille|lens|rennes|lorient|toulouse|nantes|brest|ligue 1/,'soccer_france_ligue1'],
+  [/arsenal|chelsea|liverpool|manchester|tottenham|newcastle|west ham|brighton|leicester|everton/,'soccer_epl'],
+  [/real madrid|barcelona|atletico|sevilla|betis|valencia/,'soccer_spain_la_liga'],
+  [/milan|internazionale|juventus|napoli|roma|lazio|atalanta/,'soccer_italy_serie_a'],
+  [/bayern|dortmund|leverkusen|leipzig|frankfurt/,'soccer_germany_bundesliga'],
+  [/benfica|porto|sporting lisbon|braga/,'soccer_portugal_primeira_liga'],
+  [/lakers|celtics|warriors|knicks|bulls|nuggets|thunder|heat|spurs/,'basketball_nba'],
+  [/yankees|dodgers|mets|cubs/,'baseball_mlb'],
+  [/chiefs|eagles|patriots|cowboys|packers|49ers/,'americanfootball_nfl'],
+  [/canadiens|bruins|rangers|maple leafs/,'icehockey_nhl']
+ ];
+ const priority=priorities.filter(([re])=>re.test(words)).map(([,key])=>key);
+ return [...new Set(keys)].sort((a,b)=>{
+  const ia=priority.indexOf(a),ib=priority.indexOf(b);
+  return (ia<0?999:ia)-(ib<0?999:ib);
+ });
+}
+function manualFormatDate(v){
+ const d=new Date(v||'');
+ return Number.isFinite(d.getTime())?
+  d.toLocaleString('fr-FR',{timeZone:'Europe/Paris',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'Horaire non confirmé';
+}
+async function manualReadQuotes(sport,market){
+ const id=sport+'|'+market,now=Date.now(),cached=BETPRO_MANUAL_QUOTE_CACHE.get(id);
+ if(cached&&now-cached.at<BETPRO_MANUAL_CACHE_MS)return cached.promise;
+ const promise=api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode=quick','GET',null,{timeoutMs:17000,noCache:true})
+ .then(d=>{
+  if(d?.error||d?.ok===false||d?.error_type)throw Error(String(d?.warning||d?.error||d?.diagnostic_reason||'Source de cotes indisponible').slice(0,120));
+  return (Array.isArray(d.opportunities)?d.opportunities:[]).map(o=>({...o,_sport:sport,sport:o.sport||sport,market:o.market||market}));
+ });
+ BETPRO_MANUAL_QUOTE_CACHE.set(id,{at:now,promise});
+ promise.catch(()=>{const x=BETPRO_MANUAL_QUOTE_CACHE.get(id);if(x?.promise===promise)BETPRO_MANUAL_QUOTE_CACHE.delete(id);});
+ if(BETPRO_MANUAL_QUOTE_CACHE.size>140)BETPRO_MANUAL_QUOTE_CACHE.delete(BETPRO_MANUAL_QUOTE_CACHE.keys().next().value);
+ return promise;
+}
+async function findRealMatchOpportunities(home,away,sportFamily,dateStr,markets,onProgress){
+ const wanted=markets?.length?markets:['h2h'];
+ // Le mode eco renvoie une ligne par compétition : aucun marché répété.
+ const leagues=manualLeagueOrder(getLeaguesForSportFilter(sportFamily||'all','eco').map(l=>l.sport),home,away);
+ if(!leagues.length)return{found:false,reason:'Aucune compétition proposant des cotes n’est actuellement disponible pour ce sport.'};
+ const found=[],errors=[];
+ let completed=0;
+ // 4 compétitions en parallèle, arrêt dès qu'une rencontre qualifiée est localisée.
+ for(let start=0;start<leagues.length;start+=4){
+  const batch=leagues.slice(start,start+4);
+  const results=await Promise.allSettled(batch.map(sport=>manualReadQuotes(sport,'h2h')));
+  for(let i=0;i<results.length;i++){
+   const result=results[i];completed++;
+   if(result.status==='rejected'){if(errors.length<5)errors.push(result.reason?.message||'Source indisponible');continue;}
+   for(const o of result.value){
+    if(!manualMatchConfirmed(o,home,away))continue;
+    if(dateStr&&frenchDateStrClient(o.start_time||o.commence_time)!==dateStr)continue;
+    const t=Date.parse(o.start_time||o.commence_time||'');
+    if(Number.isFinite(t)&&t<Date.now()-3*3600000)continue;
+    found.push(o);
+   }
+  }
+  if(typeof onProgress==='function')onProgress(completed,leagues.length);
+  if(found.length)break;
+ }
+ if(!found.length){
+  return {found:false,reason:errors.length===leagues.length
+   ?'Les sources de cotes n’ont pas répondu. Réessayez quand elles seront accessibles.'
+   :'Aucune sélection correspondant exactement à cette rencontre n’a été trouvée dans les opportunités actuellement publiées. Cela ne signifie pas que le match n’existe pas. Vérifiez le nom, le sport ou la date.',
+   checked_competitions:completed,source_errors:errors.length};
+ }
+ const fixture=found.sort((a,b)=>Date.parse(a.start_time||a.commence_time||'')-Date.parse(b.start_time||b.commence_time||''))[0];
+ const sport=fixture._sport||fixture.sport;
+ const at=fixture.start_time||fixture.commence_time||'';
+ const opponent=fixture.home_team+'|'+fixture.away_team;
+ const selected=found.filter(o=>(o.home_team+'|'+o.away_team)===opponent&&
+   (!at||(o.start_time||o.commence_time||'')===at));
+ const others=[...new Set(wanted.filter(m=>m!=='h2h'))];
+ if(others.length){
+  const results=await Promise.allSettled(others.map(m=>manualReadQuotes(sport,m)));
+  for(const r of results)if(r.status==='fulfilled')for(const o of r.value){
+   if(!manualMatchConfirmed(o,home,away))continue;
+   if(dateStr&&frenchDateStrClient(o.start_time||o.commence_time)!==dateStr)continue;
+   if(at&&o.start_time&&Math.abs(Date.parse(o.start_time)-Date.parse(at))>12*3600000)continue;
+   selected.push(o);
+  }
+ }
+ const distinct=new Map();
+ for(const o of selected){
+  const k=[o.market,o.selection,o.line??'',o.bookmaker||'',o.odds].join('|');
+  if(!distinct.has(k))distinct.set(k,o);
+ }
+ return {found:true,home:fixture.home_team,away:fixture.away_team,
+  sport,competition:fixture.competition||fixture.sport_title||sport,
+  start_time:at,opportunities:[...distinct.values()],
+  checked_competitions:completed,source_errors:errors.length};
+}
 async function doManualAnalyze(){
-  const home=document.getElementById('m-home').value.trim();
-  const away=document.getElementById('m-away').value.trim();
-  if(!home||!away){toast('Entrez les deux équipes','err');return;}
-  const sportFamily = document.getElementById('m-sport-family')?.value || 'all';
-  const dateStr = document.getElementById('m-date')?.value || '';
-  const markets = getCheckedMarkets();
-
-  const btn=document.getElementById('mbtn');
-  btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Recherche du vrai match…';
-  document.getElementById('manual-res').innerHTML='<div class="ls"><div class="sp"></div><p>Recherche dans les cotes réelles (peut prendre quelques secondes)…</p></div>';
-
-  try{
-    const result = await findRealMatchOpportunities(home, away, sportFamily, dateStr, markets);
-    document.getElementById('manual-res').innerHTML = renderManualMatchResult(result, {home,away,dateStr});
-    toast(result.found ? 'Match trouvé et analysé' : 'Match introuvable dans les cotes actuelles', result.found?'ok':'err');
-  }catch(e){
-    document.getElementById('manual-res').innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;
-    toast('Erreur: '+e.message,'err');
-  }
-  btn.disabled=false;btn.innerHTML='🎯 Rechercher le vrai match &amp; analyser';
+ const home=document.getElementById('m-home')?.value.trim()||'',away=document.getElementById('m-away')?.value.trim()||'';
+ if(!home||!away){toast('Indiquez les deux équipes ou sportifs.','err');return;}
+ if(manualTeamKey(home)===manualTeamKey(away)){toast('Choisissez deux adversaires différents.','err');return;}
+ const sport=document.getElementById('m-sport-family')?.value||'all',
+  date=document.getElementById('m-date')?.value||'',markets=getCheckedMarkets(),
+  btn=document.getElementById('mbtn'),out=document.getElementById('manual-res');
+ if(!btn||!out)return;
+ const label=btn.innerHTML;btn.disabled=true;btn.textContent='Recherche du match en cours…';
+ out.innerHTML='<div class="betpro-manual-status"><strong>Recherche ciblée en cours</strong><p>Identification de la rencontre dans les cotes disponibles…</p></div>';
+ try{
+  const result=await findRealMatchOpportunities(home,away,sport,date,markets,(done,total)=>{
+   const p=out.querySelector('.betpro-manual-status p');
+   if(p)p.textContent='Compétitions consultées : '+done+' / '+total+'.';
+  });
+  out.innerHTML=renderManualMatchResult(result,{home,away,dateStr:date});
+  if(result.found)out.scrollIntoView({block:'nearest',behavior:'smooth'});
+ }catch(e){
+  out.innerHTML='<div class="betpro-manual-status"><strong>Recherche momentanément indisponible</strong><p>'+esc(String(e?.message||'Erreur inconnue'))+'</p></div>';
+ }finally{btn.disabled=false;btn.innerHTML=label;}
 }
-
-function loadFile(){const file=document.getElementById('m-file').files[0];if(!file)return;const r=new FileReader();r.onload=e=>document.getElementById('m-csv').value=e.target.result;r.readAsText(file);}
-
+function loadFile(){
+ const input=document.getElementById('m-file'),file=input?.files?.[0];
+ if(!file)return;
+ if(file.size>2*1024*1024){toast('Fichier trop volumineux : maximum 2 Mo.','err');input.value='';return;}
+ const reader=new FileReader();
+ reader.onload=e=>{document.getElementById('m-csv').value=String(e.target?.result||'');};
+ reader.onerror=()=>toast('Impossible de lire ce fichier.','err');
+ reader.readAsText(file);
+}
 async function doCSVAnalyze(){
-  const raw=document.getElementById('m-csv').value.trim();
-  if(!raw){toast('Aucune donnée','err');return;}
-  const rows=raw.split('\n').filter(l=>l.trim()).map(l=>{
-    const p=l.split(';').map(s=>s.trim());
-    return { home:p[0], away:p[1], competition:p[2]||null, date:p[3]||'' };
-  }).filter(m=>m.home&&m.away);
-  if(!rows.length){toast('Format invalide','err');return;}
-
-  const sportFamily = document.getElementById('m-csv-sport-family')?.value || 'all';
-  const markets = getCheckedMarkets();
-  const btn=document.getElementById('csvbtn');
-  btn.disabled=true;btn.innerHTML=`<span class="sp" style="width:12px;height:12px;border-width:2px"></span> ${rows.length} match(s)…`;
-  document.getElementById('manual-res').innerHTML=`<div class="ls"><div class="sp"></div><p>Recherche des vrais matchs pour ${rows.length} ligne(s)…</p></div>`;
-
-  try{
-    const results = [];
-    for(const row of rows){
-      try{
-        const r = await findRealMatchOpportunities(row.home, row.away, sportFamily, row.date||'', markets);
-        results.push({ input:row, result:r });
-      }catch(e){
-        results.push({ input:row, result:{ found:false, reason:'Erreur lors de la recherche: '+e.message } });
-      }
-    }
-    document.getElementById('manual-res').innerHTML = results.map(({input,result})=>renderManualMatchResult(result, {home:input.home, away:input.away, dateStr:input.date})).join('');
-    const foundCount = results.filter(r=>r.result.found).length;
-    toast(`${foundCount}/${rows.length} match(s) trouvé(s) et analysé(s)`, foundCount?'ok':'err');
-  }catch(e){
-    document.getElementById('manual-res').innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">Erreur: ${esc(e.message)}</div></div>`;
-    toast('Erreur: '+e.message,'err');
+ const raw=document.getElementById('m-csv')?.value.trim()||'';
+ if(!raw){toast('Ajoutez au moins un match.','err');return;}
+ const rows=raw.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim())
+  .map(line=>{const p=line.split(';').map(s=>s.trim());return{home:p[0],away:p[1],competition:p[2]||'',date:p[3]||''};})
+  .filter(m=>m.home&&m.away&&!/^domicile|home$/i.test(m.home));
+ if(!rows.length){toast('Indiquez au moins deux équipes par ligne.','err');return;}
+ if(rows.length>BETPRO_MANUAL_MAX_CSV_ROWS){toast('Maximum '+BETPRO_MANUAL_MAX_CSV_ROWS+' rencontres par analyse, pour préserver les quotas gratuits.','err');return;}
+ const sport=document.getElementById('m-csv-sport-family')?.value||'all',
+  markets=getCheckedMarkets(),btn=document.getElementById('csvbtn'),out=document.getElementById('manual-res');
+ if(!btn||!out)return;
+ const label=btn.innerHTML;btn.disabled=true;btn.textContent='Analyse de '+rows.length+' rencontre(s)…';
+ out.innerHTML='<div class="betpro-manual-status"><strong>Recherche de la liste en cours</strong><p>Préparation des rencontres…</p></div>';
+ try{
+  const results=[];
+  for(let i=0;i<rows.length;i++){
+   const m=rows[i];const p=out.querySelector('.betpro-manual-status p');
+   if(p)p.textContent='Match '+(i+1)+' / '+rows.length+' : '+m.home+' contre '+m.away;
+   try{
+    const r=await findRealMatchOpportunities(m.home,m.away,sport,m.date,markets);
+    results.push({input:m,result:r});
+   }catch(e){results.push({input:m,result:{found:false,reason:'Recherche indisponible : '+String(e?.message||'source inaccessible')}});}
   }
-  btn.disabled=false;btn.innerHTML='📂 Analyser la liste';
+  const count=results.filter(x=>x.result.found).length;
+  out.innerHTML='<div class="betpro-manual-status"><strong>'+count+' / '+rows.length+' rencontre(s) avec sélection disponible</strong><p>Résultats fondés sur les cotes collectées. Détails ci-dessous.</p></div>'+
+   results.map(({input,result})=>renderManualMatchResult(result,{home:input.home,away:input.away,dateStr:input.date})).join('');
+  out.scrollIntoView({block:'nearest',behavior:'smooth'});
+ }finally{btn.disabled=false;btn.innerHTML=label;}
 }
-
-function renderManualMatchResult(result, inputCtx){
-  if(!result || !result.found){
-    return `<div class="card" style="border-color:rgba(245,158,11,.35)">
-      <div class="ct">${esc(inputCtx.home||'?')} vs ${esc(inputCtx.away||'?')}${inputCtx.dateStr?' — '+esc(inputCtx.dateStr):''}</div>
-      <div class="warn" style="margin-bottom:0">&#9888; ${esc(result?.reason||"Match introuvable dans les cotes disponibles actuellement.")}</div>
-    </div>`;
-  }
-
-  const dirResults = result.opportunities.map(o=>({ o, res: computeDirection(o, {mode:'standard', bankroll:200, riskProfile:'conservateur'}) }));
-  const startInfo = result.start_time ? fmtDT(result.start_time) + ' (heure de Paris)' : 'Horaire non communiqué par les bookmakers';
-
-  let html = `<div class="card">
-    <div class="ct">${esc(result.home)} vs ${esc(result.away)}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-      <span class="bdg bsp">${esc(result.competition||result.sport||'')}</span>
-      <span class="bdg bsr">${esc(startInfo)}</span>
-    </div>`;
-
-  const playable = dirResults.filter(x=>x.res.shouldDisplay && x.res.direction==='play');
-  if(!playable.length){
-    html += `<div class="info" style="margin-bottom:0">Match confirmé avec de vraies cotes, mais aucune sélection ne franchit les seuils prudents du moteur pour l'instant (${dirResults.length} marché(s) analysé(s)). Cela peut changer à mesure que les cotes évoluent avant le coup d'envoi.</div>`;
-  } else {
-    html += '<div class="opp-grid">' + playable.map((x,i)=>renderDirectionCard(x.o, 'manual-'+i, 'manual-res')).join('') + '</div>';
-  }
-  html += '</div>';
-  return html;
+function renderManualMatchResult(result,inputCtx){
+ const name=esc((inputCtx?.home||'?')+' - '+(inputCtx?.away||'?'));
+ if(!result?.found)return '<div class="card betpro-manual-result-card"><div class="betpro-manual-result-title">'+name+'</div>'+
+  '<div class="betpro-manual-result-sub">'+esc(result?.reason||'Aucune sélection disponible dans les cotes consultées.')+'</div></div>';
+ const date=result.start_time?manualFormatDate(result.start_time):'Date non confirmée';
+ const heading='<div class="betpro-manual-result-title">'+esc(result.home)+' contre '+esc(result.away)+'</div>'+
+  '<div class="betpro-manual-result-sub">'+esc(date)+' · '+esc(result.competition||result.sport||'Compétition non indiquée')+'</div>';
+ const rated=result.opportunities.map(o=>({o,res:computeDirection(o,{mode:'standard',bankroll:200,riskProfile:'conservateur'})}))
+  .filter(x=>x.res.shouldDisplay&&x.res.direction==='play')
+  .sort((a,b)=>(Number(b.res.reliabilityScore)||0)-(Number(a.res.reliabilityScore)||0)||
+    (Number(b.res.evNet)||0)-(Number(a.res.evNet)||0));
+ const unique=new Map();
+ for(const x of rated){
+  const k=[x.o.market,x.o.selection,x.o.line??''].join('|');
+  if(!unique.has(k))unique.set(k,x);
+ }
+ const picks=[...unique.values()].slice(0,6);
+ if(!picks.length)return '<div class="card betpro-manual-result-card">'+heading+
+  '<div class="betpro-manual-status" style="margin-top:14px"><strong>Aucune sélection assez solide actuellement</strong>'+
+  '<p>La rencontre figure dans les opportunités collectées, mais aucun pari ne satisfait les critères du moteur. Aucune recommandation forcée.</p></div></div>';
+ const first=picks[0],o=first.o,res=first.res;
+ const line=o.line!=null?o.line:null;
+ const nameOf=x=>translateSelection(x.o.selection,x.o.market,x.o.home_team,x.o.away_team,x.o.line!=null?x.o.line:null);
+ const pct=Number.isFinite(Number(res.displayConf))?Math.round(Number(res.displayConf))+' %':'non indiqué';
+ const odd=Number(o.odds)>1?Number(o.odds).toFixed(2).replace('.',','):'non indiquée';
+ const reason=String(res.reason||'Sélection répondant aux seuils du moteur.').slice(0,195);
+ let content='<div class="card betpro-manual-result-card">'+heading+
+  '<div class="betpro-manual-hero"><div class="betpro-manual-hero-kicker">MEILLEURE SÉLECTION IDENTIFIÉE</div>'+
+  '<div class="betpro-manual-pick">'+esc(nameOf(first))+'</div>'+
+  '<div class="betpro-manual-pick-figures"><span>Cote '+esc(odd)+'</span><span>Confiance du modèle : '+esc(pct)+'</span></div>'+
+  '<div class="betpro-manual-hero-reason">'+esc(reason)+'</div></div>';
+ if(picks.length>1){
+  content+='<div class="betpro-manual-hero-kicker">AUTRES SÉLECTIONS</div>';
+  content+=picks.slice(1,3).map(x=>'<div class="betpro-manual-alt"><strong>'+esc(nameOf(x))+'</strong> · cote '+
+   (Number(x.o.odds)>1?esc(Number(x.o.odds).toFixed(2).replace('.',',')):'non indiquée')+
+   ' · confiance '+Math.round(Number(x.res.displayConf)||0)+' %</div>').join('');
+ }
+ const details=picks.map((x,i)=>{
+  x.o._res=x.res;
+  return renderDirectionCard(x.o,'manual-'+i,'manual-res');
+ }).join('');
+ content+='<details class="betpro-manual-detail"><summary>Voir les fiches d’analyse complètes ('+picks.length+')</summary>'+
+  '<div class="opp-grid">'+details+'</div></details>'+
+  '<div class="betpro-manual-note">Pronostic fondé sur les données disponibles. Un score de confiance n’est pas une probabilité de gain garantie.</div></div>';
+ return content;
 }
 
 // ═══════════════════════════════════════════════
