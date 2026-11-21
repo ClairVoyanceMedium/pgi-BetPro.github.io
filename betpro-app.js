@@ -4065,7 +4065,7 @@ function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
 
 
 const BETPRO_CHAT_BOT_ICON='<img class="betpro-chat-bp-image" src="./betpro-icon-192.png" width="34" height="34" alt="BP" loading="lazy" decoding="async">';
-const TTS={enabled:false,speed:0.85,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false,messages:new Map(),startupTimer:null,chunkTimer:null,nextTimer:null,retried:false,voiceKey:''};
+const TTS={enabled:false,speed:0.85,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false,messages:new Map(),startupTimer:null,chunkTimer:null,nextTimer:null,retried:false,voiceKey:'',paused:false};
 const CHAT_MIC={recognition:null,active:false,base:'',error:null};
 /* Offline French TTS fallback: meSpeak.js (Norbert Landsteiner, GPLv3).
    Source and license: https://github.com/btopro/mespeak
@@ -4204,8 +4204,8 @@ async function ttsLocalSpeak(token,reason){
  }
 }
 
-/* Voix neuronale française : moteur MeloTTS distant, audio MP3.
-   Priorité à ce moteur. La synthèse du système reste le seul secours automatique. */
+/* Lecture MP3 française via le service Cloudflare BetPro.
+   Suspension de l'AudioContext pour reprendre précisément au même instant. */
 const BETPRO_NEURAL_TTS_URL='https://betpro-voice-fr.peritoregroupindustries.workers.dev/tts';
 const BETPRO_AUDIO_NEURAL={source:null,controller:null,playing:false};
 function ttsNeuralStop(){
@@ -4224,7 +4224,7 @@ async function ttsNeuralSpeak(token,onFailure){
   if(ctx.state!=='running')await ctx.resume();
   if(ctx.state!=='running')throw new Error('Audio bloqué par le navigateur');
   while(token===TTS.token&&TTS.i<TTS.chunks.length){
-   ttsStatus('Lecture en français · '+(TTS.i+1)+'/'+TTS.chunks.length);
+   ttsStatus(TTS.paused?'Lecture en pause.':'Lecture en français · '+(TTS.i+1)+'/'+TTS.chunks.length);
    const controller=new AbortController();
    BETPRO_AUDIO_NEURAL.controller=controller;
    let response,mp3;
@@ -4363,21 +4363,55 @@ function ttsClearTimers(){
 function ttsPlayLabel(active){
  const el=TTS.replay?document.getElementById(TTS.replay):null;
  if(el){
-  el.textContent=active?'■ Arrêter':'▶ Écouter';
+  const label=!active?'▶ Écouter':TTS.paused?'▶ Reprendre':'⏸ Pause';
+  const description=!active?'Écouter cette réponse':TTS.paused?'Reprendre la lecture':'Mettre la lecture en pause';
+  el.textContent=label;
   el.setAttribute('aria-pressed',String(!!active));
-  el.title=active?'Arrêter la lecture':'Écouter cette réponse';
-  el.setAttribute('aria-label',active?'Arrêter la lecture':'Écouter cette réponse');
+  el.title=description;
+  el.setAttribute('aria-label',description);
  }
+ const pauseBtn=document.getElementById('tts-stop-btn');
+ if(pauseBtn){
+  pauseBtn.textContent=TTS.paused?'▶ Reprendre':'⏸ Pause';
+  pauseBtn.setAttribute('aria-label',TTS.paused?'Reprendre la lecture':'Mettre la lecture en pause');
+  pauseBtn.setAttribute('aria-pressed',String(!!active&&TTS.paused));
+  pauseBtn.style.display=active?'':'none';
+ }
+}
+function ttsTogglePause(){
+ // Ne jamais refaire une requête réseau ni revenir au début de la phrase.
+ if(!TTS.chunks.length)return;
+ const wasPaused=TTS.paused;
+ TTS.paused=!wasPaused;
+ const ctx=BETPRO_AUDIO_LOCAL.ctx;
+ if(TTS.paused){
+  // Suspendre l'horloge WebAudio gèle exactement la position du MP3 en cours.
+  if(ctx&&ctx.state==='running')ctx.suspend().catch(()=>{});
+  if(ttsSupported()&&TTS.utterance)try{speechSynthesis.pause();}catch(_){}
+  ttsStatus('Lecture en pause. Appuyez sur Reprendre pour continuer.');
+ }else{
+  if(ctx&&ctx.state==='suspended'){
+   try{const p=ctx.resume();if(p&&typeof p.catch==='function')p.catch(()=>{
+    if(TTS.chunks.length){TTS.paused=true;ttsPlayLabel(true);ttsStatus('La reprise audio est bloquée par Chrome. Appuyez sur Reprendre.');}
+   });}catch(_){TTS.paused=true;}
+  }
+  if(ttsSupported()&&TTS.utterance)try{speechSynthesis.resume();}catch(_){}
+  if(!TTS.paused)ttsStatus('Lecture reprise.');
+ }
+ ttsPlayLabel(true);
 }
 function ttsFinish(status){
  ttsClearTimers();ttsPlayLabel(false);
- TTS.utterance=null;TTS.chunks=[];TTS.i=0;TTS.hasStarted=false;TTS.retried=false;TTS.replay=null;
+ TTS.utterance=null;TTS.chunks=[];TTS.i=0;TTS.hasStarted=false;TTS.retried=false;TTS.replay=null;TTS.paused=false;
  BETPRO_AUDIO_LOCAL.playing=false;BETPRO_AUDIO_NEURAL.playing=false;
- const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='none';
+ ttsPlayLabel(false);
  if(status!==undefined)ttsStatus(status);
 }
 function ttsStop(silent=false){
  ++TTS.token;ttsClearTimers();ttsLocalStop();
+ // Un nouveau message doit repartir avec un contexte audio réactivé.
+ const ctx=BETPRO_AUDIO_LOCAL.ctx;
+ if(ctx?.state==='suspended')try{const p=ctx.resume();if(p&&typeof p.catch==='function')p.catch(()=>{});}catch(_){}
  if(ttsSupported()){
   const syn=window.speechSynthesis;
   if(TTS.utterance||syn.speaking||syn.pending||syn.paused)try{syn.cancel();}catch(_){}
@@ -4391,7 +4425,7 @@ function ttsSpeak(text,replayId,automatic=false){
  ttsUnlockWebAudio();
  const synth=ttsSupported()?window.speechSynthesis:null;
  ttsStop(true);
- const token=++TTS.token;TTS.chunks=chunks;TTS.i=0;TTS.retried=false;TTS.replay=replayId||null;
+ const token=++TTS.token;TTS.chunks=chunks;TTS.i=0;TTS.retried=false;TTS.replay=replayId||null;TTS.paused=false;
  ttsPlayLabel(true);
  const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='';
  ttsStatus(automatic?'Préparation de la lecture automatique…':'Lecture en préparation…');
@@ -4466,7 +4500,7 @@ function ttsSetVoice(v){const match=ttsGetVoices().find(x=>ttsFrenchVoice(x)&&(x
 function ttsReplay(msgId){
  const text=TTS.messages.get(Number(msgId))||document.getElementById('tts-msg-'+msgId)?.textContent||'';
  const id='tts-r-'+msgId;
- if(TTS.replay===id&&(TTS.utterance||BETPRO_AUDIO_LOCAL.playing||BETPRO_AUDIO_NEURAL.playing)){ttsStop();return;}
+ if(TTS.replay===id&&TTS.chunks.length){ttsTogglePause();return;}
  if(!text){ttsStatus('Réponse introuvable pour la lecture.');return;}
  ttsSpeak(text,id,false);
 }
@@ -7347,11 +7381,42 @@ const QUICK_QUESTIONS = [
 ];
 function initQuickQuestions() {
   const wrap=document.getElementById('quick-questions-wrap');
-  if(!wrap)return;
-  wrap.innerHTML=QUICK_QUESTIONS.map((q,i)=>{
-    const safe = q.replace(/'/g,"&#39;").replace(/"/g,'&quot;');
-    return `<button class="fbtn" onclick="document.getElementById('chat-input').value='${safe}';sendChat();" style="font-size:11px">${q}</button>`;
-  }).join('');
+  const input=document.getElementById('chat-input');
+  if(!wrap||!input)return;
+  // Les questions suggérées remplissent le champ. L'envoi reste volontaire,
+  // via le bouton Envoyer, afin de pouvoir relire ou personnaliser la question.
+  wrap.replaceChildren();
+  const buttons=[];
+  QUICK_QUESTIONS.forEach(q=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='fbtn betpro-quick-question';
+    button.style.fontSize='11px';
+    button.textContent=q;
+    button.setAttribute('aria-pressed','false');
+    button.title='Sélectionner cette question avant de l’envoyer au Chat Expert';
+    button.addEventListener('click',()=>{
+      input.value=q;
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      buttons.forEach(b=>{
+        const selected=b===button;
+        b.classList.toggle('selected',selected);
+        b.setAttribute('aria-pressed',String(selected));
+      });
+      input.focus();
+      input.setSelectionRange(input.value.length,input.value.length);
+      input.scrollIntoView({block:'nearest',behavior:'smooth'});
+    });
+    wrap.appendChild(button);
+    buttons.push(button);
+  });
+  input.addEventListener('input',()=>{
+    buttons.forEach(button=>{
+      const selected=input.value.trim()===button.textContent;
+      button.classList.toggle('selected',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════
