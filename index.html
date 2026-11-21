@@ -1232,32 +1232,157 @@ a{color:var(--neon);text-decoration:none}
 .betpro-live-decision.neutral{border-color:rgba(68,148,200,.45);background:rgba(68,148,200,.05)}
 .betpro-live-market-note{padding-top:5px;border-top:1px solid rgba(255,255,255,.12);color:var(--mu,#bac7d9)}
 
-/* BetPro : page « Se refaire intelligemment » uniquement.
-   Même design d'origine, palette vert fluo uniquement. */
+/* BetPro · Se refaire intelligemment : même langage visuel que le PMU Pro,
+   avec palette vert fluo, sans modifier les calculs et les couleurs de perte/gain. */
 #s-methods{
-  --neon:#39ff14;--neon2:#baff9c;
-  --nbg:rgba(57,255,20,.10);
+  --methods-hot:#39ff14;--methods-light:#c9ffb9;--methods-dark:#121a28;
+  --neon:#39ff14;--neon2:#baff9c;--nbg:rgba(57,255,20,.10);
   --ng:0 0 8px rgba(57,255,20,.60),0 0 22px rgba(57,255,20,.34);
   --ngd:0 0 5px rgba(57,255,20,.43),0 0 14px rgba(57,255,20,.22);
   --bd:rgba(57,255,20,.20);--bd2:rgba(57,255,20,.32);
 }
+#s-methods .methods-pro-hero{
+  position:relative;overflow:hidden;
+  margin:0 0 19px;padding:23px 25px 21px;
+  border:1px solid rgba(94,255,64,.46);border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(57,255,20,.19),transparent 54%),
+             linear-gradient(135deg,#1c2332 0%,#131a29 62%,#191b28 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(219,255,207,.12),0 0 18px rgba(57,255,20,.08);
+}
+#s-methods .methods-pro-hero::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#39ff14 0%,#baff9c 53%,rgba(186,255,156,.05) 100%);
+  box-shadow:0 0 13px rgba(57,255,20,.36);
+}
+#s-methods .methods-pro-overline{
+  display:flex;align-items:center;gap:9px;
+  margin-bottom:9px;color:var(--methods-light);
+  font:750 10px/1.4 var(--mo);letter-spacing:.13em;
+}
+#s-methods .methods-pro-pulse{
+  display:block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;
+  background:var(--methods-hot);box-shadow:0 0 11px rgba(57,255,20,.65);
+}
+#s-methods .methods-pro-hero .pt{
+  font:900 clamp(24px,3vw,34px)/1.17 var(--hd);
+  letter-spacing:.028em;color:#efffe9;text-shadow:0 2px 16px rgba(57,255,20,.13);
+}
+#s-methods .methods-pro-hero .ps{
+  max-width:720px;margin-top:8px;color:#cfdfce;font-size:12px;line-height:1.65;
+}
+#s-methods .methods-pro-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+#s-methods .methods-pro-tags span{
+  font:650 10px/1.4 var(--mo);color:#baff9c;white-space:normal;
+  border:1px solid rgba(94,255,64,.27);background:rgba(57,255,20,.075);
+  border-radius:20px;padding:6px 10px;
+}
+#s-methods .card{
+  border-color:rgba(94,255,64,.22);border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9) 0%,rgba(17,25,39,.96) 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(219,255,207,.025);
+}
+#s-methods .methods-panel{position:relative;overflow:hidden;margin-bottom:17px}
+#s-methods .methods-panel:not(.methods-intro)::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,#5cff37,rgba(151,255,127,.32),transparent 86%);
+}
+#s-methods .ct{
+  font:800 12px/1.4 var(--hd);letter-spacing:.055em;color:#baff9c;
+  border-bottom-color:rgba(94,255,64,.17);padding-bottom:12px;margin-bottom:15px;
+}
+#s-methods .methods-panel>.ct{font-size:14px;letter-spacing:.025em;color:#c9ffb9;padding-top:4px}
 #s-methods .methods-hero{
-  background:linear-gradient(135deg,rgba(167,139,250,.10),rgba(57,255,20,.085));
+  border-color:rgba(94,255,64,.26);border-radius:13px;
+  padding:18px 22px;margin-bottom:17px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9),rgba(17,25,39,.96));
 }
-#s-methods .recovery-banner{
-  background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(57,255,20,.09));
+#s-methods .methods-hero>div:first-child{color:#c9ffb9!important}
+#s-methods .methods-hero>div:last-child{color:#cfdfce!important}
+#s-methods .fgrp label{color:#d0e0cc}
+#s-methods .fbtn{
+  min-height:33px;padding:7px 12px;border-radius:8px;
+  background:#192334;border-color:rgba(94,255,64,.23);
+  color:#cedbcb;font-weight:700;
+  transition:border-color .18s,background .18s,color .18s,box-shadow .18s;
 }
-#s-methods .bp{box-shadow:0 0 14px rgba(57,255,20,.42)}
-#s-methods .bp:hover{box-shadow:0 0 20px rgba(57,255,20,.53)}
+#s-methods .fbtn:hover{border-color:var(--methods-hot);color:#d8ffcc;background:rgba(57,255,20,.10)}
+#s-methods .fbtn.on{
+  color:#0b2007;border-color:#91ff7d;
+  background:linear-gradient(120deg,#c9ffb1 0%,#7dff60 55%,#39ff14 100%);
+  box-shadow:0 0 13px rgba(57,255,20,.18);
+}
+#s-methods .btn.bp{
+  min-height:39px;padding:10px 15px;
+  border:1px solid rgba(217,255,195,.65);border-radius:9px;
+  color:#0b2007;
+  background:linear-gradient(112deg,#cbffb3 0%,#84ff64 49%,#39ff14 100%);
+  box-shadow:0 0 15px rgba(57,255,20,.30);font-weight:850;
+}
+#s-methods .btn.bp:hover{opacity:1;filter:brightness(1.06);box-shadow:0 0 22px rgba(57,255,20,.46)}
+#s-methods .btn.bs{
+  min-height:37px;border-radius:9px;
+  border-color:rgba(94,255,64,.28);background:#20283a;color:#e6ffe0;
+}
+#s-methods .btn.bs:hover{border-color:#9dff89;color:#d3ffc8;background:#292b3c}
+#s-methods .btn:focus-visible,#s-methods .fbtn:focus-visible{
+  outline:2px solid #c9ffb9;outline-offset:3px;
+}
+#s-methods :is(input[type=number],input[type=text],input[type=date],input[type=datetime-local],select,textarea){
+  border-radius:8px!important;border-color:rgba(94,255,64,.24)!important;
+  background:#111b2b!important;color:#e8f6e4!important;
+}
+#s-methods :is(input[type=number],input[type=text],input[type=date],input[type=datetime-local],select,textarea):focus{
+  border-color:#89ff73!important;box-shadow:0 0 0 2px rgba(57,255,20,.10);
+}
 #s-methods .info{
-  background:rgba(57,255,20,.07);border-color:rgba(57,255,20,.30);color:#baff9c;
+  background:rgba(57,255,20,.06);border-color:rgba(94,255,64,.20);color:#c7edbe;
 }
-#s-methods .sp{border-color:rgba(57,255,20,.23);border-top-color:#39ff14}
-#s-methods .bsp{background:rgba(57,255,20,.10);color:#baff9c}
+#s-methods .sp{border-color:rgba(57,255,20,.22);border-top-color:var(--methods-hot)}
+#s-methods .bsp{background:rgba(57,255,20,.12);color:#baff9c}
 #s-methods .sig-e{border-color:rgba(57,255,20,.35)}
 #s-methods .oc.xp{box-shadow:0 0 0 1px rgba(57,255,20,.20)}
 #s-methods .stake-badge{
   background:rgba(57,255,20,.13);border-color:rgba(57,255,20,.36);
+}
+#s-methods .recovery-banner{
+  background:linear-gradient(135deg,rgba(57,255,20,.12),rgba(23,43,32,.15));
+  border-color:rgba(94,255,64,.38);
+}
+#s-methods .rb-next-stake{color:#39ff14}
+#s-methods .dir-card{
+  background:linear-gradient(110deg,#212a39,#171f2e 90%);border-radius:11px;
+  box-shadow:inset 3px 0 0 #77ff5a,0 4px 12px rgba(0,0,0,.14);
+  transition:transform .18s,box-shadow .18s;
+}
+#s-methods .dir-card:hover{
+  transform:translateY(-2px);
+  box-shadow:inset 3px 0 0 #77ff5a,0 7px 18px rgba(57,255,20,.13);
+}
+#s-methods .loss-entry:not(.active-loss){
+  background:linear-gradient(110deg,#212a39,#171f2e 90%);
+  border-color:rgba(94,255,64,.19);border-radius:11px;
+  box-shadow:inset 3px 0 0 #77ff5a,0 4px 12px rgba(0,0,0,.12);
+}
+.ni[data-s="methods"].on{
+  color:#adff9a;border-left-color:#57ff36;
+  background:rgba(57,255,20,.10);text-shadow:0 0 12px rgba(57,255,20,.20);
+}
+@media(max-width:768px){
+  #s-methods .methods-pro-hero{padding:18px 16px;margin-bottom:15px}
+  #s-methods .methods-pro-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-methods .card{padding:16px}
+  #s-methods .methods-intro{padding:12px 14px!important}
+  #s-methods .methods-pro-tags span{font-size:9px}
+}
+@media(max-width:425px){
+  #s-methods .methods-pro-hero{padding:17px 13px}
+  #s-methods .methods-pro-tags{gap:5px}
+  #s-methods .methods-pro-tags span{padding:5px 8px}
+  #s-methods .fbtn{padding:7px 9px;font-size:10px}
+  #s-methods .methods-panel>.ct{font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  #s-methods .dir-card,#s-methods .fbtn{transition:none}
 }
 
 
@@ -2685,14 +2810,21 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ MÉTHODES / RATTRAPAGE ═══════════════ -->
 <section class="sec" id="s-methods">
-  <div class="ph"><div class="pt">&#127919; Se refaire intelligemment</div><div class="ps">Journal de paris · Solde estimé · Suivi des tickets · Limites de risque</div></div>
-  <div class="methods-hero">
+  <div class="ph methods-pro-hero">
+    <div class="methods-pro-overline"><span class="methods-pro-pulse" aria-hidden="true"></span> ESPACE DE SUIVI · MULTISPORTS</div>
+    <div class="pt">&#127919; Se refaire intelligemment</div>
+    <div class="ps">Journal de paris · Solde estimé · Suivi des tickets · Limites de risque</div>
+    <div class="methods-pro-tags" aria-label="Fonctions disponibles">
+      <span>Enregistrement rapide</span><span>Suivi du solde</span><span>Recherche par sport</span>
+    </div>
+  </div>
+  <div class="card methods-hero methods-panel methods-intro">
     <div style="font-family:var(--hd);font-size:16px;font-weight:800;color:var(--pu);margin-bottom:5px">Enregistrer une perte en quelques secondes</div>
     <div style="font-size:12px;color:var(--mu);line-height:1.7">Indiquez simplement le montant perdu. Le journal calcule votre déficit net, puis recherche les rencontres disponibles sans imposer de rejouer.</div>
   </div>
 
   <!-- Saisie express : un montant suffit en cas de perte -->
-  <div class="card" id="loss-input-card" style="margin-bottom:12px;border-color:rgba(57,255,20,.38)">
+  <div class="card methods-panel" id="loss-input-card" style="margin-bottom:12px;border-color:rgba(57,255,20,.38)">
     <div class="ct">① Enregistrer un résultat en quelques secondes</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px">
       <div class="fgrp"><label for="loss-stake" id="loss-stake-label">Montant perdu (€) *</label><input type="number" id="loss-stake" min="0.01" step="0.01" placeholder="Ex. 20" inputmode="decimal" style="font-size:17px;font-weight:700"></div>
@@ -2728,7 +2860,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- FILTRES PÉRIODE+SPORT -->
-  <div class="card" style="margin-bottom:10px;padding:12px">
+  <div class="card methods-panel methods-filters" style="margin-bottom:17px">
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
         <div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mo);font-weight:700">&#128197; Période de recherche</div>
@@ -2769,7 +2901,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- ① STRATÉGIES EN HAUT -->
-  <div class="card" style="margin-bottom:8px;padding:12px">
+  <div class="card methods-panel methods-bankroll" style="margin-bottom:17px">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px">
         <label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mo);font-weight:700;display:block;margin-bottom:4px">Solde disponible déclaré (&#8364;)</label>
@@ -2779,7 +2911,7 @@ a{color:var(--neon);text-decoration:none}
       <div style="font-size:10px;color:var(--dm);max-width:200px">À renseigner une fois. Le solde sera ensuite recalculé à partir des paris réellement enregistrés. Vous pouvez le réajuster en cas de dépôt ou de retrait.<br><span style="color:var(--re);font-size:9px">Ne misez que ce que vous pouvez perdre.</span></div>
     </div>
   </div>
-  <details class="card" style="margin-bottom:10px"><summary style="cursor:pointer;color:var(--mu);font-weight:700;font-size:11px">Comparatif détaillé des stratégies (facultatif)</summary><div class="m-strat-grid" id="m-strat-grid" style="margin-top:12px"></div><div id="m-detail-panel" style="display:none"></div></details>
+  <details class="card methods-panel" style="margin-bottom:17px"><summary style="cursor:pointer;color:var(--mu);font-weight:700;font-size:11px">Comparatif détaillé des stratégies (facultatif)</summary><div class="m-strat-grid" id="m-strat-grid" style="margin-top:12px"></div><div id="m-detail-panel" style="display:none"></div></details>
 
   <div id="loss-sync-status" style="font-size:10px;color:var(--dm);margin:4px 0 10px" aria-live="polite"></div>
 
@@ -2793,7 +2925,7 @@ a{color:var(--neon);text-decoration:none}
   <div id="m-search-res"></div>
 
   <!-- ⑤ HISTORIQUE -->
-  <div class="card" id="loss-history-card" style="display:none">
+  <div class="card methods-panel" id="loss-history-card" style="display:none">
     <div class="ct">&#128202; Historique complet</div>
     <div id="loss-hist-period-btns" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
       <button class="fbtn on" id="lp-all" onclick="lossSetPeriod('all',this)">Tout</button>
