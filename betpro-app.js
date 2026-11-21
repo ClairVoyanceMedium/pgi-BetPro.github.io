@@ -2931,6 +2931,42 @@ function betproFindMatchFilters(range,price,sportKey,family,league){
  if(league!=='all')return sportKey===league;
  return family==='all'||betproFindGroupCode(sportKey)===family;
 }
+/* Cache courte durée pour les recherches multisports : évite de consommer à nouveau
+   les quotas gratuits à chaque clic avec exactement les mêmes critères. */
+const BETPRO_FIND_CLASSIC_SCOPED_CACHE=new Map();
+const BETPRO_FIND_CLASSIC_SCOPED_TTL_MS=4*60*1000;
+async function betproFindClassicScopedRequest(path){
+ const now=Date.now(),cached=BETPRO_FIND_CLASSIC_SCOPED_CACHE.get(path);
+ if(cached&&cached.at<=now&&now-cached.at<BETPRO_FIND_CLASSIC_SCOPED_TTL_MS)
+  return{...cached.data,cached:true};
+ const data=await api(path,'GET',null,{timeoutMs:29000});
+ if(data?.ok!==false){
+  BETPRO_FIND_CLASSIC_SCOPED_CACHE.set(path,{at:now,data});
+  if(BETPRO_FIND_CLASSIC_SCOPED_CACHE.size>120){
+   const first=BETPRO_FIND_CLASSIC_SCOPED_CACHE.keys().next().value;
+   BETPRO_FIND_CLASSIC_SCOPED_CACHE.delete(first);
+  }
+ }
+ return data;
+}
+function betproFindClassicDiversify(items){
+ const buckets=new Map();
+ for(const item of items){
+  const sport=betproFindGroupCode(item.sport);
+  if(!buckets.has(sport))buckets.set(sport,[]);
+  buckets.get(sport).push(item);
+ }
+ const sorted=[...buckets.values()].sort((a,b)=>b.length-a.length);
+ const result=[];
+ for(let i=0;result.length<items.length;i++){
+  let any=false;
+  for(const group of sorted){
+   if(group[i]){result.push(group[i]);any=true;}
+  }
+  if(!any)break;
+ }
+ return result;
+}
 async function doAnalyze(engine='classic'){
  const classic=engine==='classic';
  if(!classic&&engine!=='benter')return;
@@ -2958,29 +2994,95 @@ async function doAnalyze(engine='classic'){
  const scope='<strong>'+esc(labelSport)+'</strong> · '+esc(labelLeague)+' · '+esc(labelMarket)+' · '+esc(chosenPeriod)+' · Cotes '+esc(rangeLabel);
  try{
   if(classic){
-   const query={scope:'scan',limit:'65',...params};
-   if(league!=='all')query.sport_key=league;
-   else query.sport=family;
-   const d=await api(betproFindQuery('/api/classic/scan',query),'GET',null,{timeoutMs:32000});
-   if(seq!==betproFinderRunSerial)return;
-   let html='<div class="betpro-find-results-head"><span>'+esc(name)+' · '+scope+'</span><small>'+esc((d.generated_at?fmtDT(d.generated_at):'Horodatage indisponible'))+'</small></div>';
-   if(d.ok===false){out.innerHTML=html+betproFindStatus('Source indisponible',d.error||'Impossible de consulter les cotes.');return;}
-   if(d._snapshotFallback||d.stale_cache)html+='<div class="warn">Données anciennes ou sauvegardées : aucune certitude sur les cotes actuelles.</div>';
-   const all=Array.isArray(d.events)?d.events:[];
+   // Un appel global ne garantit pas une couverture multisports. Pour "Tous", on interroge
+   // chaque famille sportive disponible, puis on regroupe sans inventer de rencontres.
+   const allSports=family==='all'&&league==='all';
+   const sports=allSports
+    ?[...new Set(betproFindCatalog.map(item=>betproFindGroupCode(item.key,item.group)))]
+       .filter(key=>key&&key!=='other').sort((a,b)=>{
+         const groups=Object.values(BETPRO_FIND_FAMILY_CODES);
+         return groups.indexOf(a)-groups.indexOf(b);
+       })
+    :[];
+   // Si le catalogue distant n'est pas encore reçu, on utilise les disciplines
+   // réellement reconnues dans le sélecteur, jamais une unique requête "all".
+   const fallbackSports=[...familyEl.options].map(item=>item.value)
+     .filter(x=>x&&x!=='all'&&x!=='other');
+   const targetSports=allSports?(sports.length?sports:[...new Set(fallbackSports)]):[family];
+   const searches=allSports
+     ?targetSports.map(sport=>({key:sport,label:familyEl.querySelector('option[value="'+sport+'"]')?.textContent?.trim()||sport,
+       query:{scope:'scan',limit:'65',sport,...params}}))
+     :[{key:league!=='all'?league:family,label:labelLeague!=='Tous les championnats'?labelLeague:labelSport,
+       query:league!=='all'?{scope:'scan',limit:'65',sport_key:league,...params}:{scope:'scan',limit:'65',sport:family,...params}}];
+   const counts=[],failures=[],sourceWarnings=[],successful=[],eventsById=new Map();
+   let usedCache=false;
+   for(let i=0;i<searches.length;i+=4){
+    const batch=searches.slice(i,i+4);
+    const responses=await Promise.allSettled(batch.map(async search=>{
+     const path=betproFindQuery('/api/classic/scan',search.query);
+     return await betproFindClassicScopedRequest(path);
+    }));
+    if(seq!==betproFinderRunSerial)return;
+    for(let j=0;j<batch.length;j++){
+     const item=batch[j],res=responses[j];
+     if(res.status!=='fulfilled'||res.value?.ok===false){
+      failures.push({label:item.label,reason:String(res.status==='fulfilled'?
+       (res.value?.error||res.value?.warning||'Source momentanément indisponible') :
+       (res.reason?.message||res.reason||'Erreur de connexion'))});
+      continue;
+     }
+     const d=res.value,found=Array.isArray(d.events)?d.events:[];
+     counts.push({label:item.label,received:found.length,source:item.key});
+     successful.push(d);
+     usedCache=usedCache||!!(d.cached||d._snapshotFallback||d.stale_cache);
+     if(d._snapshotFallback||d.stale_cache)sourceWarnings.push(item.label);
+     for(const event of found){
+      if(!event||typeof event!=='object')continue;
+      const key=String(event.event_id||event.id||[event.sport,event.home_name||event.home,
+       event.away_name||event.away,event.start_time||event.event_start_at].join('|'));
+      if(!eventsById.has(key))eventsById.set(key,event);
+     }
+    }
+    if(allSports&&i+4<searches.length)
+     out.innerHTML='<div class="ls betpro-find-loading"><div class="sp"></div><p>'+esc(name)+
+      ' : recherche dans les sports disponibles ('+Math.min(i+4,searches.length)+'/'+searches.length+')…</p></div>';
+   }
+   if(!successful.length){
+    out.innerHTML=betproFindStatus('Recherche indisponible','Aucune source sportive n’a répondu correctement. '+
+      (failures[0]?.reason||'Veuillez réessayer ultérieurement.'));
+    return;
+   }
+   const all=[...eventsById.values()];
    const eligible=all.filter(e=>betproClassicIsActionable(e)&&betproFindWindowMatch(e,params)&&
       betproFindMatchFilters(odds,betproFindClassicPrice(e),String(e.sport||''),family,league)&&
       Number(e.consensus?.consensus_score||0)>=minScore);
    eligible.sort((a,b)=>Number(b.classic_value?.positive_value||0)-Number(a.classic_value?.positive_value||0)
      ||Number(b.consensus?.consensus_score||0)-Number(a.consensus?.consensus_score||0));
-   const cards=eligible.map((e,i)=>betproClassicCard(e,i)).filter(Boolean);
-   if(cards.length){
-    html+='<div class="betpro-find-count"><strong>'+cards.length+'</strong> sélection'+(cards.length>1?'s':'')+' correspondant à votre recherche · '+all.length+' rencontres examinées'+(d.cached?' · données en cache':'')+'</div>';
-    html+='<div class="opp-grid">'+cards.join('')+'</div>';
-   }else if(all.length){
-    html+=betproFindStatus('Aucune sélection trouvée','Les '+all.length+' rencontres reçues ne passent pas tous les filtres. Choisissez « Toutes » dans les cotes ou une période plus large.');
-   }else{
-    html+=betproFindStatus('Aucune rencontre reçue',d.quota_blocked?'Le fournisseur limite actuellement l’accès aux données.':'Aucune rencontre disponible dans la réponse '+(d.cached?'en cache.':'du fournisseur.')+' Vous pouvez sélectionner un sport ou un championnat précis.');
+   // Diversité à l'écran, uniquement parmi les vraies sélections admissibles.
+   const balanced=allSports?betproFindClassicDiversify(eligible):eligible;
+   const cards=balanced.slice(0,30).map((e,i)=>betproClassicCard(e,i)).filter(Boolean);
+   const latest=successful.map(x=>x.generated_at).filter(Boolean).sort().at(-1);
+   let html='<div class="betpro-find-results-head"><span>'+esc(name)+' · '+scope+
+    '</span><small>'+esc(latest?fmtDT(latest):'Horodatage indisponible')+'</small></div>';
+   if(usedCache)html+='<div class="warn">Certaines données sont en cache ou sauvegardées. Les cotes doivent être revérifiées avant toute mise.</div>';
+   const total=searches.length,covered=counts.length;
+   html+='<div class="betpro-find-count"><strong>'+cards.length+'</strong> sélection'+(cards.length>1?'s':'')+
+    ' · '+all.length+' rencontres reçues · '+covered+'/'+total+
+    (allSports?' sports interrogés':' recherche terminée')+'</div>';
+   if(allSports){
+    html+='<details class="betpro-find-coverage"><summary>Voir la couverture des sports ('+covered+'/'+total+
+     ' réponses obtenues)</summary><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px">'+
+     counts.map(item=>'<span class="bdg bsr">'+esc(item.label)+' : '+item.received+' reçue(s)</span>').join('')+
+     failures.map(item=>'<span class="bdg" style="color:var(--am)">'+esc(item.label)+' : indisponible</span>').join('')+
+     '</div><p style="margin-top:8px;color:var(--mu);font-size:10px">Les nombres indiquent les rencontres transmises par chaque source, pas toutes les rencontres existantes. Chaque réponse est plafonnée à 65.</p></details>';
    }
+   if(failures.length)html+='<div class="warn">Couverture incomplète : '+failures.length+
+    ' requête(s) sans réponse exploitable. '+esc(failures.slice(0,2).map(x=>x.label+' : '+x.reason).join(' | '))+'</div>';
+   if(sourceWarnings.length)html+='<div class="warn">Cotes sauvegardées pour : '+esc(sourceWarnings.join(', '))+'.</div>';
+   if(cards.length)html+='<div class="opp-grid">'+cards.join('')+'</div>';
+   else html+=betproFindStatus(all.length?'Aucune sélection retenue':'Aucune rencontre transmise',
+    all.length?'Les rencontres reçues ne satisfont pas les filtres ou les critères de fraîcheur. Essayez « Toutes » pour les cotes.':
+    'Les sources consultées n’ont transmis aucune rencontre exploitable sur cette période. Cela ne prouve pas qu’aucun match n’existe.');
    out.innerHTML=html;
   }else{
    const coverage=betproFindChooseLeagues(family,mode);
