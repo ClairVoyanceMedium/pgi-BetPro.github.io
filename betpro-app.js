@@ -2839,20 +2839,14 @@ function betproFindClassicPrice(event){
  const best=Number(event?.classic_value?.best_price);
  return best>1?best:Number(event?.consensus?.median_market_odds);
 }
-function betproFindDateParamsDefault(){
- const selection=document.getElementById('betpro-find-date');
- if(selection)selection.value='14d';
- return betproFindDateParams();
-}
 function betproFindDateParams(){
- const selected=document.getElementById('betpro-find-date')?.value||'all';
- if(selected==='all')return betproFindDateParamsDefault();
+ const selected=document.getElementById('betpro-find-date')?.value||'14d';
  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const shift=n=>{const d=new Date(today+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
  if(selected==='today')return{date_from:today,date_to:today};
  if(selected==='tomorrow')return{date_from:shift(1),date_to:shift(1)};
  if(selected==='7d')return{date_from:today,date_to:shift(6)};
- if(selected==='14d')return{date_from:today,date_to:shift(13)};
+ if(selected==='14d'||selected==='all')return{date_from:today,date_to:shift(13)};
  return{};
 }
 function betproFindLeagueRank(item){
