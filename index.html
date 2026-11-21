@@ -2414,6 +2414,63 @@ a{color:var(--neon);text-decoration:none}
   #s-blackjack .bj-card-btn,#s-blackjack .bj-dbtn{transition:none}
 }
 
+/* Matchs Live / À venir : palette beige Blackjack, portée uniquement par cette rubrique.
+   Les couleurs des moteurs Benter / Classique et des indicateurs de risque sont préservées. */
+#s-live{
+  --live-beige:#e7cda8;--live-hot:#d7b583;--live-light:#f2e2ca;
+  --neon:#e7cda8;--neon2:#f2e2ca;
+  --nbg:rgba(231,205,168,.10);
+  --ng:0 0 8px rgba(231,205,168,.42),0 0 22px rgba(231,205,168,.22);
+  --ngd:0 0 5px rgba(231,205,168,.32),0 0 14px rgba(231,205,168,.14);
+  --bd:rgba(231,205,168,.20);--bd2:rgba(231,205,168,.32);
+}
+.ni[data-s="live"].on{
+  color:#ecd6b5;border-left-color:#d7b583;
+  background:rgba(231,205,168,.10);text-shadow:0 0 12px rgba(215,181,131,.20);
+}
+#s-live .ph .pt{color:#f2e2ca;font-weight:850}
+#s-live .ph .ps{color:#d9d0c5}
+#s-live .card{
+  border-color:rgba(231,205,168,.27);border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.90),rgba(17,25,39,.96));
+}
+#s-live .fbtn{
+  min-height:33px;padding:7px 12px;border-radius:8px;
+  border-color:rgba(231,205,168,.26);background:#192334;
+  color:#e8d8c0;font-weight:700;
+}
+#s-live .fbtn:hover{border-color:#e7cda8;color:#f2e2ca;background:rgba(231,205,168,.12)}
+#s-live .fbtn.on{
+  color:#2d2115;border-color:#f2e2ca;
+  background:linear-gradient(112deg,#f4e4cb 0%,#e7cda8 49%,#cda878 100%);
+  box-shadow:0 0 13px rgba(215,181,131,.21);
+}
+#s-live .btn.bp{
+  min-height:39px;padding:10px 15px;border:1px solid rgba(245,230,204,.65);
+  border-radius:9px;color:#2d2115;font-weight:850;
+  background:linear-gradient(112deg,#f4e4cb 0%,#e7cda8 49%,#cda878 100%);
+  box-shadow:0 0 15px rgba(215,181,131,.30);
+}
+#s-live .btn.bp:hover{opacity:1;filter:brightness(1.06);box-shadow:0 0 22px rgba(215,181,131,.42)}
+#s-live .btn.bs{
+  min-height:37px;border-radius:9px;border-color:rgba(231,205,168,.28);
+  background:#20283a;color:#f2e7d8;
+}
+#s-live .btn.bs:hover{border-color:#e7cda8;color:#f4e4cb;background:#292b3c}
+#s-live .btn:focus-visible,#s-live .fbtn:focus-visible{outline:2px solid #f2e2ca;outline-offset:3px}
+#s-live input[type="date"]{border-color:rgba(231,205,168,.26);background:#111b2b;color:#f4e8d9}
+#s-live input[type="date"]:focus{border-color:#e7cda8;box-shadow:0 0 0 2px rgba(231,205,168,.10)}
+#s-live .sbar{border:1px solid rgba(231,205,168,.20);color:#e8d8c0}
+#s-live #upcoming-classic-cnt .sbar span:first-child{color:#ecd6b5!important}
+#s-live .info{background:rgba(215,181,131,.06);border-color:rgba(231,205,168,.20);color:#e8d8c0}
+#s-live .sp{border-top-color:#d7b583}
+#s-live .live-card{border-color:rgba(231,205,168,.22);border-radius:12px}
+#s-live .dir-card{border-radius:11px}
+@media(max-width:480px){
+  #s-live .fbtn{padding:7px 9px;font-size:10px}
+  #s-live .card{padding:14px!important}
+}
+
 /* Mes Notes : palette orange existante (#ff7043 / #ff5722).
    Styles strictement confines aux notes ; sauvegarde et synchronisation intactes. */
 #s-notes{
