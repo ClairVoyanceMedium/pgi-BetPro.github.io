@@ -2985,9 +2985,25 @@ function betproLiveSportName(s){
   const map={soccer:'Football',basketball_nba:'Basket NBA',basketball_ncaab:'Basket NCAA',americanfootball_nfl:'Football US NFL',americanfootball_ncaaf:'Football US NCAA',icehockey_nhl:'Hockey NHL',baseball_mlb:'Baseball MLB'};
   return map[s]||String(s||'Sport');
 }
+function betproLiveTennisScoreHtml(m){
+  const values=Array.isArray(m?.tennis?.sets)?m.tennis.sets.slice(0,5):[];
+  if(!values.length)return '';
+  const score=v=>v==null?'–':String(v);
+  const header='<div class="betpro-tennis-row betpro-tennis-header"><span>JOUEUR</span>'+values.map((s,i)=>'<span>S'+(i+1)+'</span>').join('')+'</div>';
+  const playerRow=(name,side)=>'<div class="betpro-tennis-row"><strong title="'+esc(name)+'">'+esc(name)+'</strong>'+values.map(set=>{
+    const points=set?.[side];
+    const tie=set?.[side+'_tiebreak'];
+    return '<span class="betpro-tennis-cell">'+esc(score(points))+(tie!=null?'<sup>'+esc(String(tie))+'</sup>':'')+'</span>';
+  }).join('')+'</div>';
+  const wins=m?.tennis?.sets_won;
+  const count=(wins?.home!=null&&wins?.away!=null)?' · Sets gagnés : '+esc(String(wins.home))+' - '+esc(String(wins.away)):'';
+  return '<div class="betpro-tennis-scoreboard" style="--betpro-set-count:'+values.length+'" aria-label="Scores par set">'+header+
+    playerRow(m.home,'home')+playerRow(m.away,'away')+'</div><div class="betpro-tennis-foot">Jeux par set · Source : ESPN'+count+'</div>';
+}
 function betproLiveCard(m){
   const id=String(m.fixture_id),sport=m.sport||'soccer';
   const score=m.score||{},hasScore=score.home!=null&&score.away!=null;
+  const tennisScore=sport.startsWith('tennis_')?betproLiveTennisScoreHtml(m):'';
   const lbl=betproLiveTimeLabel(m),key=m.source+':'+sport+':'+id;
   const source=m.source==='api-football'?'API-Football':'ESPN';
   const events=Array.isArray(m.events)?m.events:[];
@@ -2996,7 +3012,7 @@ function betproLiveCard(m){
     <div class="betpro-real-live-head"><span class="betpro-real-live-flag">● EN DIRECT</span><span>${esc(betproLiveSportName(sport))} · ${esc(m.competition||'Compétition non indiquée')}</span><span class="betpro-real-live-clock">${esc(lbl)}</span></div>
     <div class="betpro-real-live-body"><div class="betpro-real-live-name">${betproClassicSportIcon(sport)} ${esc(m.home)} <span style="color:var(--dm)">vs</span> ${esc(m.away)}</div>
       <div class="betpro-real-live-meta"><span>Rencontre n° ${esc(id)}</span>${m.round?`<span>${esc(m.round)}</span>`:''}<span>Source : ${esc(source)}</span></div>
-      <div class="betpro-real-live-score">${hasScore?`${esc(String(score.home))} <span>:</span> ${esc(String(score.away))}`:'Score non communiqué'}</div>
+      <div class="betpro-real-live-score">${tennisScore||(hasScore?`${esc(String(score.home))} <span>:</span> ${esc(String(score.away))}`:sport.startsWith('tennis_')?'Jeux non transmis par ESPN':'Score non communiqué')}</div>
       <div class="betpro-real-live-sub">${m.source==='api-football'?'Minute officielle : '+esc(lbl):'Période et chronomètre officiels : '+esc(lbl)}${cards.length?' · Cartons : '+esc(cards.join(' ; ')):''}</div>
       <div class="betpro-real-live-actions"><button type="button" class="btn bp" onclick="betproAnalyzeRealLive('${esc(key)}', this)">Analyser ce match en direct</button><span>Analyse fondée sur les statistiques, pas seulement sur le score</span></div>
       <div class="betpro-real-live-analysis" id="betpro-live-analysis-${esc(id)}-${esc(sport)}"></div>
