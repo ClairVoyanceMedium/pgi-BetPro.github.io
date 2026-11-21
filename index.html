@@ -1532,6 +1532,20 @@ a{color:var(--neon);text-decoration:none}
 #s-dash #dash-res .betpro-find-empty p{font-size:12px;line-height:1.7}
 @media(max-width:750px){#s-dash #betpro-pari-finder .betpro-find-odds-choices{grid-template-columns:repeat(2,minmax(0,1fr))}#s-dash #betpro-pari-finder .betpro-find-odds-chip{min-height:65px;padding:10px 11px}#s-dash #betpro-pari-finder .betpro-find-quick-sports{gap:6px}#s-dash #betpro-pari-finder .betpro-find-sport-chip{flex:1 0 auto;font-size:11px;padding:8px 10px}#s-dash #betpro-pari-finder .betpro-find-odds-controls{padding:12px 10px}}
 
+
+/* Réglages statistiques déplacés en options avancées pour réduire la charge cognitive. */
+#s-dash #betpro-pari-finder .betpro-find-advanced{margin:0 0 19px;padding:0;border:1px solid rgba(182,255,0,.19);border-radius:12px;background:rgba(10,21,29,.75);overflow:hidden}
+#s-dash #betpro-pari-finder .betpro-find-advanced summary{display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer;padding:13px 16px;color:#dbeecb;list-style:none}
+#s-dash #betpro-pari-finder .betpro-find-advanced summary::-webkit-details-marker{display:none}
+#s-dash #betpro-pari-finder .betpro-find-advanced summary:before{content:"＋";color:#b6ff00;font-size:16px;font-weight:700}
+#s-dash #betpro-pari-finder .betpro-find-advanced[open] summary:before{content:"−"}
+#s-dash #betpro-pari-finder .betpro-find-advanced-title{font:750 12px var(--hd);flex:1}
+#s-dash #betpro-pari-finder .betpro-find-advanced-hint{font:600 10px var(--mo);color:#90ad9c}
+#s-dash #betpro-pari-finder .betpro-find-advanced-desc{font-size:11px;color:#adbfbb;padding:0 15px 11px;line-height:1.55}
+#s-dash #betpro-pari-finder .betpro-find-advanced-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:0 15px 17px}
+#s-dash #betpro-pari-finder .betpro-find-advanced .fgrp select{height:45px;min-height:45px;width:100%;border:1px solid #354750;border-radius:10px;background:#0d1721;color:#ecf5ef;font:600 12px var(--hd);padding:10px}
+@media(max-width:680px){#s-dash #betpro-pari-finder .betpro-find-advanced-grid{grid-template-columns:1fr;gap:12px}#s-dash #betpro-pari-finder .betpro-find-advanced summary{padding:12px}}
+
 </style>
 </head>
 <body>
@@ -1805,19 +1819,31 @@ a{color:var(--neon);text-decoration:none}
           <option value="7d">7 prochains jours</option>
         </select>
       </div>
-      <div class="fgrp"><label for="sel-market">Marché (Benter)</label>
-        <select id="sel-market">
-          <option value="h2h">Vainqueur / résultat final (1X2)</option>
-          <option value="totals">Plus / moins de buts ou points</option>
-          <option value="btts" data-soccer-only="1">Les deux équipes marquent</option>
-          <option value="double_chance" data-soccer-only="1">Double chance (1X, X2, 12)</option>
-          <option value="spreads">Handicap (écart de buts ou points)</option>
-        </select>
-      </div>
-      <div class="fgrp"><label for="sel-mode">Actualisation (Benter)</label><select id="sel-mode"><option value="quick">Rapide (données récentes, économise les crédits)</option><option value="deep">Actualiser les cotes (utilise les crédits API)</option></select></div>
-      <div class="fgrp"><label for="sel-minscore">Seuil de qualité / 100</label><select id="sel-minscore"><option value="0">Tout (0+)</option><option value="50">&#128992; 50+</option><option value="65" selected>&#127803; 65+</option><option value="75">&#127804; 75+ &#11088;</option><option value="85">&#128142; 85+</option></select></div>
+
+      <div class="fgrp"><label for="sel-minscore">Niveau de sélection</label><select id="sel-minscore"><option value="0">Tout (0+)</option><option value="50">&#128992; 50+</option><option value="65" selected>&#127803; 65+</option><option value="75">&#127804; 75+ &#11088;</option><option value="85">&#128142; 85+</option></select></div>
     </div>
-    <div id="betpro-find-market-note" class="betpro-find-help">Classique : vainqueur et consensus des bookmakers. Benter : marchés compatibles et validation statistique. Les cotes et la période s’appliquent aux deux méthodes.</div>
+    <div id="betpro-find-market-note" class="betpro-find-help">Scan Classique : compare les cotes pour le vainqueur. Scan Benter : ajoute une analyse statistique et peut examiner d’autres types de paris. Les cotes, la période et le niveau de sélection s’appliquent aux deux.</div>
+    <details class="betpro-find-advanced" id="betpro-find-advanced">
+      <summary><span class="betpro-find-advanced-title">Réglages avancés du Scan Benter</span><span class="betpro-find-advanced-hint">Facultatif</span></summary>
+      <p class="betpro-find-advanced-desc">Vous pouvez laisser ces réglages tels quels. Ils ne modifient pas le Scan Classique.</p>
+      <div class="betpro-find-advanced-grid">
+        <div class="fgrp"><label for="sel-market">Type de pari à analyser</label>
+          <select id="sel-market">
+            <option value="h2h">Vainqueur / résultat final (1X2)</option>
+            <option value="totals">Plus / moins de buts ou points</option>
+            <option value="btts" data-soccer-only="1">Les deux équipes marquent</option>
+            <option value="double_chance" data-soccer-only="1">Double chance (1X, X2, 12)</option>
+            <option value="spreads">Handicap (écart de buts ou points)</option>
+          </select>
+        </div>
+        <div class="fgrp"><label for="sel-mode">Actualisation des données</label>
+          <select id="sel-mode">
+            <option value="quick">Rapide : utiliser les données disponibles</option>
+            <option value="deep">Approfondie : actualiser davantage de cotes (quota API)</option>
+          </select>
+        </div>
+      </div>
+    </details>
     <div class="betpro-find-action-caption">Choisissez votre méthode d’analyse</div>
     <div class="bg betpro-find-actions" role="group" aria-label="Choisir un moteur de recherche sportive">
       <button type="button" class="btn betpro-find-launch" id="betpro-find-classic" onclick="doAnalyze('classic')"><span aria-hidden="true">●</span> SCAN CLASSIQUE</button>
@@ -1825,7 +1851,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div class="betpro-find-engine-legend">
       <div><strong>Classique</strong><span>Compare les cotes des bookmakers et leurs tendances. Marché vainqueur.</span></div>
-      <div><strong>Benter</strong><span>Analyse les probabilités, les marchés et la qualité du signal quand les données le permettent.</span></div>
+      <div><strong>Scan Benter</strong><span>Ajoute une évaluation statistique des sélections et permet de choisir d’autres marchés. Réglages facultatifs.</span></div>
     </div>
     <details class="betpro-find-disclosure">
       <summary>Comprendre les notes, les sources et les limites</summary>
@@ -2764,7 +2790,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-selection-multisports-v214"></script>
+<script defer src="./betpro-app.js?v=20261122-selection-multisports-clarity-v215"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
