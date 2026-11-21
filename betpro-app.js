@@ -4046,7 +4046,18 @@ async function loadQuotas(){const el=document.getElementById('qfoot');try{const 
 //  CHAT + TTS simplifié
 // ═══════════════════════════════════════════════
 let chatHistory=[];
-function getCtx(){const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim(),sh=document.getElementById('ctx-sh')?.value,sa=document.getElementById('ctx-sa')?.value,min=document.getElementById('ctx-min')?.value,comp=document.getElementById('ctx-comp')?.value.trim();const ctx={};if(home)ctx.home=home;if(away)ctx.away=away;if(sh)ctx.score_home=parseInt(sh)||0;if(sa)ctx.score_away=parseInt(sa)||0;if(min)ctx.minute=parseInt(min);if(comp)ctx.competition=comp;return Object.keys(ctx).length?ctx:null;}
+function getCtx(){
+ const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim();
+ const sh=document.getElementById('ctx-sh')?.value,sa=document.getElementById('ctx-sa')?.value,
+ min=document.getElementById('ctx-min')?.value,comp=document.getElementById('ctx-comp')?.value.trim(),
+ sport=document.getElementById('ctx-sport')?.value||'auto';
+ const ctx={};
+ if(home)ctx.home=home;if(away)ctx.away=away;
+ if(sh!=='')ctx.score_home=Number(sh);if(sa!=='')ctx.score_away=Number(sa);
+ if(min!=='')ctx.minute=Number(min);if(comp)ctx.competition=comp;
+ if(sport!=='auto')ctx.sport=sport;
+ return Object.keys(ctx).length?ctx:null;
+}
 function clearCtx(){['ctx-home','ctx-away','ctx-sh','ctx-sa','ctx-min','ctx-comp','ctx-total-line'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sport=document.getElementById('ctx-sport');if(sport)sport.value='auto';betproPoissonSportChanged();const results=document.getElementById('live-model-res');if(results)results.innerHTML='';betproPoissonLastAnalysis=null;}
 function clearChat(){chatHistory=[];ttsStop(true);document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
@@ -4568,13 +4579,19 @@ async function runLiveModelUI(){
 }
 function betproPoissonAskChat(){
  const d=betproPoissonLastAnalysis;if(!d?.model)return;
- const h=d.history||{},o=d.model.outcomes||{};
- const question='Analyse cette rencontre de football en t’appuyant sur des sources récentes et confirme les informations disponibles : '+
-  String(d.match.home)+' contre '+String(d.match.away)+', score '+String(d.match.score_home)+'-'+String(d.match.score_away)+
-  ', minute '+String(d.match.minute)+'. Modèle Poisson empirique non calibré : 1 '+String(o.home_win)+
-  ' %, X '+String(o.draw)+' %, 2 '+String(o.away_win)+' %. Historique : '+String(h.home_matches)+' et '+String(h.away_matches)+
-  ' matchs. Donne la forme récente, les joueurs absents, le contexte et les limites; ne présente pas ces estimations comme une garantie.';
- const input=document.getElementById('chat-input');if(input){input.value=question;input.focus();sendChat();}
+ const o=d.model.outcomes||{},h=d.history||{},sport=String(d.sport||'football');
+ const names={football:'football',basketball:'basketball',baseball:'baseball MLB',nfl:'football américain NFL',
+   hockey:'hockey NHL',rugby:'rugby'};
+ const analysis='Analyse cette rencontre de '+(names[sport]||sport)+' en croisant les dernières informations sportives confirmées : '+
+  String(d.match.home)+' contre '+String(d.match.away)+
+  ', score '+String(d.match.score_home)+'-'+String(d.match.score_away)+
+  ', période '+String(d.match.minute)+'. Le modèle statistique '+String(d.model.distribution||'Poisson')+
+  ' estime la probabilité domicile à '+String(o.home_win)+' % et extérieur à '+String(o.away_win)+' %'+
+  (o.draw!=null?', nul à '+String(o.draw)+' %':'')+
+  '. Historique ESPN : '+String(h.home_matches)+' et '+String(h.away_matches)+
+  ' matchs. Recherche blessures, composition officielle ou probable, statistiques et contexte récent. '+
+  'Vérifie les sources, explique les limites et ne présente pas ces probabilités comme des certitudes.';
+ const input=document.getElementById('chat-input');if(input){input.value=analysis;input.focus();sendChat();}
 }
 
 // ═══════════════════════════════════════════════
