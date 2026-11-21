@@ -2719,22 +2719,74 @@ function getSportLabel(sport){
 // ═══════════════════════════════════════════════
 //  ANALYZE CIBLÉE
 // ═══════════════════════════════════════════════
+// Recherche par championnat : libellés clairs et marchés compatibles.
+// Le filtre professionnel, les données et les seuils restent côté Worker.
+function syncBetProFindMarkets(){
+  const sport=document.getElementById('sel-sport');
+  const market=document.getElementById('sel-market');
+  if(!sport||!market)return;
+  const soccer=String(sport.value||'').startsWith('soccer_');
+  for(const option of market.querySelectorAll('option[data-soccer-only]')){
+    option.disabled=!soccer;
+    option.hidden=!soccer;
+  }
+  if(market.selectedOptions[0]?.disabled)market.value='h2h';
+  const hint=document.getElementById('betpro-find-market-note');
+  if(hint)hint.textContent=soccer
+    ? 'Football : vainqueur, buts, les deux équipes marquent, double chance ou handicap.'
+    : 'Ce sport : vainqueur, total de points/buts ou handicap. Les marchés réservés au football sont exclus.';
+}
+
 async function doAnalyze(){
-  const sport=document.getElementById('sel-sport').value,market=document.getElementById('sel-market').value,mode=document.getElementById('sel-mode').value,minScore=parseInt(document.getElementById('sel-minscore').value);
-  const btn=document.getElementById('abtn'),cnt=document.getElementById('dash-res');
-  btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Analyse…';
-  cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Interrogation…</p></div>';
+  syncBetProFindMarkets();
+  const sportEl=document.getElementById('sel-sport'),marketEl=document.getElementById('sel-market'),
+    modeEl=document.getElementById('sel-mode'),scoreEl=document.getElementById('sel-minscore'),
+    btn=document.getElementById('abtn'),cnt=document.getElementById('dash-res');
+  if(!sportEl||!marketEl||!modeEl||!scoreEl||!btn||!cnt)return;
+  const sport=sportEl.value,market=marketEl.value,mode=modeEl.value,minScore=parseInt(scoreEl.value,10)||0;
+  const labelSport=sportEl.selectedOptions[0]?.textContent?.trim()||sport;
+  const labelMarket=marketEl.selectedOptions[0]?.textContent?.trim()||market;
+  const originalLabel=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span> Recherche en cours…';
+  cnt.innerHTML='<div class="ls betpro-find-loading"><div class="sp"></div><p>Vérification des cotes et des critères professionnels…</p></div>';
   try{
     const d=await api('/api/analyze?sport='+enc(sport)+'&market='+enc(market)+'&mode='+enc(mode));
-    const opps=(d.opportunities||[]).filter(o=>(o.score?.total||0)>=minScore);
-    cnt.innerHTML='';
-    if(d.warning)cnt.innerHTML+='<div class="warn">⚠ '+esc(d.warning)+'</div>';
-    if(d._snapshotFallback)cnt.innerHTML+='<div class="warn">Instantane du '+esc(fmtDT(d._snapshotAt))+'. Cotes anciennes, verifier avant de miser.</div>';
-    if(d.key_used)cnt.innerHTML+=`<div style="font-size:9px;color:var(--dm);font-family:var(--mo);margin-bottom:8px">🔑 Clé ${d.key_used}/${d.keys_available||1} utilisée</div>`;
-    cnt.innerHTML+=`<div class="sbar"><div class="sdot"></div><span>${opps.length} opportunité(s)</span>${d.cached?'<span class="bdg bca">Cache</span>':''}<span style="margin-left:auto;color:var(--dm)">${fmtDT(d.analyzed_at)}</span></div>`;
-    cnt.innerHTML+=renderOpps(opps);loadQuotas();toast(opps.length+' opportunité(s)','ok');
-  }catch(e){cnt.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}
-  btn.disabled=false;btn.innerHTML='<span>⚡</span> Analyser';
+    const all=Array.isArray(d?.opportunities)?d.opportunities:[];
+    const opps=all.filter(o=>(o.score?.total||0)>=minScore);
+    const scope='<strong>'+esc(labelSport)+'</strong> · '+esc(labelMarket);
+    let content='<div class="betpro-find-results-head"><span>Recherche : '+scope+'</span><small>'+esc(fmtDT(d.analyzed_at||new Date().toISOString()))+'</small></div>';
+    if(d.ok===false){
+      content+='<div class="betpro-find-empty"><strong>Recherche momentanément indisponible</strong><p>'+esc(d.warning||d.error||'Les données ou les crédits API ne sont pas disponibles actuellement.')+'</p></div>';
+      cnt.innerHTML=content;
+      return;
+    }
+    if(d._snapshotFallback||d.stale_cache){
+      content+='<div class="warn">Données conservées ou anciennes : vérifier les cotes actualisées avant toute décision.</div>';
+    }
+    if(d.warning&&opps.length){
+      content+='<div class="warn">'+esc(d.warning)+'</div>';
+    }
+    content+='<div class="betpro-find-count"><strong>'+opps.length+'</strong> pari'+(opps.length>1?'s':'')+' validé'+(opps.length>1?'s':'')+(d.cached?' · Analyse récente réutilisée':'')+'</div>';
+    if(opps.length){
+      content+=renderOpps(opps);
+    }else{
+      const filtered=all.length>0;
+      const reason=filtered
+        ? 'Des sélections ont passé les contrôles, mais leur note reste sous '+minScore+'/100.'
+        : (d.diagnostic_reason||'Aucune sélection ne satisfait actuellement les conditions de fiabilité.');
+      content+='<div class="betpro-find-empty"><strong>Aucun pari validé pour cette recherche</strong><p>'+esc(reason)+'</p><p class="betpro-find-foot">Cela ne signifie pas qu\'aucun match n\'est programmé. BetPro ne crée pas de pronostic ni de cote sans données vérifiables.</p></div>';
+    }
+    cnt.innerHTML=content;
+    loadQuotas();
+    toast(opps.length+' pari'+(opps.length>1?'s':'')+' validé'+(opps.length>1?'s':''),'ok');
+  }catch(e){
+    cnt.innerHTML='<div class="betpro-find-empty"><strong>Recherche indisponible</strong><p>'+esc(e?.message||String(e))+'</p></div>';
+    toast('Recherche impossible : '+(e?.message||String(e)),'err');
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML=originalLabel;
+  }
 }
 
 function evidencePct(v){const n=Number(v);return Number.isFinite(n)?(n*100).toFixed(1)+'%':'—';}
