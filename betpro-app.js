@@ -2756,11 +2756,11 @@ function betproFindGroupCode(key,providerGroup=''){
  const label=betproFindFamily(key,providerGroup);
  return BETPRO_FIND_FAMILY_CODES[label]||'other';
 }
-function betproFindSportOptions(){
+function betproFindSportOptions(resetLeague=false){
  const league=document.getElementById('sel-league');
  const sport=document.getElementById('sel-sport');
  if(!league||!sport)return;
- const previousFamily=sport.value||'soccer',previousLeague=league.value||'all';
+ const previousFamily=sport.value||'soccer',previousLeague=resetLeague?'all':(league.value||'all');
  const groups=new Map();
  for(const item of betproFindCatalog){
   const label=betproFindFamily(item.key,item.group),code=BETPRO_FIND_FAMILY_CODES[label]||'other';
@@ -2956,7 +2956,7 @@ async function doAnalyze(engine='classic'){
      if(d._snapshotFallback||d.stale_cache)warnings.push(item.title);
      latest.push(d.analyzed_at||null);
      for(const o of (Array.isArray(d.opportunities)?d.opportunities:[])){
-      const sport=String(o.sport||o._sport||item.key);
+      const sport=item.key;
       if(!betproFindMatchFilters(odds,o.odds,sport,family,league)||
          Number(o.score?.total||0)<minScore||o.professional_gate?.approved===false||
          !betproBenterMarketIsActionable(o))continue;
