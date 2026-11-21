@@ -1260,6 +1260,129 @@ a{color:var(--neon);text-decoration:none}
   background:rgba(255,147,105,.13);border-color:rgba(255,147,105,.36);
 }
 
+
+/* BETPRO 2026 — Analyse manuelle : palette saumon, parcours épuré. Scope strict. */
+#s-manual{--manual-salmon:#ff936f;--manual-soft:#ffc3a9;--manual-edge:rgba(255,147,111,.40);--manual-ink:#f7f6f7}
+#s-manual .betpro-manual-intro{margin-bottom:16px}
+#s-manual .ph .pt{color:var(--manual-salmon);font-weight:850;letter-spacing:.015em}
+#s-manual .ph .ps{max-width:790px;line-height:1.65;color:#d8dde7}
+#s-manual .betpro-manual-card,
+#s-manual .betpro-manual-import{
+ border:1px solid var(--manual-edge);border-radius:14px;
+ background:linear-gradient(125deg,rgba(255,147,111,.065),rgba(14,21,34,.96) 48%,rgba(13,19,31,.97));
+ box-shadow:0 8px 28px rgba(0,0,0,.12);margin-bottom:16px;padding:20px;
+}
+#s-manual .betpro-manual-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+#s-manual .betpro-manual-kicker{display:block;color:var(--manual-salmon);font:800 10px var(--mo);letter-spacing:.1em;margin-bottom:9px}
+#s-manual .betpro-manual-card .ct{font-size:17px;line-height:1.35;color:var(--manual-ink);margin:0}
+#s-manual .betpro-manual-step{font:750 10px var(--mo);color:var(--manual-soft);border:1px solid var(--manual-edge);padding:8px 10px;border-radius:99px;background:rgba(255,147,111,.075)}
+#s-manual .betpro-manual-teams{display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);gap:12px;align-items:end}
+#s-manual .fgrp{min-width:0}
+#s-manual .fgrp>label{display:block;font-weight:750;color:#f0f1f5;letter-spacing:.01em;font-size:11px;margin-bottom:8px}
+#s-manual .fgrp input:not([type="checkbox"]):not([type="file"]),
+#s-manual .fgrp select,#s-manual textarea{
+ width:100%;min-height:48px;padding:11px 13px;border-radius:9px;
+ border:1px solid rgba(228,234,241,.28);background:rgba(10,17,28,.90);
+ color:#fff;font-size:13px;line-height:1.4;box-shadow:none;
+}
+#s-manual input::placeholder,#s-manual textarea::placeholder{color:#9da7b8;opacity:1}
+#s-manual .fgrp input:focus-visible,#s-manual .fgrp select:focus-visible,#s-manual textarea:focus-visible{
+ outline:2px solid var(--manual-salmon);outline-offset:1px;border-color:var(--manual-salmon)
+}
+#s-manual .betpro-manual-swap{
+ width:44px;height:48px;border-radius:9px;cursor:pointer;
+ display:grid;place-items:center;color:var(--manual-salmon);
+ background:rgba(255,147,111,.095);border:1px solid var(--manual-edge);
+ font-size:23px;font-weight:800;transition:background .14s,transform .14s
+}
+#s-manual .betpro-manual-swap:hover{background:rgba(255,147,111,.19)}
+#s-manual .betpro-manual-swap:active{transform:scale(.96)}
+#s-manual .betpro-manual-middle{display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin-top:16px;margin-bottom:13px}
+#s-manual .betpro-manual-sport-select{flex:1 1 270px}
+#s-manual .betpro-manual-hint{flex:1 1 230px;font-size:11px;line-height:1.6;color:#c7cbd5;padding-bottom:8px}
+#s-manual .betpro-manual-options{border-top:1px solid rgba(255,147,111,.20);margin:0 0 16px;padding-top:11px}
+#s-manual .betpro-manual-options>summary,
+#s-manual .betpro-manual-import>summary{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+ color:var(--manual-soft);font-weight:750;font-size:12px;cursor:pointer;
+ padding:7px 0;list-style:none
+}
+#s-manual .betpro-manual-options>summary::-webkit-details-marker,
+#s-manual .betpro-manual-import>summary::-webkit-details-marker{display:none}
+#s-manual details>summary::after{content:"+";color:var(--manual-salmon);font-size:19px;font-weight:700}
+#s-manual details[open]>summary::after{content:"−"}
+#s-manual .betpro-manual-optional-note{color:#b7bfce;font-size:10px;font-weight:500;margin-left:auto}
+#s-manual .betpro-manual-options-body{display:grid;gap:15px;padding:16px 0 8px}
+#s-manual .betpro-manual-markets{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+#s-manual .betpro-manual-markets label{
+ display:inline-flex;align-items:center;gap:8px;padding:9px 11px;min-height:39px;
+ border:1px solid rgba(235,239,245,.25);border-radius:9px;cursor:pointer;
+ background:rgba(255,255,255,.035);font-size:11px;color:#f0f0f0;
+ line-height:1.25;text-transform:none;letter-spacing:0
+}
+#s-manual .betpro-manual-markets label:has(input:checked){border-color:var(--manual-edge);background:rgba(255,147,111,.10);color:#ffe0cf}
+#s-manual .betpro-manual-markets input[type="checkbox"]{width:16px;height:16px;accent-color:var(--manual-salmon);flex:none}
+#s-manual .betpro-manual-action{
+ display:flex;align-items:center;justify-content:center;gap:11px;width:100%;min-height:51px;
+ padding:12px 18px;border-radius:10px;border:1px solid var(--manual-salmon);
+ background:linear-gradient(115deg,#ff8067,#ffab84);
+ color:#25140f!important;font:900 14px var(--hd);cursor:pointer;
+ box-shadow:0 0 0 1px rgba(255,161,130,.14),0 7px 23px rgba(255,113,80,.16);
+ letter-spacing:.02em;transition:filter .14s,transform .14s
+}
+#s-manual .betpro-manual-action:hover{filter:brightness(1.07)}
+#s-manual .betpro-manual-action:active{transform:translateY(1px)}
+#s-manual .betpro-manual-action:disabled{opacity:.65;cursor:progress}
+#s-manual .betpro-manual-note{font-size:10px;color:#bfc5d0;margin-top:10px;line-height:1.55;text-align:center}
+#s-manual .betpro-manual-results{margin:2px 0 16px}
+#s-manual .betpro-manual-results .card{border-radius:13px;border-color:rgba(255,147,111,.30);background:rgba(18,23,34,.97)}
+#s-manual .betpro-manual-result-title{font:850 17px var(--hd);color:#fff;line-height:1.4}
+#s-manual .betpro-manual-result-sub{font-size:11px;color:#cbd0da;line-height:1.65;margin-top:5px}
+#s-manual .betpro-manual-hero{border:1px solid var(--manual-edge);border-radius:12px;padding:16px;margin:16px 0;background:linear-gradient(120deg,rgba(255,147,111,.13),rgba(20,25,36,.93))}
+#s-manual .betpro-manual-hero-kicker{font:800 10px var(--mo);color:var(--manual-salmon);letter-spacing:.08em;margin-bottom:8px}
+#s-manual .betpro-manual-pick{font:850 17px var(--hd);color:#fff;line-height:1.45}
+#s-manual .betpro-manual-pick-figures{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+#s-manual .betpro-manual-pick-figures span{color:#f4f2f2;font:650 12px var(--mo);padding:7px 10px;border-radius:7px;border:1px solid rgba(255,147,111,.28);background:rgba(255,255,255,.035)}
+#s-manual .betpro-manual-hero-reason{color:#d8dce5;font-size:12px;margin-top:12px;line-height:1.6}
+#s-manual .betpro-manual-alt{padding:12px 0;border-top:1px solid rgba(255,255,255,.10);font-size:12px;line-height:1.5;color:#ececf0}
+#s-manual .betpro-manual-alt strong{color:var(--manual-soft)}
+#s-manual .betpro-manual-detail{margin-top:16px;border-top:1px solid rgba(255,147,111,.22);padding-top:8px}
+#s-manual .betpro-manual-detail>summary{cursor:pointer;font-size:12px;color:var(--manual-soft);padding:11px 2px;font-weight:800}
+#s-manual .betpro-manual-detail .dir-card{max-width:100%;overflow-wrap:anywhere}
+#s-manual .betpro-manual-import{margin-top:17px;background:rgba(16,23,34,.86)}
+#s-manual .betpro-manual-import>summary{font:800 13px var(--hd);color:#ffe2d2}
+#s-manual .betpro-manual-import-body{padding:15px 0 2px;display:grid;gap:15px}
+#s-manual .betpro-manual-import-body p{font-size:11px;line-height:1.65;color:#e0e1e8;margin:0}
+#s-manual .betpro-manual-import-body code{color:var(--manual-soft)}
+#s-manual .betpro-manual-import-btn{font-size:12px;min-height:47px}
+#s-manual .betpro-manual-status{border:1px solid var(--manual-edge);background:rgba(255,147,111,.065);border-radius:11px;padding:17px;color:#e7e8ed;text-align:center}
+#s-manual .betpro-manual-status strong{display:block;color:var(--manual-soft);margin-bottom:5px}
+#s-manual .betpro-manual-status p{margin:0;font-size:12px;line-height:1.6}
+#s-manual .betpro-manual-results .warn{background:rgba(255,147,111,.065);border-color:var(--manual-edge);color:#fce0cf}
+#s-manual .betpro-manual-results .info{background:rgba(255,147,111,.052);border-color:rgba(255,147,111,.27);color:#e7e7e7}
+#s-manual .betpro-manual-results .ct{color:var(--manual-soft)}
+#s-manual .betpro-manual-results .bdg{border-color:rgba(255,147,111,.22)}
+#s-manual .betpro-manual-results .bsp,#s-manual .betpro-manual-results .bsr{background:rgba(255,147,111,.08);color:#f5c3ad}
+#s-manual .betpro-manual-results .dir-card{background:rgba(18,23,34,.98)!important}
+#s-manual .betpro-manual-results .dir-card [style*="color:var(--neon)"]{color:var(--manual-salmon)!important}
+#s-manual .betpro-manual-import input[type="file"]{padding:12px;border:1px dashed var(--manual-edge);border-radius:8px;cursor:pointer;background:rgba(255,147,111,.025)}
+#s-manual .betpro-manual-import input[type="file"]::file-selector-button{margin-right:12px;padding:8px;border-radius:7px;color:#30180f;background:#ffae8e;border:0;cursor:pointer}
+@media(max-width:680px){
+ #s-manual .betpro-manual-card,#s-manual .betpro-manual-import{padding:15px}
+ #s-manual .betpro-manual-teams{grid-template-columns:minmax(0,1fr) 39px minmax(0,1fr);gap:6px}
+ #s-manual .betpro-manual-teams .fgrp input{padding:9px 10px;font-size:12px}
+ #s-manual .betpro-manual-swap{width:39px}
+ #s-manual .betpro-manual-step{display:none}
+ #s-manual .betpro-manual-card .ct{font-size:15px}
+ #s-manual .betpro-manual-optional-note{display:none}
+}
+@media(max-width:420px){
+ #s-manual .betpro-manual-teams{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);gap:5px}
+ #s-manual .betpro-manual-swap{width:34px;font-size:18px}
+ #s-manual .betpro-manual-teams input{min-height:47px}
+ #s-manual .betpro-manual-card-head{margin-bottom:15px}
+}
+
 </style>
 </head>
 <body>
@@ -1505,65 +1628,111 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ ANALYSE MANUELLE ═══════════════ -->
 <section class="sec" id="s-manual">
-  <div class="ph"><div class="pt">&#127919; Analyse manuelle</div><div class="ps">Recherche le vrai match dans les cotes réelles — jamais de réponse inventée.</div></div>
-  <div class="info">&#8505;&#65039; Cette recherche interroge The Odds API pour retrouver le match exact (bonnes équipes, bonne date, vraies cotes). Si le match n'est pas trouvé dans les cotes actuellement disponibles, l'outil vous le dit clairement au lieu d'inventer une analyse.</div>
-  <div class="card">
-    <div class="ct">Entrer un match</div>
-    <div class="fg">
-      <div class="fgrp"><label>Domicile</label><input type="text" id="m-home" placeholder="ex: Arsenal, PSG…"></div>
-      <div class="fgrp"><label>Extérieur</label><input type="text" id="m-away" placeholder="ex: Chelsea, Lyon…"></div>
-      <div class="fgrp"><label>Sport</label>
-        <select id="m-sport-family">
-          <option value="all">Tous sports (recherche large)</option>
-          <option value="soccer">&#9917; Football</option>
-          <option value="basketball">&#127936; Basketball</option>
-          <option value="tennis">&#127934; Tennis</option>
-          <option value="rugby">&#127945; Rugby</option>
-          <option value="icehockey">&#127944; Hockey</option>
-          <option value="baseball">&#9918; Baseball</option>
-          <option value="mma">&#129354; MMA/Boxe</option>
-          <option value="americanfootball">&#127944; NFL</option>
-          <option value="handball">&#129336; Handball</option>
-          <option value="volleyball">&#127952; Volleyball</option>
+  <div class="ph betpro-manual-intro">
+    <div class="pt">Analyse manuelle</div>
+    <div class="ps">Choisissez deux équipes ou deux sportifs. BetPro cherche la rencontre et vous indique les sélections vérifiables.</div>
+  </div>
+  <div class="card betpro-manual-card">
+    <div class="betpro-manual-card-head">
+      <div>
+        <span class="betpro-manual-kicker">RECHERCHE CIBLÉE</span>
+        <div class="ct">Quel match souhaitez-vous analyser ?</div>
+      </div>
+      <span class="betpro-manual-step">1 match · 1 analyse</span>
+    </div>
+    <form id="m-form" onsubmit="event.preventDefault();doManualAnalyze()">
+      <div class="betpro-manual-teams">
+        <div class="fgrp">
+          <label for="m-home">Équipe ou sportif 1</label>
+          <input type="text" id="m-home" placeholder="Ex. PSG" maxlength="85" autocomplete="off" required>
+        </div>
+        <button class="betpro-manual-swap" type="button" onclick="manualSwapTeams()" aria-label="Inverser les deux équipes" title="Inverser les deux équipes">
+          <span aria-hidden="true">⇄</span>
+        </button>
+        <div class="fgrp">
+          <label for="m-away">Équipe ou sportif 2</label>
+          <input type="text" id="m-away" placeholder="Ex. Nice" maxlength="85" autocomplete="off" required>
+        </div>
+      </div>
+      <div class="betpro-manual-middle">
+        <div class="fgrp betpro-manual-sport-select">
+          <label for="m-sport-family">Sport</label>
+          <select id="m-sport-family" onchange="manualSportChanged()">
+            <option value="all">Tous les sports (automatique)</option>
+            <option value="soccer">Football</option>
+            <option value="basketball">Basketball</option>
+            <option value="tennis">Tennis</option>
+            <option value="rugby">Rugby</option>
+            <option value="icehockey">Hockey</option>
+            <option value="baseball">Baseball</option>
+            <option value="mma">MMA / Boxe</option>
+            <option value="americanfootball">Football américain / NFL</option>
+            <option value="handball">Handball</option>
+            <option value="volleyball">Volleyball</option>
+          </select>
+        </div>
+        <span class="betpro-manual-hint" id="m-search-hint">Préciser le sport rend la recherche plus rapide.</span>
+      </div>
+      <details class="betpro-manual-options" id="m-more-options">
+        <summary><span>Options de recherche</span><span class="betpro-manual-optional-note">Date et types de paris (facultatif)</span></summary>
+        <div class="betpro-manual-options-body">
+          <div class="fgrp">
+            <label for="m-date">Date du match (facultatif)</label>
+            <input type="date" id="m-date">
+          </div>
+          <div class="fgrp">
+            <label>Types de paris à rechercher</label>
+            <div class="betpro-manual-markets" id="m-markets-wrap">
+              <label><input type="checkbox" value="h2h" checked><span>Vainqueur / 1X2</span></label>
+              <label><input type="checkbox" value="totals" checked><span>Plus / moins</span></label>
+              <label data-soccer-market="true"><input type="checkbox" value="btts" checked><span>Les 2 marquent</span></label>
+              <label data-soccer-market="true"><input type="checkbox" value="double_chance"><span>Double chance</span></label>
+              <label><input type="checkbox" value="spreads"><span>Handicap</span></label>
+            </div>
+          </div>
+        </div>
+      </details>
+      <button class="btn betpro-manual-action" type="submit" id="mbtn">
+        <span aria-hidden="true">◎</span> Analyser ce match
+      </button>
+      <div class="betpro-manual-note">Résultats calculés uniquement avec les données et cotes disponibles. Aucune sélection n'est garantie.</div>
+    </form>
+  </div>
+  <div id="manual-res" class="betpro-manual-results" aria-live="polite" aria-atomic="false"></div>
+  <details class="card betpro-manual-import" id="m-csv-panel">
+    <summary>
+      <span>Analyser plusieurs matchs</span>
+      <span class="betpro-manual-optional-note">Importer une liste CSV</span>
+    </summary>
+    <div class="betpro-manual-import-body">
+      <p>Une rencontre par ligne : <code>PSG;Nice;Ligue 1;2026-11-21</code>. La compétition et la date sont facultatives.</p>
+      <div class="fgrp">
+        <label for="m-csv">Coller votre liste</label>
+        <textarea id="m-csv" rows="4" placeholder="PSG;Nice;Ligue 1;2026-11-21&#10;Arsenal;Chelsea;Premier League"></textarea>
+      </div>
+      <div class="fgrp">
+        <label for="m-file">Ou sélectionner un fichier CSV / TXT</label>
+        <input type="file" id="m-file" accept=".csv,.txt,text/csv,text/plain" onchange="loadFile()">
+      </div>
+      <div class="fgrp">
+        <label for="m-csv-sport-family">Sport de la liste</label>
+        <select id="m-csv-sport-family">
+          <option value="all">Tous les sports (automatique)</option>
+          <option value="soccer">Football</option>
+          <option value="basketball">Basketball</option>
+          <option value="tennis">Tennis</option>
+          <option value="rugby">Rugby</option>
+          <option value="icehockey">Hockey</option>
+          <option value="baseball">Baseball</option>
+          <option value="mma">MMA / Boxe</option>
+          <option value="americanfootball">Football américain / NFL</option>
+          <option value="handball">Handball</option>
+          <option value="volleyball">Volleyball</option>
         </select>
       </div>
-      <div class="fgrp"><label>Date du match (opt.)</label><input type="date" id="m-date" style="color:var(--tx)"></div>
+      <button class="btn betpro-manual-action betpro-manual-import-btn" type="button" id="csvbtn" onclick="doCSVAnalyze()">Analyser la liste</button>
     </div>
-    <div class="info" style="margin-bottom:14px;font-size:11px">&#128161; Préciser le sport accélère et fiabilise la recherche. Sans date, l'outil retient le prochain match à venir correspondant à ces deux équipes.</div>
-    <div class="fgrp" style="margin-bottom:14px"><label>Marchés</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="m-markets-wrap">
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="h2h" checked style="width:auto"> 1X2</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="totals" checked style="width:auto"> Over/Under 2.5</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="btts" checked style="width:auto"> BTTS</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="double_chance" checked style="width:auto"> Double Chance</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;text-transform:none;letter-spacing:0"><input type="checkbox" value="spreads" checked style="width:auto"> Handicap</label>
-      </div>
-    </div>
-    <div class="bg"><button class="btn bp" id="mbtn" onclick="doManualAnalyze()">&#127919; Rechercher le vrai match &amp; analyser</button></div>
-  </div>
-  <div class="card">
-    <div class="ct">Importer liste CSV</div>
-    <div class="info">Format : <code>Domicile;Extérieur;Compétition;Date(YYYY-MM-DD)</code> — la compétition sert seulement d'indication, la recherche se fait sur les vraies cotes.</div>
-    <div class="fgrp" style="margin-bottom:12px"><label>Coller la liste</label><textarea id="m-csv" placeholder="Arsenal;Chelsea;Premier League;2026-04-25"></textarea></div>
-    <div class="fgrp" style="margin-bottom:14px"><label>Ou charger un fichier</label><input type="file" id="m-file" accept=".csv,.txt" style="color:var(--mu)" onchange="loadFile()"></div>
-    <div class="fgrp" style="margin-bottom:14px"><label>Sport (liste CSV)</label>
-      <select id="m-csv-sport-family">
-        <option value="all">Tous sports (recherche large)</option>
-        <option value="soccer">&#9917; Football</option>
-        <option value="basketball">&#127936; Basketball</option>
-        <option value="tennis">&#127934; Tennis</option>
-        <option value="rugby">&#127945; Rugby</option>
-        <option value="icehockey">&#127944; Hockey</option>
-        <option value="baseball">&#9918; Baseball</option>
-        <option value="mma">&#129354; MMA/Boxe</option>
-        <option value="americanfootball">&#127944; NFL</option>
-        <option value="handball">&#129336; Handball</option>
-        <option value="volleyball">&#127952; Volleyball</option>
-      </select>
-    </div>
-    <div class="bg"><button class="btn bp" id="csvbtn" onclick="doCSVAnalyze()">&#128194; Analyser la liste</button></div>
-  </div>
-  <div id="manual-res"></div>
+  </details>
 </section>
 
 <!-- ═══════════════ LIVE ═══════════════ -->
@@ -2385,7 +2554,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-chat-direct-v206"></script>
+<script defer src="./betpro-app.js?v=20261121-manual-salmon-v207"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
