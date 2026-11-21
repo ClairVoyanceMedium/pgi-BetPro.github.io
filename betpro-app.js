@@ -4047,7 +4047,7 @@ async function loadQuotas(){const el=document.getElementById('qfoot');try{const 
 // ═══════════════════════════════════════════════
 let chatHistory=[];
 function getCtx(){const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim(),sh=document.getElementById('ctx-sh')?.value,sa=document.getElementById('ctx-sa')?.value,min=document.getElementById('ctx-min')?.value,comp=document.getElementById('ctx-comp')?.value.trim();const ctx={};if(home)ctx.home=home;if(away)ctx.away=away;if(sh)ctx.score_home=parseInt(sh)||0;if(sa)ctx.score_away=parseInt(sa)||0;if(min)ctx.minute=parseInt(min);if(comp)ctx.competition=comp;return Object.keys(ctx).length?ctx:null;}
-function clearCtx(){['ctx-home','ctx-away','ctx-sh','ctx-sa','ctx-min','ctx-comp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const results=document.getElementById('live-model-res');if(results)results.innerHTML='';betproPoissonLastAnalysis=null;}
+function clearCtx(){['ctx-home','ctx-away','ctx-sh','ctx-sa','ctx-min','ctx-comp','ctx-total-line'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sport=document.getElementById('ctx-sport');if(sport)sport.value='auto';betproPoissonSportChanged();const results=document.getElementById('live-model-res');if(results)results.innerHTML='';betproPoissonLastAnalysis=null;}
 function clearChat(){chatHistory=[];ttsStop(true);document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
@@ -4396,6 +4396,85 @@ async function sendChat(){
 
 async function loadAIStatus(){const box=document.getElementById('ai-status-box');if(!box)return;try{const d=await api('/api/ai-info');box.innerHTML=d.configured?`<div class="ok-box">✅ IA opérationnelle — <span class="provider-badge pb-${d.provider}">${d.provider} · ${d.model}</span></div>`:`<div class="warn">⚠️ IA non configurée — exécutez <code>wrangler secret put AI_PROVIDER</code></div>`;const badge=document.getElementById('ai-badge');if(badge&&d.configured){badge.className='provider-badge pb-'+d.provider;badge.textContent='⚡ '+d.provider+' · '+d.model;}}catch(_){}}
 
+
+function betproPoissonSportChanged(){
+ const sport=document.getElementById('ctx-sport')?.value||'auto';
+ const formats={
+  football:['Buts domicile','Buts extérieur','Minute (0 avant-match)',120,25,'Plus de 2,5 buts'],
+  basketball:['Points domicile','Points extérieur','Minute de jeu (0 avant-match)',48,400,'Ex. 220,5 points'],
+  baseball:['Runs domicile','Runs extérieur','Manche (0 à 9 ; 0 avant-match)',9,100,'Ex. 8,5 runs'],
+  nfl:['Points domicile','Points extérieur','Minute de jeu (0 à 60)',60,200,'Ex. 44,5 points'],
+  hockey:['Buts domicile','Buts extérieur','Minute de jeu (0 à 60)',60,50,'Ex. 5,5 buts'],
+  rugby:['Points domicile','Points extérieur','Minute de jeu (0 à 80)',80,200,'Ex. 44,5 points'],
+  tennis:['Sets joueur 1','Sets joueur 2','Set / période',5,10,'Ligne facultative'],
+  mma:['Rounds gagnés 1','Rounds gagnés 2','Round',5,10,'Ligne facultative'],
+  auto:['Score domicile','Score extérieur','Minute / manche (0 avant-match)',120,400,'Ligne de référence automatique']
+ };
+ const p=formats[sport]||formats.auto;
+ for(const [id,text] of [['ctx-sh-label',p[0]],['ctx-sa-label',p[1]],['ctx-min-label',p[2]]]){
+  const label=document.getElementById(id);if(label)label.textContent=text;
+ }
+ const progress=document.getElementById('ctx-min'),scoreA=document.getElementById('ctx-sh'),scoreB=document.getElementById('ctx-sa');
+ if(progress){progress.max=String(p[3]);if(Number(progress.value)>p[3])progress.value='';}
+ for(const input of [scoreA,scoreB])if(input){input.max=String(p[4]);if(input.value!==''&&Number(input.value)>p[4])input.value='';}
+ const line=document.getElementById('ctx-total-line');if(line)line.placeholder=p[5];
+}
+function betproPoissonMultisportRender(d,ctx,res){
+ const m=d.model,home=d.history?.home_name||ctx.home,away=d.history?.away_name||ctx.away;
+ const pct=v=>v===null||v===undefined||!Number.isFinite(Number(v))?'–':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %';
+ const num=v=>v===null||v===undefined||!Number.isFinite(Number(v))?'–':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:2});
+ const sportNames={basketball:'Basketball',baseball:'Baseball',nfl:'Football américain',hockey:'Hockey',rugby:'Rugby',
+   tennis:'Tennis',mma:'MMA',volleyball:'Volleyball',handball:'Handball'};
+ const sport=sportNames[d.sport]||String(d.sport||'Sport');
+ const box=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+
+  (hint?'<small>'+esc(hint)+'</small>':'')+'</div>';
+ const sources=(d.source_urls||[]).slice(0,4).map(u=>{
+  try{const url=new URL(u);return url.protocol==='https:'&&url.hostname==='site.api.espn.com'?
+   '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">ESPN '+esc(url.pathname.split('/').slice(-4).join(' / '))+'</a>':'';}
+  catch(_){return'';}
+ }).filter(Boolean).join(' ');
+ let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>Analyse Poisson + Multisports · '+esc(sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
+   '<p class="betpro-poisson-match">'+esc(home)+' <span>vs</span> '+esc(away)+'</p>';
+ if(!m){
+  html+='<div class="betpro-poisson-warning">'+esc(d.explanation||'Données récentes insuffisantes.')+'</div>'+
+   '<p class="betpro-poisson-note">Historique vérifiable : '+esc(String(d.history?.home_matches??0))+' / '+esc(String(d.history?.away_matches??0))+' rencontres. Aucun pourcentage fictif.</p>';
+ }else{
+  const out=m.outcomes||{},rank=[{label:home,p:out.home_win},{label:away,p:out.away_win}];
+  if(out.draw!=null)rank.push({label:'Match nul',p:out.draw});
+  rank.sort((x,y)=>Number(y.p)-Number(x.p));
+  const unit=d.sport==='baseball'?'manche(s)':'minute(s)';
+  html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et temps confirmés par ESPN en direct.':'Score et période saisis manuellement (non vérifiés).')+
+   ' · '+esc((d.match?.score_home??ctx.score_home)+' - '+(d.match?.score_away??ctx.score_away))+
+   ' · Période : '+esc(String(d.match?.minute??ctx.minute))+' / '+esc(String(m.regulation_time))+' '+unit+'.</p>';
+  html+='<div class="betpro-poisson-grid">'+
+   box(home,pct(out.home_win),'Victoire estimée')+
+   (out.draw!=null?box('Match nul',pct(out.draw),'Temps réglementaire'):'')+
+   box(away,pct(out.away_win),'Victoire estimée')+'</div>';
+  html+='<div class="betpro-poisson-grid">'+
+   box('Total projeté',num(m.expected_total),'Points / runs / buts cumulés')+
+   box('Plus de '+num(m.reference_line),pct(m.over_reference),'Ligne statistique, non bookmaker')+
+   box('Moins de '+num(m.reference_line),pct(m.under_reference),'Ligne statistique, non bookmaker')+
+   box('Égalité réglementaire',pct(m.regulation_outcomes?.tie),'Avant prolongation, si applicable')+'</div>';
+  html+='<div class="betpro-poisson-bottom"><div><h4>Projection du match</h4>'+
+   '<p>Score attendu : <strong>'+num(m.expected_final?.home)+' / '+num(m.expected_final?.away)+'</strong></p>'+
+   '<p>Points restants attendus : <strong>'+num(m.additional_goals?.home)+' / '+num(m.additional_goals?.away)+'</strong></p>'+
+   '<p>Distribution : <strong>'+esc(m.distribution||'Estimée')+'</strong></p>'+
+   (m.top_scores?.length?'<p>Scores les plus probables : '+m.top_scores.map(x=>esc(x.score)+' ('+pct(x.pct)+')').join(' · ')+'</p>':'')+
+   '</div><div><h4>Lecture du modèle</h4>'+
+   '<p>Issue dominante : <strong>'+esc(rank[0]?.label||'Non déterminée')+' ('+pct(rank[0]?.p)+')</strong></p>'+
+   '<p>Historique : <strong>'+esc(String(d.history?.home_matches??0))+' / '+esc(String(d.history?.away_matches??0))+' matchs</strong></p>'+
+   '<p>Cotes théoriques : <strong>'+num(m.fair_odds?.home)+' / '+num(m.fair_odds?.away)+'</strong></p>'+
+   '<p>'+esc(m.quality_note||'Modèle non calibré')+'</p></div></div>';
+  if(d.ai_analysis?.resume)html+='<div class="betpro-poisson-verdict">'+esc(d.ai_analysis.resume)+'</div>';
+  html+='<button class="btn bs betpro-poisson-chat" type="button" onclick="betproPoissonAskChat()">Compléter avec le Chat Expert</button>';
+ }
+ if((d.limitations||[]).length)html+='<div class="betpro-poisson-warning"><strong>Limites de fiabilité</strong><ul>'+
+  d.limitations.slice(0,6).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+ if(d.method)html+='<p class="betpro-poisson-note">'+esc(d.method)+'</p>';
+ if(sources)html+='<div class="betpro-poisson-sources">'+sources+'</div>';
+ html+='</div>';res.innerHTML=html;
+}
+
 let betproPoissonLastAnalysis=null;
 async function runLiveModelUI(){
  const home=document.getElementById('ctx-home')?.value.trim()||'',
@@ -4408,20 +4487,24 @@ async function runLiveModelUI(){
  const score_home=homeField===''?0:Number(homeField);
  const score_away=awayField===''?0:Number(awayField);
  if(!home||!away||home.toLowerCase()===away.toLowerCase()){
-  toast('Saisissez deux équipes différentes pour le football.','err');return;
+  toast('Saisissez deux adversaires différents.','err');return;
  }
- if(!Number.isInteger(minute)||minute<0||minute>120||![score_home,score_away].every(n=>Number.isInteger(n)&&n>=0&&n<=25)){
-  toast('Minute de 0 à 120 et scores entiers valides.','err');return;
+ const sport=document.getElementById('ctx-sport')?.value||'auto';
+ const totalRaw=document.getElementById('ctx-total-line')?.value||'';
+ const total_line=totalRaw===''?null:Number(totalRaw);
+ if(!Number.isFinite(minute)||minute<0||minute>120||![score_home,score_away].every(n=>Number.isInteger(n)&&n>=0&&n<=400)||total_line!==null&&(!Number.isFinite(total_line)||total_line<=0||total_line>500)){
+  toast('Période, scores ou seuil de total invalides pour ce sport.','err');return;
  }
  const btn=document.getElementById('live-model-btn'),res=document.getElementById('live-model-res');
  if(!btn||!res)return;
  btn.disabled=true;btn.textContent='Calcul en cours…';
- res.innerHTML='<div class="ls" style="padding:25px"><div class="sp"></div><p>Recherche de l’historique des équipes et estimation du modèle Poisson…</p></div>';
+ res.innerHTML='<div class="ls" style="padding:25px"><div class="sp"></div><p>Recherche des résultats historiques et calcul statistique adapté au sport…</p></div>';
  try{
-  const d=await api('/api/live-analysis','POST',{home,away,competition,minute,score_home,score_away},
+  const d=await api('/api/live-analysis','POST',{home,away,competition,minute,score_home,score_away,sport,total_line},
    {timeoutMs:45000,noCache:true});
   if(!d||d.ok===false)throw Error(String(d?.error||'Réponse du modèle indisponible.'));
   betproPoissonLastAnalysis=d?.model?d:null;
+  if(d.sport&&d.sport!=='football'){betproPoissonMultisportRender(d,{home,away,sport,minute,score_home,score_away},res);return;}
   const names=[d.history?.home_name||home,d.history?.away_name||away],m=d.model;
   const percent=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %':'–';
   const number=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:2}):'–';
@@ -4481,7 +4564,7 @@ async function runLiveModelUI(){
   res.innerHTML='<div class="betpro-poisson-panel"><div class="betpro-poisson-warning">Analyse impossible : '+
    esc(String(e?.message||e))+'. Aucun pourcentage n’a été inventé.</div></div>';
   toast('Analyse Poisson indisponible','err');
- }finally{btn.disabled=false;btn.textContent='Analyse Poisson avancée';}
+ }finally{btn.disabled=false;btn.textContent='Lancer Analyse Poisson + Multisports';}
 }
 function betproPoissonAskChat(){
  const d=betproPoissonLastAnalysis;if(!d?.model)return;
