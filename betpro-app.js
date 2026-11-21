@@ -4067,12 +4067,140 @@ function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
 const BETPRO_CHAT_BOT_ICON='<img class="betpro-chat-bp-image" src="./betpro-icon-192.png" width="34" height="34" alt="BP" loading="lazy" decoding="async">';
 const TTS={enabled:false,speed:1,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false,messages:new Map(),startupTimer:null,chunkTimer:null,nextTimer:null,retried:false,voiceKey:''};
 const CHAT_MIC={recognition:null,active:false,base:'',error:null};
+/* Offline French TTS fallback: meSpeak.js (Norbert Landsteiner, GPLv3).
+   Source and license: https://github.com/btopro/mespeak
+   Loaded only when Android Chrome speechSynthesis fails; no paid TTS API. */
+const BETPRO_AUDIO_LOCAL={ctx:null,source:null,playing:false,loadPromise:null,ready:false};
+const BETPRO_AUDIO_LOCAL_CDN='https://cdn.jsdelivr.net/gh/btopro/mespeak@078d6597254776c151c67f73434c91be034a9fdc/';
+function ttsUnlockWebAudio(){
+ try{
+  if(!BETPRO_AUDIO_LOCAL.ctx){
+   const Context=window.AudioContext||window.webkitAudioContext;
+   if(!Context)return false;
+   BETPRO_AUDIO_LOCAL.ctx=new Context();
+  }
+  if(BETPRO_AUDIO_LOCAL.ctx.state==='suspended'){
+   const p=BETPRO_AUDIO_LOCAL.ctx.resume();
+   if(p&&typeof p.catch==='function')p.catch(()=>{});
+  }
+  return true;
+ }catch(_){return false;}
+}
+function ttsLocalStop(){
+ if(BETPRO_AUDIO_LOCAL.source){
+  const src=BETPRO_AUDIO_LOCAL.source;BETPRO_AUDIO_LOCAL.source=null;
+  try{src.onended=null;src.stop(0);src.disconnect();}catch(_){}
+ }
+ BETPRO_AUDIO_LOCAL.playing=false;
+}
+function ttsLocalReady(){
+ if(BETPRO_AUDIO_LOCAL.ready&&window.meSpeak)return Promise.resolve(window.meSpeak);
+ if(BETPRO_AUDIO_LOCAL.loadPromise)return BETPRO_AUDIO_LOCAL.loadPromise;
+ const main=BETPRO_AUDIO_LOCAL_CDN+'mespeak.js';
+ const voice=BETPRO_AUDIO_LOCAL_CDN+'voices/fr.json';
+ const config=BETPRO_AUDIO_LOCAL_CDN+'mespeak_config.json';
+ const promise=new Promise((resolve,reject)=>{
+  let done=false;
+  const timer=setTimeout(()=>finish(new Error('Délai de chargement du moteur vocal dépassé')),18000);
+  function finish(error,api){
+   if(done)return;done=true;clearTimeout(timer);
+   if(error)reject(error);else resolve(api);
+  }
+  function setup(){
+   const api=window.meSpeak;
+   if(!api||typeof api.speak!=='function'||typeof api.loadVoice!=='function'){
+    finish(new Error('Bibliothèque vocale indisponible'));return;
+   }
+   const loadVoice=()=>{
+    try{
+     api.loadVoice(voice,(ok)=>{
+      if(ok===false){finish(new Error('Impossible de charger la voix française'));return;}
+      BETPRO_AUDIO_LOCAL.ready=true;finish(null,api);
+     });
+    }catch(e){finish(e);}
+   };
+   try{
+    if(typeof api.isConfigLoaded==='function'&&api.isConfigLoaded())loadVoice();
+    else if(typeof api.loadConfig==='function')api.loadConfig(config,ok=>{
+     if(ok===false)finish(new Error('Configuration de synthèse indisponible'));
+     else loadVoice();
+    });
+    else loadVoice();
+   }catch(e){finish(e);}
+  }
+  if(window.meSpeak){setup();return;}
+  const script=document.createElement('script');
+  script.src=main;script.async=true;script.referrerPolicy='no-referrer';
+  script.onload=setup;
+  script.onerror=()=>finish(new Error('Le moteur vocal libre ne peut pas être téléchargé'));
+  document.head.appendChild(script);
+ });
+ BETPRO_AUDIO_LOCAL.loadPromise=promise.catch(e=>{
+  BETPRO_AUDIO_LOCAL.loadPromise=null;
+  throw e;
+ });
+ return BETPRO_AUDIO_LOCAL.loadPromise;
+}
+async function ttsLocalSpeak(token,reason){
+ if(token!==TTS.token)return;
+ ttsClearTimers();TTS.utterance=null;
+ BETPRO_AUDIO_LOCAL.playing=true;
+ ttsStatus('Le moteur vocal Android a échoué. Chargement de la voix française de secours…');
+ try{
+  if(!ttsUnlockWebAudio())throw new Error('Audio Web non disponible dans Chrome');
+  const api=await ttsLocalReady();
+  if(token!==TTS.token)return;
+  const ctx=BETPRO_AUDIO_LOCAL.ctx;
+  if(ctx.state!=='running')await ctx.resume();
+  if(token!==TTS.token)return;
+  if(ctx.state!=='running')throw new Error('Lecture bloquée par Chrome : appuyez sur Écouter');
+  const decode=async bytes=>{
+   const data=bytes instanceof ArrayBuffer?bytes:
+    typeof bytes==='string'&&bytes.startsWith('data:')?Uint8Array.from(atob(bytes.split(',')[1]),c=>c.charCodeAt(0)).buffer:
+    bytes?.buffer instanceof ArrayBuffer?bytes.buffer.slice(bytes.byteOffset||0,(bytes.byteOffset||0)+bytes.byteLength):null;
+   if(!data||!data.byteLength)throw new Error('Audio français non généré');
+   return ctx.decodeAudioData(data);
+  };
+  const playNext=async()=>{
+   if(token!==TTS.token)return;
+   if(TTS.i>=TTS.chunks.length){BETPRO_AUDIO_LOCAL.playing=false;ttsFinish('Lecture française terminée.');return;}
+   ttsStatus('Voix française de secours · '+(TTS.i+1)+'/'+TTS.chunks.length);
+   let raw;
+   try{
+    raw=api.speak(TTS.chunks[TTS.i],{rawdata:true,voice:'fr',speed:Math.round(170*TTS.speed),pitch:50});
+    const buffer=await decode(raw);
+    if(token!==TTS.token)return;
+    const src=ctx.createBufferSource();
+    src.buffer=buffer;src.connect(ctx.destination);
+    BETPRO_AUDIO_LOCAL.source=src;
+    src.onended=()=>{
+     if(token!==TTS.token)return;
+     BETPRO_AUDIO_LOCAL.source=null;
+     TTS.i++;playNext();
+    };
+    src.start(0);
+   }catch(e){
+    if(token!==TTS.token)return;
+    BETPRO_AUDIO_LOCAL.playing=false;
+    ttsStop(true);
+    ttsStatus('La voix Android et la voix locale ont échoué : '+String(e?.message||e).slice(0,95));
+   }
+  };
+  await playNext();
+ }catch(e){
+  if(token!==TTS.token)return;
+  BETPRO_AUDIO_LOCAL.playing=false;
+  ttsStop(true);
+  ttsStatus('Impossible de lire la réponse : '+String(e?.message||e).slice(0,105));
+ }
+}
+
 function ttsSupported(){return typeof window!=='undefined'&&!!window.speechSynthesis&&typeof window.SpeechSynthesisUtterance==='function';}
 function ttsStatus(t){const el=document.getElementById('tts-status');if(el)el.textContent=t||'';}
 function ttsGetVoices(){if(!ttsSupported())return[];try{return window.speechSynthesis.getVoices()||[];}catch(_){return[];}}
 function ttsInit(){
  const sel=document.getElementById('tts-voice');
- if(!ttsSupported()){ttsStatus('Lecture vocale indisponible sur ce navigateur');chatMicInit();return;}
+ if(!ttsSupported()){ttsStatus('Synthèse vocale native indisponible : voix française locale de secours activée au besoin.');chatMicInit();return;}
  const refresh=()=>{
   const voices=ttsGetVoices();TTS.voices=voices;if(!sel)return;
   const selected=TTS.voiceKey||sel.value;sel.innerHTML='<option value="">Voix française auto</option>';
@@ -4128,11 +4256,12 @@ function ttsPlayLabel(active){
 function ttsFinish(status){
  ttsClearTimers();ttsPlayLabel(false);
  TTS.utterance=null;TTS.chunks=[];TTS.i=0;TTS.hasStarted=false;TTS.retried=false;TTS.replay=null;
+ BETPRO_AUDIO_LOCAL.playing=false;
  const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='none';
  if(status!==undefined)ttsStatus(status);
 }
 function ttsStop(silent=false){
- ++TTS.token;ttsClearTimers();
+ ++TTS.token;ttsClearTimers();ttsLocalStop();
  if(ttsSupported()){
   const syn=window.speechSynthesis;
   if(TTS.utterance||syn.speaking||syn.pending||syn.paused)try{syn.cancel();}catch(_){}
@@ -4140,18 +4269,17 @@ function ttsStop(silent=false){
  ttsFinish(silent?'':'Lecture arrêtée.');
 }
 function ttsSpeak(text,replayId,automatic=false){
- if(!ttsSupported()){
-  ttsStatus('Lecture vocale non disponible dans ce navigateur. Essayez Chrome avec une voix française.');
-  return false;
- }
  if(CHAT_MIC.active)chatMicStop();
  const chunks=ttsChunks(text);if(!chunks.length){ttsStatus('Aucun texte à lire.');return false;}
- const synth=window.speechSynthesis;
+ // Unlock WebAudio synchronously from the button click for the free fallback.
+ ttsUnlockWebAudio();
+ const synth=ttsSupported()?window.speechSynthesis:null;
  ttsStop(true);
  const token=++TTS.token;TTS.chunks=chunks;TTS.i=0;TTS.retried=false;TTS.replay=replayId||null;
  ttsPlayLabel(true);
  const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='';
  ttsStatus(automatic?'Préparation de la lecture automatique…':'Lecture en préparation…');
+ if(!synth){ttsLocalSpeak(token,'native-unavailable');return true;}
  const fail=message=>{if(token!==TTS.token)return;ttsStop(true);ttsStatus(message);};
  const next=(defaultVoice=false)=>{
   if(token!==TTS.token)return;
@@ -4168,11 +4296,14 @@ function ttsSpeak(text,replayId,automatic=false){
   utter.onerror=e=>{
    if(settled||token!==TTS.token)return;settled=true;ttsClearTimers();
    const type=String(e?.error||'inconnue');
-   if(!TTS.retried&&['canceled','interrupted','audio-busy','synthesis-failed','voice-unavailable','synthesis-unavailable'].includes(type)){
+   if(['synthesis-failed','synthesis-unavailable','voice-unavailable','not-allowed'].includes(type)){
+    ttsLocalSpeak(token,type);return;
+   }
+   if(!TTS.retried&&['canceled','interrupted','audio-busy'].includes(type)){
     TTS.retried=true;try{synth.cancel();}catch(_){}
     TTS.nextTimer=setTimeout(()=>next(true),180);return;
    }
-   fail(type==='not-allowed'?'Lecture bloquée. Appuyez directement sur « Écouter » dans Chrome.':'Erreur audio : '+type+'. Vérifiez la voix et le volume.');
+   ttsLocalSpeak(token,type);
   };
   try{if(synth.paused)synth.resume();synth.speak(utter);}
   catch(e){fail('Impossible de lire la réponse : '+String(e?.message||e).slice(0,80));return;}
@@ -4181,13 +4312,13 @@ function ttsSpeak(text,replayId,automatic=false){
    if(token!==TTS.token||settled||started)return;
    if(synth.speaking){started=true;ttsStatus('Lecture vocale en cours…');return;}
    if(!TTS.retried){TTS.retried=true;settled=true;ttsClearTimers();try{synth.cancel();}catch(_){}TTS.nextTimer=setTimeout(()=>next(true),180);}
-   else fail('La voix ne démarre pas. Vérifiez la synthèse vocale Android ou utilisez Chrome.');
+   else ttsLocalSpeak(token,'timeout-android');
   },3000);
   TTS.chunkTimer=setTimeout(()=>{
    if(token!==TTS.token||settled)return;
    try{if(synth.paused)synth.resume();}catch(_){}
-   if(!synth.speaking&&!synth.pending)fail('Lecture interrompue. Appuyez sur « Écouter ».');
-   else TTS.chunkTimer=setTimeout(()=>{if(token===TTS.token&&!settled)fail('Lecture bloquée. Appuyez à nouveau sur « Écouter ».');},6000);
+   if(!synth.speaking&&!synth.pending)ttsLocalSpeak(token,'interruption-android');
+   else TTS.chunkTimer=setTimeout(()=>{if(token===TTS.token&&!settled)ttsLocalSpeak(token,'blocage-android');},6000);
   },24000);
  };
  // On a fresh user click: start synchronously to keep audio permission.
@@ -4197,7 +4328,7 @@ function ttsSpeak(text,replayId,automatic=false){
  return true;
 }
 function ttsToggleAuto(){
- if(!ttsSupported()){ttsStatus('Lecture vocale non disponible dans ce navigateur.');return;}
+ if(!ttsSupported()&&!(window.AudioContext||window.webkitAudioContext)){ttsStatus('Aucune lecture audio disponible.');return;}
  TTS.enabled=!TTS.enabled;
  const button=document.getElementById('tts-main-btn'),label=document.getElementById('tts-main-lbl');
  if(button){button.classList.toggle('on',TTS.enabled);button.setAttribute('aria-pressed',String(TTS.enabled));}
@@ -4210,7 +4341,7 @@ function ttsSetVoice(v){TTS.voiceKey=String(v||'');TTS.voiceIdx=-1;}
 function ttsReplay(msgId){
  const text=TTS.messages.get(Number(msgId))||document.getElementById('tts-msg-'+msgId)?.textContent||'';
  const id='tts-r-'+msgId;
- if(TTS.replay===id&&TTS.utterance){ttsStop();return;}
+ if(TTS.replay===id&&(TTS.utterance||BETPRO_AUDIO_LOCAL.playing)){ttsStop();return;}
  if(!text){ttsStatus('Réponse introuvable pour la lecture.');return;}
  ttsSpeak(text,id,false);
 }
