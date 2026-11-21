@@ -4398,7 +4398,7 @@ function ttsSpeak(text,replayId,automatic=false){
   const availableVoices=ttsGetVoices();
   const voice=(TTS.voiceKey&&availableVoices.find(v=>ttsFrenchVoice(v)&&(v.voiceURI||v.name)===TTS.voiceKey))||ttsBestFrVoice(availableVoices);
   // Si une voix est publiée par Android, ne jamais choisir une voix étrangère par défaut.
-  if(!voice&&availableVoices.length){ttsLocalSpeak(token,'no-french-voice');return;}
+  if(!voice&&availableVoices.length){fail('Aucune voix française sur cet appareil.');return;}
   const utter=new window.SpeechSynthesisUtterance(TTS.chunks[TTS.i]);
   utter.lang='fr-FR';utter.rate=TTS.speed;utter.pitch=1;utter.volume=TTS.volume;
   if(voice)utter.voice=voice;
