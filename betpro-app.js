@@ -4447,6 +4447,7 @@ async function runLiveModelUI(){
   let html='<div class="betpro-poisson-panel">';
   html+='<div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>'+esc(d.quality||'Historique consulté')+'</span></div>';
   html+='<p class="betpro-poisson-match">'+esc(names[0])+' <span>vs</span> '+esc(names[1])+'</p>';
+  html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et minute confirmés par ESPN en direct':'Score et minute fournis manuellement, sans confirmation du direct')+'</p>'; 
   html+='<p class="betpro-poisson-note">Score de référence : '+esc((d.match?.score_home??score_home)+' - '+(d.match?.score_away??score_away))+
    ' · Minute : '+esc(String(d.match?.minute??minute))+
    ' · Football, 90 minutes réglementaires</p>';
