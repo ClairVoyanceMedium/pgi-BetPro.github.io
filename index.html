@@ -2367,6 +2367,67 @@ a{color:var(--neon);text-decoration:none}
   #s-blackjack .bj-card-btn,#s-blackjack .bj-dbtn{transition:none}
 }
 
+/* Mes Notes : palette orange existante (#ff7043 / #ff5722).
+   Styles strictement confines aux notes ; sauvegarde et synchronisation intactes. */
+#s-notes{
+  --notes-orange:#ff7043;--notes-deep:#ff5722;--notes-pale:#ffc5ac;
+  --notes-border:rgba(255,112,67,.31)
+}
+#s-notes .notes-pro-hero{
+  position:relative;overflow:hidden;margin:0 0 19px;padding:23px 25px 21px;
+  border:1px solid rgba(255,112,67,.43);border-radius:16px;
+  background:radial-gradient(ellipse at 100% 0%,rgba(255,112,67,.20),transparent 57%),
+             linear-gradient(135deg,#1c2432 0%,#131a29 60%,#211b27 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.17),inset 0 1px 0 rgba(255,216,200,.10),0 0 18px rgba(255,112,67,.08)
+}
+#s-notes .notes-pro-hero::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#ff5722 0%,#ff7043 50%,rgba(255,112,67,0) 100%);
+  box-shadow:0 0 13px rgba(255,112,67,.40)
+}
+#s-notes .notes-pro-hero .pt{
+  color:#ffac88;font:900 clamp(24px,3vw,34px)/1.2 var(--hd);
+  letter-spacing:.02em;text-shadow:0 1px 16px rgba(255,112,67,.15)
+}
+#s-notes .notes-pro-hero .ps{color:#d8cbd0;font-size:12px;line-height:1.65;margin-top:7px}
+#s-notes .note-card{
+  position:relative;overflow:hidden;
+  background:linear-gradient(155deg,#1a2333,#101827);
+  border-color:var(--notes-border);border-radius:13px;
+  box-shadow:0 5px 16px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,218,198,.035)
+}
+#s-notes .note-card::before{
+  content:"";position:absolute;top:0;left:16px;right:16px;height:2px;
+  background:linear-gradient(90deg,#ff7043,rgba(255,112,67,.18),transparent 85%)
+}
+#s-notes .note-card:focus-within{border-color:rgba(255,112,67,.67)}
+#s-notes .note-card.unsaved{border-color:rgba(255,112,67,.65)}
+#s-notes .note-title-input:focus-visible{outline:1px solid rgba(255,112,67,.5);outline-offset:3px;border-radius:3px}
+#s-notes .note-body{border-color:rgba(255,112,67,.19);background:#101827}
+#s-notes .note-body:focus{border-color:var(--notes-orange);box-shadow:0 0 0 2px rgba(255,112,67,.09)}
+#s-notes .note-unsaved{color:#ffad8a;background:rgba(255,112,67,.12)}
+#s-notes #notes-empty{
+  background:linear-gradient(145deg,rgba(255,112,67,.055),rgba(17,24,39,.36));
+  border:1px dashed rgba(255,112,67,.31);border-radius:14px
+}
+#s-notes button[onclick="notesNew()"]{
+  border-radius:10px!important;min-height:41px;
+  box-shadow:0 0 16px rgba(255,112,67,.35),inset 0 1px 0 rgba(255,255,255,.13)!important
+}
+#s-notes button[onclick="notesNew()"]:hover{filter:brightness(1.08)}
+#s-notes button[onclick="notesNew()"]:focus-visible{outline:2px solid #ffc5ac;outline-offset:3px}
+.ni[data-s="notes"].on{
+  color:#ffac88;border-left-color:#ff7043;
+  background:rgba(255,112,67,.11);text-shadow:0 0 11px rgba(255,112,67,.16)
+}
+@media(max-width:768px){
+  #s-notes .notes-pro-hero{padding:18px 16px;margin-bottom:15px}
+  #s-notes .notes-pro-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-notes .note-card{padding:14px}
+}
+@media(max-width:425px){#s-notes .notes-pro-hero{padding:17px 13px}}
+@media(prefers-reduced-motion:reduce){#s-notes button[onclick="notesNew()"]{transition:none}}
+
 </style>
 </head>
 <body>
@@ -2448,7 +2509,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128014;</span>PMU / Turf France</div>
     <div class="ni"    data-s="hkjc"      onclick="go('hkjc')"    ><span class="ni-i">&#127464;&#127475;</span>HKJC Hong Kong</div>
     <div class="ni"    data-s="blackjack" onclick="go('blackjack')"><span class="ni-i">&#127183;</span>Blackjack Directionnel</div>
-    <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:var(--pu);color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
+    <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:#ff7043;color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
     <div class="ni"    data-s="install"   onclick="go('install')" ><span class="ni-i">&#128214;</span>Installation</div>
     <div class="ni"    data-s="perf"      onclick="go('perf')"   ><span class="ni-i">&#128200;</span>Performances</div>
@@ -3500,7 +3561,7 @@ wrangler deploy</pre>
 
 <!-- ═══════════════ NOTES ═══════════════ -->
 <section class="sec" id="s-notes">
-  <div class="ph"><div class="pt">&#128221; Mes Notes</div><div class="ps">Sauvegarde locale immédiate et stockage sur Cloudflare</div></div>
+  <div class="ph notes-pro-hero"><div class="pt">&#128221; Mes Notes</div><div class="ps">Sauvegarde locale immédiate et stockage sur Cloudflare</div></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
     <button onclick="notesNew()" style="font-size:13px;padding:10px 18px;border-radius:4px;border:none;font-family:var(--hd);font-weight:700;cursor:pointer;transition:all .2s;background:linear-gradient(135deg,#ff7043,#ff5722);color:#fff;box-shadow:0 0 16px rgba(255,112,67,.45);display:inline-flex;align-items:center;gap:6px">&#9999;&#65039; Nouvelle note</button>
     <div id="notes-sync-status" style="font-size:10px;font-family:var(--mo);color:var(--dm);display:flex;align-items:center;gap:5px">
