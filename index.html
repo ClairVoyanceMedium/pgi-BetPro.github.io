@@ -769,6 +769,15 @@ a{color:var(--neon);text-decoration:none}
 .betpro-real-live-meta{display:flex;gap:7px;flex-wrap:wrap;color:var(--mu,#b9c4d7);font:10px var(--mo,monospace);margin-top:7px}
 .betpro-real-live-meta span{border-radius:4px;padding:3px 5px;background:rgba(255,255,255,.04)}
 .betpro-real-live-score{text-align:center;color:var(--tx,#e7f2ff);font:800 27px var(--mo,monospace);margin:13px 0 7px}
+.betpro-tennis-scoreboard{max-width:620px;margin:0 auto;display:grid;gap:7px;text-align:left;font-family:var(--mo,monospace)}
+.betpro-tennis-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--betpro-set-count),minmax(24px,38px));align-items:center;gap:7px}
+.betpro-tennis-row>strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 13px var(--hd,sans-serif)}
+.betpro-tennis-row>span:not(:first-child){text-align:center}
+.betpro-tennis-header{font:600 10px var(--mo,monospace);color:var(--mu,#bbc7d8);letter-spacing:.04em}
+.betpro-tennis-cell{position:relative;font:800 21px var(--mo,monospace);color:var(--tx,#e7f2ff)}
+.betpro-tennis-cell sup{color:var(--mu,#bbc7d8);font-size:9px;margin-left:1px}
+.betpro-tennis-foot{text-align:center;margin-top:9px;font:10px var(--mo,monospace);color:var(--mu,#bbc7d8)}
+@media(max-width:380px){.betpro-tennis-row{gap:4px;grid-template-columns:minmax(0,1fr) repeat(var(--betpro-set-count),minmax(20px,31px))}.betpro-tennis-cell{font-size:18px}}
 .betpro-real-live-score span{color:var(--re,#ef4444)}.betpro-real-live-sub{font:10px var(--mo,monospace);color:var(--mu,#bbc7d8);line-height:1.55}
 .betpro-real-live-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:15px}.betpro-real-live-actions button{font-size:11px;max-width:100%}
 .betpro-real-live-actions>span{font-size:10px;color:var(--mu,#b9c4d7);line-height:1.55}
@@ -1921,7 +1930,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261120-d1-fallback-v184"></script>
+<script defer src="./betpro-app.js?v=20261121-tennis-live-sets-v185"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
