@@ -3706,7 +3706,7 @@ function betproResultRow(row,mode='history'){
   const quote=row.odds!=null?' · Cote '+Number(row.odds).toLocaleString('fr-FR',{maximumFractionDigits:2}):'';
   const selected=row.selection?' · Sélection : '+clean(row.selection):'';
   const date=row.start?'Rencontre : '+betproResultDate(row.start):'Date du match non conservée';
-  const proof=mode!=='scan'&&status!=='pending'&&row.score?' · Score final confirmé : '+clean(row.score)+' ('+clean(row.resultSource||'source enregistrée')+')':'';
+  const proof=mode!=='scan'&&status!=='pending'&&row.score?' · Résultat confirmé : '+clean(row.score)+' ('+clean(row.resultSource||'source enregistrée')+')':'';
   return '<div class="betpro-results-row">'
     +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">'
     +'<strong style="font-size:12px;color:var(--tx)">'+clean(row.home)+' / '+clean(row.away)+'</strong>'
@@ -3805,7 +3805,7 @@ function betproAnalyticsDashboard(d){
    +'</strong> · des perdants : <strong>'+format(d.loss_odds,2)
    +'</strong> · borne basse indicative du ROI : <strong>'+percent(d.roi_floor_95,true)
    +'</strong> · borne basse Wilson de la réussite : <strong>'+percent(d.rate_floor_95)+'</strong>.</p>'
-  +'<p class="betpro-analytics-note">Dernière vérification ESPN : '+esc(d.last_check?betproResultDate(d.last_check):'Aucune')
+  +'<p class="betpro-analytics-note">Dernière vérification des sources : '+esc(d.last_check?betproResultDate(d.last_check):'Aucune')
    +' · Recalcul statistique : '+esc(d.updated_at?betproResultDate(d.updated_at):'Indisponible')+'</p>'
   +insight
   +section('Performances par sport','sport',true,'Les sports sont classés par une estimation prudente seulement lorsque le volume est suffisant.')
@@ -3876,7 +3876,7 @@ async function betproVerifyResultsNow(){
     const report=await api('/api/results/verify','POST',null,{timeoutMs:60000,noCache:true});
     if(report?.ok===false)throw Error(report.error||'Vérification impossible');
     const message=report?.skipped?'Contrôle déjà effectué récemment.'
-      :Number(report?.verified||0)+' résultat(s) confirmé(s) à partir des scores ESPN.';
+      :Number(report?.verified||0)+' résultat(s) confirmé(s) à partir des sources sportives.';
     toast(message,'ok');
     await loadResults();
   }catch(e){toast('Vérification : '+e.message,'err');}
@@ -3927,6 +3927,7 @@ function betproChosenResultRow(item){
  const button='<button type="button" class="betpro-follow-btn is-followed" data-betpro-follow-id="'+item.id+'" aria-pressed="true" onclick="event.stopPropagation();betproToggleFollow(this,\''+item.id+'\')">Retirer du suivi</button>';
  return '<div class="betpro-chosen-card">'+betproResultRow(row)
   +'<div style="font-size:10px;color:var(--mu);margin:0 0 7px">Scan '+esc(item.engine||'')+' · Sélectionné le '+betproResultDate(item.selectedAt)+(item.phase==='en_direct'?' · Sélection en direct':'')+'</div>'
+  +(item.status==='pending'&&item.automaticVerification===false?'<div class="betpro-follow-unavailable">Source automatique non disponible pour cette compétition. Aucun résultat ne sera inventé.</div>':'')
   +'<div style="display:flex;justify-content:flex-end;margin:0 0 12px">'+button+'</div></div>';
 }
 let betproFinishedOpen=false,betproAnalyticsOpen=false;
@@ -3948,7 +3949,7 @@ function betproRenderChosenResults(items,stats){
     :'<p class="betpro-result-empty">Aucune sélection dans cette catégorie.</p>';
  let html='<div class="betpro-result-intro">Retrouve uniquement les matchs que tu as choisi de suivre. Les scores restent non réglés tant qu’ils ne sont pas vérifiés auprès d’une source.</div>'
   +'<p class="betpro-results-sync"><span class="betpro-results-live-dot"></span>Suivi automatique actif · Mise à jour de cette page chaque minute (si elle reste ouverte) · Dernière synchronisation : '+betproResultDate(new Date().toISOString())
-  +(stats?.last_check?' · Dernier contrôle ESPN : '+betproResultDate(stats.last_check):' · Contrôle ESPN en attente')+'</p>'
+  +(stats?.last_check?' · Dernier contrôle des sources : '+betproResultDate(stats.last_check):' · Contrôle ESPN en attente')+'</p>'
   +'<div class="tracker-summary betpro-results-kpis">'
   +stat('Sélections suivies',chosen.length)+stat('À confirmer',pending.length)
   +stat('Gagnées',won)+stat('Perdues',lost)+'</div>';
