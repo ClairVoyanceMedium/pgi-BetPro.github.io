@@ -4395,7 +4395,103 @@ async function sendChat(){
 }
 
 async function loadAIStatus(){const box=document.getElementById('ai-status-box');if(!box)return;try{const d=await api('/api/ai-info');box.innerHTML=d.configured?`<div class="ok-box">✅ IA opérationnelle — <span class="provider-badge pb-${d.provider}">${d.provider} · ${d.model}</span></div>`:`<div class="warn">⚠️ IA non configurée — exécutez <code>wrangler secret put AI_PROVIDER</code></div>`;const badge=document.getElementById('ai-badge');if(badge&&d.configured){badge.className='provider-badge pb-'+d.provider;badge.textContent='⚡ '+d.provider+' · '+d.model;}}catch(_){}}
-async function runLiveModelUI(){const home=document.getElementById('ctx-home')?.value.trim(),away=document.getElementById('ctx-away')?.value.trim();if(!home||!away){toast('Renseignez les équipes','err');return;}const sh=parseInt(document.getElementById('ctx-sh')?.value)||0,sa=parseInt(document.getElementById('ctx-sa')?.value)||0,min=parseInt(document.getElementById('ctx-min')?.value)||45,comp=document.getElementById('ctx-comp')?.value.trim();const btn=document.getElementById('live-model-btn'),res=document.getElementById('live-model-res');btn.disabled=true;btn.innerHTML='<span class="sp" style="width:11px;height:11px;border-width:2px"></span> Modèle…';res.innerHTML='<div class="ls" style="padding:24px"><div class="sp"></div><p>Calcul Poisson…</p></div>';try{const d=await api('/api/live-analysis','POST',{home,away,competition:comp||null,minute:min,score_home:sh,score_away:sa});let html='<div style="background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(245,158,11,.05));border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:18px;margin-bottom:13px">';html+=`<div style="text-align:center;margin-bottom:10px"><span style="font-family:var(--mo);font-size:13px;font-weight:700;color:var(--re);padding:3px 10px;background:rgba(239,68,68,.15);border-radius:5px;display:inline-block">⏱ ${min}'</span></div>`;const m=d.model;if(m){const pHW=m.outcomes.home_win,pD=m.outcomes.draw,pAW=m.outcomes.away_win;html+=`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu);font-family:var(--mo);margin-bottom:3px"><span style="color:var(--neon)">${esc(home)} ${pHW}%</span><span>Nul ${pD}%</span><span style="color:var(--pu)">${pAW}% ${esc(away)}</span></div><div style="height:6px;background:var(--bd);border-radius:4px;overflow:hidden;display:flex"><div style="width:${pHW}%;background:var(--neon)"></div><div style="width:${pD}%;background:var(--mu)"></div><div style="width:${pAW}%;background:var(--pu)"></div></div></div>`;html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;margin-bottom:12px"><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.totals.over_15}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">Over 1.5</label></div><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.totals.over_25}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">Over 2.5</label></div><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.btts}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">BTTS</label></div><div style="background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:9px;text-align:center"><div style="font-family:var(--mo);font-size:18px;font-weight:700;margin-bottom:2px">${m.next_goal.within_5min}%</div><label style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:.06em;display:block">But/5min</label></div></div>`;}const ai=d.ai_analysis;if(ai&&!ai.parse_error){html+='<div style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:13px;margin-top:12px"><div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🤖 Analyse IA</div>';if(ai.resume)html+=`<div style="font-size:12px;color:var(--mu);line-height:1.65;margin-bottom:11px;padding:8px 11px;background:var(--sf2);border-radius:6px">${esc(ai.resume)}</div>`;if(ai.paris_recommandes?.length)ai.paris_recommandes.forEach(p=>{const cc=p.confiance>=70?'var(--neon)':p.confiance>=55?'var(--gr)':p.confiance>=40?'var(--am)':'var(--re)';html+=`<div style="background:var(--sf2);border-radius:6px;padding:9px 11px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--neon)">${esc(p.pari||'?')}</span><span style="font-size:10px;font-family:var(--mo);color:${cc}">${p.confiance||'?'}%</span></div>${p.raisonnement?`<div style="font-size:11px;color:var(--mu)">${esc(p.raisonnement)}</div>`:''}</div>`;});if(ai.verdict_final)html+=`<div style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:7px;padding:10px 13px"><div style="font-size:12px;color:var(--mu)">${esc(ai.verdict_final)}</div></div>`;html+='</div>';}html+=`<p style="font-size:10px;color:var(--dm);margin-top:11px">⚠️ Modèle probabiliste. Aucun gain garanti.</p></div>`;res.innerHTML=html;toast('Analyse terminée','ok');}catch(e){res.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;toast('Erreur: '+e.message,'err');}btn.disabled=false;btn.innerHTML='📡 Analyse Poisson';}
+
+let betproPoissonLastAnalysis=null;
+async function runLiveModelUI(){
+ const home=document.getElementById('ctx-home')?.value.trim()||'',
+  away=document.getElementById('ctx-away')?.value.trim()||'',
+  competition=document.getElementById('ctx-comp')?.value.trim()||'',
+  minuteField=document.getElementById('ctx-min')?.value.trim()||'',
+  homeField=document.getElementById('ctx-sh')?.value.trim()||'',
+  awayField=document.getElementById('ctx-sa')?.value.trim()||'';
+ const minute=minuteField===''?0:Number(minuteField);
+ const score_home=homeField===''?0:Number(homeField);
+ const score_away=awayField===''?0:Number(awayField);
+ if(!home||!away||home.toLowerCase()===away.toLowerCase()){
+  toast('Saisissez deux équipes différentes pour le football.','err');return;
+ }
+ if(!Number.isInteger(minute)||minute<0||minute>120||![score_home,score_away].every(n=>Number.isInteger(n)&&n>=0&&n<=25)){
+  toast('Minute de 0 à 120 et scores entiers valides.','err');return;
+ }
+ const btn=document.getElementById('live-model-btn'),res=document.getElementById('live-model-res');
+ if(!btn||!res)return;
+ btn.disabled=true;btn.textContent='Calcul en cours…';
+ res.innerHTML='<div class="ls" style="padding:25px"><div class="sp"></div><p>Recherche de l’historique des équipes et estimation du modèle Poisson…</p></div>';
+ try{
+  const d=await api('/api/live-analysis','POST',{home,away,competition,minute,score_home,score_away},
+   {timeoutMs:45000,noCache:true});
+  if(!d||d.ok===false)throw Error(String(d?.error||'Réponse du modèle indisponible.'));
+  betproPoissonLastAnalysis=d?.model?d:null;
+  const names=[d.history?.home_name||home,d.history?.away_name||away],m=d.model;
+  const percent=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %':'–';
+  const number=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:2}):'–';
+  const datum=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+
+   (hint?'<small>'+esc(hint)+'</small>':'')+'</div>';
+  const source=(d.source_urls||[]).slice(0,4).map(u=>{
+   try{const url=new URL(u);return url.protocol==='https:'&&url.hostname==='site.api.espn.com'?
+    '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">ESPN : historique vérifiable</a>':'';}
+   catch(_){return'';}
+  }).filter(Boolean).join(' ');
+  if(!m){
+   res.innerHTML='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>Données insuffisantes</span></div>'+
+    '<div class="betpro-poisson-warning">'+esc(d.explanation||'Historique récent non disponible : calcul personnalisé impossible.')+'</div>'+
+    '<p class="betpro-poisson-note">Match : '+esc(home)+' / '+esc(away)+'. Le modèle ne remplace pas les données manquantes par des taux inventés.</p>'+
+    '<p class="betpro-poisson-note">'+esc('Rencontres utilisables : domicile '+(d.history?.home_matches??0)+' / extérieur '+(d.history?.away_matches??0))+'.</p>'+
+    (source?'<div class="betpro-poisson-sources">'+source+'</div>':'')+'</div>';
+   return;
+  }
+  const outcome=m.outcomes||{},totals=m.totals||{},next=m.next_goal||{};
+  const best=[{label:names[0],value:Number(outcome.home_win)},{label:'Match nul',value:Number(outcome.draw)},{label:names[1],value:Number(outcome.away_win)}]
+   .sort((a,b)=>b.value-a.value);
+  const fair=m.fair_odds||{};
+  let html='<div class="betpro-poisson-panel">';
+  html+='<div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>'+esc(d.quality||'Historique consulté')+'</span></div>';
+  html+='<p class="betpro-poisson-match">'+esc(names[0])+' <span>vs</span> '+esc(names[1])+'</p>';
+  html+='<p class="betpro-poisson-note">Score de référence : '+esc((d.match?.score_home??score_home)+' - '+(d.match?.score_away??score_away))+
+   ' · Minute : '+esc(String(d.match?.minute??minute))+
+   ' · Football, 90 minutes réglementaires</p>';
+  html+='<div class="betpro-poisson-grid">'+
+    datum(names[0],percent(outcome.home_win),'Victoire domicile')+
+    datum('Match nul',percent(outcome.draw),'Issue X')+
+    datum(names[1],percent(outcome.away_win),'Victoire extérieur')+'</div>';
+  html+='<div class="betpro-poisson-grid">'+
+    datum('Plus de 1,5 but',percent(totals.over_15),'Total final, score actuel inclus')+
+    datum('Plus de 2,5 buts',percent(totals.over_25),'Total final, score actuel inclus')+
+    datum('Les deux marquent',percent(m.btts),'BTTS, score actuel inclus')+
+    datum('Un but dans 5 min',percent(next.within_5min),'Intensité moyenne estimée')+'</div>';
+  html+='<div class="betpro-poisson-bottom"><div><h4>Projection calculée</h4><p>Buts supplémentaires attendus : <strong>'+
+   number(m.additional_goals?.home)+' / '+number(m.additional_goals?.away)+'</strong></p>'+
+   '<p>Score moyen projeté : <strong>'+number(m.expected_final?.home)+' / '+number(m.expected_final?.away)+'</strong></p>'+
+   '<p>Trois scores les plus probables : '+(m.top_scores||[]).map(x=>esc(x.score)+' ('+percent(x.pct)+')').join(' · ')+'</p></div>'+
+   '<div><h4>Évaluation probabiliste</h4>'+
+   '<p>Issue la plus probable : <strong>'+esc(best[0]?.label||'Indéterminée')+' ('+percent(best[0]?.value)+')</strong></p>'+
+   '<p>Échantillon : <strong>'+esc(String(d.history?.home_matches??'–'))+' / '+esc(String(d.history?.away_matches??'–'))+' matchs</strong></p>'+
+   '<p>Cotes théoriques : <strong>'+number(fair.home)+' / '+number(fair.draw)+' / '+number(fair.away)+'</strong></p></div></div>';
+  if(d.ai_analysis?.resume)html+='<div class="betpro-poisson-verdict">'+esc(d.ai_analysis.resume)+'</div>';
+  const caveats=(d.limitations||[]).slice(0,5);
+  html+='<div class="betpro-poisson-warning"><strong>Fiabilité et limites du modèle</strong>'+
+    '<ul>'+caveats.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul></div>';
+  html+='<p class="betpro-poisson-note">Méthode : '+esc(d.method||'Poisson, taux de buts historiques.')+'</p>';
+  if(source)html+='<div class="betpro-poisson-sources">'+source+'</div>';
+  html+='<button class="btn bs betpro-poisson-chat" type="button" onclick="betproPoissonAskChat()">Demander l’analyse complémentaire au Chat Expert</button>';
+  html+='</div>';res.innerHTML=html;
+ }catch(e){
+  betproPoissonLastAnalysis=null;
+  res.innerHTML='<div class="betpro-poisson-panel"><div class="betpro-poisson-warning">Analyse impossible : '+
+   esc(String(e?.message||e))+'. Aucun pourcentage n’a été inventé.</div></div>';
+  toast('Analyse Poisson indisponible','err');
+ }finally{btn.disabled=false;btn.textContent='Analyse Poisson avancée';}
+}
+function betproPoissonAskChat(){
+ const d=betproPoissonLastAnalysis;if(!d?.model)return;
+ const h=d.history||{},o=d.model.outcomes||{};
+ const question='Analyse cette rencontre de football en t’appuyant sur des sources récentes et confirme les informations disponibles : '+
+  String(d.match.home)+' contre '+String(d.match.away)+', score '+String(d.match.score_home)+'-'+String(d.match.score_away)+
+  ', minute '+String(d.match.minute)+'. Modèle Poisson empirique non calibré : 1 '+String(o.home_win)+
+  ' %, X '+String(o.draw)+' %, 2 '+String(o.away_win)+' %. Historique : '+String(h.home_matches)+' et '+String(h.away_matches)+
+  ' matchs. Donne la forme récente, les joueurs absents, le contexte et les limites; ne présente pas ces estimations comme une garantie.';
+ const input=document.getElementById('chat-input');if(input){input.value=question;input.focus();sendChat();}
+}
 
 // ═══════════════════════════════════════════════
 //  STRATÉGIE
