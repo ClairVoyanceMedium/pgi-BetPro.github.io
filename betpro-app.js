@@ -2734,10 +2734,10 @@ let betproFinderRunSerial=0,betproFindCatalog=[];
 let betproFindOddsStyle='all';
 /* Profils de cotes : catégories lisibles remplaçant les deux anciens champs numériques. */
 const BETPRO_FIND_ODDS_STYLES=Object.freeze({
- all:{min:null,max:null,label:'sans préférence'},
- favorites:{min:1.01,max:1.799999,label:'favoris (1,01 à 1,79)'},
- balanced:{min:1.8,max:2.999999,label:'équilibrées (1,80 à 2,99)'},
- bold:{min:3,max:null,label:'ambitieuses (3,00 et plus)'}
+ all:{min:null,max:null,label:'toutes'},
+ favorites:{min:1.01,max:1.799999,label:'basses (1,01 à 1,79)'},
+ balanced:{min:1.8,max:2.999999,label:'moyennes (1,80 à 2,99)'},
+ bold:{min:3,max:null,label:'élevées (3,00 et plus)'}
 });
 function betproFindSetOdds(style){
  if(!Object.prototype.hasOwnProperty.call(BETPRO_FIND_ODDS_STYLES,style))return;
@@ -2859,7 +2859,7 @@ function syncBetProFindMarkets(){
  }
  if(!soccer&&(market.value==='btts'||market.value==='double_chance'))market.value='h2h';
  const hint=document.getElementById('betpro-find-market-note');
- if(hint)hint.textContent='Classique : compare les cotes du vainqueur. Benter : analyse statistique du '+(soccer?'vainqueur, des buts, du handicap et des autres marchés football.':'vainqueur, du handicap ou des totaux selon le sport.')+' Les filtres communs sont appliqués aux deux méthodes. Les options Benter sont facultatives.';
+ if(hint)hint.textContent='Classique : compare les bookmakers. Benter : analyse les cotes avec des critères statistiques. Les deux utilisent vos filtres.';
 }
 function betproFindReadOdds(){
  return BETPRO_FIND_ODDS_STYLES[betproFindOddsStyle]||BETPRO_FIND_ODDS_STYLES.all;
@@ -2973,11 +2973,14 @@ async function doAnalyze(engine='classic'){
    eligible.sort((a,b)=>Number(b.classic_value?.positive_value||0)-Number(a.classic_value?.positive_value||0)
      ||Number(b.consensus?.consensus_score||0)-Number(a.consensus?.consensus_score||0));
    const cards=eligible.map((e,i)=>betproClassicCard(e,i)).filter(Boolean);
-   html+='<div class="betpro-find-count"><strong>'+cards.length+'</strong> proposition'+(cards.length>1?'s':'')+' classique'+(cards.length>1?'s':'')+' correspondant à vos critères · '+all.length+' rencontres reçues (limite 65)'+(d.cached?' · cache utilisé':'')+'</div>';
-   html+='<div class="betpro-find-engine-note">Classique : comparaison des cotes réelles, accord entre bookmakers et évaluation des écarts. Aucun modèle Benter utilisé. Marché : vainqueur uniquement.</div>';
-   html+=cards.length?'<div class="opp-grid">'+cards.join('')+'</div>':
-     all.length?betproFindStatus('Aucune sélection retenue','Des rencontres ont été reçues, mais aucune ne passe simultanément les critères de période, de cotes, de qualité et de fraîcheur. Vous pouvez élargir le profil de cotes ou la période.'):
-     betproFindStatus('Aucune rencontre reçue',d.quota_blocked?'Le quota de données sportives est temporairement protégé. La recherche ne peut pas être complète.':d.cached?'La réponse mise en cache ne contient aucune rencontre. Ce résultat ne signifie pas qu’aucun match n’existe.':'Le fournisseur n’a transmis aucune rencontre exploitable pour les critères demandés. Cela ne signifie pas qu’aucune rencontre n’existe.');
+   if(cards.length){
+    html+='<div class="betpro-find-count"><strong>'+cards.length+'</strong> sélection'+(cards.length>1?'s':'')+' correspondant à votre recherche · '+all.length+' rencontres examinées'+(d.cached?' · données en cache':'')+'</div>';
+    html+='<div class="opp-grid">'+cards.join('')+'</div>';
+   }else if(all.length){
+    html+=betproFindStatus('Aucune sélection trouvée','Les '+all.length+' rencontres reçues ne passent pas tous les filtres. Choisissez « Toutes » dans les cotes ou une période plus large.');
+   }else{
+    html+=betproFindStatus('Aucune rencontre reçue',d.quota_blocked?'Le fournisseur limite actuellement l’accès aux données.':'Aucune rencontre disponible dans la réponse '+(d.cached?'en cache.':'du fournisseur.')+' Vous pouvez sélectionner un sport ou un championnat précis.');
+   }
    out.innerHTML=html;
   }else{
    const coverage=betproFindChooseLeagues(family,mode);
@@ -3013,14 +3016,15 @@ async function doAnalyze(engine='classic'){
    const candidates=[...deduped.values()].sort((a,b)=>Number(b.score?.total||0)-Number(a.score?.total||0));
    const cards=candidates.map((o,i)=>renderDirectionCard(o,i,'main')).filter(Boolean);
    let html='<div class="betpro-find-results-head"><span>'+esc(name)+' · '+scope+'</span><small>'+esc((latest.some(Boolean)?fmtDT(latest.filter(Boolean).sort().at(-1)):'Horodatage indisponible'))+'</small></div>';
-   html+='<div class="betpro-find-count"><strong>'+cards.length+'</strong> proposition'+(cards.length>1?'s':'')+' Benter retenue'+(cards.length>1?'s':'')+' selon vos critères</div>';
-   html+='<div class="betpro-find-engine-note">Benter : probabilités, historique, cotes et validation statistique. Aucun modèle activé artificiellement. '+coverage.selected.length+' championnat'+(coverage.selected.length>1?'s':'')+' consulté'+(coverage.selected.length>1?'s':'')+' sur '+coverage.all.length+' disponibles dans le catalogue. Le score n’est pas une probabilité de réussite.</div>';
-   if(coverage.all.length>coverage.selected.length)html+='<div class="betpro-find-coverage">Recherche limitée à '+coverage.selected.length+' championnats pour protéger les quotas gratuits. Choisissez une compétition précise pour analyser celle qui vous intéresse.</div>';
-   if(failed.length)html+='<div class="warn">'+failed.length+' championnat(s) non accessibles : '+esc(failed.slice(0,2).join(' | '))+'.</div>';
-   if(warnings.length)html+='<div class="warn">Cotes sauvegardées pour '+warnings.length+' championnat(s). Vérification nécessaire avant de miser.</div>';
-   html+=cards.length?'<div class="opp-grid">'+cards.join('')+'</div>':betproFindStatus('Aucune sélection Benter retenue',
-      failed.length===coverage.selected.length?'Les données sont temporairement indisponibles pour les championnats interrogés.':
-      'Aucune sélection reçue ne passe simultanément les contrôles Benter, la période, la fourchette de cotes et vos filtres.');
+   if(cards.length){
+    html+='<div class="betpro-find-count"><strong>'+cards.length+'</strong> sélection'+(cards.length>1?'s':'')+' issue'+(cards.length>1?'s':'')+' du Scan Benter · '+coverage.selected.length+' championnat'+(coverage.selected.length>1?'s':'')+' interrogé'+(coverage.selected.length>1?'s':'')+'</div>';
+    html+='<div class="opp-grid">'+cards.join('')+'</div>';
+   }else{
+    html+=betproFindStatus('Aucune sélection trouvée',failed.length===coverage.selected.length?'Impossible de récupérer les données des compétitions demandées.':'Les données reçues ne répondent pas à tous vos critères. Essayez « Toutes » pour les cotes ou choisissez un championnat précis.');
+   }
+   if(coverage.all.length>coverage.selected.length)html+='<div class="betpro-find-coverage">Couverture partielle : '+coverage.selected.length+' compétitions interrogées sur '+coverage.all.length+' disponibles. Pour une recherche ciblée, choisissez un championnat précis.</div>';
+   if(failed.length)html+='<div class="warn">'+failed.length+' compétition(s) indisponible(s) : '+esc(failed.slice(0,2).join(' | '))+'.</div>';
+   if(warnings.length)html+='<div class="warn">Cotes enregistrées pour '+warnings.length+' compétition(s) : vérifiez-les avant toute mise.</div>';
    out.innerHTML=html;
   }
   loadQuotas();
