@@ -2731,6 +2731,44 @@ const BETPRO_FIND_GROUP_ORDER=['Football','Basketball','Tennis','Boxe','MMA','Ru
 const BETPRO_FIND_FAMILY_CODES={Football:'soccer',Basketball:'basketball',Tennis:'tennis',Boxe:'boxing',MMA:'mma',Rugby:'rugby',Hockey:'icehockey',Baseball:'baseball','Football américain':'americanfootball',Handball:'handball',Volleyball:'volleyball',Cricket:'cricket',Golf:'golf','Football australien':'aussierules',Fléchettes:'darts','Autres sports':'other'};
 const BETPRO_FIND_PREFERRED=['soccer_france_ligue_one','soccer_epl','soccer_uefa_champs_league','basketball_nba','basketball_ncaab','basketball_euroleague','icehockey_nhl','americanfootball_nfl','boxing_boxing','mma_mixed_martial_arts'];
 let betproFinderRunSerial=0,betproFindCatalog=[];
+let betproFindOddsStyle='all';
+/* Profils de cotes : catégories lisibles remplaçant les deux anciens champs numériques. */
+const BETPRO_FIND_ODDS_STYLES=Object.freeze({
+ all:{min:null,max:null,label:'sans préférence'},
+ favorites:{min:1.01,max:1.799999,label:'favoris (1,01 à 1,79)'},
+ balanced:{min:1.8,max:2.999999,label:'équilibrées (1,80 à 2,99)'},
+ bold:{min:3,max:null,label:'ambitieuses (3,00 et plus)'}
+});
+function betproFindSetOdds(style){
+ if(!Object.prototype.hasOwnProperty.call(BETPRO_FIND_ODDS_STYLES,style))return;
+ betproFindOddsStyle=style;
+ document.querySelectorAll('#betpro-pari-finder .betpro-find-odds-chip').forEach(button=>{
+  const active=button.dataset.odds===style;
+  button.classList.toggle('on',active);
+  button.setAttribute('aria-pressed',String(active));
+ });
+}
+function betproFindSyncQuickSport(){
+ const sport=document.getElementById('sel-sport');
+ if(!sport)return;
+ const selected=sport.value;
+ const known=new Set([...sport.options].map(option=>option.value));
+ document.querySelectorAll('#betpro-pari-finder .betpro-find-sport-chip[data-sport]').forEach(button=>{
+  const code=button.dataset.sport,active=selected===code;
+  button.classList.toggle('on',active);
+  button.setAttribute('aria-pressed',String(active));
+  button.disabled=!known.has(code);
+  if(button.disabled)button.title='Aucune compétition de ce sport disponible actuellement';
+  else button.removeAttribute('title');
+ });
+}
+function betproFindQuickSport(code){
+ const select=document.getElementById('sel-sport');
+ if(!select)return;
+ if(![...select.options].some(option=>option.value===code))return;
+ select.value=code;
+ betproFindSportOptions(true);
+}
 
 function betproFindFamily(key,providerGroup=''){
  const x=String(key||'').toLowerCase(),g=String(providerGroup||'').toLowerCase();
@@ -2789,6 +2827,7 @@ function betproFindSportOptions(resetLeague=false){
  const note=document.getElementById('betpro-find-sports-count');
  if(note)note.textContent=betproFindCatalog.length+' compétitions disponibles, '+groups.size+' sports ou familles de sports ; '+eligible.length+' dans votre sélection.';
  syncBetProFindMarkets();
+ betproFindSyncQuickSport();
 }
 function betproPopulateFindSports(catalog){
  if(!Array.isArray(catalog))return;
@@ -2823,13 +2862,7 @@ function syncBetProFindMarkets(){
  if(hint)hint.textContent='Classique : vainqueur, consensus des bookmakers. Benter : '+(soccer?'vainqueur, buts, handicap, double chance ou les deux équipes marquent.':'vainqueur, handicap ou total de points/buts.')+' La fourchette de cotes s’applique aux deux méthodes.';
 }
 function betproFindReadOdds(){
- const minRaw=String(document.getElementById('betpro-odds-min')?.value||'').trim().replace(',','.');
- const maxRaw=String(document.getElementById('betpro-odds-max')?.value||'').trim().replace(',','.');
- const min=minRaw===''?null:Number(minRaw),max=maxRaw===''?null:Number(maxRaw);
- if((min!==null&&(!Number.isFinite(min)||min<=1||min>1000))||
-    (max!==null&&(!Number.isFinite(max)||max<=1||max>1000))||
-    (min!==null&&max!==null&&min>max))throw Error('Indiquez une fourchette valide de cotes décimales (supérieures à 1) et une cote minimale inférieure ou égale à la maximale.');
- return{min,max};
+ return BETPRO_FIND_ODDS_STYLES[betproFindOddsStyle]||BETPRO_FIND_ODDS_STYLES.all;
 }
 function betproFindOddsMatch(price,range){
  const n=Number(price);
@@ -2909,13 +2942,13 @@ async function doAnalyze(engine='classic'){
  if(!familyEl||!leagueEl||!marketEl||!modeEl||!scoreEl||!classicBtn||!benterBtn||!out)return;
  syncBetProFindMarkets();
  let odds;
- try{odds=betproFindReadOdds()}catch(e){out.innerHTML=betproFindStatus('Cotes à corriger',e.message);return;}
+ odds=betproFindReadOdds();
  const family=familyEl.value||'all',league=leagueEl.value||'all',market=classic?'h2h':marketEl.value,mode=modeEl.value,minScore=Number(scoreEl.value)||0;
  const labelSport=familyEl.selectedOptions[0]?.textContent?.trim()||family,
   labelLeague=league==='all'?'Tous les championnats':leagueEl.selectedOptions[0]?.textContent?.trim()||league,
   labelMarket=classic?'Vainqueur du match':marketEl.selectedOptions[0]?.textContent?.trim()||market,
   name=classic?'SCAN CLASSIQUE':'SCAN BENTER',
-  rangeLabel=(odds.min===null?'Toutes':odds.min.toFixed(2))+' – '+(odds.max===null?'Toutes':odds.max.toFixed(2)),
+  rangeLabel=odds.label,
   seq=++betproFinderRunSerial,button=classic?classicBtn:benterBtn,oldLabel=button.innerHTML;
  const params=betproFindDateParams();
  classicBtn.disabled=benterBtn.disabled=true;
@@ -2943,7 +2976,8 @@ async function doAnalyze(engine='classic'){
    html+='<div class="betpro-find-count"><strong>'+cards.length+'</strong> proposition'+(cards.length>1?'s':'')+' classique'+(cards.length>1?'s':'')+' correspondant à vos critères · '+all.length+' rencontres reçues (limite 65)'+(d.cached?' · cache utilisé':'')+'</div>';
    html+='<div class="betpro-find-engine-note">Classique : comparaison des cotes réelles, accord entre bookmakers et évaluation des écarts. Aucun modèle Benter utilisé. Marché : vainqueur uniquement.</div>';
    html+=cards.length?'<div class="opp-grid">'+cards.join('')+'</div>':
-     betproFindStatus('Aucune proposition conforme',d.quota_blocked?'Budget d’accès aux cotes protégé.':all.length?'Les rencontres reçues ne satisfont pas la période, la fourchette de cotes, le seuil ou la fraîcheur exigée. Le scan traite au plus 65 rencontres.':'Aucune cote exploitable n’a été reçue pour ce sport et cette période. Cela ne signifie pas qu’aucun match n’existe.');
+     all.length?betproFindStatus('Aucune sélection retenue','Des rencontres ont été reçues, mais aucune ne passe simultanément les critères de période, de cotes, de qualité et de fraîcheur. Vous pouvez élargir le profil de cotes ou la période.'):
+     betproFindStatus('Aucune rencontre reçue',d.quota_blocked?'Le quota de données sportives est temporairement protégé. La recherche ne peut pas être complète.':d.cached?'La réponse mise en cache ne contient aucune rencontre. Ce résultat ne signifie pas qu’aucun match n’existe.':'Le fournisseur n’a transmis aucune rencontre exploitable pour les critères demandés. Cela ne signifie pas qu’aucune rencontre n’existe.');
    out.innerHTML=html;
   }else{
    const coverage=betproFindChooseLeagues(family,mode);
@@ -2984,7 +3018,7 @@ async function doAnalyze(engine='classic'){
    if(coverage.all.length>coverage.selected.length)html+='<div class="betpro-find-coverage">Recherche limitée à '+coverage.selected.length+' championnats pour protéger les quotas gratuits. Choisissez une compétition précise pour analyser celle qui vous intéresse.</div>';
    if(failed.length)html+='<div class="warn">'+failed.length+' championnat(s) non accessibles : '+esc(failed.slice(0,2).join(' | '))+'.</div>';
    if(warnings.length)html+='<div class="warn">Cotes sauvegardées pour '+warnings.length+' championnat(s). Vérification nécessaire avant de miser.</div>';
-   html+=cards.length?'<div class="opp-grid">'+cards.join('')+'</div>':betproFindStatus('Aucune proposition Benter conforme',
+   html+=cards.length?'<div class="opp-grid">'+cards.join('')+'</div>':betproFindStatus('Aucune sélection Benter retenue',
       failed.length===coverage.selected.length?'Les données sont temporairement indisponibles pour les championnats interrogés.':
       'Aucune sélection reçue ne passe simultanément les contrôles Benter, la période, la fourchette de cotes et vos filtres.');
    out.innerHTML=html;
