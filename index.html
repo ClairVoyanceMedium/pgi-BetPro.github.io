@@ -195,6 +195,14 @@ a{color:var(--neon);text-decoration:none}
 .msg.user .msg-bub{background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.25);color:var(--tx);border-radius:12px 3px 12px 12px}
 .msg.bot .msg-bub{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);border-radius:3px 12px 12px 12px}
 .msg-ico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;background:var(--sf2);border:1px solid var(--bd)}
+#s-chat .msg-ico-bp{border:1px solid rgba(56,232,255,.55);background:linear-gradient(150deg,#08172a,#050b15 78%);box-shadow:0 0 9px rgba(0,212,255,.18);overflow:hidden}
+#s-chat .betpro-chat-bp-mark{display:inline-block;font-family:var(--logo-f);font-weight:900;letter-spacing:-.05em;font-size:13px;line-height:1;background:linear-gradient(120deg,#38e8ff,#ffffff 45%,#00d4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#38e8ff}
+#s-chat .chat-mic-btn{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:9px;border:1px solid rgba(56,232,255,.32);background:rgba(0,212,255,.07);color:var(--neon);cursor:pointer;transition:background .15s,border-color .15s}
+#s-chat .chat-mic-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#s-chat .chat-mic-btn.listening{background:rgba(255,99,90,.18);border-color:#ff645b;color:#ff9b8b;animation:betpro-mic-pulse 1.4s ease-in-out infinite}
+#s-chat .chat-mic-btn:focus-visible,#s-chat .tts-toggle:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
+#s-chat .chat-mic-status{min-height:15px;font-size:10px;line-height:1.5;margin:-5px 0 8px 0;color:var(--dm)}
+@keyframes betpro-mic-pulse{50%{box-shadow:0 0 0 4px rgba(255,99,90,.14)}}
 .chat-meta{font-size:9px;color:var(--dm);font-family:var(--mo);margin-top:3px}
 .chat-input-wrap{display:flex;gap:8px;align-items:flex-end}
 .chat-input-wrap textarea{flex:1;min-height:44px;max-height:140px;resize:vertical;font-size:12px}
@@ -1240,7 +1248,7 @@ a{color:var(--neon);text-decoration:none}
 
     <!-- TTS — bouton simple unique -->
     <div class="tts-mini-bar">
-      <button class="tts-toggle" id="tts-main-btn" onclick="ttsToggleAuto()" title="Activer/désactiver la lecture vocale">
+      <button class="tts-toggle" id="tts-main-btn" type="button" onclick="ttsToggleAuto()" title="Activer la lecture automatique des réponses" aria-pressed="false">
         <div class="tts-dot"></div>
         <span id="tts-main-lbl">Voix OFF</span>
       </button>
@@ -1254,16 +1262,20 @@ a{color:var(--neon);text-decoration:none}
       <select id="tts-voice" onchange="ttsSetVoice(this.value)" style="background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:4px 6px;border-radius:6px;font-size:9px;font-family:var(--mo);width:auto;outline:none;max-width:120px">
         <option value="">Voix auto</option>
       </select>
-      <span id="tts-status" style="font-size:9px;color:var(--dm);font-family:var(--mo);flex:1;text-align:right"></span>
+      <span id="tts-status" role="status" aria-live="polite" style="font-size:9px;color:var(--dm);font-family:var(--mo);flex:1;text-align:right"></span>
     </div>
 
     <div class="chat-wrap" id="chat-wrap">
-      <div class="msg bot"><div class="msg-ico">&#129302;</div><div><div class="msg-bub">Bonjour. Posez directement votre question sportive, même avec une seule équipe. Le contexte ci-dessus est facultatif.</div></div></div>
+      <div class="msg bot"><div class="msg-ico msg-ico-bp"><span class="betpro-chat-bp-mark" aria-hidden="true">BP</span></div><div><div class="msg-bub">Bonjour. Posez directement votre question sportive, même avec une seule équipe. Le contexte ci-dessus est facultatif.</div></div></div>
     </div>
     <div class="chat-input-wrap">
       <textarea id="chat-input" placeholder="Ex. : Quel est le prochain match de Liverpool ? Quelle composition pour le PSG ? Qui est blessé ?" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px'" style="resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
-      <button class="btn bp" id="chat-btn" onclick="sendChat()" style="flex-shrink:0;align-self:flex-end;padding:10px 14px">&#9654;</button>
+      <button class="chat-mic-btn" id="chat-mic-btn" type="button" onclick="chatMicToggle()" title="Dicter une question" aria-label="Dicter une question" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>
+      </button>
+      <button class="btn bp" id="chat-btn" type="button" onclick="sendChat()" style="flex-shrink:0;align-self:flex-end;padding:10px 14px" aria-label="Envoyer la question">&#9654;</button>
     </div>
+    <div id="chat-mic-status" class="chat-mic-status" role="status" aria-live="polite"></div>
   </div>
 </section>
 
@@ -1936,7 +1948,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-chat-expert-web-v190"></script>
+<script defer src="./betpro-app.js?v=20261121-chat-voice-bp-v191"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
