@@ -1563,6 +1563,13 @@ a{color:var(--neon);text-decoration:none}
 #s-dash #betpro-pari-finder .betpro-find-odds-chip strong{font-size:11px}
 @media(max-width:680px){#s-dash #betpro-pari-finder .betpro-find-advanced-grid{grid-template-columns:1fr}#s-dash #betpro-pari-finder .betpro-find-actions{grid-template-columns:repeat(2,minmax(0,1fr))}#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch{min-height:72px;padding:10px 6px}#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-btn-title{font-size:11px}#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch small{font-size:10px}}
 
+
+/* Couverture des sports interrogés : visible sans alourdir les cartes de paris. */
+#s-dash #dash-res .betpro-find-coverage{margin:11px 0 13px;border-radius:11px;border:1px solid rgba(56,232,255,.24);background:rgba(14,27,38,.85);padding:12px 14px;color:#d0e4f2}
+#s-dash #dash-res .betpro-find-coverage summary{cursor:pointer;color:#a9e9f5;font:750 11px var(--hd);line-height:1.6}
+#s-dash #dash-res .betpro-find-coverage .bdg{font-size:10px;line-height:1.5;border:1px solid rgba(198,227,232,.13);background:rgba(13,28,40,.85);padding:5px 7px}
+#s-dash #dash-res .betpro-find-count{line-height:1.65}
+@media(max-width:640px){#s-dash #dash-res .betpro-find-coverage{padding:10px 11px}#s-dash #dash-res .betpro-find-coverage .bdg{font-size:9px}}
 </style>
 </head>
 <body>
@@ -2796,7 +2803,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-selection-simplifiee-v216"></script>
+<script defer src="./betpro-app.js?v=20261122-sports-repartition-v217"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
