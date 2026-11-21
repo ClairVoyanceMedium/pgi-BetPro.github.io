@@ -4065,7 +4065,7 @@ function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
 
 
 const BETPRO_CHAT_BOT_ICON='<img class="betpro-chat-bp-image" src="./betpro-icon-192.png" width="34" height="34" alt="BP" loading="lazy" decoding="async">';
-const TTS={enabled:false,speed:1,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false,messages:new Map(),startupTimer:null,chunkTimer:null,nextTimer:null,retried:false,voiceKey:''};
+const TTS={enabled:false,speed:0.85,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false,messages:new Map(),startupTimer:null,chunkTimer:null,nextTimer:null,retried:false,voiceKey:''};
 const CHAT_MIC={recognition:null,active:false,base:'',error:null};
 /* Offline French TTS fallback: meSpeak.js (Norbert Landsteiner, GPLv3).
    Source and license: https://github.com/btopro/mespeak
@@ -4153,7 +4153,7 @@ async function ttsLocalSpeak(token,reason){
  if(token!==TTS.token)return;
  ttsClearTimers();TTS.utterance=null;
  BETPRO_AUDIO_LOCAL.playing=true;
- ttsStatus('Le moteur vocal Android a échoué. Chargement de la voix française de secours…');
+ ttsStatus('Voix française locale de secours (qualité synthétique)…');
  try{
   if(!ttsUnlockWebAudio())throw new Error('Audio Web non disponible dans Chrome');
   const api=await ttsLocalReady();
@@ -4172,10 +4172,10 @@ async function ttsLocalSpeak(token,reason){
   const playNext=async()=>{
    if(token!==TTS.token)return;
    if(TTS.i>=TTS.chunks.length){BETPRO_AUDIO_LOCAL.playing=false;ttsFinish('Lecture française terminée.');return;}
-   ttsStatus('Voix française de secours · '+(TTS.i+1)+'/'+TTS.chunks.length);
+   ttsStatus('Voix française synthétique · '+(TTS.i+1)+'/'+TTS.chunks.length);
    let raw;
    try{
-    raw=api.speak(TTS.chunks[TTS.i],{rawdata:true,voice:'fr',speed:Math.round(170*TTS.speed),pitch:50});
+    raw=api.speak(TTS.chunks[TTS.i],{rawdata:true,voice:'fr',speed:Math.round(150*TTS.speed),pitch:48});
     const buffer=await decode(raw);
     if(token!==TTS.token)return;
     const src=ctx.createBufferSource();
@@ -4206,27 +4206,64 @@ async function ttsLocalSpeak(token,reason){
 function ttsSupported(){return typeof window!=='undefined'&&!!window.speechSynthesis&&typeof window.SpeechSynthesisUtterance==='function';}
 function ttsStatus(t){const el=document.getElementById('tts-status');if(el)el.textContent=t||'';}
 function ttsGetVoices(){if(!ttsSupported())return[];try{return window.speechSynthesis.getVoices()||[];}catch(_){return[];}}
+function ttsFrenchVoice(v){return !!v&&/^fr(?:[-_]|$)/i.test(String(v.lang||''));}
+function ttsBestFrVoice(voices){
+ const candidates=(voices||[]).filter(ttsFrenchVoice);
+ // Privilégier les voix françaises naturelles et le français de France.
+ const score=v=>{
+  const name=String(v.name||'').toLowerCase();
+  const uri=String(v.voiceURI||'').toLowerCase();
+  const lang=String(v.lang||'').toLowerCase().replace('_','-');
+  let n=lang==='fr-fr'?100:lang.startsWith('fr-')?30:20;
+  if(/natural|neural|premium|enhanced|studio/.test(name+' '+uri))n+=35;
+  if(/google|microsoft/.test(name+' '+uri))n+=24;
+  if(/français|francais|french|amelie|amélie|denise|hortense|audrey|thomas|virginie/.test(name))n+=8;
+  if(v.default)n+=2;
+  return n;
+ };
+ return candidates.sort((a,b)=>score(b)-score(a))[0]||null;
+}
+function ttsSavePrefs(){
+ try{localStorage.setItem('betpro-tts-fr-v2',JSON.stringify({speed:TTS.speed,voiceKey:TTS.voiceKey}));}catch(_){}
+}
 function ttsInit(){
- const sel=document.getElementById('tts-voice');
- if(!ttsSupported()){ttsStatus('Synthèse vocale native indisponible : voix française locale de secours activée au besoin.');chatMicInit();return;}
+ const sel=document.getElementById('tts-voice'),speed=document.getElementById('tts-speed');
+ if(!TTS.initDone){
+  try{
+   const saved=JSON.parse(localStorage.getItem('betpro-tts-fr-v2')||'null');
+   if(saved&&Number.isFinite(Number(saved.speed)))TTS.speed=Math.max(.7,Math.min(1.2,Number(saved.speed)));
+   if(saved&&typeof saved.voiceKey==='string')TTS.voiceKey=saved.voiceKey;
+  }catch(_){}
+ }
+ if(speed)speed.value=String(TTS.speed);
+ if(!ttsSupported()){ttsStatus('Voix native indisponible. Voix française locale de secours.');chatMicInit();return;}
  const refresh=()=>{
-  const voices=ttsGetVoices();TTS.voices=voices;if(!sel)return;
-  const selected=TTS.voiceKey||sel.value;sel.innerHTML='<option value="">Voix française auto</option>';
-  voices.forEach((v,i)=>{const option=document.createElement('option');option.value=v.voiceURI||v.name;
-    option.textContent=v.name+(v.lang?' ('+v.lang+')':'');if(/^fr/i.test(v.lang||''))option.style.color='#22d3a5';sel.appendChild(option);});
+  const voices=ttsGetVoices().filter(ttsFrenchVoice);
+  TTS.voices=voices;if(!sel)return;
+  const selected=TTS.voiceKey||sel.value;
+  sel.innerHTML='<option value="">Voix française (auto)</option>';
+  voices.sort((a,b)=>{
+   const best=ttsBestFrVoice([a,b]);
+   return best===a?-1:best===b?1:0;
+  }).forEach(v=>{
+   const option=document.createElement('option');
+   option.value=v.voiceURI||v.name;
+   option.textContent=v.name+(v.lang?' ('+v.lang+')':'');
+   sel.appendChild(option);
+  });
   if(selected&&voices.some(v=>(v.voiceURI||v.name)===selected))sel.value=selected;
-  if(TTS.voiceKey&&!voices.some(v=>(v.voiceURI||v.name)===TTS.voiceKey))TTS.voiceKey='';
+  else {sel.value='';if(TTS.voiceKey&&ttsGetVoices().length)TTS.voiceKey='';}
+  if(!voices.length&&ttsGetVoices().length)ttsStatus('Aucune voix native française. Secours français disponible.');
  };
  refresh();
  if(!TTS.initDone){
   TTS.initDone=true;
   try{speechSynthesis.addEventListener('voiceschanged',refresh);}catch(_){speechSynthesis.onvoiceschanged=refresh;}
-  setTimeout(refresh,600);setTimeout(refresh,1800);
+  setTimeout(refresh,700);setTimeout(refresh,2100);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  }
  chatMicInit();
 }
-function ttsBestFrVoice(v){return v.find(x=>x.lang==='fr-FR'&&x.localService!==false)||v.find(x=>x.lang==='fr-FR')||v.find(x=>/^fr/i.test(x.lang||''))||null;}
 function ttsClean(text){
  return String(text||'').replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g,'$1')
  .replace(/https?:\/\/\S+/g,' ').replace(/[\x60*_#~]/g,' ')
@@ -4289,13 +4326,16 @@ function ttsSpeak(text,replayId,automatic=false){
  ttsStatus(automatic?'Préparation de la lecture automatique…':'Lecture en préparation…');
  if(!synth){ttsLocalSpeak(token,'native-unavailable');return true;}
  const fail=message=>{if(token!==TTS.token)return;ttsStop(true);ttsStatus(message);};
- const next=(defaultVoice=false)=>{
+ const next=()=>{
   if(token!==TTS.token)return;
   if(TTS.i>=TTS.chunks.length){ttsFinish('Lecture terminée.');return;}
   ttsClearTimers();
+  const availableVoices=ttsGetVoices();
+  const voice=TTS.voiceKey?availableVoices.find(v=>ttsFrenchVoice(v)&&(v.voiceURI||v.name)===TTS.voiceKey):ttsBestFrVoice(availableVoices);
+  // Si une voix est publiée par Android, ne jamais choisir une voix étrangère par défaut.
+  if(!voice&&availableVoices.length){ttsLocalSpeak(token,'no-french-voice');return;}
   const utter=new window.SpeechSynthesisUtterance(TTS.chunks[TTS.i]);
-  utter.lang='fr-FR';utter.rate=TTS.speed;utter.volume=TTS.volume;
-  const voice=defaultVoice?null:(TTS.voiceKey?ttsGetVoices().find(v=>(v.voiceURI||v.name)===TTS.voiceKey):ttsBestFrVoice(ttsGetVoices()));
+  utter.lang='fr-FR';utter.rate=TTS.speed;utter.pitch=1;utter.volume=TTS.volume;
   if(voice)utter.voice=voice;
   TTS.utterance=utter;
   let settled=false,started=false;
@@ -4309,7 +4349,7 @@ function ttsSpeak(text,replayId,automatic=false){
    }
    if(!TTS.retried&&['canceled','interrupted','audio-busy'].includes(type)){
     TTS.retried=true;try{synth.cancel();}catch(_){}
-    TTS.nextTimer=setTimeout(()=>next(true),180);return;
+    TTS.nextTimer=setTimeout(()=>next(),350);return;
    }
    ttsLocalSpeak(token,type);
   };
@@ -4319,7 +4359,7 @@ function ttsSpeak(text,replayId,automatic=false){
   TTS.startupTimer=setTimeout(()=>{
    if(token!==TTS.token||settled||started)return;
    if(synth.speaking){started=true;ttsStatus('Lecture vocale en cours…');return;}
-   if(!TTS.retried){TTS.retried=true;settled=true;ttsClearTimers();try{synth.cancel();}catch(_){}TTS.nextTimer=setTimeout(()=>next(true),180);}
+   if(!TTS.retried){TTS.retried=true;settled=true;ttsClearTimers();try{synth.cancel();}catch(_){}TTS.nextTimer=setTimeout(()=>next(),350);}
    else ttsLocalSpeak(token,'timeout-android');
   },3000);
   TTS.chunkTimer=setTimeout(()=>{
@@ -4344,8 +4384,8 @@ function ttsToggleAuto(){
  if(TTS.enabled)ttsSpeak('Lecture automatique activée. Vous pouvez aussi utiliser le bouton Écouter sous les réponses.',null,false);
  else{ttsStop(true);ttsStatus('Lecture automatique désactivée.');}
 }
-function ttsSetSpeed(v){TTS.speed=Math.max(.7,Math.min(1.5,parseFloat(v)||1));}
-function ttsSetVoice(v){TTS.voiceKey=String(v||'');TTS.voiceIdx=-1;}
+function ttsSetSpeed(v){TTS.speed=Math.max(.7,Math.min(1.2,parseFloat(v)||.85));ttsSavePrefs();}
+function ttsSetVoice(v){const match=ttsGetVoices().find(x=>ttsFrenchVoice(x)&&(x.voiceURI||x.name)===String(v||''));TTS.voiceKey=match?(match.voiceURI||match.name):'';TTS.voiceIdx=-1;ttsSavePrefs();}
 function ttsReplay(msgId){
  const text=TTS.messages.get(Number(msgId))||document.getElementById('tts-msg-'+msgId)?.textContent||'';
  const id='tts-r-'+msgId;
