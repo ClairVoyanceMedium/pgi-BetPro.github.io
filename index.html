@@ -1676,13 +1676,13 @@ a{color:var(--neon);text-decoration:none}
       </button>
       <button class="btn" id="tts-stop-btn" onclick="ttsStop()" style="display:none;padding:5px 10px;font-size:10px;background:var(--reb);color:var(--re);border:1px solid rgba(239,68,68,.3)">&#9209; Stop</button>
       <select id="tts-speed" onchange="ttsSetSpeed(this.value)" style="background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:4px 8px;border-radius:6px;font-size:10px;font-family:var(--mo);width:auto;outline:none">
-        <option value="0.8">0.8×</option>
-        <option value="1.0" selected>1.0×</option>
-        <option value="1.2">1.2×</option>
-        <option value="1.5">1.5×</option>
+        <option value="0.7">0,70× très lent</option>
+        <option value="0.85" selected>0,85× clair</option>
+        <option value="1">1× normal</option>
+        <option value="1.2">1,20× rapide</option>
       </select>
       <select id="tts-voice" onchange="ttsSetVoice(this.value)" style="background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:4px 6px;border-radius:6px;font-size:9px;font-family:var(--mo);width:auto;outline:none;max-width:120px">
-        <option value="">Voix auto</option>
+        <option value="">Voix française (auto)</option>
       </select>
       <span id="tts-status" role="status" aria-live="polite" style="font-size:9px;color:var(--dm);font-family:var(--mo);flex:1;text-align:right"></span>
     </div>
@@ -2372,7 +2372,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-chat-audio-local-v201"></script>
+<script defer src="./betpro-app.js?v=20261121-tts-fr-clair-v202"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
