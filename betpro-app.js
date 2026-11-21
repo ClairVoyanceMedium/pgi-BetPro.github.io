@@ -2859,7 +2859,7 @@ function syncBetProFindMarkets(){
  }
  if(!soccer&&(market.value==='btts'||market.value==='double_chance'))market.value='h2h';
  const hint=document.getElementById('betpro-find-market-note');
- if(hint)hint.textContent='Classique : vainqueur, consensus des bookmakers. Benter : '+(soccer?'vainqueur, buts, handicap, double chance ou les deux équipes marquent.':'vainqueur, handicap ou total de points/buts.')+' La fourchette de cotes s’applique aux deux méthodes.';
+ if(hint)hint.textContent='Classique : compare les cotes du vainqueur. Benter : analyse statistique du '+(soccer?'vainqueur, des buts, du handicap et des autres marchés football.':'vainqueur, du handicap ou des totaux selon le sport.')+' Les filtres communs sont appliqués aux deux méthodes. Les options Benter sont facultatives.';
 }
 function betproFindReadOdds(){
  return BETPRO_FIND_ODDS_STYLES[betproFindOddsStyle]||BETPRO_FIND_ODDS_STYLES.all;
