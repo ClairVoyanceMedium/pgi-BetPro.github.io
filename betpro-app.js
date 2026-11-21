@@ -4285,44 +4285,23 @@ function betproExpertContextFromResearch(research){
 
 async function sendChat(){
  const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
- const q=input?.value.trim();
- if(!q||btn?.disabled)return;
- chatHistory.push({role:'user',content:q});
- appendMsg('user',q);
- input.value='';btn.disabled=true;
- btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
+ const q=input?.value.trim();if(!q||btn?.disabled)return;
+ chatHistory.push({role:'user',content:q});appendMsg('user',q);input.value='';
+ btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
  const wrap=document.getElementById('chat-wrap'),typing=document.createElement('div');
  typing.className='msg bot';typing.id='typing';
- typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Consultation des données et analyse…</div>';
+ typing.innerHTML='<div class="msg-ico">🤖</div><div class="msg-bub" style="color:var(--dm)">Recherche sportive multi-sources en cours…</div>';
  wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;
  try{
-   const ctx=getCtx()||{};
-   const research=await betproExpertFreshFixture(q,ctx).catch(e=>({warnings:['Recherche ESPN non disponible : '+String(e?.message||'erreur')],sources:[],research_level:'limited',checked_at:new Date().toISOString()}));
-   const verified=betproExpertContextFromResearch(research);
-   if(verified)ctx.extra=verified;
-   const nq=betproExpertNorm(q);
-   const predictionQuestion=/\b(gagne|gagner|gagnera|gagnant|vainqueur|victorieux|victorieuse|remporte|favori|pronostic|pari|parier|mise|cote|proba|chance|analyse|conseil|rentable|value)\b/.test(nq);
-   const factualQuestion=/\b(quelle heure|a quelle heure|quel jour|quelle date|quand|horaire|date du match|debut du match)\b/.test(nq);
-   const directFixtureAnswer=Boolean(factualQuestion&&!predictionQuestion&&research?.fixture);
-   const d=directFixtureAnswer
-     ? {response:'Horaire récupéré dans le calendrier ESPN lors de cette consultation. La programmation reste susceptible de changer.',
-        checked_at:research.checked_at,sources:[],warnings:[]}
-     : await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},
-       {timeoutMs:35000,noCache:true});
-   typing.remove();
-   const evidence=research?.fixture?('**Rencontre vérifiée (ESPN)** : '+research.fixture.home+' - '+research.fixture.away+' | '+betproExpertDateParis(research.fixture.date)+' (heure de Paris) | '+research.fixture.status+(research.fixture.score?' | Score '+research.fixture.score:'')+'\n\n'):'';
-   const sSources=Array.isArray(d?.sources)?d.sources:[];
-   const unverified=(predictionQuestion||factualQuestion)&&!research?.fixture&&!sSources.length;
-   const answer=unverified
-    ? 'Impossible de confirmer l’horaire ou de fournir un pronostic fiable : aucune donnée récente et vérifiée sur cette rencontre. Précisez les deux adversaires, le sport et la compétition.'
-    : evidence+String(d?.response||'Analyse indisponible.');
-   chatHistory.push({role:'assistant',content:answer});
-   appendMsg('bot',answer,d?.provider&&d?.model?d.provider+' · '+d.model:null);
-   betproChatShowResearchSources({...research,...d,checked_at:d?.checked_at||research?.checked_at,sources:[...(research?.sources||[]),...(Array.isArray(d?.sources)?d.sources:[])],warnings:[...(research?.warnings||[]),...(Array.isArray(d?.warnings)?d.warnings:[])],research_level:d?.research_level==='event_found'||research?.research_level==='event_found'?'event_found':'limited',research_coverage:{...(research?.research_coverage||{}),...(d?.research_coverage||{})}});
- }catch(e){
-   typing.remove();appendMsg('bot','Analyse indisponible : '+(e?.message||'erreur réseau')+'. Les informations ne sont pas vérifiées.');
- }
- btn.disabled=false;btn.innerHTML='▶';
+  const ctx=getCtx()||{};
+  const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},{timeoutMs:45000,noCache:true});
+  typing.remove();
+  const answer=String(d?.response||'Recherche indisponible : aucune donnée vérifiée retournée.');
+  chatHistory.push({role:'assistant',content:answer});
+  appendMsg('bot',answer,d?.provider&&d?.model?d.provider+' · '+d.model:null);
+  betproChatShowResearchSources(d||{});
+ }catch(e){typing.remove();appendMsg('bot','La recherche sportive n’a pas abouti : '+(e?.message||'erreur réseau')+'. Aucun résultat n’a été inventé.');}
+ finally{btn.disabled=false;btn.innerHTML='▶';}
 }
 
 async function loadAIStatus(){const box=document.getElementById('ai-status-box');if(!box)return;try{const d=await api('/api/ai-info');box.innerHTML=d.configured?`<div class="ok-box">✅ IA opérationnelle — <span class="provider-badge pb-${d.provider}">${d.provider} · ${d.model}</span></div>`:`<div class="warn">⚠️ IA non configurée — exécutez <code>wrangler secret put AI_PROVIDER</code></div>`;const badge=document.getElementById('ai-badge');if(badge&&d.configured){badge.className='provider-badge pb-'+d.provider;badge.textContent='⚡ '+d.provider+' · '+d.model;}}catch(_){}}
