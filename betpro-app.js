@@ -8134,10 +8134,8 @@ async function initStatusBadges() {
     setDot('m-odds-dot',oaColor);setLbl('m-odds-lbl','OA',oaColor);
     setTech('m-tech-lat','LAT '+latency+'ms',latencyColor,'Temps aller-retour API : '+latency+' ms (pas le temps de calcul Cloudflare seul)');
     setTech('m-tech-cr','CR '+(hasCredits?credits.toLocaleString('fr-FR'):'--'),oaColor,'Crédits Odds API restants');
-    setTech('m-tech-key','K '+keyLabel,muted,'Clé active Odds API : '+(validKeys?keyLabel:'information indisponible'));
     setTech('m-tech-check','CTRL '+checked,green,'Dernier contrôle API réussi à '+checked+', sans indication de fraîcheur des cotes');
     setTech('sb-tech-lat','Latence : '+latency+' ms',latencyColor);
-    setTech('sb-tech-key','Clé : '+keyLabel,muted);
     setTech('sb-tech-check','Contrôle : '+checked,green);
   } catch(error) {
     const checked=checkTime();
@@ -8147,10 +8145,8 @@ async function initStatusBadges() {
     setDot('m-odds-dot',muted);setLbl('m-odds-lbl','OA',muted);
     setTech('m-tech-lat','LAT --',muted,'Latence non mesurable : requête échouée');
     setTech('m-tech-cr','CR --',muted,'Quota indisponible, ne signifie pas épuisé');
-    setTech('m-tech-key','K --',muted,'Clé active inconnue');
     setTech('m-tech-check','CTRL !'+checked,red,'Contrôle API échoué à '+checked);
     setTech('sb-tech-lat','Latence : --',muted);
-    setTech('sb-tech-key','Clé : --',muted);
     setTech('sb-tech-check','Contrôle échoué : '+checked,red);
   } finally {betproBadgesLoading=false;}
 }
