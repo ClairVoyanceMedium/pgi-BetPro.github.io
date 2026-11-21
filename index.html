@@ -1006,6 +1006,28 @@ a{color:var(--neon);text-decoration:none}
 #s-chat .betpro-tts-play:disabled{opacity:.55;cursor:not-allowed}
 @media(prefers-reduced-motion:reduce){#s-chat .betpro-tts-play{transition:none}}
 
+
+/* Questions rapides : fond neutre transparent et texte blanc, sans teinte verte.
+   Conserver exclusivement les accents vert pomme des contours/titres. */
+#s-chat .betpro-expert-quick .fbtn{
+ background:rgba(255,255,255,.035);
+ border-color:rgba(210,222,234,.27);
+ color:#f3f6fa;
+ box-shadow:none;
+}
+#s-chat .betpro-expert-quick .fbtn:hover,
+#s-chat .betpro-expert-quick .fbtn:focus-visible{
+ background:rgba(255,255,255,.085);
+ border-color:rgba(223,232,240,.48);
+ color:#fff;
+}
+#s-chat .betpro-expert-tips span{
+ background:rgba(255,255,255,.045);
+ border-color:rgba(205,215,228,.26);
+ color:#eef3fa;
+}
+#s-chat .betpro-expert-quick{background:#0b1220}
+
 /* Chat Expert : sources étendues et couverture des recherches. */
 #s-chat .betpro-chat-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 15px}
 #s-chat .betpro-chat-coverage>div{padding:10px 11px;border:1px solid rgba(101,163,185,.17);border-radius:8px;background:rgba(15,40,55,.5);min-width:0}
@@ -2338,7 +2360,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-chat-audio-chrome-v199"></script>
+<script defer src="./betpro-app.js?v=20261121-chat-audio-fallback-v200"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
