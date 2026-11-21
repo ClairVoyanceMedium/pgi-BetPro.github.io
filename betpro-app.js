@@ -4059,15 +4059,15 @@ function getCtx(){
  return Object.keys(ctx).length?ctx:null;
 }
 function clearCtx(){['ctx-home','ctx-away','ctx-sh','ctx-sa','ctx-min','ctx-comp','ctx-total-line'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sport=document.getElementById('ctx-sport');if(sport)sport.value='auto';betproPoissonSportChanged();const results=document.getElementById('live-model-res');if(results)results.innerHTML='';betproPoissonLastAnalysis=null;}
-function clearChat(){chatHistory=[];ttsStop(true);document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
+function clearChat(){chatHistory=[];ttsStop(true);TTS.messages.clear();document.getElementById('chat-wrap').innerHTML='<div class="msg bot"><div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div><div class="msg-bub">Conversation effacée.</div></div></div>';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 function sendQuick(q){document.getElementById('chat-input').value=q;sendChat();}
 
 
 const BETPRO_CHAT_BOT_ICON='<img class="betpro-chat-bp-image" src="./betpro-icon-192.png" width="34" height="34" alt="BP" loading="lazy" decoding="async">';
-const TTS={enabled:false,speed:1,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false};
+const TTS={enabled:false,speed:1,volume:1,voiceIdx:-1,utterance:null,msgId:0,token:0,chunks:[],i:0,replay:null,voices:[],initDone:false,hasStarted:false,messages:new Map(),startupTimer:null,chunkTimer:null,nextTimer:null,retried:false,voiceKey:''};
 const CHAT_MIC={recognition:null,active:false,base:'',error:null};
-function ttsSupported(){return typeof window!=='undefined'&&'speechSynthesis' in window&&'SpeechSynthesisUtterance' in window;}
+function ttsSupported(){return typeof window!=='undefined'&&!!window.speechSynthesis&&typeof window.SpeechSynthesisUtterance==='function';}
 function ttsStatus(t){const el=document.getElementById('tts-status');if(el)el.textContent=t||'';}
 function ttsGetVoices(){if(!ttsSupported())return[];try{return window.speechSynthesis.getVoices()||[];}catch(_){return[];}}
 function ttsInit(){
@@ -4079,7 +4079,7 @@ function ttsInit(){
   voices.forEach((v,i)=>{const option=document.createElement('option');option.value=String(i);
     option.textContent=v.name+(v.lang?' ('+v.lang+')':'');if(/^fr/i.test(v.lang||''))option.style.color='#22d3a5';sel.appendChild(option);});
   if(selected&&voices[Number(selected)])sel.value=selected;
-  if(TTS.voiceIdx>=voices.length)TTS.voiceIdx=-1;
+  if(TTS.voiceKey&&!voices.some(v=>v.voiceURI===TTS.voiceKey))TTS.voiceKey='';
  };
  refresh();
  if(!TTS.initDone){
@@ -4104,64 +4104,113 @@ function ttsClean(text){
 function ttsChunks(text){
  const words=ttsClean(text).split(/\s+/).filter(Boolean),parts=[];let part='';
  for(const word of words){
-  if(part&&(part+' '+word).length>170){parts.push(part);part='';}
-  if(word.length>170){for(let i=0;i<word.length;i+=170)parts.push(word.slice(i,i+170));}
+  if(part&&(part+' '+word).length>135){parts.push(part);part='';}
+  if(word.length>135){for(let i=0;i<word.length;i+=135)parts.push(word.slice(i,i+135));}
   else part+=(part?' ':'')+word;
  }
  if(part)parts.push(part);return parts.slice(0,46);
 }
+
+function ttsClearTimers(){
+ for(const k of ['startupTimer','chunkTimer','nextTimer']){
+  if(TTS[k]!=null){clearTimeout(TTS[k]);TTS[k]=null;}
+ }
+}
+function ttsPlayLabel(active){
+ const el=TTS.replay?document.getElementById(TTS.replay):null;
+ if(el){
+  el.textContent=active?'■ Arrêter':'▶ Écouter';
+  el.setAttribute('aria-pressed',String(!!active));
+  el.title=active?'Arrêter la lecture':'Écouter cette réponse';
+ }
+}
 function ttsFinish(status){
- TTS.utterance=null;TTS.chunks=[];TTS.i=0;TTS.hasStarted=false;
+ ttsClearTimers();ttsPlayLabel(false);
+ TTS.utterance=null;TTS.chunks=[];TTS.i=0;TTS.hasStarted=false;TTS.retried=false;TTS.replay=null;
  const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='none';
- const replay=TTS.replay?document.getElementById(TTS.replay):null;
- if(replay)replay.textContent='Écouter';
- TTS.replay=null;if(status!==undefined)ttsStatus(status);
+ if(status!==undefined)ttsStatus(status);
 }
 function ttsStop(silent=false){
- TTS.token++;
- if(ttsSupported())try{speechSynthesis.cancel();}catch(_){}
- ttsFinish(silent?'':'Lecture arrêtée');
+ ++TTS.token;ttsClearTimers();
+ if(ttsSupported()){
+  const syn=window.speechSynthesis;
+  if(TTS.utterance||syn.speaking||syn.pending||syn.paused)try{syn.cancel();}catch(_){}
+ }
+ ttsFinish(silent?'':'Lecture arrêtée.');
 }
-function ttsSpeak(text,replayId){
- if(!ttsSupported()){ttsStatus('Lecture non prise en charge. Utilise Chrome sur Android.');return;}
+function ttsSpeak(text,replayId,automatic=false){
+ if(!ttsSupported()){
+  ttsStatus('Lecture vocale non disponible dans ce navigateur. Essayez Chrome avec une voix française.');
+  return false;
+ }
  if(CHAT_MIC.active)chatMicStop();
- ttsStop(true);const chunks=ttsChunks(text);if(!chunks.length)return;
- const token=++TTS.token;TTS.chunks=chunks;TTS.i=0;TTS.hasStarted=false;TTS.replay=replayId||null;
- const replay=replayId?document.getElementById(replayId):null;if(replay)replay.textContent='Lecture…';
+ const chunks=ttsChunks(text);if(!chunks.length){ttsStatus('Aucun texte à lire.');return false;}
+ const synth=window.speechSynthesis,wasBusy=!!(TTS.utterance||synth.speaking||synth.pending||synth.paused);
+ ttsStop(true);
+ const token=++TTS.token;TTS.chunks=chunks;TTS.i=0;TTS.retried=false;TTS.replay=replayId||null;
+ ttsPlayLabel(true);
  const stop=document.getElementById('tts-stop-btn');if(stop)stop.style.display='';
- ttsStatus('Lecture en cours…');
- const next=()=>{
+ ttsStatus(automatic?'Préparation de la lecture automatique…':'Lecture en préparation…');
+ const fail=message=>{if(token!==TTS.token)return;ttsStop(true);ttsStatus(message);};
+ const next=(defaultVoice=false)=>{
   if(token!==TTS.token)return;
-  if(TTS.i>=TTS.chunks.length){ttsFinish('Lecture terminée');return;}
-  const voices=ttsGetVoices(),voice=TTS.voiceIdx>=0?voices[TTS.voiceIdx]:ttsBestFrVoice(voices);
-  const utter=new SpeechSynthesisUtterance(TTS.chunks[TTS.i++]);
-  utter.lang='fr-FR';utter.rate=TTS.speed;utter.volume=TTS.volume;if(voice)utter.voice=voice;
-  TTS.utterance=utter;let settled=false;
-  utter.onstart=()=>{if(token===TTS.token){TTS.hasStarted=true;ttsStatus('Lecture en cours…');}};
-  utter.onend=()=>{if(settled||token!==TTS.token)return;settled=true;setTimeout(next,50);};
-  utter.onerror=e=>{if(settled||token!==TTS.token)return;settled=true;
-    if(['canceled','interrupted'].includes(e.error||''))return;
-    ttsFinish('Lecture interrompue. Appuie sur Écouter pour réessayer.');};
-  try{speechSynthesis.speak(utter);if(speechSynthesis.paused)speechSynthesis.resume();}
-  catch(_){ttsFinish('Lecture indisponible sur ce navigateur.');}
+  if(TTS.i>=TTS.chunks.length){ttsFinish('Lecture terminée.');return;}
+  ttsClearTimers();
+  const utter=new window.SpeechSynthesisUtterance(TTS.chunks[TTS.i]);
+  utter.lang='fr-FR';utter.rate=TTS.speed;utter.volume=TTS.volume;
+  const voice=defaultVoice?null:(TTS.voiceKey?ttsGetVoices().find(v=>v.voiceURI===TTS.voiceKey):ttsBestFrVoice(ttsGetVoices()));
+  if(voice)utter.voice=voice;
+  TTS.utterance=utter;
+  let settled=false,started=false;
+  utter.onstart=()=>{if(settled||token!==TTS.token)return;started=true;TTS.hasStarted=true;ttsStatus('Lecture en cours · '+(TTS.i+1)+'/'+TTS.chunks.length);};
+  utter.onend=()=>{if(settled||token!==TTS.token)return;settled=true;ttsClearTimers();TTS.i++;TTS.nextTimer=setTimeout(()=>next(),80);};
+  utter.onerror=e=>{
+   if(settled||token!==TTS.token)return;settled=true;ttsClearTimers();
+   const type=String(e?.error||'inconnue');
+   if(!TTS.retried&&['canceled','interrupted','audio-busy','synthesis-failed','voice-unavailable'].includes(type)){
+    TTS.retried=true;try{synth.cancel();}catch(_){}
+    TTS.nextTimer=setTimeout(()=>next(true),180);return;
+   }
+   fail(type==='not-allowed'?'Lecture bloquée. Appuyez directement sur « Écouter » dans Chrome.':'Erreur audio : '+type+'. Vérifiez la voix et le volume.');
+  };
+  try{if(synth.paused)synth.resume();synth.speak(utter);}
+  catch(e){fail('Impossible de lire la réponse : '+String(e?.message||e).slice(0,80));return;}
+  TTS.startupTimer=setTimeout(()=>{
+   if(token!==TTS.token||settled||started)return;
+   if(synth.speaking){started=true;ttsStatus('Lecture vocale en cours…');return;}
+   if(!TTS.retried){TTS.retried=true;try{synth.cancel();}catch(_){}TTS.nextTimer=setTimeout(()=>next(true),180);}
+   else fail('La voix ne démarre pas. Vérifiez la synthèse vocale Android ou utilisez Chrome.');
+  },3000);
+  TTS.chunkTimer=setTimeout(()=>{
+   if(token!==TTS.token||settled)return;
+   try{if(synth.paused)synth.resume();}catch(_){}
+   if(!synth.speaking&&!synth.pending)fail('Lecture interrompue. Appuyez sur « Écouter ».');
+   else TTS.chunkTimer=setTimeout(()=>{if(token===TTS.token&&!settled)fail('Lecture bloquée. Appuyez à nouveau sur « Écouter ».');},6000);
+  },16000);
  };
- // Important on Android: first utterance is called synchronously by the click.
- next();
- setTimeout(()=>{if(token===TTS.token&&!TTS.hasStarted&&TTS.utterance)
-  ttsStatus('Lecture bloquée par le navigateur. Appuie sur Écouter.');},3000);
+ // On a fresh user click: start synchronously to keep audio permission.
+ if(wasBusy)TTS.nextTimer=setTimeout(()=>next(),110);else next();
+ return true;
 }
 function ttsToggleAuto(){
- if(!ttsSupported()){ttsStatus('Fonction vocale indisponible');toast('Lecture vocale non prise en charge ici','err');return;}
+ if(!ttsSupported()){ttsStatus('Lecture vocale non disponible dans ce navigateur.');return;}
  TTS.enabled=!TTS.enabled;
  const button=document.getElementById('tts-main-btn'),label=document.getElementById('tts-main-lbl');
  if(button){button.classList.toggle('on',TTS.enabled);button.setAttribute('aria-pressed',String(TTS.enabled));}
  if(label)label.textContent=TTS.enabled?'Voix ON':'Voix OFF';
- if(TTS.enabled){ttsSpeak('Lecture vocale activée. Les réponses du chat seront lues automatiquement.');toast('Lecture vocale activée','ok');}
- else{ttsStop(true);ttsStatus('Lecture automatique désactivée');toast('Lecture vocale désactivée','ok');}
+ if(TTS.enabled)ttsSpeak('Lecture automatique activée. Vous pouvez aussi utiliser le bouton Écouter sous les réponses.',null,false);
+ else{ttsStop(true);ttsStatus('Lecture automatique désactivée.');}
 }
-function ttsSetSpeed(v){TTS.speed=Math.min(1.5,Math.max(.7,parseFloat(v)||1));}
-function ttsSetVoice(v){TTS.voiceIdx=v===''?-1:Number(v);}
-function ttsReplay(id){const el=document.getElementById('tts-msg-'+id);if(el)ttsSpeak(el.dataset.raw||el.textContent,'tts-r-'+id);}
+function ttsSetSpeed(v){TTS.speed=Math.max(.7,Math.min(1.5,parseFloat(v)||1));}
+function ttsSetVoice(v){TTS.voiceKey=String(v||'');TTS.voiceIdx=-1;}
+function ttsReplay(msgId){
+ const text=TTS.messages.get(Number(msgId))||document.getElementById('tts-msg-'+msgId)?.textContent||'';
+ const id='tts-r-'+msgId;
+ if(TTS.replay===id&&TTS.utterance){ttsStop();return;}
+ if(!text){ttsStatus('Réponse introuvable pour la lecture.');return;}
+ ttsSpeak(text,id,false);
+}
+
 function chatMicInit(){
  const el=document.getElementById('chat-mic-btn');if(!el)return;
  const available=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
@@ -4215,10 +4264,11 @@ function appendMsg(role,msgContent,meta){
   const msgId=++TTS.msgId;
   const formatted=esc(msgContent).replace(/\*\*(.+?)\*\*/g,'<strong style="color:var(--tx)">$1</strong>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/\n/g,'<br>');
   const ico=role==='user'?'👤':BETPRO_CHAT_BOT_ICON;
-  const replayHtml=role==='bot'?`<div style="margin-top:5px"><button id="tts-r-${msgId}" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:5px;color:var(--pu);font-size:9px;font-family:var(--mo);padding:3px 8px;cursor:pointer" onclick="ttsReplay(${msgId})">🔊 Relire</button></div>`:'';
-  div.innerHTML=`<div class="msg-ico ${role==='bot'?'msg-ico-bp':''}">${ico}</div><div style="flex:1;min-width:0"><div class="msg-bub" id="tts-msg-${msgId}" data-raw="${esc(msgContent).replace(/"/g,'&quot;')}">${formatted}</div>${meta?`<div class="chat-meta">${esc(meta)}</div>`:''} ${replayHtml}</div>`;
+  if(role==='bot'){TTS.messages.set(msgId,String(msgContent));if(TTS.messages.size>90)TTS.messages.delete(TTS.messages.keys().next().value);}
+  const replayHtml=role==='bot'?`<div class="betpro-tts-controls"><button type="button" class="betpro-tts-play" id="tts-r-${msgId}" aria-pressed="false" aria-label="Écouter cette réponse" onclick="ttsReplay(${msgId})">▶ Écouter</button></div>`:'';
+  div.innerHTML=`<div class="msg-ico ${role==='bot'?'msg-ico-bp':''}">${ico}</div><div style="flex:1;min-width:0"><div class="msg-bub" id="tts-msg-${msgId}" >${formatted}</div>${meta?`<div class="chat-meta">${esc(meta)}</div>`:''} ${replayHtml}</div>`;
   wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
-  if(role==='bot'&&TTS.enabled&&msgContent.length>2){setTimeout(()=>ttsSpeak(msgContent,'tts-r-'+msgId),80);}
+  if(role==='bot'&&TTS.enabled&&msgContent.length>2){setTimeout(()=>ttsSpeak(msgContent,'tts-r-'+msgId,true),80);}
 }
 
 
