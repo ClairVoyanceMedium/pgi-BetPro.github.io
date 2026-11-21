@@ -2191,6 +2191,182 @@ a{color:var(--neon);text-decoration:none}
   #s-strategy .risk-opt,#s-strategy .upload-zone{transition:none}
 }
 
+
+/* Blackjack Directionnel · design PMU en beige */
+/* Habillage strictement limité au Blackjack, sans changer la signalétique des risques. */
+#s-blackjack{
+  --bj-beige:#e7cda8;--bj-hot:#d7b583;--bj-light:#f2e2ca;
+  --bj-border:rgba(231,205,168,.32);
+  --neon:#e7cda8;--neon2:#f2e2ca;
+  --nbg:rgba(231,205,168,.10);
+  --ng:0 0 8px rgba(231,205,168,.42),0 0 22px rgba(231,205,168,.22);
+  --ngd:0 0 5px rgba(231,205,168,.32),0 0 14px rgba(231,205,168,.14);
+  --bd:rgba(231,205,168,.20);--bd2:rgba(231,205,168,.32);
+}
+#s-blackjack .bj-pro-hero{
+  position:relative;overflow:hidden;margin:0 0 19px;padding:23px 25px 21px;
+  border:1px solid rgba(231,205,168,.46);border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(215,181,131,.21),transparent 54%),
+             linear-gradient(135deg,#1c2332 0%,#131a29 62%,#191b28 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(242,226,202,.12),0 0 18px rgba(215,181,131,.08);
+}
+#s-blackjack .bj-pro-hero::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#d7b583 0%,#f2e2ca 53%,rgba(242,226,202,.05) 100%);
+  box-shadow:0 0 13px rgba(215,181,131,.34);
+}
+#s-blackjack .bj-pro-overline{
+  display:flex;align-items:center;gap:9px;margin-bottom:9px;
+  color:var(--bj-light);font:750 10px/1.4 var(--mo);letter-spacing:.13em;
+}
+#s-blackjack .bj-pro-pulse{
+  display:block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;
+  background:var(--bj-hot);box-shadow:0 0 11px rgba(215,181,131,.60);
+}
+#s-blackjack .bj-pro-hero .pt{
+  font:900 clamp(24px,3vw,34px)/1.17 var(--hd);letter-spacing:.028em;
+  color:#f8ecdc;text-shadow:0 2px 16px rgba(215,181,131,.13);
+}
+#s-blackjack .bj-pro-hero .ps{max-width:720px;margin-top:8px;color:#d9d0c5;font-size:12px;line-height:1.65}
+#s-blackjack .bj-pro-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+#s-blackjack .bj-pro-tags span{
+  font:650 10px/1.4 var(--mo);color:#eddbbd;white-space:normal;
+  border:1px solid rgba(231,205,168,.27);background:rgba(215,181,131,.075);
+  border-radius:20px;padding:6px 10px;
+}
+#s-blackjack .card{
+  border-color:rgba(231,205,168,.22);border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9) 0%,rgba(17,25,39,.96) 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(242,226,202,.025);
+}
+#s-blackjack .bj-pro-panel{position:relative;overflow:hidden;margin-bottom:17px}
+#s-blackjack .bj-pro-panel::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,#e7cda8,rgba(231,205,168,.32),transparent 86%);
+}
+#s-blackjack .ct{
+  font:800 12px/1.4 var(--hd);letter-spacing:.055em;color:#ecd6b5;
+  border-bottom-color:rgba(231,205,168,.17);padding-bottom:12px;margin-bottom:15px;
+}
+#s-blackjack .bj-pro-panel>.ct{font-size:14px;letter-spacing:.025em;color:#efdfc4;padding-top:4px}
+#s-blackjack .fgrp label{color:#d9cbbb}
+#s-blackjack .btn.bp{
+  min-height:39px;padding:10px 15px;
+  border:1px solid rgba(245,230,204,.65);border-radius:9px;color:#2d2115;
+  background:linear-gradient(112deg,#f4e4cb 0%,#e7cda8 49%,#cda878 100%);
+  box-shadow:0 0 15px rgba(215,181,131,.30);font-weight:850;
+}
+#s-blackjack .btn.bp:hover{opacity:1;filter:brightness(1.06);box-shadow:0 0 22px rgba(215,181,131,.42)}
+#s-blackjack .btn.bs{
+  min-height:37px;border-radius:9px;border-color:rgba(231,205,168,.28);
+  background:#20283a;color:#f2e7d8;
+}
+#s-blackjack .btn.bs:hover{border-color:#e7cda8;color:#f4e4cb;background:#292b3c}
+#s-blackjack .btn:focus-visible,
+#s-blackjack .bj-dbtn:focus-visible,
+#s-blackjack .bj-card-btn:focus-visible,
+#s-blackjack .risk-opt:focus-visible{outline:2px solid #f2e2ca;outline-offset:3px}
+#s-blackjack :is(input[type=number],input[type=text],select,textarea){
+  border-radius:8px;border-color:rgba(231,205,168,.24);background:#111b2b;color:#f4e8d9;
+}
+#s-blackjack :is(input[type=number],input[type=text],select,textarea):focus{
+  border-color:#e7cda8;box-shadow:0 0 0 2px rgba(231,205,168,.10);
+}
+#s-blackjack .info{background:rgba(215,181,131,.06);border-color:rgba(231,205,168,.20);color:#e8d8c0}
+#s-blackjack .sp{border-top-color:var(--bj-hot)}
+#s-blackjack .bj-session-banner{
+  border-color:rgba(231,205,168,.30);
+  background:linear-gradient(135deg,rgba(215,181,131,.10),rgba(215,181,131,.035));
+  border-radius:11px;
+}
+#s-blackjack .bj-counter-cell{
+  border-color:rgba(231,205,168,.22);border-radius:11px;
+  background:linear-gradient(155deg,#222b39,#171f2e);
+  box-shadow:inset 3px 0 0 rgba(231,205,168,.68),0 4px 12px rgba(0,0,0,.10);
+}
+#s-blackjack .bj-suit-label{color:#e1d1bb}
+#s-blackjack .bj-card-btn{
+  background:#192334;border-color:rgba(231,205,168,.22);border-radius:8px;
+}
+#s-blackjack .bj-card-btn:hover{
+  border-color:#e7cda8;background:rgba(215,181,131,.10);
+}
+#s-blackjack .bj-card-btn.selected{
+  border-color:#e7cda8;
+  background:rgba(231,205,168,.12);
+  box-shadow:0 0 0 2px rgba(231,205,168,.36),0 0 14px rgba(215,181,131,.30);
+}
+#s-blackjack .bj-card-btn.selected .bj-card-face{box-shadow:inset 0 0 0 2px #d7b583}
+#s-blackjack .bj-history-wrap{
+  border-color:rgba(231,205,168,.22);
+  background:#111b2b;border-radius:10px;
+}
+#s-blackjack .bj-hist-chip{border-color:rgba(231,205,168,.22);background:#20283a;border-radius:8px}
+#s-blackjack .bj-dbtn{
+  min-height:43px;border-radius:9px;
+  background:#20283a;border-color:rgba(231,205,168,.28);
+  color:#f2e7d8;box-shadow:0 4px 12px rgba(0,0,0,.08);
+}
+#s-blackjack .bj-dbtn:hover{
+  border-color:#e7cda8;color:#f4e4cb;background:rgba(215,181,131,.12);
+}
+#s-blackjack .risk-opt{
+  border-radius:9px;border-color:rgba(231,205,168,.28);
+  background:#20283a;
+}
+#s-blackjack .risk-opt.sel{
+  border-color:#e7cda8;background:rgba(215,181,131,.12);
+}
+#s-blackjack .bj-audio-status{
+  background:#111b2b;border-color:rgba(231,205,168,.22);border-radius:10px;
+}
+#s-blackjack .bj-pending-audio{
+  background:rgba(215,181,131,.07);border-color:rgba(231,205,168,.30);
+}
+#s-blackjack .bj-strategy-result{
+  background:linear-gradient(155deg,#222b39,#171f2e);
+  border-color:rgba(231,205,168,.24);border-radius:11px;
+}
+#s-blackjack .bj-shoe-fill{background:linear-gradient(90deg,#cda878,#f2e2ca)}
+#s-blackjack .bj-dir-watch .bj-dir-label,
+#s-blackjack .bj-act-stand{color:#55d2fa}
+#s-blackjack .bj-direction.bj-dir-watch{border-color:#55d2fa}
+#s-blackjack .bj-conf-med{color:#55d2fa;background:rgba(85,210,250,.10)}
+#s-blackjack #bj-chat-wrap{
+  padding:13px;border:1px solid rgba(231,205,168,.20);
+  border-radius:10px;background:rgba(8,15,27,.45);
+}
+#s-blackjack #bj-chat-wrap .msg.bot .msg-bub{
+  background:rgba(215,181,131,.07);
+  border-color:rgba(231,205,168,.17);color:#f0e5d4;
+}
+#s-blackjack #bj-chat-wrap .msg.user .msg-bub{
+  background:rgba(215,181,131,.13);
+  border-color:rgba(231,205,168,.28);color:#fff0dd;
+}
+#s-blackjack .chat-input-wrap{margin-top:11px}
+.ni[data-s="blackjack"].on{
+  color:#ecd6b5;border-left-color:#d7b583;
+  background:rgba(231,205,168,.10);text-shadow:0 0 12px rgba(215,181,131,.20);
+}
+@media(max-width:768px){
+  #s-blackjack .bj-pro-hero{padding:18px 16px;margin-bottom:15px}
+  #s-blackjack .bj-pro-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-blackjack .card{padding:16px}
+  #s-blackjack .bj-pro-tags span{font-size:9px}
+  #s-blackjack .bj-pro-panel .bg .btn{max-width:100%;white-space:normal;line-height:1.35}
+}
+@media(max-width:425px){
+  #s-blackjack .bj-pro-hero{padding:17px 13px}
+  #s-blackjack .bj-pro-tags{gap:5px}
+  #s-blackjack .bj-pro-tags span{padding:5px 8px}
+  #s-blackjack .bj-pro-panel>.ct{font-size:13px}
+  #s-blackjack #bj-chat-wrap{padding:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  #s-blackjack .bj-card-btn,#s-blackjack .bj-dbtn{transition:none}
+}
+
 </style>
 </head>
 <body>
@@ -3120,7 +3296,14 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ BLACKJACK DIRECTIONNEL ═══════════════ -->
 <section class="sec" id="s-blackjack">
-  <div class="ph"><div class="pt">&#127183; Blackjack Directionnel</div><div class="ps">Comptage Hi-Lo · Direction claire · Chat contextuel · Aide statistique uniquement</div></div>
+  <div class="ph bj-pro-hero">
+    <div class="bj-pro-overline"><span class="bj-pro-pulse" aria-hidden="true"></span> ESPACE BLACKJACK · HI-LO</div>
+    <div class="pt">&#127183; Blackjack Directionnel</div>
+    <div class="ps">Comptage Hi-Lo · Direction claire · Chat contextuel · Aide statistique uniquement</div>
+    <div class="bj-pro-tags" aria-label="Fonctions Blackjack disponibles">
+      <span>Comptage Hi-Lo</span><span>Aide à la décision</span><span>Suivi des cartes</span>
+    </div>
+  </div>
 
   <div id="bj-session-banner-wrap"></div>
 
@@ -3134,7 +3317,7 @@ a{color:var(--neon);text-decoration:none}
   <div id="bj-incoherence-wrap"></div>
 
   <!-- BLOC 6 — BOUTONS DE DÉCISION -->
-  <div class="card">
+  <div class="card bj-pro-panel">
     <div class="ct">&#129504; Aide à la décision</div>
     <div class="bj-decision-btns">
       <div class="bj-dbtn" onclick="bjAskQuestion('Dois-je rentrer ?')">DOIS-JE<br>RENTRER ?</div>
@@ -3147,7 +3330,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- BLOC 3 — CARTES -->
-  <div class="card">
+  <div class="card bj-pro-panel">
     <div class="ct">&#127183; Cartes sorties — saisie rapide</div>
     <div class="bj-cards-grid" id="bj-cards-grid"></div>
     <div class="bg" style="margin-top:4px">
@@ -3159,7 +3342,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- BLOC 4 — HISTORIQUE -->
-  <div class="card">
+  <div class="card bj-pro-panel">
     <div class="ct">&#128203; Historique des cartes sorties</div>
     <div class="bj-history-wrap" id="bj-history-wrap"></div>
     <div class="bj-shoe-bar"><div class="bj-shoe-fill" id="bj-shoe-fill" style="width:0%"></div></div>
@@ -3167,7 +3350,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- BLOC 5 — AUDIO -->
-  <div class="card">
+  <div class="card bj-pro-panel">
     <div class="ct">&#127908; Reconnaissance audio (FR/EN)</div>
     <div class="bj-audio-status">
       <div class="bj-audio-dot" id="bj-audio-dot"></div>
@@ -3180,7 +3363,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- Ma main actuelle — stratégie de base -->
-  <div class="card">
+  <div class="card bj-pro-panel">
     <div class="ct">&#127183; Ma main actuelle — Stratégie de base</div>
     <div class="fg">
       <div class="fgrp"><label>Ma carte 1</label>
@@ -3200,7 +3383,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- BLOC 7 — CHAT CONTEXTUEL -->
-  <div class="card" style="padding:14px">
+  <div class="card bj-pro-panel" style="padding:14px">
     <div class="ct" style="margin-bottom:10px">&#128172; Chat contextuel Blackjack</div>
     <div class="chat-wrap" id="bj-chat-wrap" style="max-height:340px">
       <div class="msg bot"><div class="msg-ico">&#127183;</div><div><div class="msg-bub">Bonjour ! Pose-moi une question sur la situation actuelle : "Dois-je rentrer ?", "Combien je dois miser ?", "Est-ce que le sabot est favorable ?"…</div></div></div>
@@ -3212,7 +3395,7 @@ a{color:var(--neon);text-decoration:none}
   </div>
 
   <!-- BLOC 1 (config) — configuration de la partie -->
-  <div class="card">
+  <div class="card bj-pro-panel">
     <div class="ct">&#9881; Configuration de la partie</div>
     <div id="bj-deck-confirm-wrap"></div>
     <div class="fg">
