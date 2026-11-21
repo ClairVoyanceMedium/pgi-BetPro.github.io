@@ -1262,7 +1262,11 @@ a{color:var(--neon);text-decoration:none}
 
 
 /* BETPRO 2026 — Analyse manuelle : palette saumon, parcours épuré. Scope strict. */
-#s-manual{--manual-salmon:#ff936f;--manual-soft:#ffc3a9;--manual-edge:rgba(255,147,111,.40);--manual-ink:#f7f6f7}
+#s-manual{--manual-salmon:#ff936f;--manual-soft:#ffc3a9;--manual-edge:rgba(255,147,111,.40);--manual-ink:#f7f6f7;--neon:#ff936f;--neon2:#ffb08e;--nbg:rgba(255,147,111,.08);--ng:0 0 7px rgba(255,147,111,.3);--ngd:0 0 7px rgba(255,147,111,.24)}
+.ni[data-s="manual"].on{color:#ff936f;border-left-color:#ff936f;background:rgba(255,147,111,.09);text-shadow:none}
+#s-manual .betpro-manual-markets label[hidden]{display:none!important}
+#s-manual .betpro-manual-results .dir-card[data-tier="basic"]{border-color:#ff936f!important}
+#s-manual .betpro-manual-results .dir-card[data-tier="basic"]>div:first-child{background:rgba(255,147,111,.13)!important}
 #s-manual .betpro-manual-intro{margin-bottom:16px}
 #s-manual .ph .pt{color:var(--manual-salmon);font-weight:850;letter-spacing:.015em}
 #s-manual .ph .ps{max-width:790px;line-height:1.65;color:#d8dde7}
@@ -2554,7 +2558,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-manual-salmon-v207"></script>
+<script defer src="./betpro-app.js?v=20261121-manual-salmon-v208"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
