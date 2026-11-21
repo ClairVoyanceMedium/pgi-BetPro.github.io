@@ -4053,8 +4053,8 @@ function getCtx(){
  sport=document.getElementById('ctx-sport')?.value||'auto';
  const ctx={};
  if(home)ctx.home=home;if(away)ctx.away=away;
- if(sh!=='')ctx.score_home=Number(sh);if(sa!=='')ctx.score_away=Number(sa);
- if(min!=='')ctx.minute=Number(min);if(comp)ctx.competition=comp;
+ if(sh!=null&&sh!=='')ctx.score_home=Number(sh);if(sa!=null&&sa!=='')ctx.score_away=Number(sa);
+ if(min!=null&&min!=='')ctx.minute=Number(min);if(comp)ctx.competition=comp;
  if(sport!=='auto')ctx.sport=sport;
  return Object.keys(ctx).length?ctx:null;
 }
@@ -4518,7 +4518,7 @@ async function runLiveModelUI(){
   if(d.sport&&d.sport!=='football'){betproPoissonMultisportRender(d,{home,away,sport,minute,score_home,score_away},res);return;}
   const names=[d.history?.home_name||home,d.history?.away_name||away],m=d.model;
   const percent=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %':'–';
-  const number=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:2}):'–';
+  const number=n=>n!==null&&n!==undefined&&Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:2}):'–';
   const datum=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+
    (hint?'<small>'+esc(hint)+'</small>':'')+'</div>';
   const source=(d.source_urls||[]).slice(0,4).map(u=>{
@@ -4554,6 +4554,7 @@ async function runLiveModelUI(){
     datum('Plus de 2,5 buts',percent(totals.over_25),'Total final, score actuel inclus')+
     datum('Les deux marquent',percent(m.btts),'BTTS, score actuel inclus')+
     datum('Un but dans 5 min',percent(next.within_5min),'Intensité moyenne estimée')+'</div>';
+  if(m.over_reference!=null)html+='<div class="betpro-poisson-grid">'+datum('Plus de '+number(m.reference_line)+' buts',percent(m.over_reference),'Ligne saisie, modèle Poisson')+datum('Moins de '+number(m.reference_line)+' buts',percent(m.under_reference),'Total final, score inclus')+'</div>';
   html+='<div class="betpro-poisson-bottom"><div><h4>Projection calculée</h4><p>Buts supplémentaires attendus : <strong>'+
    number(m.additional_goals?.home)+' / '+number(m.additional_goals?.away)+'</strong></p>'+
    '<p>Score moyen projeté : <strong>'+number(m.expected_final?.home)+' / '+number(m.expected_final?.away)+'</strong></p>'+
