@@ -1411,9 +1411,9 @@ a{color:var(--neon);text-decoration:none}
 #s-dash #betpro-pari-finder .fgrp select:focus{border-color:#b6ff00;box-shadow:0 0 0 2px rgba(182,255,0,.10);outline:none}
 #s-dash #betpro-pari-finder .betpro-find-help{margin:10px 0 14px;font-size:11px;line-height:1.55;color:#b5cba8}
 #s-dash #betpro-pari-finder .bg{gap:10px;align-items:center}
-#s-dash #betpro-pari-finder #abtn{min-height:44px;padding:10px 17px;background:linear-gradient(112deg,#ccff4d 0%,#75ff48 46%,#28f5a2 100%);border:1px solid #35d868;border-radius:9px;color:#0b2812;font-size:12px;font-weight:850;box-shadow:0 0 0 1px rgba(17,103,49,.50),0 0 15px rgba(98,255,67,.28);text-shadow:0 1px 0 rgba(255,255,255,.24)}
-#s-dash #betpro-pari-finder #abtn:hover{opacity:1;box-shadow:0 0 0 1px rgba(17,103,49,.6),0 0 22px rgba(98,255,67,.48)}
-#s-dash #betpro-pari-finder #abtn:focus-visible{outline:2px solid #e4ff8c;outline-offset:3px}
+#s-dash #betpro-pari-finder #betpro-find-classic{min-height:44px;padding:10px 17px;background:linear-gradient(112deg,#ccff4d 0%,#75ff48 46%,#28f5a2 100%);border:1px solid #35d868;border-radius:9px;color:#0b2812;font-size:12px;font-weight:850;box-shadow:0 0 0 1px rgba(17,103,49,.50),0 0 15px rgba(98,255,67,.28);text-shadow:0 1px 0 rgba(255,255,255,.24)}
+#s-dash #betpro-pari-finder #betpro-find-classic:hover{opacity:1;box-shadow:0 0 0 1px rgba(17,103,49,.6),0 0 22px rgba(98,255,67,.48)}
+#s-dash #betpro-pari-finder #betpro-find-classic:focus-visible{outline:2px solid #e4ff8c;outline-offset:3px}
 #s-dash #betpro-pari-finder .btn.bs{min-height:44px;border:1px solid rgba(182,255,0,.3);border-radius:9px;padding:10px 14px;background:#121d28;font-size:11px;color:#c9e8b6}
 #s-dash #betpro-pari-finder .btn.bs:hover{border-color:#b6ff00;color:#d8ff9e}
 #s-dash #betpro-pari-finder .betpro-find-foot{color:var(--dm);font-size:10px;line-height:1.65;margin-top:13px}
@@ -1435,6 +1435,24 @@ a{color:var(--neon);text-decoration:none}
   #s-dash #betpro-pari-finder .card{padding:14px 12px}
   #s-dash #betpro-pari-finder .bg .btn{flex:1 1 100%;justify-content:center}
 }
+
+
+/* BetPro analyse sportive par championnat : commandes distinctes et adaptatives */
+#s-dash #betpro-pari-finder .betpro-find-sports-count{font:10px var(--hd);line-height:1.5;color:#b8cdb0;margin-top:7px}
+#s-dash #betpro-pari-finder .betpro-find-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:12px}
+#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch{min-height:53px;justify-content:center;gap:9px;font:850 12px var(--hd);letter-spacing:.015em;white-space:normal;text-align:center;padding:13px 11px;transition:box-shadow .2s,transform .2s}
+#s-dash #betpro-pari-finder #betpro-find-classic{background:linear-gradient(112deg,#ccff4d 0%,#75ff48 46%,#28f5a2 100%);border:1px solid #35d868;border-radius:10px;color:#0b2812;box-shadow:0 0 0 1px rgba(17,103,49,.5),0 0 15px rgba(98,255,67,.3)}
+#s-dash #betpro-pari-finder #betpro-find-benter{background:linear-gradient(112deg,#ffc2a3 0%,#ff9369 50%,#ff7156 100%);border:1px solid #ff9b6b;border-radius:10px;color:#30160e;box-shadow:0 0 0 1px rgba(181,89,57,.4),0 0 15px rgba(255,137,91,.26)}
+#s-dash #betpro-pari-finder #betpro-find-benter:hover{box-shadow:0 0 0 1px rgba(181,89,57,.6),0 0 25px rgba(255,137,91,.48)}
+#s-dash #betpro-pari-finder .betpro-find-launch:focus-visible{outline:2px solid #f7f7f7;outline-offset:3px}
+#s-dash #betpro-pari-finder .betpro-find-launch:disabled{opacity:.68;cursor:progress}
+#s-dash #betpro-pari-finder .betpro-find-engine-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+#s-dash #betpro-pari-finder .betpro-find-engine-legend>div{border:1px solid rgba(189,209,199,.14);background:rgba(18,31,36,.55);border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+#s-dash #betpro-pari-finder .betpro-find-engine-legend strong{font-size:11px;color:#c9ff63}
+#s-dash #betpro-pari-finder .betpro-find-engine-legend>div:nth-child(2) strong{color:#ffad87}
+#s-dash #betpro-pari-finder .betpro-find-engine-legend span{font-size:10px;color:var(--mu);line-height:1.55}
+#s-dash #betpro-pari-finder .betpro-find-engine-note{border-left:2px solid #b6ff00;background:rgba(182,255,0,.045);padding:9px 11px;border-radius:0 7px 7px 0;color:#bed3b9;font-size:11px;line-height:1.65;margin-bottom:12px}
+@media(max-width:600px){#s-dash #betpro-pari-finder .betpro-find-actions{grid-template-columns:1fr}#s-dash #betpro-pari-finder .betpro-find-engine-legend{grid-template-columns:1fr}#s-dash #betpro-pari-finder .betpro-find-actions .betpro-find-launch{width:100%;min-height:49px}}
 
 </style>
 </head>
@@ -1644,9 +1662,9 @@ a{color:var(--neon);text-decoration:none}
   <div style="height:1px;background:var(--bd);margin:22px 0"></div>
   <div id="betpro-pari-finder" class="betpro-pari-finder">
     <div class="ph betpro-find-heading">
-      <div class="betpro-find-eyebrow">RECHERCHE PAR CHAMPIONNAT</div>
-      <div class="pt">Trouver un pari</div>
-      <div class="ps">Choisissez un championnat et un type de pari. BetPro compare les cotes disponibles et affiche uniquement les sélections qui passent les contrôles de fiabilité.</div>
+      <div class="betpro-find-eyebrow">DEUX STRATÉGIES INDÉPENDANTES</div>
+      <div class="pt">Analyse des paris par sport</div>
+      <div class="ps">Choisissez un sport ou un championnat, puis lancez le moteur Classique ou Benter. Chaque méthode vérifie les cotes et ses propres critères.</div>
     </div>
   <div class="score-legend">
     <span style="font-size:10px;color:var(--dm);font-family:var(--mo);margin-right:4px;font-weight:700">NOTES :</span>
@@ -1656,7 +1674,7 @@ a{color:var(--neon);text-decoration:none}
     <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu);font-family:var(--mo)"><span class="sc-sig sig-vl">&#128308; &lt;50</span>Éviter</span>
   </div>
   <div class="card">
-    <div class="ct">Choisissez ce que vous recherchez</div>
+    <div class="ct">Choisissez votre championnat et vos critères</div>
     <div class="fg">
       <div class="fgrp"><label for="sel-sport">1. Championnat</label>
         <select id="sel-sport" onchange="syncBetProFindMarkets()">
@@ -1664,10 +1682,11 @@ a{color:var(--neon);text-decoration:none}
           <optgroup label="&#127936; Basketball"><option value="basketball_nba">&#127936; NBA</option><option value="basketball_ncaab">&#127936; NCAA (universitaire)</option><option value="basketball_euroleague">&#127936; EuroLeague</option></optgroup>
           <optgroup label="&#127934; Tennis"><option value="tennis_atp">&#127934; ATP Tour</option><option value="tennis_wta">&#127934; WTA Tour</option><option value="tennis_atp_french_open">&#127934; Roland Garros</option></optgroup>
           <optgroup label="&#127945; Rugby"><option value="rugbyunion_premiership">&#127945; Premiership</option></optgroup>
-          <optgroup label="Autres"><option value="icehockey_nhl">&#127944; NHL</option><option value="baseball_mlb">&#9918; MLB</option><option value="americanfootball_nfl">&#127944; NFL</option><option value="mma_mixed_martial_arts">&#129354; MMA/UFC</option></optgroup>
+          <optgroup label="Autres"><option value="icehockey_nhl">&#127944; NHL</option><option value="baseball_mlb">&#9918; MLB</option><option value="americanfootball_nfl">&#127944; NFL</option><option value="mma_mixed_martial_arts">&#129354; MMA/UFC</option><option value="boxing_boxing">Boxe (si disponible)</option><option value="handball_germany_bundesliga">Handball</option><option value="volleyball_germany_bundesliga">Volleyball (si disponible)</option></optgroup>
         </select>
+        <div id="betpro-find-sports-count" class="betpro-find-sports-count">Catalogue de sports en actualisation : football, basket, tennis, boxe, MMA et autres compétitions cotées.</div>
       </div>
-      <div class="fgrp"><label for="sel-market">2. Type de pari</label>
+      <div class="fgrp"><label for="sel-market">2. Type de pari (Benter)</label>
         <select id="sel-market">
           <option value="h2h">Vainqueur / résultat final (1X2)</option>
           <option value="totals">Plus / moins de buts ou points</option>
@@ -1676,15 +1695,19 @@ a{color:var(--neon);text-decoration:none}
           <option value="spreads">Handicap (écart de buts ou points)</option>
         </select>
       </div>
-      <div class="fgrp"><label for="sel-mode">3. Recherche</label><select id="sel-mode"><option value="quick">Rapide (données récentes, économise les crédits)</option><option value="deep">Actualiser les cotes (utilise les crédits API)</option></select></div>
-      <div class="fgrp"><label for="sel-minscore">4. Note minimale</label><select id="sel-minscore"><option value="0">Tout (0+)</option><option value="50">&#128992; 50+</option><option value="65" selected>&#127803; 65+</option><option value="75">&#127804; 75+ &#11088;</option><option value="85">&#128142; 85+</option></select></div>
+      <div class="fgrp"><label for="sel-mode">3. Recherche Benter</label><select id="sel-mode"><option value="quick">Rapide (données récentes, économise les crédits)</option><option value="deep">Actualiser les cotes (utilise les crédits API)</option></select></div>
+      <div class="fgrp"><label for="sel-minscore">4. Note minimale (sur 100)</label><select id="sel-minscore"><option value="0">Tout (0+)</option><option value="50">&#128992; 50+</option><option value="65" selected>&#127803; 65+</option><option value="75">&#127804; 75+ &#11088;</option><option value="85">&#128142; 85+</option></select></div>
     </div>
-    <div id="betpro-find-market-note" class="betpro-find-help">Football : vainqueur, buts, les deux équipes marquent, double chance ou handicap.</div>
-    <div class="bg">
-      <button type="button" class="btn bp" id="abtn" onclick="doAnalyze()">Rechercher des paris</button>
-      <button type="button" class="btn bs" onclick="go('results')">Paris suivis</button>
+    <div id="betpro-find-market-note" class="betpro-find-help">Benter : vainqueur et marchés complémentaires selon le sport. Classique : vainqueur uniquement, consensus de bookmakers indépendant de Benter.</div>
+    <div class="bg betpro-find-actions" role="group" aria-label="Choisir un moteur de recherche sportive">
+      <button type="button" class="btn betpro-find-launch" id="betpro-find-classic" onclick="doAnalyze('classic')"><span aria-hidden="true">●</span> SCAN CLASSIQUE</button>
+      <button type="button" class="btn betpro-find-launch" id="betpro-find-benter" onclick="doAnalyze('benter')"><span aria-hidden="true">◎</span> ANALYSE BENTER</button>
     </div>
-    <div class="betpro-find-foot">Une note élevée ne garantit pas un gain. Si les cotes ou la validation sont insuffisantes, aucun pari n'est proposé.</div>
+    <div class="betpro-find-engine-legend">
+      <div><strong>Classique</strong><span>Consensus, accord entre bookmakers, cotes et valeur potentielle. Indépendant de Benter.</span></div>
+      <div><strong>Benter</strong><span>Probabilités, historique et modèles statistiquement validés. Aucune recommandation forcée.</span></div>
+    </div>
+    <div class="betpro-find-foot">Les sports dépendent des compétitions et cotes disponibles. Les blessures et compositions non présentes dans les sources ne sont pas devinées. Aucun gain garanti.</div>
   </div>
     <div id="dash-res" aria-live="polite" aria-atomic="false"></div>
   </div>
@@ -2618,7 +2641,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-find-paris-green-v210"></script>
+<script defer src="./betpro-app.js?v=20261121-two-engines-all-sports-v211"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
