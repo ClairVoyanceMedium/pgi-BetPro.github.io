@@ -645,6 +645,33 @@ a{color:var(--neon);text-decoration:none}
 
 
 
+
+/* Poisson empirique : carte stable sur mobile, 1X2 et marchés comparables. */
+#s-chat .betpro-poisson-panel{margin:0 0 17px;padding:16px;border-radius:12px;border:1px solid rgba(56,232,255,.25);background:linear-gradient(145deg,rgba(10,28,48,.85),rgba(9,15,30,.96));color:var(--tx)}
+#s-chat .betpro-poisson-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+#s-chat .betpro-poisson-head strong{font:800 14px var(--hd);color:var(--neon)}
+#s-chat .betpro-poisson-head span{font:600 10px var(--mo);color:#aed9e7;padding:4px 8px;border:1px solid rgba(56,232,255,.22);border-radius:6px}
+#s-chat .betpro-poisson-match{font-size:14px;font-weight:800;margin:6px 0 5px;overflow-wrap:anywhere}
+#s-chat .betpro-poisson-match span{font:10px var(--mo);color:var(--dm);padding:0 5px}
+#s-chat .betpro-poisson-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:9px;margin:12px 0}
+#s-chat .betpro-poisson-metric{border:1px solid rgba(135,185,203,.21);border-radius:9px;padding:12px 11px;background:rgba(18,40,62,.45);min-width:0}
+#s-chat .betpro-poisson-metric span{display:block;min-height:26px;font-size:11px;line-height:1.4;color:#bfd4e5;overflow-wrap:anywhere}
+#s-chat .betpro-poisson-metric strong{display:block;font:800 22px var(--hd);color:#e4f5ff;margin:5px 0;font-variant-numeric:tabular-nums}
+#s-chat .betpro-poisson-metric small{display:block;font-size:9px;line-height:1.5;color:var(--dm)}
+#s-chat .betpro-poisson-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:13px}
+#s-chat .betpro-poisson-bottom>div{padding:12px;border:1px solid rgba(135,185,203,.17);border-radius:9px;background:rgba(12,24,40,.65)}
+#s-chat .betpro-poisson-bottom h4{font-size:11px;color:#65e6fa;margin:0 0 7px}
+#s-chat .betpro-poisson-bottom p{font-size:11px;line-height:1.7;color:var(--mu);margin:5px 0;overflow-wrap:anywhere}
+#s-chat .betpro-poisson-bottom strong{color:var(--tx)}
+#s-chat .betpro-poisson-verdict{padding:12px;margin:12px 0;border-radius:8px;border:1px solid rgba(0,212,255,.23);color:var(--tx);font-size:12px;font-weight:650;line-height:1.6;background:rgba(0,212,255,.06)}
+#s-chat .betpro-poisson-warning{padding:11px 13px;margin:12px 0;border-radius:8px;border:1px solid rgba(255,183,106,.26);color:#f1c8a6;background:rgba(255,159,76,.055);font-size:10px;line-height:1.7;overflow-wrap:anywhere}
+#s-chat .betpro-poisson-warning ul{padding-left:17px;margin:6px 0 0}#s-chat .betpro-poisson-warning li{margin:3px 0}
+#s-chat .betpro-poisson-note{font-size:10px;color:var(--mu);line-height:1.7;margin:7px 0}
+#s-chat .betpro-poisson-sources{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0 14px}
+#s-chat .betpro-poisson-sources a{font-size:10px;color:#72e3ff;text-decoration:underline}
+#s-chat .betpro-poisson-chat{margin-top:6px;font-size:11px;white-space:normal;text-align:left}
+@media(max-width:620px){#s-chat .betpro-poisson-panel{padding:12px}#s-chat .betpro-poisson-bottom{grid-template-columns:1fr}#s-chat .betpro-poisson-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}#s-chat .betpro-poisson-metric strong{font-size:19px}}
+
 /* Chat Expert : sources étendues et couverture des recherches. */
 #s-chat .betpro-chat-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 15px}
 #s-chat .betpro-chat-coverage>div{padding:10px 11px;border:1px solid rgba(101,163,185,.17);border-radius:8px;background:rgba(15,40,55,.5);min-width:0}
@@ -914,7 +941,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="manual"    onclick="go('manual')"  ><span class="ni-i">&#127919;</span>Analyse manuelle</div>
     <div class="ni"    data-s="live"      onclick="go('live')"    ><span class="ni-i">&#128308;</span>Matchs Live / À venir</div>
     <div class="ni"    data-s="results"   onclick="go('results')" ><span class="ni-i">&#128202;</span>Résultats à suivre</div>
-    <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert</div>
+    <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Chat Expert / Analyse Poisson +</div>
     <div class="ni"    data-s="strategy"  onclick="go('strategy')"><span class="ni-i">&#127942;</span>Value Betting Pro</div>
     <div class="ni"    data-s="methods"   onclick="go('methods')" ><span class="ni-i">&#127919;</span>Se refaire intelligemment</div>
     <div class="ni"    data-s="turf"      onclick="go('turf')"    ><span class="ni-i">&#128014;</span>PMU / Turf France</div>
@@ -1219,23 +1246,23 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
-  <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Demandez le prochain match d’une équipe, son calendrier, ses compositions, ses blessés, les résultats, les statistiques ou une analyse de pronostic. Recherche de sources datées, sans résultats inventés.</div></div>
+  <div class="ph"><div class="pt">&#128172; Chat Expert / Analyse Poisson +</div><div class="ps">Deux outils dans un même espace : Chat Expert pour la recherche sportive et Analyse Poisson avancée pour le football, basée sur des rencontres historiques vérifiables.</div></div>
   <div class="ctx-bar">
     <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Contexte facultatif : demandez directement « Quand joue Liverpool ? », « Quelle est la composition du PSG ? » ou « Qui va gagner entre Arsenal et Chelsea ? »</div>
     <div class="ctx-grid">
       <div class="fgrp"><label>Domicile</label><input type="text" id="ctx-home" placeholder="Arsenal"></div>
       <div class="fgrp"><label>Extérieur</label><input type="text" id="ctx-away" placeholder="Chelsea"></div>
-      <div class="fgrp"><label>Score Dom.</label><input type="number" id="ctx-sh" placeholder="0" min="0"></div>
-      <div class="fgrp"><label>Score Ext.</label><input type="number" id="ctx-sa" placeholder="0" min="0"></div>
-      <div class="fgrp"><label>Minute</label><input type="number" id="ctx-min" placeholder="67" min="0" max="120"></div>
+      <div class="fgrp"><label>Score domicile</label><input type="number" id="ctx-sh" placeholder="0" min="0" max="25"></div>
+      <div class="fgrp"><label>Score extérieur</label><input type="number" id="ctx-sa" placeholder="0" min="0" max="25"></div>
+      <div class="fgrp"><label>Minute (0 avant-match)</label><input type="number" id="ctx-min" placeholder="0" min="0" max="120"></div>
       <div class="fgrp"><label>Compétition</label><input type="text" id="ctx-comp" placeholder="Premier League"></div>
     </div>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn bs" style="font-size:10px;padding:5px 10px" onclick="clearCtx()">&#10005; Effacer</button>
-      <button class="btn bp" style="font-size:10px;padding:5px 12px" id="live-model-btn" onclick="runLiveModelUI()">&#128225; Analyse Poisson</button>
+      <button class="btn bp" style="font-size:10px;padding:5px 12px" id="live-model-btn" onclick="runLiveModelUI()">Analyse Poisson avancée</button>
     </div>
   </div>
-  <div id="live-model-res"></div>
+  <div id="live-model-res" aria-live="polite"></div>
   <div class="card" style="padding:12px 14px;margin-bottom:12px">
     <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Questions rapides</div>
     <div id="quick-questions-wrap" style="display:flex;gap:5px;flex-wrap:wrap"></div>
@@ -1948,7 +1975,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-chat-voice-bp-v191"></script>
+<script defer src="./betpro-app.js?v=20261121-poisson-empirique-v192"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
