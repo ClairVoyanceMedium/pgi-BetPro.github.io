@@ -1246,20 +1246,32 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
-  <div class="ph"><div class="pt">&#128172; Chat Expert / Analyse Poisson +</div><div class="ps">Deux outils dans un même espace : Chat Expert pour la recherche sportive et Analyse Poisson avancée pour le football, basée sur des rencontres historiques vérifiables.</div></div>
+  <div class="ph"><div class="pt">&#128172; Chat Expert / Analyse Poisson +</div><div class="ps">Chat Expert et Analyse Poisson + Multisports : football, basketball, MLB, NFL, hockey et rugby. Chaque discipline dispose d'une distribution de scores adaptée.</div></div>
   <div class="ctx-bar">
-    <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Chat Expert : contexte facultatif. Analyse Poisson + : renseignez les deux équipes de football. Avant le coup d’envoi, utilisez la minute 0 et un score de 0-0.</div>
-    <div class="ctx-grid">
-      <div class="fgrp"><label>Domicile</label><input type="text" id="ctx-home" placeholder="Arsenal"></div>
-      <div class="fgrp"><label>Extérieur</label><input type="text" id="ctx-away" placeholder="Chelsea"></div>
-      <div class="fgrp"><label>Score domicile</label><input type="number" id="ctx-sh" placeholder="0" min="0" max="25"></div>
-      <div class="fgrp"><label>Score extérieur</label><input type="number" id="ctx-sa" placeholder="0" min="0" max="25"></div>
-      <div class="fgrp"><label>Minute (0 avant-match)</label><input type="number" id="ctx-min" placeholder="0" min="0" max="120"></div>
-      <div class="fgrp"><label>Compétition</label><input type="text" id="ctx-comp" placeholder="Premier League"></div>
+    <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Chat Expert : contexte facultatif. Analyse multisports : choisissez la discipline et deux adversaires. Avant-match : minute 0 et score 0-0. Le sport peut être détecté automatiquement.</div>
+    <div class="ctx-grid"><div class="fgrp"><label for="ctx-sport">Discipline</label><select id="ctx-sport" onchange="betproPoissonSportChanged()">
+<option value="auto">Auto : identifier le sport</option>
+<option value="football">Football</option>
+<option value="basketball">Basketball : NBA, WNBA, NCAA</option>
+<option value="baseball">Baseball : MLB</option>
+<option value="nfl">Football américain : NFL, NCAA</option>
+<option value="hockey">Hockey : NHL</option>
+<option value="rugby">Rugby</option>
+<option value="tennis">Tennis</option>
+<option value="mma">MMA</option>
+<option value="volleyball">Volleyball</option>
+<option value="handball">Handball</option>
+</select></div>
+      <div class="fgrp"><label>Domicile / Participant 1</label><input type="text" id="ctx-home" placeholder="Arsenal"></div>
+      <div class="fgrp"><label>Extérieur / Participant 2</label><input type="text" id="ctx-away" placeholder="Chelsea"></div>
+      <div class="fgrp"><label id="ctx-sh-label" for="ctx-sh">Score domicile</label><input type="number" id="ctx-sh" placeholder="0" min="0" max="400"></div>
+      <div class="fgrp"><label id="ctx-sa-label" for="ctx-sa">Score extérieur</label><input type="number" id="ctx-sa" placeholder="0" min="0" max="400"></div>
+      <div class="fgrp"><label id="ctx-min-label" for="ctx-min">Minute (0 avant-match)</label><input type="number" id="ctx-min" placeholder="0" min="0" max="120" step="0.1"></div>
+      <div class="fgrp"><label>Compétition (facultatif)</label><input type="text" id="ctx-comp" placeholder="NBA, NFL, MLB, Premier League…"></div><div class="fgrp"><label for="ctx-total-line">Seuil de total (facultatif)</label><input type="number" id="ctx-total-line" placeholder="Ligne de référence automatique" min="0.5" max="500" step="0.5"></div>
     </div>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn bs" style="font-size:10px;padding:5px 10px" onclick="clearCtx()">&#10005; Effacer</button>
-      <button class="btn bp" style="font-size:10px;padding:5px 12px" id="live-model-btn" onclick="runLiveModelUI()">Analyse Poisson avancée</button>
+      <button class="btn bp" style="font-size:10px;padding:5px 12px" id="live-model-btn" onclick="runLiveModelUI()">Lancer Analyse Poisson + Multisports</button>
     </div>
   </div>
   <div id="live-model-res" aria-live="polite"></div>
@@ -1975,7 +1987,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-poisson-empirique-v193"></script>
+<script defer src="./betpro-app.js?v=20261121-poisson-multisports-v194"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
