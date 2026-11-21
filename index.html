@@ -195,8 +195,8 @@ a{color:var(--neon);text-decoration:none}
 .msg.user .msg-bub{background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.25);color:var(--tx);border-radius:12px 3px 12px 12px}
 .msg.bot .msg-bub{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);border-radius:3px 12px 12px 12px}
 .msg-ico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;background:var(--sf2);border:1px solid var(--bd)}
-#s-chat .msg-ico-bp{border:1px solid rgba(56,232,255,.55);background:linear-gradient(150deg,#08172a,#050b15 78%);box-shadow:0 0 9px rgba(0,212,255,.18);overflow:hidden}
-#s-chat .betpro-chat-bp-mark{display:inline-block;font-family:var(--logo-f);font-weight:900;letter-spacing:-.05em;font-size:13px;line-height:1;background:linear-gradient(120deg,#38e8ff,#ffffff 45%,#00d4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#38e8ff}
+#s-chat .msg-ico-bp{width:34px;height:34px;border:0;background:#060810;border-radius:9px;box-shadow:0 0 10px rgba(0,212,255,.22);overflow:hidden}
+#s-chat .betpro-chat-bp-image{display:block;width:100%;height:100%;object-fit:contain}
 #s-chat .chat-mic-btn{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:9px;border:1px solid rgba(56,232,255,.32);background:rgba(0,212,255,.07);color:var(--neon);cursor:pointer;transition:background .15s,border-color .15s}
 #s-chat .chat-mic-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #s-chat .chat-mic-btn.listening{background:rgba(255,99,90,.18);border-color:#ff645b;color:#ff9b8b;animation:betpro-mic-pulse 1.4s ease-in-out infinite}
@@ -1266,7 +1266,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
 
     <div class="chat-wrap" id="chat-wrap">
-      <div class="msg bot"><div class="msg-ico msg-ico-bp"><span class="betpro-chat-bp-mark" aria-hidden="true">BP</span></div><div><div class="msg-bub">Bonjour. Posez directement votre question sportive, même avec une seule équipe. Le contexte ci-dessus est facultatif.</div></div></div>
+      <div class="msg bot"><div class="msg-ico msg-ico-bp"><img class="betpro-chat-bp-image" src="./betpro-icon-192.png" width="34" height="34" alt="BP"></div><div><div class="msg-bub">Bonjour. Posez directement votre question sportive, même avec une seule équipe. Le contexte ci-dessus est facultatif.</div></div></div>
     </div>
     <div class="chat-input-wrap">
       <textarea id="chat-input" placeholder="Ex. : Quel est le prochain match de Liverpool ? Quelle composition pour le PSG ? Qui est blessé ?" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px'" style="resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
