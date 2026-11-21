@@ -1917,6 +1917,155 @@ a{color:var(--neon);text-decoration:none}
 }
 @media(prefers-reduced-motion:reduce){#s-hkjc #hkjc-races .live-card,#s-hkjc .fbtn{transition:none}}
 
+
+/* Value Betting Pro : design saumon fluo premium, isole dans #s-strategy.
+   Les couleurs de confiance, de profit et d'avertissement du moteur restent semantiques. */
+#s-strategy{--valuepro-hot:#ff785f;--valuepro-salmon:#ff997e;--valuepro-pale:#ffd7c9;--valuepro-border:rgba(255,148,121,.32)}
+#s-strategy .valuepro-hero{
+  position:relative;overflow:hidden;padding:23px 25px 21px;margin:0 0 19px;
+  border:1px solid rgba(255,156,130,.46);border-radius:16px;
+  background:radial-gradient(ellipse at 98% 0%,rgba(255,125,95,.22),transparent 54%),
+             linear-gradient(135deg,#1c2332 0%,#131a29 62%,#191b28 100%);
+  box-shadow:0 12px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,220,210,.12),0 0 18px rgba(255,115,92,.08);
+}
+#s-strategy .valuepro-hero::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#ff725e 0%,#ffb18d 53%,rgba(255,170,140,.05));
+  box-shadow:0 0 13px rgba(255,129,98,.36);
+}
+#s-strategy .valuepro-overline{
+  display:flex;align-items:center;gap:9px;margin-bottom:9px;
+  font:750 10px/1.4 var(--mo);letter-spacing:.13em;color:var(--valuepro-pale);
+}
+#s-strategy .valuepro-pulse{
+  display:inline-block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;
+  background:var(--valuepro-hot);box-shadow:0 0 11px rgba(255,114,90,.65);
+}
+#s-strategy .valuepro-hero .pt{
+  font:900 clamp(24px,3vw,34px)/1.17 var(--hd);letter-spacing:.028em;
+  color:#fff1e9;text-shadow:0 2px 16px rgba(255,131,94,.13);
+}
+#s-strategy .valuepro-hero-emphasis{color:#ffad8e}
+#s-strategy .valuepro-hero .ps{max-width:720px;margin-top:8px;color:#d9cbd0;font-size:12px;line-height:1.65}
+#s-strategy .valuepro-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+#s-strategy .valuepro-tags span{
+  font:650 10px/1.4 var(--mo);color:#ffbaa5;
+  border:1px solid rgba(255,157,130,.27);background:rgba(255,123,98,.075);
+  border-radius:20px;padding:6px 10px;
+}
+#s-strategy .valuepro-panel,
+#s-strategy .valuepro-results>.card,
+#s-strategy .valuepro-results .bet-row{
+  border-radius:13px;
+  background:linear-gradient(155deg,rgba(30,39,56,.9) 0%,rgba(17,25,39,.96) 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,223,212,.025);
+}
+#s-strategy .valuepro-panel{
+  position:relative;overflow:hidden;margin-bottom:17px;
+  border:1px solid rgba(255,150,124,.22);padding:19px 20px;
+}
+#s-strategy .valuepro-panel::before{
+  content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,#ff826b,rgba(255,166,138,.32),transparent 86%);
+}
+#s-strategy .valuepro-panel>.ct{
+  font:800 14px/1.4 var(--hd);letter-spacing:.025em;color:#ffb99e;
+  border-bottom-color:rgba(255,154,128,.17);padding:4px 0 12px;margin-bottom:15px;
+}
+#s-strategy .valuepro-panel p{max-width:850px;color:#d8cbd0;line-height:1.65}
+#s-strategy .upload-zone{
+  border:1.5px dashed rgba(255,156,127,.47);border-radius:12px;
+  background:linear-gradient(145deg,rgba(255,135,103,.045),rgba(11,18,32,.35));
+  padding:30px 18px;transition:background .2s,border-color .2s,box-shadow .2s;
+}
+#s-strategy .upload-zone:hover,#s-strategy .upload-zone.drag{
+  border-color:#ff997e;background:rgba(255,129,104,.09);
+  box-shadow:inset 0 0 0 1px rgba(255,161,132,.17);
+}
+#s-strategy .upload-zone:focus-within{outline:2px solid #ffd0ae;outline-offset:2px}
+#s-strategy .upload-ico{filter:drop-shadow(0 0 7px rgba(255,132,107,.28))}
+#s-strategy .upload-t{color:#ffe0d5}
+#s-strategy .img-preview{border-color:rgba(255,157,130,.3)}
+#s-strategy .fgrp label{color:#d4c2bd}
+#s-strategy :is(input[type=number],input[type=text],textarea,select){
+  border-radius:8px;border-color:rgba(255,146,113,.26);
+  background:#111b2b;color:#f4e6e0;
+}
+#s-strategy :is(input[type=number],input[type=text],textarea,select):focus{
+  border-color:#ff9874;box-shadow:0 0 0 2px rgba(255,137,102,.10);
+}
+#s-strategy #strat-bankroll{color:#ffbd9f!important;font-variant-numeric:tabular-nums}
+#s-strategy .risk-grid{gap:10px}
+#s-strategy .risk-opt{
+  min-height:80px;display:flex;flex-direction:column;justify-content:center;
+  border:1px solid rgba(255,151,122,.25);border-radius:10px;
+  background:#182333;transition:border-color .2s,background .2s,box-shadow .2s;
+}
+#s-strategy .risk-opt:hover{border-color:#ff997e;background:rgba(255,129,104,.07)}
+#s-strategy .risk-opt.sel{
+  border-color:#ffa17f;background:rgba(255,137,102,.15);
+  box-shadow:inset 0 0 0 1px rgba(255,170,139,.12),0 0 15px rgba(255,122,92,.12);
+}
+#s-strategy .risk-opt.sel .rt{color:#ffc6ae}
+#s-strategy .risk-opt:focus-visible{outline:2px solid #ffd0ae;outline-offset:3px}
+#s-strategy .btn.bp{
+  min-height:39px;padding:10px 15px;border:1px solid rgba(255,210,183,.65);
+  border-radius:9px;color:#2f110a;
+  background:linear-gradient(112deg,#ffbb91 0%,#ff956f 49%,#ff685d 100%);
+  box-shadow:0 0 15px rgba(255,117,91,.30);font-weight:850;
+}
+#s-strategy .btn.bp:hover{opacity:1;filter:brightness(1.06);box-shadow:0 0 22px rgba(255,123,96,.46)}
+#s-strategy .btn.bs{
+  min-height:37px;border-radius:9px;border-color:rgba(255,151,122,.28);
+  background:#20283a;color:#ffe2d5;
+}
+#s-strategy .btn.bs:hover{border-color:#ff997e;color:#ffb9a1;background:#292b3c}
+#s-strategy .btn:focus-visible{outline:2px solid #ffd0ae;outline-offset:3px}
+#s-strategy .valuepro-results{margin-top:4px}
+#s-strategy .valuepro-results>.card{border-color:rgba(255,150,124,.26);margin-bottom:15px!important}
+#s-strategy .valuepro-results>.card:first-child{
+  position:relative;border-top:2px solid rgba(255,160,130,.85)!important;
+  padding:20px!important;
+}
+#s-strategy .valuepro-results .strat-summary{gap:10px}
+#s-strategy .valuepro-results .ss-cell{
+  border-color:rgba(255,150,124,.23);border-radius:10px;
+  background:linear-gradient(160deg,rgba(255,138,105,.07),rgba(16,25,39,.9));
+  padding:13px 9px;
+}
+#s-strategy .valuepro-results .bet-row{border-color:rgba(255,150,124,.22);margin-bottom:12px}
+#s-strategy .valuepro-results .bet-row.top1{border-color:#ff9a80;box-shadow:inset 3px 0 0 #ff997e,0 5px 17px rgba(255,126,98,.12)}
+#s-strategy .valuepro-results .bet-row.top2{border-color:rgba(34,211,165,.5)}
+#s-strategy .valuepro-results .bet-row.top3{border-color:rgba(245,158,11,.4)}
+#s-strategy .valuepro-results .bet-row.rejected{opacity:.85}
+#s-strategy .valuepro-results details summary{color:#ffc9b4;cursor:pointer}
+.ni[data-s="strategy"].on{
+  color:#ffac93;border-left-color:#ff846a;background:rgba(255,132,101,.10);
+  text-shadow:0 0 12px rgba(255,133,102,.2);
+}
+@media(max-width:768px){
+  #s-strategy .valuepro-hero{padding:18px 16px;margin-bottom:15px}
+  #s-strategy .valuepro-hero .pt{font-size:clamp(23px,5.7vw,30px)}
+  #s-strategy .valuepro-panel{padding:16px}
+  #s-strategy .valuepro-tags span{font-size:9px}
+  #s-strategy .valuepro-results>.card:first-child{padding:16px!important}
+}
+@media(max-width:425px){
+  #s-strategy .valuepro-hero{padding:17px 13px}
+  #s-strategy .valuepro-tags{gap:5px}
+  #s-strategy .valuepro-tags span{padding:5px 8px}
+  #s-strategy .valuepro-panel>.ct{font-size:13px}
+  #s-strategy .risk-grid{gap:6px}
+  #s-strategy .risk-opt{padding:8px 5px;min-height:78px}
+  #s-strategy .risk-opt .rt{font-size:10px}
+  #s-strategy .risk-opt .rs{font-size:9px}
+  #s-strategy .valuepro-results .ss-cell{padding:10px 6px}
+  #s-strategy .valuepro-results .ss-cell .sv{font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){
+  #s-strategy .risk-opt,#s-strategy .upload-zone{transition:none}
+}
+
 </style>
 </head>
 <body>
@@ -2499,8 +2648,13 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ STRATÉGIE ═══════════════ -->
 <section class="sec" id="s-strategy">
-  <div class="ph"><div class="pt">&#127942; Value Betting Pro</div><div class="ps">Classe les sélections, affiche la meilleure cote, la mise indicative et les prix à surveiller. Analyse du marché, sans garantie de gain.</div></div>
-  <div class="card">
+  <div class="ph valuepro-hero">
+    <div class="valuepro-overline"><span class="valuepro-pulse" aria-hidden="true"></span> ANALYSE DE VALEUR · PARIS SPORTIFS</div>
+    <div class="pt">VALUE <span class="valuepro-hero-emphasis">BETTING PRO</span></div>
+    <div class="ps">Comparez les cotes disponibles, identifiez les sélections prioritaires et obtenez une mise indicative calculée selon votre niveau de prudence.</div>
+    <div class="valuepro-tags" aria-label="Fonctions du comparateur"><span>Comparaison des cotes</span><span>Kelly fractionnaire</span><span>Prix à surveiller</span></div>
+  </div>
+  <div class="card valuepro-panel valuepro-panel-input">
     <div class="ct">&#128247; Vos paris à analyser</div><p style="font-size:11px;color:var(--mu);line-height:1.65;margin:0 0 11px">Une ligne suffit : <strong>Arsenal vs Chelsea — Arsenal</strong>. La cote est facultative. BetPro recherche les prix disponibles, compare les opérateurs et affiche la direction à suivre sans inventer de données.</p>
     <div class="upload-zone" id="upload-zone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
       <input type="file" id="strat-img" accept="image/*" onchange="handleImgChange(event)">
@@ -2511,7 +2665,7 @@ a{color:var(--neon);text-decoration:none}
     <div style="text-align:center;margin:0 0 12px;font-size:11px;color:var(--dm)">— OU —</div>
     <div class="fgrp" style="margin-bottom:14px"><label>Match et sélection (cote facultative)</label><textarea id="strat-text" style="min-height:86px" placeholder="Arsenal vs Chelsea — Arsenal"></textarea></div><p style="font-size:11px;color:var(--mu);line-height:1.6;margin:7px 0 0">La cote n'a pas besoin d'être saisie. BetPro recherche la meilleure cote disponible dans ses relevés récents, puis donne une priorité ou une cote-cible à surveiller. Les prix sont à vérifier chez le bookmaker.</p>
   </div>
-  <div class="card">
+  <div class="card valuepro-panel valuepro-panel-risk">
     <div class="ct">&#128176; Capital et niveau de prudence</div><p style="font-size:11px;color:var(--mu);line-height:1.6;margin:0 0 11px">Calcul Kelly fractionnaire, avec un plafond de 1 à 2 % par pari et de 4 % pour l'ensemble de la session. Le capital déclaré n'est pas débité.</p>
     <div class="fg">
       <div class="fgrp"><label>Bankroll session</label><input type="number" id="strat-bankroll" min="10" value="150" style="font-size:18px;font-weight:700;color:var(--am)"></div>
@@ -2526,7 +2680,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div class="bg"><button class="btn bp" id="strat-btn" onclick="doStrategy()" style="font-size:13px;padding:11px 22px">&#127942; Comparer et obtenir une direction</button><button class="btn bs" onclick="resetStrategy()">&#8617; Réinitialiser</button></div>
   </div>
-  <div id="strat-res"></div>
+  <div id="strat-res" class="valuepro-results" aria-live="polite"></div>
 </section>
 
 <!-- ═══════════════ MÉTHODES / RATTRAPAGE ═══════════════ -->
