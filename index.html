@@ -1211,9 +1211,9 @@ a{color:var(--neon);text-decoration:none}
 
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
-  <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Posez librement vos questions sur un match, son horaire, son favori ou les paris possibles. Recherche de données récentes, sources datées et incertitudes signalées.</div></div>
+  <div class="ph"><div class="pt">&#128172; Chat Expert &#9889;</div><div class="ps">Demandez le prochain match d’une équipe, son calendrier, ses compositions, ses blessés, les résultats, les statistiques ou une analyse de pronostic. Recherche de sources datées, sans résultats inventés.</div></div>
   <div class="ctx-bar">
-    <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Contexte facultatif : vous pouvez demander directement « Qui va gagner entre PSG et Marseille ? »</div>
+    <div style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Contexte facultatif : demandez directement « Quand joue Liverpool ? », « Quelle est la composition du PSG ? » ou « Qui va gagner entre Arsenal et Chelsea ? »</div>
     <div class="ctx-grid">
       <div class="fgrp"><label>Domicile</label><input type="text" id="ctx-home" placeholder="Arsenal"></div>
       <div class="fgrp"><label>Extérieur</label><input type="text" id="ctx-away" placeholder="Chelsea"></div>
@@ -1258,10 +1258,10 @@ a{color:var(--neon);text-decoration:none}
     </div>
 
     <div class="chat-wrap" id="chat-wrap">
-      <div class="msg bot"><div class="msg-ico">&#129302;</div><div><div class="msg-bub">Bonjour ! Analyste expert senior. Remplissez le contexte ci-dessus pour des analyses précises.</div></div></div>
+      <div class="msg bot"><div class="msg-ico">&#129302;</div><div><div class="msg-bub">Bonjour. Posez directement votre question sportive, même avec une seule équipe. Le contexte ci-dessus est facultatif.</div></div></div>
     </div>
     <div class="chat-input-wrap">
-      <textarea id="chat-input" placeholder="Ex. : Qui va gagner entre Arsenal et Chelsea ? À quelle heure commence le match ?" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px'" style="resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
+      <textarea id="chat-input" placeholder="Ex. : Quel est le prochain match de Liverpool ? Quelle composition pour le PSG ? Qui est blessé ?" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px'" style="resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
       <button class="btn bp" id="chat-btn" onclick="sendChat()" style="flex-shrink:0;align-self:flex-end;padding:10px 14px">&#9654;</button>
     </div>
   </div>
@@ -1936,7 +1936,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261121-multisport-autoverify-v188"></script>
+<script defer src="./betpro-app.js?v=20261121-chat-expert-sport-v189"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
