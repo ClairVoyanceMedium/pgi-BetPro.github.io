@@ -5904,19 +5904,11 @@ function betproPoissonResultActionsEnsure(){
  const title=document.createElement('span');title.className='betpro-poisson-result-match';
  title.textContent=f.home+' vs '+f.away;
  const buttons=document.createElement('div');buttons.className='betpro-poisson-result-buttons';
- const copy=document.createElement('button');copy.type='button';
- copy.className='betpro-poisson-result-copy';copy.textContent='▢ Copier la rencontre';
- copy.title='Copier les deux adversaires pour le bookmaker';
- copy.addEventListener('click',()=>{
-  const index=betproPoissonPicker.fixtures.indexOf(betproPoissonPicker.selected);
-  if(index>=0)betproPoissonCopyFixture(index,copy);
-  else toast('Cette rencontre n’est plus dans la liste. Actualisez le calendrier.','err');
- });
  const follow=document.createElement('button');follow.type='button';
  follow.className='betpro-follow-btn betpro-poisson-result-follow';
  follow.textContent='Suivre le résultat';follow.setAttribute('aria-pressed','false');
  follow.addEventListener('click',()=>betproPoissonResultFollow(follow));
- buttons.append(copy,follow);row.append(title,buttons);
+ buttons.append(follow);row.append(title,buttons);
  result.prepend(row);betproPoissonResultActionsPaint();
 }
 function betproPoissonResultActionsPaint(){
