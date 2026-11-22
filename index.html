@@ -3031,6 +3031,12 @@ a{color:var(--neon);text-decoration:none}
 #s-chat .betpro-poisson-fixtures{margin-top:10px}
 #s-chat .betpro-poisson-selected:not(:empty){margin-bottom:10px}
 
+
+/* Défilement direct vers le pronostic : les mutations du résultat ne retiennent pas la liste des matchs. */
+#s-chat #live-model-res{overflow-anchor:none}
+#s-chat #live-model-res .betpro-poisson-primary,
+#s-chat #live-model-res .betpro-poisson-market-result{scroll-margin-top:110px}
+
 </style>
 </head>
 <body>
@@ -4379,7 +4385,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-market-v225"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-autoscroll-v226"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
