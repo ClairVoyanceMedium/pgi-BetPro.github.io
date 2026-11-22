@@ -2827,6 +2827,46 @@ a{color:var(--neon);text-decoration:none}
   #s-chat .betpro-poisson-hero,#s-chat .betpro-expert-hero{scroll-behavior:auto}
 }
 
+/* Guide Analyse Poisson : objectif, mode d'emploi et exemples concrets.
+   Même identité saumon que l'en-tête existant. Aucun changement métier. */
+#s-chat .betpro-poisson-hero .betpro-poisson-description{
+  max-width:900px;margin:10px 0 15px;color:#e4d4cf;
+  font-size:12px;line-height:1.72;
+}
+#s-chat .betpro-poisson-guide{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;margin-top:14px;
+}
+#s-chat .betpro-poisson-guide-item{
+  min-width:0;padding:13px 14px 12px;
+  border:1px solid rgba(255,169,145,.25);
+  border-radius:10px;
+  background:rgba(10,17,29,.48);
+}
+#s-chat .betpro-poisson-guide-heading{
+  color:#ffd1c0;
+  font:800 12px/1.4 var(--hd);
+  letter-spacing:.02em;margin:0 0 7px;
+}
+#s-chat .betpro-poisson-guide-item p{
+  margin:0;color:#f2e2da;font-size:11px;line-height:1.65;
+}
+#s-chat .betpro-poisson-guide-item p+p{
+  margin-top:8px;padding-top:8px;
+  border-top:1px solid rgba(255,169,145,.15);
+}
+#s-chat .betpro-poisson-guide-item strong{color:#ffe2d2;font-weight:800}
+#s-chat .betpro-poisson-guide-examples{grid-column:1/-1}
+#s-chat .betpro-poisson-guide-note{
+  margin:12px 0 0;color:#cfc0bc;font-size:10px;line-height:1.6;
+}
+@media(max-width:640px){
+  #s-chat .betpro-poisson-guide{grid-template-columns:1fr;gap:9px}
+  #s-chat .betpro-poisson-guide-item{padding:12px}
+  #s-chat .betpro-poisson-guide-item p{font-size:11px}
+  #s-chat .betpro-poisson-hero .betpro-poisson-description{font-size:11.5px}
+}
+
 /* Mes Notes : palette orange existante (#ff7043 / #ff5722).
    Styles strictement confines aux notes ; sauvegarde et synchronisation intactes. */
 #s-notes{
@@ -3409,8 +3449,23 @@ a{color:var(--neon);text-decoration:none}
     <div class="ph betpro-poisson-hero">
       <div class="betpro-poisson-eyebrow"><span class="betpro-poisson-eyebrow-dot"></span> MODÈLE STATISTIQUE MULTISPORTS</div>
       <h3 id="betpro-poisson-title" class="betpro-poisson-title">Analyse Poisson</h3>
-      <p class="betpro-poisson-description">Football, basketball, NFL, MLB, NHL et rugby. Sélectionnez vos équipes et votre discipline pour obtenir une projection lisible, fondée sur les résultats disponibles.</p>
-      <div class="betpro-poisson-tips"><span>Avant-match : minute 0 et score 0-0</span><span>Détection automatique du sport</span></div>
+      <p class="betpro-poisson-description">L'analyse Poisson utilise les résultats historiques disponibles pour estimer, en probabilités, ce qui pourrait se passer pendant un match. Son but : vous aider à évaluer plusieurs scénarios avant de comparer ces estimations aux cotes proposées par un bookmaker.</p>
+      <div class="betpro-poisson-guide" aria-label="À quoi sert l'analyse Poisson et comment l'utiliser">
+        <div class="betpro-poisson-guide-item">
+          <div class="betpro-poisson-guide-heading">Ce que vous obtenez</div>
+          <p>Selon le sport et les données disponibles : chances de victoire ou de match nul, projection du score, probabilité d'un total de buts ou de points et cotes théoriques.</p>
+        </div>
+        <div class="betpro-poisson-guide-item">
+          <div class="betpro-poisson-guide-heading">Comment s'en servir</div>
+          <p>Choisissez le sport, saisissez les deux équipes et renseignez le score et la minute. Avant le match, indiquez <strong>0-0 et minute 0</strong>. Puis cliquez sur <strong>« Lancer Analyse Poisson Multisports »</strong>.</p>
+        </div>
+        <div class="betpro-poisson-guide-item betpro-poisson-guide-examples">
+          <div class="betpro-poisson-guide-heading">Exemples concrets</div>
+          <p><strong>Avant-match :</strong> Arsenal contre Chelsea, football, 0-0, minute 0. L'outil peut estimer les chances de victoire, de nul et de plus de 2,5 buts.</p>
+          <p><strong>En direct :</strong> PSG contre Marseille, 1-0 à la 65e minute. Il peut recalculer les probabilités en tenant compte du score et du temps restant.</p>
+        </div>
+      </div>
+      <p class="betpro-poisson-guide-note">Il s'agit d'estimations, pas de résultats garantis. Si l'historique est insuffisant, BetPro le signale au lieu d'inventer des pourcentages.</p>
     </div>
   <div class="card ctx-bar betpro-poisson-zone betpro-poisson-panel-form" aria-labelledby="betpro-poisson-title">
     <div class="ct betpro-poisson-panel-title">Paramètres de la rencontre</div>
