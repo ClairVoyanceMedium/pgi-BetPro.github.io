@@ -5580,8 +5580,89 @@ function betproPoissonNormalizeFixture(event,origin,mode){
     indicative:event.indicative||null,
     bookmaker_quotes:Array.isArray(event.bookmaker_quotes)?event.bookmaker_quotes:[],
     classic_value:event.classic_value||null,
-    market_available_books:Number(event.market_available_books||0)
+    market_available_books:Number(event.market_available_books||0),
+    // Données annexes éventuellement transmises par les flux. Ne jamais les inventer.
+    injuries:event.injuries??event.injury_report??null,
+    suspensions:event.suspensions??null,
+    lineups:event.lineups??event.probable_lineups??null,
+    recent_form:event.recent_form??event.form??null,
+    standings:event.standings??event.ranking??null,
+    h2h:event.h2h??event.head_to_head??null,
+    news:event.news??event.team_news??null,
+    info_sources:event.info_sources??event.sources??null
   };
+}
+// Design unique des rencontres Poisson : données affichées seulement si présentes dans les flux.
+function betproPoissonFactSummary(value,depth=0){
+ if(value===null||value===undefined||value==='')return '';
+ if(typeof value==='string')return value.trim().slice(0,260);
+ if(typeof value==='number'&&Number.isFinite(value))return String(value);
+ if(Array.isArray(value))return value.slice(0,6).map(v=>betproPoissonFactSummary(v,depth+1)).filter(Boolean).join(' · ').slice(0,300);
+ if(typeof value==='object'&&depth<3){
+  const preferred=['summary','label','description','text','detail','name','player','status'];
+  const pieces=preferred.map(k=>betproPoissonFactSummary(value[k],depth+1)).filter(Boolean);
+  if(pieces.length)return [...new Set(pieces)].join(' : ').slice(0,300);
+  return Object.entries(value).slice(0,5).map(([k,v])=>{
+   const val=betproPoissonFactSummary(v,depth+1);return val?k+' : '+val:'';
+  }).filter(Boolean).join(' · ').slice(0,300);
+ }
+ return '';
+}
+function betproPoissonFixtureFacts(f){
+ const fact=(label,value)=>{
+  const summary=betproPoissonFactSummary(value);
+  return '<div class="betpro-poisson-fixture-fact"><strong>'+esc(label)+'</strong><span'+(!summary?' class="is-unverified"':'')+'>'+
+   esc(summary||'Non vérifié')+'</span></div>';
+ };
+ const links=(Array.isArray(f.info_sources)?f.info_sources:[])
+  .slice(0,3).map(source=>{
+   const raw=typeof source==='string'?source:source?.url;
+   try{const u=new URL(raw);
+    if(u.protocol!=='https:'||u.username||u.password)return '';
+    return '<a href="'+esc(u.href)+'" target="_blank" rel="noopener noreferrer">'+esc(typeof source==='object'&&source?.label?source.label:u.hostname)+'</a>';
+   }catch(_){return '';}
+  }).filter(Boolean).join(' · ');
+ return '<div class="betpro-poisson-fixture-facts">'+
+  fact('Blessures / indisponibilités',f.injuries)+
+  fact('Suspensions',f.suspensions)+
+  fact('Compositions',f.lineups)+
+  fact('Forme récente',f.recent_form)+
+  fact('Classement',f.standings)+
+  fact('Confrontations directes',f.h2h)+
+  fact('Actualités des équipes',f.news)+
+  '<p class="betpro-poisson-facts-disclaimer">Seules les données reçues sont affichées. « Non vérifié » ne signifie pas qu’aucun joueur n’est blessé. Les informations sportives peuvent évoluer avant le match.</p>'+
+  (links?'<div class="betpro-poisson-fixture-sources">Sources : '+links+'</div>':'')+
+ '</div>';
+}
+function betproPoissonFixtureSignal(f){
+ const c=betproPoissonTrustMarket(f,true)||betproPoissonTrustMarket(f,false);
+ if(!c)return '<span class="betpro-poisson-fixture-signal is-pending">'+
+  '<span class="betpro-poisson-fixture-signal-eyebrow">DIRECTION SPORTIVE À ANALYSER</span>'+
+  '<strong class="betpro-poisson-fixture-signal-pick">Sélection à déterminer</strong>'+
+  '<span class="betpro-poisson-fixture-signal-note">Pas de consensus récent vérifiable : aucune probabilité inventée</span></span>';
+ const strict=c.status==='ok',side=c.choice==='draw'?'Match nul':'Victoire de '+(c.choice==='home'?f.home:f.away);
+ const p=Number(c.probability)*100;
+ const odds=Number(c.median_market_odds||c.market_odds);
+ const bookies=Number(c.bookmakers||c.source_count||0);
+ const validAt=Number.isFinite(Date.parse(c.last_odds_at||''))?
+  betproPoissonFixtureDate(c.last_odds_at):'horodatage indisponible';
+ return '<span class="betpro-poisson-fixture-signal">'+
+  '<span class="betpro-poisson-fixture-signal-eyebrow">'+(strict?'ORIENTATION DES BOOKMAKERS':'TENDANCE INDICATIVE · SOURCE ISOLÉE')+'</span>'+
+  '<strong class="betpro-poisson-fixture-signal-pick">'+esc(side)+'</strong>'+
+  '<span class="betpro-poisson-fixture-signal-percent">'+p.toLocaleString('fr-FR',{maximumFractionDigits:1})+' %<small>Probabilité implicite des cotes, pas du modèle Poisson</small></span>'+
+  '<span class="betpro-poisson-fixture-signal-note">'+
+   (strict&&bookies?'Bookmakers : '+bookies+' · ':'')+
+   (Number.isFinite(odds)&&odds>1?'Cote observée : '+odds.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' · ':'')+
+   'Relevé : '+esc(validAt)+'</span></span>';
+}
+function betproPoissonResearchFixture(index){
+ const f=betproPoissonPicker.fixtures[index],input=document.getElementById('chat-input');
+ if(!f||!input)return;
+ input.value='Recherche sportive approfondie et sourcée sur '+f.home+' contre '+f.away+
+  ' ('+betproPoissonSportLabel(f.sport)+', '+(f.competition||'compétition non précisée')+
+  ', '+betproPoissonFixtureDate(f.start_time)+'). Vérifie les blessures de chaque équipe et les joueurs forfaits ou incertains, suspensions, compositions, cinq derniers matchs, classement, confrontations, fatigue, actualités, et cotes des bookmakers avec date et sources. Distingue les faits confirmés des rumeurs et précise les données introuvables. Termine par une direction prudente fondée uniquement sur les données vérifiées, sans inventer de probabilités.';
+ document.querySelector('#betpro-expert-title')?.scrollIntoView({behavior:'smooth',block:'start'});
+ sendChat();
 }
 function betproPoissonRenderFixtures(){
  const p=betproPoissonPicker,container=document.getElementById('betpro-poisson-fixtures');
@@ -5593,20 +5674,21 @@ function betproPoissonRenderFixtures(){
  container.innerHTML=rows.map(({f,i})=>{
   const selected=p.selected===f?' is-selected':'';
   const market=betproPoissonTrustMarket(f,true);
-  const single=!market&&betproPoissonTrustMarket(f,false);
-  const when=f.mode==='live'?'EN DIRECT · '+(f.score?.home??'–')+' : '+(f.score?.away??'–'):betproPoissonFixtureDate(f.start_time);
-  const label=market?'CONSENSUS BOOKMAKERS':single?'TENDANCE À CONFIRMER':f.mode==='live'?'DIRECT OFFICIEL':'RENCONTRE IDENTIFIÉE';
+  const when=f.mode==='live'?'EN DIRECT · '+(f.score?.home??'–')+' : '+(f.score?.away??'–')+
+   (f.minute!=null?' · '+esc(String(f.minute))+'e minute':''):betproPoissonFixtureDate(f.start_time);
   const follow=betproPoissonFollowCard(f),followId=follow?.id||'',wasFollowed=!!followId&&betproFollowSelected.has(followId);
   const options=p.openFollowKey===betproPoissonFixtureKey(f);
+  const copyIcon='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>';
   return '<article class="betpro-poisson-fixture'+selected+(market?' has-market':'')+'">'+
    '<button type="button" class="betpro-poisson-fixture-main" onclick="betproPoissonSelectFixture('+i+')" aria-pressed="'+(selected?'true':'false')+'">'+
     '<span class="betpro-poisson-fixture-meta">'+esc(betproPoissonSportLabel(f.sport))+' · '+esc(f.competition||'Compétition')+'</span>'+
     '<span class="betpro-poisson-fixture-names">'+esc(f.home)+' <span class="betpro-poisson-versus">VS</span> '+esc(f.away)+'</span>'+
     '<span class="betpro-poisson-fixture-time">'+esc(when)+' · '+esc(f.source)+'</span>'+
-    '<span class="betpro-poisson-fixture-end"><span class="betpro-poisson-market-label">'+esc(label)+'</span><span class="betpro-poisson-open-label">ANALYSER →</span></span>'+
+    betproPoissonFixtureSignal(f)+
+    '<span class="betpro-poisson-open-label">ANALYSER LA RENCONTRE</span>'+
    '</button>'+
+   '<button type="button" class="betpro-poisson-card-copy" onclick="betproPoissonCopyFixture('+i+',this)" title="Copier les participants" aria-label="Copier le nom de la rencontre">'+copyIcon+'</button>'+
    '<div class="betpro-poisson-fixture-actions">'+
-    '<button type="button" class="betpro-poisson-card-copy" onclick="betproPoissonCopyFixture('+i+',this)" title="Copier les deux participants" aria-label="Copier la rencontre">▢ Copier</button>'+
     '<button type="button" class="betpro-follow-btn betpro-poisson-card-follow'+(wasFollowed?' is-followed':'')+'"'+(followId?' data-betpro-follow-id="'+esc(followId)+'"':'')+
      ' onclick="betproPoissonFollowFixture('+i+',this)" aria-pressed="'+(wasFollowed?'true':'false')+'">'+(wasFollowed?'✓ Retirer du suivi':'Suivre le résultat')+'</button>'+
    '</div>'+
@@ -5615,11 +5697,15 @@ function betproPoissonRenderFixtures(){
       '<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;home&#39;,this)">'+esc(f.home)+'</button>'+
       (f.sport==='football'?'<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;draw&#39;,this)">Match nul</button>':'')+
       '<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;away&#39;,this)">'+esc(f.away)+'</button>'+
-     '</div><small>Le suivi existant enregistre une issue précise, pas un résultat supposé.</small></div>':'')+
+     '</div><small>Le suivi enregistre une issue choisie, pas un résultat supposé.</small></div>':'')+
+   '<details class="betpro-poisson-fixture-extra"><summary>Blessures, absences, forme, statistiques et sources</summary>'+
+    betproPoissonFixtureFacts(f)+
+    '<button class="betpro-poisson-fixture-research" type="button" onclick="betproPoissonResearchFixture('+i+')">Rechercher les blessures et les informations récentes avec le Chat Expert</button>'+
+   '</details>'+
   '</article>';
  }).join('');
  if(!rows.length)container.innerHTML='<div class="betpro-poisson-fixture-status">Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.</div>';
- if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+(strong?' · '+strong+' avec consensus bookmakers vérifié':'')+'. Chaque carte permet aussi de copier ou suivre le résultat.');
+ if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+(strong?' · '+strong+' avec consensus bookmakers vérifié':'')+'. Les cartes précisent les sources, les absences connues et les limites des données.');
  betproFollowPaint();
 }
 
