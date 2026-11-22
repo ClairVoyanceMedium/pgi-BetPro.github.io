@@ -5690,8 +5690,10 @@ function betproPoissonRenderFixtures(){
  const p=betproPoissonPicker,container=document.getElementById('betpro-poisson-fixtures');
  if(!container)return;
  const q=betproPoissonNormalizeName(document.getElementById('betpro-poisson-filter')?.value||'');
+ const sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
  const rows=p.fixtures.map((f,i)=>({f,i})).filter(({f})=>
-  !q||betproPoissonNormalizeName([f.home,f.away,f.competition,betproPoissonSportLabel(f.sport)].join(' ')).includes(q));
+  (sport==='all'||f.sport===sport)&&
+  (!q||betproPoissonNormalizeName([f.home,f.away,f.competition,betproPoissonSportLabel(f.sport)].join(' ')).includes(q)));
  const strong=rows.filter(({f})=>betproPoissonTrustMarket(f,true)).length;
  container.innerHTML=rows.map(({f,i})=>{
   const selected=p.selected===f?' is-selected':'';
@@ -5727,7 +5729,14 @@ function betproPoissonRenderFixtures(){
    '</details>'+
   '</article>';
  }).join('');
- if(!rows.length)container.innerHTML='<div class="betpro-poisson-fixture-status">Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.</div>';
+ if(!rows.length){
+  const unsupported=['boxing','tennis','mma'].includes(sport);
+  const sportName=document.getElementById('betpro-poisson-sport-filter')?.selectedOptions?.[0]?.textContent||'ce sport';
+  container.innerHTML='<div class="betpro-poisson-fixture-status">'+
+   (unsupported?'Aucune rencontre disponible pour '+esc(sportName)+'. Ce sport n’est pas couvert par le catalogue automatique Analyse Poisson.':
+    sport!=='all'?'Aucune rencontre de '+esc(sportName)+' trouvée dans la liste chargée. Changez de sport ou actualisez les rencontres.':
+    'Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.')+'</div>';
+ }
  if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+(strong?' · '+strong+' avec consensus bookmakers vérifié':'')+'. Les cartes précisent les sources, les absences connues et les limites des données.');
  betproFollowPaint();
 }
