@@ -5532,10 +5532,15 @@ function betproPoissonFixtureSport(value){
   if(s.includes('baseball')||s==='mlb')return'baseball';
   if(s.includes('icehockey')||s.includes('hockey')||s==='nhl')return'hockey';
   if(s.includes('rugby'))return'rugby';
+  if(s.includes('mixed_martial')||s.startsWith('mma')||s.includes('ufc'))return'mma';
+  if(s.includes('boxing')||s.includes('boxe'))return'boxing';
+  if(s.includes('tennis')||s==='atp'||s==='wta')return'tennis';
+  if(s.includes('volleyball')||s.includes('volley'))return'volleyball';
+  if(s.includes('handball'))return'handball';
   return null;
 }
 function betproPoissonSportLabel(s){
-  return({football:'Football',basketball:'Basketball',baseball:'Baseball',nfl:'Football américain',hockey:'Hockey',rugby:'Rugby'})[s]||'Sport';
+  return({football:'Football',basketball:'Basketball',baseball:'Baseball',nfl:'Football américain',hockey:'Hockey',rugby:'Rugby',boxing:'Boxe',mma:'MMA',tennis:'Tennis',volleyball:'Volleyball',handball:'Handball'})[s]||'Sport';
 }
 function betproPoissonNormalizeName(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -5559,7 +5564,7 @@ function betproPoissonNormalizeFixture(event,origin,mode){
   if(!event||typeof event!=='object')return null;
   const sport=betproPoissonFixtureSport(event.sport||event._sport);
   if(!sport)return null;
-  if(mode==='live'&&!['football','basketball','nfl','hockey'].includes(sport))return null;
+  if(mode==='live'&&!['football','basketball','nfl','hockey','baseball','tennis'].includes(sport))return null;
   const home=String(event.home||event.home_name||event.home_team||'').trim(),
     away=String(event.away||event.away_name||event.away_team||'').trim(),
     start=String(event.start_time||event.event_start_at||event.commence_time||''),
@@ -5730,11 +5735,9 @@ function betproPoissonRenderFixtures(){
   '</article>';
  }).join('');
  if(!rows.length){
-  const unsupported=['boxing','tennis','mma'].includes(sport);
   const sportName=document.getElementById('betpro-poisson-sport-filter')?.selectedOptions?.[0]?.textContent||'ce sport';
   container.innerHTML='<div class="betpro-poisson-fixture-status">'+
-   (unsupported?'Aucune rencontre disponible pour '+esc(sportName)+'. Ce sport n’est pas couvert par le catalogue automatique Analyse Poisson.':
-    sport!=='all'?'Aucune rencontre de '+esc(sportName)+' trouvée dans la liste chargée. Changez de sport ou actualisez les rencontres.':
+   (sport!=='all'?'Aucune rencontre confirmée pour '+esc(sportName)+' dans la période chargée. Les calendriers et les cotes dépendent des sources disponibles.':
     'Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.')+'</div>';
  }
  if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+(strong?' · '+strong+' avec consensus bookmakers vérifié':'')+'. Les cartes précisent les sources, les absences connues et les limites des données.');
@@ -5845,7 +5848,52 @@ function betproPoissonChooseFollow(index,choice,button){
 }
 
 function betproPoissonFilterFixtures(){betproPoissonRenderFixtures();}
-function betproPoissonReload(){return betproPoissonLoadFixtures(betproPoissonPicker.mode,true);}
+// La base D1 contient des compétitions invisibles dans le catalogue global limité.
+// Une sélection de sport lance uniquement sa recherche ciblée ; les calculs et les cartes ne changent pas.
+function betproPoissonSportFilterChanged(){
+ betproPoissonRenderFixtures();
+ if(betproPoissonPicker.mode==='upcoming'&&!betproPoissonPicker.loading)
+  betproPoissonFetchSelectedSport();
+}
+async function betproPoissonFetchSelectedSport(){
+ const p=betproPoissonPicker;
+ if(p.mode!=='upcoming'||p.loading)return;
+ const sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
+ const categories={football:'soccer',basketball:'basketball',baseball:'baseball',nfl:'americanfootball',
+  hockey:'icehockey',rugby:'rugby',boxing:'boxing',mma:'mma',tennis:'tennis',volleyball:'volleyball',handball:'handball'};
+ const category=categories[sport];if(!category)return;
+ p.sportSearchCache=p.sportSearchCache||{};
+ const recent=p.sportSearchCache[category];
+ if(recent&&(recent.pending||Date.now()-recent.at<120000))return;
+ const seq=p.seq,stamp=Date.now();
+ p.sportSearchCache[category]={at:stamp,pending:true};
+ betproPoissonSetPickerStatus('Recherche ciblée : '+betproPoissonSportLabel(sport)+'...');
+ try{
+  const data=await api('/api/classic/scan?scope=upcoming&sport='+encodeURIComponent(category)+'&limit=75&hours=48',
+   'GET',null,{timeoutMs:26000,noCache:true});
+  if(seq!==p.seq||p.mode!=='upcoming')return;
+  if(!data?.ok||!Array.isArray(data.events))throw Error(String(data?.error||'Source sportive indisponible'));
+  const fresh=data.events.map(e=>betproPoissonNormalizeFixture(e,'Catalogue '+betproPoissonSportLabel(sport),'upcoming')).filter(Boolean);
+  let added=0;
+  for(const event of fresh){
+   const existing=p.fixtures.find(f=>betproPoissonSameFixture(f,event));
+   if(!existing){p.fixtures.push(event);added++;continue;}
+   for(const field of ['consensus','indicative','classic_value','bookmaker_quotes','market_available_books']){
+    if((!existing[field]||(Array.isArray(existing[field])&&!existing[field].length))&&event[field])
+     existing[field]=event[field];
+   }
+  }
+  if(added)p.fixtures.sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time));
+  p.cache.upcoming={time:Date.now(),fixtures:p.fixtures};
+  betproPoissonRenderFixtures();
+ }catch(error){
+  if(seq===p.seq&&p.mode==='upcoming')betproPoissonSetPickerStatus('Calendrier '+betproPoissonSportLabel(sport)+
+   ' partiellement disponible : '+String(error?.message||error)+'.');
+ }finally{
+  p.sportSearchCache[category]={at:Date.now(),pending:false};
+ }
+}
+function betproPoissonReload(){betproPoissonPicker.sportSearchCache={};return betproPoissonLoadFixtures(betproPoissonPicker.mode,true);}
 async function betproPoissonLoadFixtures(mode='upcoming',force=false){
   const p=betproPoissonPicker;
   if(!p.followRefreshedAt||Date.now()-p.followRefreshedAt>120000){p.followRefreshedAt=Date.now();betproFollowRefresh();}
@@ -5860,7 +5908,9 @@ async function betproPoissonLoadFixtures(mode='upcoming',force=false){
   const seq=++p.seq;
   const cached=p.cache[mode];
   if(!force&&cached&&Date.now()-cached.time<120000){
-    p.fixtures=cached.fixtures;p.loading=false;betproPoissonRenderFixtures();return;
+    p.fixtures=cached.fixtures;p.loading=false;betproPoissonRenderFixtures();
+    if(mode==='upcoming')betproPoissonFetchSelectedSport();
+    return;
   }
   p.loading=true;p.fixtures=[];betproPoissonSetPickerStatus('Recherche des rencontres identifiées par les fournisseurs sportifs...');
   const box=document.getElementById('betpro-poisson-fixtures');
@@ -5905,6 +5955,7 @@ async function betproPoissonLoadFixtures(mode='upcoming',force=false){
       Date.parse(a.start_time)-Date.parse(b.start_time));
     p.fixtures=filtered;p.cache[mode]={time:Date.now(),fixtures:filtered};p.loading=false;
     betproPoissonRenderFixtures();
+    if(mode==='upcoming')betproPoissonFetchSelectedSport();
     if(!filtered.length)betproPoissonSetPickerStatus(mode==='live'
       ?'Aucun match actuellement confirmé avec un modèle de direct vérifiable. Consultez « Matchs à venir ».'
       :'Aucune rencontre trouvée dans les 48 prochaines heures. Vérifiez la connexion aux fournisseurs ou utilisez la saisie manuelle.');
@@ -6150,6 +6201,15 @@ async function betproPoissonRunSelected(){
    const latest=(d.live_matches||[]).find(m=>String(m.fixture_id)===f.id&&String(m.source)===f.provider&&
     betproPoissonFixtureSport(m.sport)===f.sport&&betproLiveIsActive(m));
    if(!latest)throw Error('Cette rencontre n’est plus confirmée en direct. Actualisez les matchs.');
+   if(f.sport==='tennis'){
+    const sets=betproLiveTennisScoreHtml(latest);
+    const matchInfo='<div class="betpro-poisson-market-result is-limited">'+
+     '<div class="betpro-poisson-market-eyebrow">TENNIS · DIRECT ESPN VÉRIFIÉ</div>'+
+     '<p class="betpro-poisson-market-context">Voici les manches officiellement transmises. Le moteur Poisson de buts ne s’applique pas au tennis : aucune probabilité de victoire n’est inventée.</p>'+
+     (sets||'<p class="betpro-poisson-market-caveat">Scores par manche indisponibles auprès de la source.</p>')+'</div>';
+    res.innerHTML=betproPoissonUnifiedShell(f,matchInfo,'Scores par manche · ESPN direct');
+    return;
+   }
    if(latest.score?.home==null||latest.score?.away==null)throw Error('Les deux scores ne sont pas transmis.');
    const live={...latest};
    if(live.minute==null&&live.sport==='soccer'){
