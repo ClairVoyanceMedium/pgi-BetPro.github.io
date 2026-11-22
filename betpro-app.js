@@ -5585,7 +5585,7 @@ async function betproPoissonRunSelected(){
  const btn=document.getElementById('betpro-poisson-run'),res=document.getElementById('live-model-res');
  if(!btn||!res)return;
  btn.disabled=true;btn.textContent='Recherche et analyse des données...';
- res.innerHTML='<div class="ls"><div class="sp"></div><p>Recherche d’une direction sportive et des cotes réelles disponibles...</p></div>';
+ res.innerHTML=betproPoissonMarketResult(f)||'<div class="ls"><div class="sp"></div><p>Recherche d’une direction sportive et des cotes réelles disponibles...</p></div>';
  try{
   if(f.mode==='live'){
    const d=await api('/api/live','GET',null,{timeoutMs:23000,noCache:true});
@@ -5619,7 +5619,7 @@ async function betproPoissonRunSelected(){
    const fields={'ctx-home':f.home,'ctx-away':f.away,'ctx-sport':f.sport,'ctx-comp':f.competition,'ctx-sh':'0','ctx-sa':'0','ctx-min':'0','ctx-total-line':''};
    for(const [id,value] of Object.entries(fields)){const el=document.getElementById(id);if(el)el.value=value;}
    betproPoissonSportChanged();
-   await runLiveModelUI();
+   await runLiveModelUI({previewHtml:betproPoissonMarketResult(f)||''});
    if(betproPoissonPicker.selected!==f)return;
    if(!betproPoissonLastAnalysis?.model){
     const reason=res.textContent.trim().slice(0,550);
@@ -5791,7 +5791,7 @@ async function runLiveModelUI(options={}){
  const btn=document.getElementById('live-model-btn'),res=document.getElementById('live-model-res');
  if(!btn||!res)return;
  btn.disabled=true;btn.textContent='Calcul en cours…';
- res.innerHTML='<div class="ls" style="padding:25px"><div class="sp"></div><p>Recherche des résultats historiques et calcul statistique adapté au sport…</p></div>';
+ res.innerHTML=(options.previewHtml||'')+'<div class="ls" style="padding:15px"><div class="sp"></div><p>Calcul Poisson complémentaire en cours…</p></div>';
  try{
   const d=await api('/api/live-analysis','POST',{home,away,competition,minute,score_home,score_away,sport,total_line},
    {timeoutMs:45000,noCache:true});
