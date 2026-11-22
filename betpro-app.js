@@ -3555,6 +3555,86 @@ function betproLiveTennisScoreHtml(m){
   return '<div class="betpro-tennis-scoreboard" style="--betpro-set-count:'+values.length+'" aria-label="Scores par set">'+header+
     playerRow(m.home,'home')+playerRow(m.away,'away')+'</div><div class="betpro-tennis-foot">Jeux par set · Source : ESPN'+count+'</div>';
 }
+
+/* Pays de la compétition : champ officiel prioritaire, puis clés explicites des ligues.
+   Les appellations seules "Ligue 1", "Premier League", "1st Division" sont ambiguës :
+   ne jamais leur attribuer un pays sans indication supplémentaire. */
+function betproLeagueCountry(record){
+ const r=record||{};
+ const normalize=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const countries={
+  albania:'Albanie',algeria:'Algérie',argentina:'Argentine',australia:'Australie',austria:'Autriche',
+  belgium:'Belgique',brazil:'Brésil',bulgaria:'Bulgarie',canada:'Canada',chile:'Chili',
+  china:'Chine',colombia:'Colombie',croatia:'Croatie',cyprus:'Chypre',czechia:'Tchéquie',
+  'czech republic':'Tchéquie',denmark:'Danemark',egypt:'Égypte',england:'Angleterre',
+  estonia:'Estonie',finland:'Finlande',france:'France',germany:'Allemagne',greece:'Grèce',
+  hungary:'Hongrie',iceland:'Islande',india:'Inde',indonesia:'Indonésie',iran:'Iran',
+  ireland:'Irlande',israel:'Israël',italy:'Italie',japan:'Japon',kazakhstan:'Kazakhstan',
+  latvia:'Lettonie',lithuania:'Lituanie',mexico:'Mexique',morocco:'Maroc',
+  netherlands:'Pays-Bas',norway:'Norvège',paraguay:'Paraguay',peru:'Pérou',
+  poland:'Pologne',portugal:'Portugal',romania:'Roumanie',russia:'Russie',
+  'saudi arabia':'Arabie saoudite',scotland:'Écosse',serbia:'Serbie',
+  slovakia:'Slovaquie',slovenia:'Slovénie','south africa':'Afrique du Sud',
+  'south korea':'Corée du Sud',korea:'Corée du Sud',spain:'Espagne',sweden:'Suède',
+  switzerland:'Suisse',tunisia:'Tunisie',turkey:'Turquie',ukraine:'Ukraine',
+  uruguay:'Uruguay','united arab emirates':'Émirats arabes unis',
+  usa:'États-Unis','united states':'États-Unis','united states of america':'États-Unis',
+  'united kingdom':'Royaume-Uni',wales:'Pays de Galles',world:'International',international:'International',
+  europe:'Europe','north america':'Amérique du Nord','northern ireland':'Irlande du Nord',
+  'new zealand':'Nouvelle-Zélande',vietnam:'Vietnam'
+ };
+ const countryField=r.country||r.league_country||r.country_name||r.competition_country||r.countryCode||r.country_code;
+ const provided=String(typeof countryField==='object'?(countryField?.name||countryField?.displayName||countryField?.code||''):(countryField||'')).trim();
+ if(provided){
+  if(/^[a-z]{2}$/i.test(provided)){
+   try{const name=new Intl.DisplayNames(['fr'],{type:'region'}).of(provided.toUpperCase());
+    if(name&&name.toUpperCase()!==provided.toUpperCase())return name;
+   }catch(_){}
+  }
+  return countries[normalize(provided)]||provided;
+ }
+ const key=String(r.sport_source||r.sport||r._sport||r.sport_key||'').toLowerCase().replace(/[^a-z0-9]+/g,'_');
+ const comp=normalize(r.competition||r.sport_title||r.sport_label||'');
+ const direct={
+  soccer_epl:'Angleterre',soccer_efl_champ:'Angleterre',soccer_spl:'Écosse',
+  soccer_usa_mls:'États-Unis / Canada',
+  soccer_uefa_champs_league:'Europe',soccer_uefa_europa_league:'Europe',soccer_uefa_europa_conference_league:'Europe',
+  basketball_nba:'États-Unis / Canada',basketball_wnba:'États-Unis / Canada',
+  basketball_ncaab:'États-Unis',basketball_ncaaw:'États-Unis',basketball_euroleague:'Europe',
+  basketball_nbl:'Australie / Nouvelle-Zélande',
+  americanfootball_nfl:'États-Unis',americanfootball_ncaaf:'États-Unis',americanfootball_ncaaf_fcs:'États-Unis',
+  icehockey_nhl:'États-Unis / Canada',icehockey_ahl:'États-Unis / Canada',
+  icehockey_liiga:'Finlande',icehockey_sweden_hockey_league:'Suède',
+  baseball_mlb:'États-Unis / Canada',baseball_npb:'Japon',baseball_kbo:'Corée du Sud',
+  aussierules_afl:'Australie',aussierules_aflw:'Australie',
+  rugby:'International',rugbyleague_nrl:'Australie / Nouvelle-Zélande',
+  rugbyunion_premiership:'Angleterre',tennis_atp:'International',tennis_wta:'International'
+ };
+ if(direct[key])return direct[key];
+ const parts=key.split('_');
+ for(const token of parts.slice(1)){
+  if(countries[token]&&!['world','international'].includes(token))return countries[token];
+ }
+ if(/^soccer_uefa_|^soccer_fifa_|^soccer_conmebol_/.test(key))return 'International';
+ if(/^nba$|^nba |^national basketball association$/.test(comp))return 'États-Unis / Canada';
+ if(/^wnba$|^wnba /.test(comp))return 'États-Unis / Canada';
+ if(/\b(ncaa|college basketball|college football)\b/.test(comp))return 'États-Unis';
+ if(/^nhl$|^national hockey league$/.test(comp))return 'États-Unis / Canada';
+ if(/^nfl$|^national football league$/.test(comp))return 'États-Unis';
+ if(/^mlb$|^major league baseball$/.test(comp))return 'États-Unis / Canada';
+ if(/^euroleague$|^euroleague basketball$/.test(comp))return 'Europe';
+ if(/^uefa |^champions league$|^europa league$|^europa conference league$/.test(comp))return 'Europe';
+ if(/^2 bundesliga$|^2nd bundesliga$|^bundesliga 2$/.test(comp))return 'Allemagne';
+ if(/^top 14$/.test(comp))return 'France';
+ if(/^atp\b|^wta\b/.test(comp))return 'International';
+ if(/^nba\b|^nhl\b/.test(key))return 'États-Unis / Canada';
+ return 'Pays non précisé';
+}
+function betproCompetitionWithCountry(record){
+ const label=String(record?.competition||record?.sport_title||record?.sport_label||'Compétition non indiquée').trim();
+ return label+' · '+betproLeagueCountry(record);
+}
+
 function betproLiveCard(m){
   const id=String(m.fixture_id),sport=m.sport||'soccer';
   const score=m.score||{},hasScore=score.home!=null&&score.away!=null;
@@ -3564,7 +3644,7 @@ function betproLiveCard(m){
   const events=Array.isArray(m.events)?m.events:[];
   const cards=events.filter(e=>String(e.type).toLowerCase()==='card').slice(-3).map(e=>`${e.minute??'?'}′ ${e.detail||'Carton'}`);
   return `<div class="betpro-real-live-card" data-live-key="${esc(key)}">
-    <div class="betpro-real-live-head"><span class="betpro-real-live-flag">● EN DIRECT</span><span>${esc(betproLiveSportName(sport))} · ${esc(m.competition||'Compétition non indiquée')}</span><span class="betpro-real-live-clock">${esc(lbl)}</span></div>
+    <div class="betpro-real-live-head"><span class="betpro-real-live-flag">● EN DIRECT</span><span>${esc(betproLiveSportName(sport))} · ${esc(betproCompetitionWithCountry(m))}</span><span class="betpro-real-live-clock">${esc(lbl)}</span></div>
     <div class="betpro-real-live-body"><div class="betpro-real-live-name">${betproClassicSportIcon(sport)} ${esc(m.home)} <span style="color:var(--dm)">vs</span> ${esc(m.away)}</div>
       <div class="betpro-real-live-meta"><span>Rencontre n° ${esc(id)}</span>${m.round?`<span>${esc(m.round)}</span>`:''}<span>Source : ${esc(source)}</span></div>
       <div class="betpro-real-live-score">${tennisScore||(hasScore?`${esc(String(score.home))} <span>:</span> ${esc(String(score.away))}`:sport.startsWith('tennis_')?'Jeux non transmis par ESPN':'Score non communiqué')}</div>
@@ -4233,7 +4313,7 @@ function betproClassicCard(match,idx){
       <span style="margin-left:auto;font-family:var(--mo);font-size:15px;font-weight:700;color:${color}">${headValue}</span>
       <span style="font-family:var(--mo);font-size:9px;color:${color};opacity:.75;margin-left:4px">${headCaption}</span></div>
     <div class="dir-body"><div class="dir-match">${betproClassicSportIcon(sport)} ${esc(home)} <span style="color:var(--dm)">vs</span> ${esc(away)}</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px"><span class="bdg bsp">${esc(competition)}</span><span class="bdg bmk">${marketType}</span>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px"><span class="bdg bsp">${esc(betproCompetitionWithCountry(match))}</span><span class="bdg bmk">${marketType}</span>
       <span class="bdg bsr">${esc(start)}</span>${isLive?'<span class="bdg blv">EN DIRECT</span>':''}${isLive&&liveMinute?`<span class="bdg blv" style="font-weight:800">${esc(liveMinute)}</span>`:''}${realScore}</div>
       <div class="dir-sel"><span class="dir-sel-name">${esc(chosenLabel)}</span>${oddsBlock}${pBlock}${evBlock}</div>
       <div style="font:500 10px var(--mo);color:#cbd6e9;margin-top:5px">${bettingLabel}</div>
@@ -5581,6 +5661,7 @@ function betproPoissonNormalizeFixture(event,origin,mode){
     id:String(event.fixture_id||event.id||event.event_id||''),
     provider:mode==='live'?String(event.source||''):origin,
     sport,home,away,start_time:start,competition,
+    country:String(event.country?.name||event.country||event.league_country?.name||event.league_country||event.country_name||'').trim(),
     mode,score:mode==='live'?(event.score||null):null,
     minute:mode==='live'?(event.minute??null):0,
     source:origin,
@@ -5733,7 +5814,7 @@ function betproPoissonRenderFixtures(){
   const copyIcon='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>';
   return '<article class="betpro-poisson-fixture'+selected+(market?' has-market':'')+'">'+
    '<button type="button" class="betpro-poisson-fixture-main" onclick="betproPoissonSelectFixture('+i+')" aria-pressed="'+(selected?'true':'false')+'">'+
-    '<span class="betpro-poisson-fixture-meta">'+esc(betproPoissonSportLabel(f.sport))+' · '+esc(f.competition||'Compétition')+'</span>'+
+    '<span class="betpro-poisson-fixture-meta">'+esc(betproPoissonSportLabel(f.sport))+' · '+esc(betproCompetitionWithCountry(f))+'</span>'+
     '<span class="betpro-poisson-fixture-names">'+esc(f.home)+' <span class="betpro-poisson-versus">VS</span> '+esc(f.away)+'</span>'+
     '<span class="betpro-poisson-fixture-time">'+esc(when)+' · '+esc(f.source)+'</span>'+
     betproPoissonFixtureSignal(f)+
@@ -6001,7 +6082,7 @@ function betproPoissonSelectFixture(index){
   if(b)b.disabled=false;
   const box=document.getElementById('betpro-poisson-selected');
   if(box)box.innerHTML='<strong>'+esc(f.home)+' contre '+esc(f.away)+'</strong><div>'+
-    esc(betproPoissonSportLabel(f.sport)+' · '+(f.competition||'Compétition non indiquée'))+'</div>'+
+    esc(betproPoissonSportLabel(f.sport)+' · '+betproCompetitionWithCountry(f))+'</div>'+
     '<div>'+esc(f.mode==='live'?'Direct confirmé par le fournisseur. Contrôle serveur requis avant publication des probabilités.':
       'Avant-match : 0-0 et début de rencontre automatiquement retenus.')+'</div>';
   return betproPoissonRunSelected();
@@ -7888,7 +7969,7 @@ async function lossAutoSearch(forcedOdds){
       +'<span style="font-family:var(--mo);font-size:10px;color:var(--mu)">Qualité '+Number(res.dataQualityScore||0).toFixed(0)+'/100</span></div>'
       +'<div class="lc-head"><div style="flex:1;min-width:0">'
       +'<div class="lc-teams">'+esc(o.home_team||'?')+' vs '+esc(o.away_team||'?')+'</div>'
-      +'<div style="font-size:10px;color:var(--mu);margin:5px 0">'+esc(o.competition||o._sport||'')+' · '+(o.start_time?esc(fmtDT(o.start_time)):'Horaire non fourni')+'</div>'
+      +'<div style="font-size:10px;color:var(--mu);margin:5px 0">'+esc(betproCompetitionWithCountry(o))+' · '+(o.start_time?esc(fmtDT(o.start_time)):'Horaire non fourni')+'</div>'
       +'<div style="font-size:12px;color:var(--am);font-weight:700">'+esc(select)+' @ '+Number(o.odds).toFixed(2)+'</div>'
       +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;margin-top:10px">'
       +'<div class="tsm-cell"><div class="sv">'+prob.toFixed(1)+' %</div><label>Probabilité modèle</label></div>'
@@ -9618,7 +9699,7 @@ function renderDirectionCard(o, i, containerId) {
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
         <span class="bdg bgr">À JOUER</span>
-        <span class="bdg bsp">${esc(o.competition||sport)}</span>
+        <span class="bdg bsp">${esc(betproCompetitionWithCountry(o))}</span>
         <span class="bdg bmk">${mktLabel}</span>
         ${o.start_time?`<span class="bdg bsr">${fmtDate(o.start_time)}</span>`:''}
         ${dataQualityScore?`<span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Qualité des données : ${dataQualityScore}%</span>`:''}
