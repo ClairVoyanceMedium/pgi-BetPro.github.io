@@ -5497,6 +5497,7 @@ async function betproPoissonRunSelected(){
       const latest=(d?.live_matches||[]).find(m=>String(m.fixture_id)===f.id&&String(m.source)===f.provider&&
         betproPoissonFixtureSport(m.sport)===f.sport&&betproLiveIsActive(m));
       if(!latest)throw Error('Cette rencontre n’est plus confirmée en direct. Actualisez le catalogue.');
+      if(latest.score?.home==null||latest.score?.away==null)throw Error('Le fournisseur ne transmet pas les deux scores du match.');
       scoreHome=Number(latest.score?.home);scoreAway=Number(latest.score?.away);
       if(!Number.isInteger(scoreHome)||!Number.isInteger(scoreAway)||scoreHome<0||scoreAway<0)
         throw Error('Scores non confirmés par le fournisseur. Aucune probabilité ne peut être affichée.');
