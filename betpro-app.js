@@ -3537,7 +3537,7 @@ function betproLiveTimeLabel(m){
   return info || (m.period ? `Période ${m.period}${clock?' · '+clock:''}`:'En direct');
 }
 function betproLiveSportName(s){
-  const map={soccer:'Football',basketball_nba:'Basket NBA',basketball_ncaab:'Basket NCAA',americanfootball_nfl:'Football US NFL',americanfootball_ncaaf:'Football US NCAA',icehockey_nhl:'Hockey NHL',baseball_mlb:'Baseball MLB'};
+  const map={soccer:'Football',basketball_nba:'Basket NBA',basketball_wnba:'Basket WNBA',basketball_ncaab:'Basket NCAA',basketball_ncaaw:'Basket NCAA féminin',rugby:'Rugby',americanfootball_nfl:'Football US NFL',americanfootball_ncaaf:'Football US NCAA',icehockey_nhl:'Hockey NHL',baseball_mlb:'Baseball MLB'};
   return map[s]||String(s||'Sport');
 }
 function betproLiveTennisScoreHtml(m){
@@ -5564,7 +5564,7 @@ function betproPoissonNormalizeFixture(event,origin,mode){
   if(!event||typeof event!=='object')return null;
   const sport=betproPoissonFixtureSport(event.sport||event._sport);
   if(!sport)return null;
-  if(mode==='live'&&!['football','basketball','nfl','hockey','baseball','tennis'].includes(sport))return null;
+  if(mode==='live'&&!['football','basketball','nfl','hockey','baseball','tennis','rugby'].includes(sport))return null;
   const home=String(event.home||event.home_name||event.home_team||'').trim(),
     away=String(event.away||event.away_name||event.away_team||'').trim(),
     start=String(event.start_time||event.event_start_at||event.commence_time||''),
