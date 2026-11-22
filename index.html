@@ -3023,6 +3023,14 @@ a{color:var(--neon);text-decoration:none}
 #s-chat .betpro-poisson-chat-action{margin-top:16px;min-height:47px;white-space:normal;background:linear-gradient(120deg,#ffb59d,#ff896f);color:#20110b;font-weight:850}
 @media(max-width:760px){#s-chat .betpro-poisson-choice{padding:15px 13px}#s-chat .betpro-poisson-fixtures{grid-template-columns:1fr;gap:11px}#s-chat .betpro-poisson-fixture{min-height:143px;padding:15px 14px}#s-chat .betpro-poisson-market-result{padding:18px 14px}#s-chat .betpro-poisson-market-selection{font-size:26px}}
 
+
+/* Le résultat reste immédiatement accessible avant la liste complète. */
+#s-chat #live-model-res{scroll-margin-top:12px}
+#s-chat #betpro-poisson-run:disabled{display:none}
+#s-chat #betpro-poisson-run:not(:disabled){margin-bottom:14px}
+#s-chat .betpro-poisson-fixtures{margin-top:10px}
+#s-chat .betpro-poisson-selected:not(:empty){margin-bottom:10px}
+
 </style>
 </head>
 <body>
@@ -3575,10 +3583,10 @@ a{color:var(--neon);text-decoration:none}
     <label class="betpro-poisson-search-label" for="betpro-poisson-filter">Rechercher une équipe ou une compétition</label>
     <input type="search" id="betpro-poisson-filter" class="betpro-poisson-search" placeholder="Ex. Arsenal, Chelsea, NBA, Ligue 1..." oninput="betproPoissonFilterFixtures()" autocomplete="off">
     <div id="betpro-poisson-fixture-status" class="betpro-poisson-fixture-status" role="status" aria-live="polite">Ouverture du calendrier des rencontres...</div>
-    <div id="betpro-poisson-fixtures" class="betpro-poisson-fixtures" aria-label="Rencontres disponibles"></div>
     <div id="betpro-poisson-selected" class="betpro-poisson-selected" aria-live="polite"></div>
-  <div id="live-model-res" aria-live="polite"></div>
+    <div id="live-model-res" aria-live="polite"></div>
     <button type="button" id="betpro-poisson-run" class="btn betpro-poisson-submit betpro-poisson-run-again" onclick="betproPoissonRunSelected()" disabled>Actualiser l'analyse sélectionnée</button>
+    <div id="betpro-poisson-fixtures" class="betpro-poisson-fixtures" aria-label="Rencontres disponibles"></div>
     <p class="betpro-poisson-fidelity">Sources identifiées et date de rencontre affichées. Un modèle n'est proposé que si les données sont suffisantes ; aucune probabilité live n'est affichée sans vérification du direct.</p>
   </div>
   <details id="betpro-poisson-manual" class="betpro-poisson-manual">
@@ -4371,7 +4379,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-market-v224"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-market-v225"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
