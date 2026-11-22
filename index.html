@@ -2119,6 +2119,23 @@ a{color:var(--neon);text-decoration:none}
 }
 #s-strategy .valuepro-hero-emphasis{color:#ffad8e}
 #s-strategy .valuepro-hero .ps{max-width:720px;margin-top:8px;color:#d9cbd0;font-size:12px;line-height:1.65}
+/* Guide Value Betting Pro compact : fermé par défaut, ouvert à la demande. */
+#s-strategy .valuepro-compact-summary{max-width:800px;margin:10px 0 13px;font-size:12px;line-height:1.6;color:#ded0d0}
+#s-strategy .valuepro-guide{margin-top:10px;max-width:850px}
+#s-strategy .valuepro-guide>summary{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;
+ padding:12px 14px;list-style:none;cursor:pointer;
+ border:1px solid rgba(255,163,132,.55);border-radius:10px;
+ background:linear-gradient(110deg,rgba(255,137,105,.17),rgba(20,29,46,.78));
+ color:#ffceb6;font:850 12px/1.5 var(--hd);
+}
+#s-strategy .valuepro-guide>summary::-webkit-details-marker{display:none}
+#s-strategy .valuepro-guide>summary span{color:#e5c8bd;font:650 10px/1.4 var(--hd)}
+#s-strategy .valuepro-guide>summary::after{content:"+";margin-left:auto;color:#ffd3bb;font:900 20px/1 var(--hd)}
+#s-strategy .valuepro-guide[open]>summary::after{content:"−"}
+#s-strategy .valuepro-guide>summary:focus-visible{outline:2px solid #ffb48c;outline-offset:3px}
+#s-strategy .valuepro-guide-content{padding:8px 2px 2px}
+@media(max-width:480px){#s-strategy .valuepro-guide>summary{padding:11px 12px}}
 #s-strategy .valuepro-howto{max-width:850px;margin-top:12px}
 #s-strategy .valuepro-howto p{margin:0 0 9px;color:#e4d9d9;font-size:12px;line-height:1.65}
 #s-strategy .valuepro-howto p:last-child{margin-bottom:0}
@@ -4139,6 +4156,10 @@ a{color:var(--neon);text-decoration:none}
   <div class="ph valuepro-hero">
     <div class="valuepro-overline"><span class="valuepro-pulse" aria-hidden="true"></span> ANALYSE DE VALEUR · PARIS SPORTIFS</div>
     <div class="pt">VALUE <span class="valuepro-hero-emphasis">BETTING PRO</span></div>
+    <p class="ps valuepro-compact-summary">Comparez les cotes et repérez les prix potentiellement avantageux. Consultez le guide pour apprendre à analyser une rencontre et utiliser les résultats.</p>
+    <details class="valuepro-guide">
+      <summary>Comment utiliser Value Betting Pro ? <span>Mode d’emploi et exemple concret</span></summary>
+      <div class="valuepro-guide-content">
     <div class="ps valuepro-howto" aria-label="Comment utiliser Value Betting Pro">
       <p><strong>À quoi ça sert ?</strong> Repérer les cotes potentiellement avantageuses en comparant les prix relevés chez plusieurs bookmakers. L'objectif est de trouver une meilleure valeur de cote, pas de promettre un pari gagnant.</p>
       <p><strong>Comment l'utiliser ?</strong> Saisissez une rencontre et votre sélection (ex. Arsenal vs Chelsea, victoire Arsenal) ou ajoutez une capture. Indiquez votre capital et choisissez votre profil de prudence, puis lancez la comparaison. La cote saisie est facultative.</p>
@@ -4153,6 +4174,8 @@ a{color:var(--neon);text-decoration:none}
       <p><strong>4. Interpréter le verdict :</strong> « Priorité » désigne un prix retenu par le calcul, « À surveiller » une cote qui n'a pas encore atteint son seuil, et « Marché à actualiser » des données insuffisantes ou trop anciennes. Vérifiez toujours l'horaire, les absences et la cote réellement offerte.</p>
       <p class="valuepro-example-caution"><strong>Attention :</strong> une meilleure cote améliore le montant versé si le pari gagne, mais ne rend pas la victoire plus probable. La « value » théorique n'est pas une rentabilité démontrée ; la totalité de la mise peut être perdue.</p>
     </div>
+      </div>
+    </details>
     <div class="valuepro-tags" aria-label="Fonctions du comparateur"><span>Comparaison des cotes</span><span>Kelly fractionnaire</span><span>Prix à surveiller</span></div>
   </div>
   <div class="card valuepro-panel valuepro-panel-input">
