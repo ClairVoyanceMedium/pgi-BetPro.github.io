@@ -5689,6 +5689,39 @@ function betproPoissonSportChanged(){
 }
 
 // Lecture prioritaire : issue statistique dominante, distincte d'une cote bookmaker réelle.
+async function betproPoissonCopyMatch(button){
+ const match=button?.closest('.betpro-poisson-match');
+ const names=Array.from(match?.querySelectorAll('.betpro-poisson-team-name')||[])
+  .map(el=>el.textContent.trim()).filter(Boolean);
+ if(names.length!==2){toast('Impossible de retrouver les deux équipes.','err');return;}
+ const text=names.join(' vs ');
+ let copied=false;
+ try{
+  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);copied=true;}
+ }catch(_){}
+ if(!copied){
+  const area=document.createElement('textarea');
+  area.value=text;area.setAttribute('readonly','');
+  Object.assign(area.style,{position:'fixed',opacity:'0',top:'0',left:'0',width:'1px',height:'1px'});
+  document.body.appendChild(area);area.focus();area.select();
+  try{copied=document.execCommand('copy')===true;}catch(_){}
+  area.remove();
+ }
+ if(!copied){toast('Copie indisponible dans ce navigateur.','err');return;}
+ toast('Rencontre copiée : '+text,'ok');
+ if(!button?.isConnected)return;
+ const previous=button.innerHTML;
+ button.classList.add('is-copied');
+ button.setAttribute('aria-label','Rencontre copiée');
+ button.textContent='✓';
+ setTimeout(()=>{
+  if(!button.isConnected)return;
+  button.innerHTML=previous;
+  button.classList.remove('is-copied');
+  button.setAttribute('aria-label','Copier le nom de la rencontre');
+ },1600);
+}
+
 function betproPoissonPrimaryDirection({sport,home,away,outcomes,fairOdds,minute,liveVerified}){
  const val=x=>x===null||x===undefined||x===''?null:Number(x);
  const raw=[
@@ -5746,7 +5779,7 @@ function betproPoissonMultisportRender(d,ctx,res){
   catch(_){return'';}
  }).filter(Boolean).join(' ');
  let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>Analyse Poisson Multisports · '+esc(sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
-   '<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(home)+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(away)+'</strong></p>';
+   '<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(home)+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(away)+'</strong> <button type="button" class="betpro-poisson-copy-match" onclick="betproPoissonCopyMatch(this)" title="Copier les deux équipes" aria-label="Copier le nom de la rencontre"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></button></p>';
  if(!m){
   html+='<div class="betpro-poisson-warning">'+esc(d.explanation||'Données récentes insuffisantes.')+'</div>'+
    '<p class="betpro-poisson-note">Historique vérifiable : '+esc(String(d.history?.home_matches??0))+' / '+esc(String(d.history?.away_matches??0))+' rencontres. Aucun pourcentage fictif.</p>';
@@ -5849,7 +5882,7 @@ async function runLiveModelUI(options={}){
   const fair=m.fair_odds||{};
   let html='<div class="betpro-poisson-panel">';
   html+='<div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>'+esc(d.quality||'Historique consulté')+'</span></div>';
-  html+='<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(names[0])+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(names[1])+'</strong></p>';
+  html+='<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(names[0])+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(names[1])+'</strong> <button type="button" class="betpro-poisson-copy-match" onclick="betproPoissonCopyMatch(this)" title="Copier les deux équipes" aria-label="Copier le nom de la rencontre"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></button></p>';
   html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et minute confirmés par ESPN en direct':'Score et minute fournis manuellement, sans confirmation du direct')+'</p>'; 
   html+='<p class="betpro-poisson-note">Score de référence : '+esc((d.match?.score_home??score_home)+' - '+(d.match?.score_away??score_away))+
    ' · Minute : '+esc(String(d.match?.minute??minute))+
