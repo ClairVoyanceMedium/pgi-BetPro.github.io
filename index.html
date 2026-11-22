@@ -2960,6 +2960,28 @@ a{color:var(--neon);text-decoration:none}
 #s-chat .betpro-poisson-manual>.betpro-poisson-panel-form{margin:0 10px 10px}
 @media(max-width:690px){#s-chat .betpro-poisson-choice{padding:14px 13px}#s-chat .betpro-poisson-fixtures{grid-template-columns:1fr;max-height:330px}#s-chat .betpro-poisson-source-btn{flex:1}#s-chat .betpro-poisson-reload{width:100%;margin-left:0}}
 
+
+/* Poisson highlighted direction v223: single prominent coral recommendation. */
+#s-chat .betpro-poisson-primary{position:relative;overflow:hidden;margin:16px 0 18px;padding:21px 23px;background:linear-gradient(112deg,rgba(255,156,130,.25),rgba(47,32,42,.97) 55%,#151e30);border:2px solid #ffa083;border-radius:15px;box-shadow:0 0 29px rgba(255,150,115,.28),inset 0 1px rgba(255,236,222,.18)}
+#s-chat .betpro-poisson-primary::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ffd4b7,#ff8d73 60%,transparent)}
+#s-chat .betpro-poisson-primary-eyebrow{color:#ffd4c2;font:850 12px var(--hd);letter-spacing:.08em;margin:0 0 14px}
+#s-chat .betpro-poisson-primary-main{display:flex;align-items:center;justify-content:space-between;gap:17px}
+#s-chat .betpro-poisson-primary-choice{flex:1;min-width:0}
+#s-chat .betpro-poisson-primary-label{display:block;color:#ffdfce;font:750 12px/1.5 var(--hd);margin-bottom:6px}
+#s-chat .betpro-poisson-primary-selection{display:block;color:#fff9f5;font:900 clamp(26px,3.5vw,38px)/1.18 var(--hd);letter-spacing:-.025em;text-shadow:0 2px 14px rgba(255,136,109,.33);overflow-wrap:anywhere}
+#s-chat .betpro-poisson-primary-market{display:inline-block;color:#27150f;background:linear-gradient(105deg,#ffd3bd,#ff9c81);border-radius:7px;font:800 12px/1.5 var(--hd);padding:7px 11px;margin-top:11px}
+#s-chat .betpro-poisson-primary-figure{flex:0 0 auto;min-width:145px;text-align:center;padding:13px 12px;background:rgba(11,20,33,.83);border:1px solid rgba(255,217,193,.55);border-radius:12px}
+#s-chat .betpro-poisson-primary-figure strong{display:block;font:900 clamp(30px,4vw,45px)/1.2 var(--hd);color:#ffb69d;font-variant-numeric:tabular-nums}
+#s-chat .betpro-poisson-primary-figure span{display:block;color:#f5d7c6;font:650 10px/1.5 var(--hd);margin-top:5px}
+#s-chat .betpro-poisson-primary-status{display:inline-block;font:800 11px/1.5 var(--hd);color:#ffdec9;background:rgba(255,172,131,.11);border:1px solid rgba(255,198,160,.4);border-radius:7px;padding:7px 10px;margin-top:15px}
+#s-chat .betpro-poisson-primary-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-top:13px;margin-top:13px;border-top:1px solid rgba(255,208,185,.25)}
+#s-chat .betpro-poisson-primary-details>div{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;min-width:0;padding:10px 12px;border:1px solid rgba(255,218,185,.17);border-radius:8px;background:rgba(11,22,35,.55)}
+#s-chat .betpro-poisson-primary-details span{color:#e5d3c9;font-size:11px}
+#s-chat .betpro-poisson-primary-details strong{color:#fff4e9;font:800 14px var(--hd);font-variant-numeric:tabular-nums}
+#s-chat .betpro-poisson-primary-advice{margin:12px 0 0;color:#f4e0d4;font-size:12px;line-height:1.75;overflow-wrap:anywhere}
+#s-chat .betpro-poisson-primary-advice strong{color:#ffd0b7}
+@media(max-width:620px){#s-chat .betpro-poisson-primary{padding:17px 13px}#s-chat .betpro-poisson-primary-main{flex-direction:column;align-items:stretch;gap:11px}#s-chat .betpro-poisson-primary-selection{font-size:29px}#s-chat .betpro-poisson-primary-figure{width:100%;min-width:0}#s-chat .betpro-poisson-primary-figure strong{font-size:35px}#s-chat .betpro-poisson-primary-details{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -4306,7 +4328,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-auto-v222"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-direction-v223"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
