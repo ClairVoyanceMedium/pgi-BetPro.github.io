@@ -5608,6 +5608,15 @@ function betproPoissonFactSummary(value,depth=0){
  }
  return '';
 }
+function betproPoissonFixtureQuickFacts(f){
+ const quick=(label,value)=>{
+  const info=betproPoissonFactSummary(value);
+  return '<span class="betpro-poisson-quick-fact"><strong>'+esc(label)+'</strong> <span class="'+(info?'':'is-unverified')+'">'+esc(info||'À vérifier')+'</span></span>';
+ };
+ return '<span class="betpro-poisson-fixture-brief">'+
+  quick('Blessures',f.injuries)+quick('Suspensions',f.suspensions)+
+  quick('Forme',f.recent_form)+quick('Compositions',f.lineups)+'</span>';
+}
 function betproPoissonFixtureFacts(f){
  const fact=(label,value)=>{
   const summary=betproPoissonFactSummary(value);
@@ -5685,6 +5694,7 @@ function betproPoissonRenderFixtures(){
     '<span class="betpro-poisson-fixture-names">'+esc(f.home)+' <span class="betpro-poisson-versus">VS</span> '+esc(f.away)+'</span>'+
     '<span class="betpro-poisson-fixture-time">'+esc(when)+' · '+esc(f.source)+'</span>'+
     betproPoissonFixtureSignal(f)+
+    betproPoissonFixtureQuickFacts(f)+
     '<span class="betpro-poisson-open-label">ANALYSER LA RENCONTRE</span>'+
    '</button>'+
    '<button type="button" class="betpro-poisson-card-copy" onclick="betproPoissonCopyFixture('+i+',this)" title="Copier les participants" aria-label="Copier le nom de la rencontre">'+copyIcon+'</button>'+
