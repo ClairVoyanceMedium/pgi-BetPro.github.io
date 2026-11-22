@@ -2986,6 +2986,9 @@ a{color:var(--neon);text-decoration:none}
 #s-chat .betpro-poisson-search-label{display:block;color:#e8c1b4;font-weight:750;font-size:12px;margin-bottom:6px}
 #s-chat .betpro-poisson-search{width:100%;background:#102437;color:#ecf3fc;border:1px solid #52667c;border-radius:9px;padding:12px 13px;min-height:44px;font:500 13px var(--hd);outline:none}
 #s-chat .betpro-poisson-search:focus{border-color:#ffad93;box-shadow:0 0 0 2px rgba(255,157,121,.20)}
+#s-chat select.betpro-poisson-sport-filter{display:block;appearance:auto;width:100%;min-height:46px;margin:0 0 12px;cursor:pointer;color:#ecf3fc;background-color:#17253a}
+#s-chat select.betpro-poisson-sport-filter option{background:#17253a;color:#ecf3fc}
+
 #s-chat .betpro-poisson-fixture-status{font:650 11px var(--hd);color:#c7d3e1;padding:11px 0 7px}
 #s-chat .betpro-poisson-fixtures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:320px;overflow:auto;overscroll-behavior:contain}
 #s-chat .betpro-poisson-fixture{display:block;width:100%;text-align:left;background:#111c2f;border:1px solid #354963;color:#edf4fa;border-radius:10px;padding:11px 12px;cursor:pointer;min-width:0;transition:border-color .15s,background .15s}
@@ -4056,6 +4059,19 @@ a{color:var(--neon);text-decoration:none}
       <button type="button" id="betpro-poisson-tab-live" class="betpro-poisson-source-btn" onclick="betproPoissonLoadFixtures('live')">Matchs en direct</button>
       <button type="button" class="betpro-poisson-reload" onclick="betproPoissonReload()" title="Actualiser les rencontres" aria-label="Actualiser les rencontres">&#8635; Actualiser</button>
     </div>
+    <label class="betpro-poisson-search-label" for="betpro-poisson-sport-filter">Choisir le sport à afficher</label>
+    <select id="betpro-poisson-sport-filter" class="betpro-poisson-search betpro-poisson-sport-filter" onchange="betproPoissonFilterFixtures()" aria-label="Filtrer les rencontres par sport">
+      <option value="all" selected>Tous les sports</option>
+      <option value="football">Football</option>
+      <option value="basketball">Basketball</option>
+      <option value="baseball">Baseball</option>
+      <option value="nfl">Football américain</option>
+      <option value="hockey">Hockey</option>
+      <option value="rugby">Rugby</option>
+      <option value="boxing">Boxe (catalogue non disponible)</option>
+      <option value="tennis">Tennis (catalogue non disponible)</option>
+      <option value="mma">MMA (catalogue non disponible)</option>
+    </select>
     <label class="betpro-poisson-search-label" for="betpro-poisson-filter">Rechercher une équipe ou une compétition</label>
     <input type="search" id="betpro-poisson-filter" class="betpro-poisson-search" placeholder="Ex. Arsenal, Chelsea, NBA, Ligue 1..." oninput="betproPoissonFilterFixtures()" autocomplete="off">
     <div id="betpro-poisson-fixture-status" class="betpro-poisson-fixture-status" role="status" aria-live="polite">Ouverture du calendrier des rencontres...</div>
@@ -4874,7 +4890,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-verified-live-v240"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-sport-filter-v241"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
