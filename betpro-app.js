@@ -3596,6 +3596,7 @@ async function betproLoadRealLive(containerId){
     const warningNote=warnings.length?`<div class="info" style="font-size:10px">Certaines sources sont momentanément indisponibles : ${esc(warnings.slice(0,3).join(' ; '))}. Aucun match non confirmé n'a été ajouté.</div>`:'';
     const empty=`<div class="empty"><div class="empty-t">Aucun match actuellement confirmé en direct par les sources consultées.</div><div class="empty-s">Les rencontres programmées restent uniquement dans la rubrique « Matchs à venir ». Réactualisez le Live pour un nouveau relevé.</div></div>`;
     cnt.innerHTML=liveTitle+warningNote+(matches.length?'<div class="betpro-real-live-grid">'+matches.map(betproLiveCard).join('')+'</div>':empty);
+    if(matches.length)betproLivePageAttachActions(containerId,matches,'live');
   }catch(err){if(seq===betproLiveRequestSequence)cnt.innerHTML='<div class="warn">Flux live indisponible : '+esc(err?.message||String(err))+'. Aucun match programmé ne sera substitué à un vrai match en direct.</div>';}
 }
 
@@ -3863,6 +3864,7 @@ async function loadUpcomingBenter(){
     if(!all.length){cnt.innerHTML='<div class="empty"><div class="empty-i">📅</div><div class="empty-t">Aucun match à venir trouvé</div></div>';return;}
     cnt.innerHTML=`<div class="sbar"><div class="sdot"></div><span>${all.length} match(s) à venir avec direction</span></div>`;
     cnt.innerHTML+='<div class="opp-grid">'+all.map((o,i)=>renderDirectionCard(o,i,'upc')).join('')+'</div>';
+    betproLivePageAttachActions('upcoming-cnt',all,'benter');
   }catch(e){cnt.innerHTML=`<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ ${esc(e.message)}</div></div>`;}
 }
 
@@ -3891,6 +3893,185 @@ function betproFollowClassicPayload(m){
  startTime:m.start_time||m.event_start_at||'',competition:String(m.competition||m.sport_label||''),
  predictedProbability:Number(c.probability)>0&&Number(c.probability)<1?Number(c.probability):null};
 }
+
+// Matchs Live / À venir : actions visibles sur TOUTES les cartes des deux moteurs.
+// Le suivi existant exige une issue de pari explicite ; ne jamais en inventer une.
+const betproLivePageCards=new Map();
+let betproLivePageFollowSyncAt=0;
+function betproLivePageRecord(m,kind){
+ const home=String(kind==='live'?m.home:kind==='benter'?m.home_team:m.home_name||m.home||'').trim();
+ const away=String(kind==='live'?m.away:kind==='benter'?m.away_team:m.away_name||m.away||'').trim();
+ const rawSport=String(m.sport||m._sport||'');
+ const startTime=String(m.start_time||m.commence_time||m.event_start_at||'');
+ return {kind,raw:m,home,away,sport:rawSport,startTime,
+  competition:String(m.competition||m.sport_title||m.sport_label||'')};
+}
+function betproLivePageSportKey(record){
+ const raw=record.sport.toLowerCase().replace(/[\s-]+/g,'_');
+ if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|tennis_atp|tennis_wta|mma_|rugbyleague_|rugbyunion_)/.test(raw))return raw;
+ const normalized=betproPoissonFixtureSport(raw);
+ const key=betproPoissonFollowSportKey({
+  sport:normalized, sport_source:raw,competition:record.competition
+ });
+ return key||'';
+}
+function betproLivePageKnownFollow(rec){
+ const at=Date.parse(rec.startTime);
+ if(!Number.isFinite(at))return null;
+ const name=s=>betproPoissonNormalizeName(s);
+ return betproFollowKnownItems.find(item=>
+  name(item.home)===name(rec.home)&&name(item.away)===name(rec.away)&&
+  Math.abs(Date.parse(item.startTime||'')-at)<75*60000)||null;
+}
+function betproLivePageFollowPayload(rec,choice=null){
+ const existing=betproLivePageKnownFollow(rec);
+ if(existing){betproFollowCatalog.set(existing.id,existing);return existing;}
+ let payload=null;
+ if(rec.kind==='benter'&&!choice){
+  const b=betproFollowBenterPayload(rec.raw);
+  if(b.selection&&b.market&&Number.isFinite(Date.parse(b.startTime)))payload=b;
+ }
+ if(rec.kind==='classic'&&!choice){
+  const c=rec.raw.consensus||{};
+  if(c.status==='ok'&&['home','away','draw'].includes(c.choice)&&c.favorite)
+   payload=betproFollowClassicPayload(rec.raw);
+ }
+ const key=betproLivePageSportKey(rec);
+ if(!payload&&choice&&key&&rec.home&&rec.away&&Number.isFinite(Date.parse(rec.startTime))){
+  if(choice==='draw'&&!key.startsWith('soccer_'))return null;
+  const selection=choice==='draw'?'draw':choice==='home'?rec.home:rec.away;
+  payload={engine:'Classique',sport:key,home:rec.home,away:rec.away,
+   market:'h2h',selection,line:null,odds:null,startTime:rec.startTime,
+   competition:rec.competition,predictedProbability:null};
+ }
+ if(!payload||!['h2h','moneyline','totals','spreads','btts','double_chance'].includes(payload.market))return null;
+ if(!payload.sport||!payload.home||!payload.away||!payload.selection||
+  !Number.isFinite(Date.parse(payload.startTime)))return null;
+ payload.id=betproFollowIdentifier(payload);
+ betproFollowCatalog.set(payload.id,payload);
+ return payload;
+}
+function betproLivePageRefreshFollowIndicators(){
+ for(const [key,rec] of betproLivePageCards){
+  const wrap=document.getElementById(rec.container);
+  const btn=wrap?.querySelector('[data-live-page-key="'+key+'"] .betpro-live-page-follow');
+  if(!btn)continue;
+  const payload=betproLivePageFollowPayload(rec);
+  if(payload){btn.dataset.betproFollowId=payload.id;}
+  else btn.removeAttribute('data-betpro-follow-id');
+ }
+ betproFollowPaint();
+}
+async function betproLivePageCopy(key,button){
+ const rec=betproLivePageCards.get(key);
+ if(!rec)return;
+ const text=rec.home+' vs '+rec.away;
+ let ok=false;
+ try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);ok=true;}}catch(_){}
+ if(!ok){
+  const t=document.createElement('textarea');
+  t.value=text;t.readOnly=true;Object.assign(t.style,{position:'fixed',left:'0',top:'0',opacity:'0'});
+  document.body.appendChild(t);t.focus();t.select();
+  try{ok=document.execCommand('copy')===true;}catch(_){}
+  t.remove();
+ }
+ if(!ok){toast('Copie indisponible dans ce navigateur.','err');return;}
+ toast('Rencontre copiée : '+text,'ok');
+ if(button?.isConnected){button.textContent='✓ Copié';
+  setTimeout(()=>{if(button.isConnected)button.textContent='▢ Copier';},1600);}
+}
+function betproLivePageFollowChoices(key,button){
+ const rec=betproLivePageCards.get(key);
+ const holder=button?.closest('.betpro-live-page-actions');
+ if(!rec||!holder)return;
+ const existing=holder.querySelector('.betpro-live-page-choices');
+ if(existing){existing.remove();return;}
+ const box=document.createElement('div');
+ box.className='betpro-live-page-choices';
+ const label=document.createElement('span');
+ label.textContent='Quelle issue veux-tu suivre ?';
+ box.appendChild(label);
+ const choices=[
+  {value:'home',text:'Victoire '+rec.home},
+  ...(betproLivePageSportKey(rec).startsWith('soccer_')?[{value:'draw',text:'Match nul'}]:[]),
+  {value:'away',text:'Victoire '+rec.away}
+ ];
+ for(const c of choices){
+  const b=document.createElement('button');b.type='button';b.textContent=c.text;
+  b.addEventListener('click',event=>{event.stopPropagation();betproLivePageFollow(key,button,c.value);});
+  box.appendChild(b);
+ }
+ const note=document.createElement('small');
+ note.textContent='Le suivi enregistre une issue choisie et son résultat officiel, sans pronostic automatique.';
+ box.appendChild(note);
+ holder.appendChild(box);
+}
+function betproLivePageFollow(key,button,choice=null){
+ const rec=betproLivePageCards.get(key);
+ if(!rec||!button)return;
+ const previous=betproLivePageFollowPayload(rec);
+ if(previous&&betproFollowSelected.has(previous.id)){
+  betproToggleFollow(button,previous.id);
+  return;
+ }
+ const sport=betproLivePageSportKey(rec);
+ if(!sport){toast('Cette compétition ne dispose pas encore de suivi automatique des résultats.','err');return;}
+ const at=Date.parse(rec.startTime);
+ if(!Number.isFinite(at)){toast('Date officielle indisponible : suivi impossible.','err');return;}
+ if(at<Date.now()-2.5*3600000){toast('Le suivi ne peut pas commencer plus de 2 h 30 après le début du match.','err');return;}
+ const payload=betproLivePageFollowPayload(rec,choice);
+ if(!payload){
+  if(!choice)betproLivePageFollowChoices(key,button);
+  else toast('Cette issue ne peut pas être suivie automatiquement.','err');
+  return;
+ }
+ button.dataset.betproFollowId=payload.id;
+ button.closest('.betpro-live-page-actions')?.querySelector('.betpro-live-page-choices')?.remove();
+ betproToggleFollow(button,payload.id);
+}
+function betproLivePageAttachActions(containerId,items,kind){
+ const container=document.getElementById(containerId);
+ if(!container||!Array.isArray(items)||!items.length)return;
+ for(const key of [...betproLivePageCards.keys()]){
+  if(key.startsWith(containerId+':'))betproLivePageCards.delete(key);
+ }
+ const classicCards=kind==='classic'?[...container.querySelectorAll('.opp-grid > .dir-card')]:[];
+ for(let i=0;i<items.length;i++){
+  const m=items[i];
+  const card=kind==='live'?container.querySelectorAll('.betpro-real-live-card')[i]:
+   kind==='classic'?classicCards[i]:document.getElementById('dc-upc-'+i);
+  if(!card)continue;
+  const record=betproLivePageRecord(m,kind);
+  if(!record.home||!record.away)continue;
+  const key=containerId+':'+i;
+  betproLivePageCards.set(key,{...record,container:containerId});
+  const base=kind==='live'?card.querySelector('.betpro-real-live-body'):card;
+  if(!base)continue;
+  const row=document.createElement('div');
+  row.className='betpro-live-page-actions';
+  row.dataset.livePageKey=key;
+  row.addEventListener('click',event=>event.stopPropagation());
+  const copy=document.createElement('button');
+  copy.className='betpro-live-page-copy';copy.type='button';copy.textContent='▢ Copier';
+  copy.title='Copier '+record.home+' vs '+record.away;
+  copy.addEventListener('click',e=>{e.stopPropagation();betproLivePageCopy(key,copy);});
+  const follow=document.createElement('button');
+  follow.className='betpro-follow-btn betpro-live-page-follow';
+  follow.type='button';follow.textContent='Suivre le résultat';follow.setAttribute('aria-pressed','false');
+  follow.addEventListener('click',e=>{e.stopPropagation();betproLivePageFollow(key,follow);});
+  row.append(copy,follow);
+  if(kind==='live'){
+   const analysis=base.querySelector('.betpro-real-live-analysis');
+   if(analysis)base.insertBefore(row,analysis);else base.appendChild(row);
+  }else base.appendChild(row);
+ }
+ betproLivePageRefreshFollowIndicators();
+ if(Date.now()-betproLivePageFollowSyncAt>120000){
+  betproLivePageFollowSyncAt=Date.now();
+  betproFollowRefresh();
+ }
+}
+
 function betproFollowPaint(){
  document.querySelectorAll('[data-betpro-follow-id]').forEach(el=>{
   if(el.disabled)return;const selected=betproFollowSelected.has(el.dataset.betproFollowId);
@@ -3904,6 +4085,7 @@ async function betproFollowRefresh(){
   betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
   betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));betproFollowPaint();
   if(document.getElementById('s-chat')?.classList.contains('on'))betproPoissonRenderFixtures();
+  if(document.getElementById('s-live')?.classList.contains('on'))betproLivePageRefreshFollowIndicators();
  }catch(e){console.warn('Suivi non disponible',e?.message||e);}
 }
 async function betproToggleFollow(btn,id){
@@ -4162,6 +4344,7 @@ async function loadUpcomingClassic(){
   const d=await api('/api/classic/scan?'+params,'GET',null,{timeoutMs:20000});if(seq!==betProClassicUpcomingSeq)return;
   if(!d?.ok)throw Error(d?.error||'Calendrier indisponible');const matches=d.events||[];
   cnt.innerHTML=`<div class="sbar"><span style="color:#dfc7ff;font-weight:800">À VENIR · CLASSIQUE</span><span>${matches.length} rencontre(s)</span></div>`+(matches.length?'<div class="opp-grid">'+matches.map(betproClassicCard).join('')+'</div>':'<div class="info">Aucune rencontre enregistrée dans cette fenêtre.</div>');
+  if(matches.length)betproLivePageAttachActions('upcoming-classic-cnt',matches,'classic');
  }catch(e){if(seq===betProClassicUpcomingSeq)cnt.innerHTML='<div class="warn">Rencontres Classique : '+esc(e?.message||String(e))+'</div>';}
 }
 try{const last=sessionStorage.getItem('betpro-live-engine-v1');betProActiveEngine=last==='benter'?'benter':'classic';}catch(_){betProActiveEngine='classic';}
