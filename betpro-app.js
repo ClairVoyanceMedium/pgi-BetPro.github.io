@@ -5542,6 +5542,50 @@ function betproPoissonSportChanged(){
  for(const input of [scoreA,scoreB])if(input){input.max=String(p[4]);if(input.value!==''&&Number(input.value)>p[4])input.value='';}
  const line=document.getElementById('ctx-total-line');if(line)line.placeholder=p[5];
 }
+
+// Lecture prioritaire : issue statistique dominante, distincte d'une cote bookmaker réelle.
+function betproPoissonPrimaryDirection({sport,home,away,outcomes,fairOdds,minute,liveVerified}){
+ const val=x=>x===null||x===undefined||x===''?null:Number(x);
+ const raw=[
+  {key:'home',label:String(home||'Domicile'),p:val(outcomes?.home_win),code:'1',odd:val(fairOdds?.home)},
+  {key:'draw',label:'Match nul',p:val(outcomes?.draw),code:'N',odd:val(fairOdds?.draw)},
+  {key:'away',label:String(away||'Extérieur'),p:val(outcomes?.away_win),code:'2',odd:val(fairOdds?.away)}
+ ];
+ const picks=raw.filter(x=>x.p!==null&&Number.isFinite(x.p)&&x.p>=0&&x.p<=100);
+ if(picks.length<2)return'';
+ picks.sort((a,b)=>b.p-a.p);
+ const first=picks[0],second=picks[1];
+ const pct=x=>x.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1});
+ const odds=first.odd!==null&&Number.isFinite(first.odd)&&first.odd>1?first.odd:(first.p>0?100/first.p:null);
+ const displayedOdds=odds!==null&&Number.isFinite(odds)?odds.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}):'Non calculable';
+ const isFootball=sport==='football',hasDraw=picks.some(x=>x.key==='draw');
+ const labelMarket=isFootball?'Résultat du match : 1 / N / 2':(hasDraw?'Résultat du temps réglementaire : 1 / N / 2':'Équipe gagnante (selon le marché disponible)');
+ const readable=isFootball||hasDraw
+  ?(first.code==='1'?'Victoire de '+first.label+' (1)':first.code==='2'?'Victoire de '+first.label+' (2)':'Match nul (N)')
+  :'Victoire de '+first.label;
+ const spread=first.p-second.p;
+ const liveUnverified=Number(minute)>0&&liveVerified!==true;
+ const signal=liveUnverified?'Direct non vérifié : ne pas utiliser comme signal de mise'
+  :spread<7?'Avantage statistique faible : issues très rapprochées'
+  :first.p<50?'Issue dominante, sans majorité de probabilité'
+  :'Issue statistique dominante';
+ return '<section class="betpro-poisson-primary" aria-label="Direction privilégiée de l’analyse Poisson">'+
+  '<div class="betpro-poisson-primary-eyebrow">DIRECTION PRIORITAIRE DU MODÈLE</div>'+
+  '<div class="betpro-poisson-primary-main"><div class="betpro-poisson-primary-choice">'+
+   '<span class="betpro-poisson-primary-label">Sélection à rechercher chez le bookmaker</span>'+
+   '<strong class="betpro-poisson-primary-selection">'+esc(readable)+'</strong>'+
+   '<span class="betpro-poisson-primary-market">'+esc(labelMarket)+'</span>'+
+  '</div><div class="betpro-poisson-primary-figure"><strong>'+pct(first.p)+' %</strong><span>Probabilité estimée</span></div></div>'+
+  '<div class="betpro-poisson-primary-status">'+esc(signal)+'</div>'+
+  '<div class="betpro-poisson-primary-details">'+
+   '<div><span>Cote théorique du modèle</span><strong>'+esc(displayedOdds)+'</strong></div>'+
+   '<div><span>Écart avec la deuxième issue</span><strong>'+pct(spread)+' points</strong></div>'+
+  '</div>'+
+  '<p class="betpro-poisson-primary-advice"><strong>Pour miser :</strong> c’est la sélection que le modèle privilégie, mais elle ne devient pas automatiquement une mise intéressante. Comparez la cote réelle du bookmaker à la cote théorique ci-dessus et vérifiez les données. Le modèle n’est pas calibré pour garantir un avantage de pari.'+
+   (liveUnverified?' <strong>Le score en direct doit être vérifié avant toute décision.</strong>':'')+'</p>'+
+ '</section>';
+}
+
 function betproPoissonMultisportRender(d,ctx,res){
  const m=d.model,home=d.history?.home_name||ctx.home,away=d.history?.away_name||ctx.away;
  const pct=v=>v===null||v===undefined||!Number.isFinite(Number(v))?'–':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %';
@@ -5565,6 +5609,7 @@ function betproPoissonMultisportRender(d,ctx,res){
   const out=m.outcomes||{},rank=[{label:home,p:out.home_win},{label:away,p:out.away_win}];
   if(out.draw!=null)rank.push({label:'Match nul',p:out.draw});
   rank.sort((x,y)=>Number(y.p)-Number(x.p));
+  html+=betproPoissonPrimaryDirection({sport:d.sport,home,away,outcomes:out,fairOdds:m.fair_odds,minute:d.match?.minute??ctx.minute,liveVerified:d.live_verified});
   const unit=d.sport==='baseball'?'manche(s)':'minute(s)';
   html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et temps confirmés par ESPN en direct.':'Score et période saisis manuellement (non vérifiés).')+
    ' · '+esc((d.match?.score_home??ctx.score_home)+' - '+(d.match?.score_away??ctx.score_away))+
@@ -5584,7 +5629,7 @@ function betproPoissonMultisportRender(d,ctx,res){
    '<p>Distribution : <strong>'+esc(m.distribution||'Estimée')+'</strong></p>'+
    (m.top_scores?.length?'<p>Scores les plus probables : '+m.top_scores.map(x=>esc(x.score)+' ('+pct(x.pct)+')').join(' · ')+'</p>':'')+
    '</div><div><h4>Lecture du modèle</h4>'+
-   '<p>Issue dominante : <strong>'+esc(rank[0]?.label||'Non déterminée')+' ('+pct(rank[0]?.p)+')</strong></p>'+
+   '<p>Rappel de la projection : <strong>'+esc(rank[0]?.label||'Non déterminée')+' ('+pct(rank[0]?.p)+')</strong></p>'+
    '<p>Historique : <strong>'+esc(String(d.history?.home_matches??0))+' / '+esc(String(d.history?.away_matches??0))+' matchs</strong></p>'+
    '<p>Cotes théoriques : <strong>'+num(m.fair_odds?.home)+' / '+num(m.fair_odds?.away)+'</strong></p>'+
    '<p>'+esc(m.quality_note||'Modèle non calibré')+'</p></div></div>';
@@ -5662,6 +5707,7 @@ async function runLiveModelUI(options={}){
   html+='<p class="betpro-poisson-note">Score de référence : '+esc((d.match?.score_home??score_home)+' - '+(d.match?.score_away??score_away))+
    ' · Minute : '+esc(String(d.match?.minute??minute))+
    ' · Football, 90 minutes réglementaires</p>';
+  html+=betproPoissonPrimaryDirection({sport:'football',home:names[0],away:names[1],outcomes:outcome,fairOdds:fair,minute:d.match?.minute??minute,liveVerified:d.live_verified});
   html+='<div class="betpro-poisson-grid">'+
     datum(names[0],percent(outcome.home_win),'Victoire domicile')+
     datum('Match nul',percent(outcome.draw),'Issue X')+
@@ -5677,7 +5723,7 @@ async function runLiveModelUI(options={}){
    '<p>Score moyen projeté : <strong>'+number(m.expected_final?.home)+' / '+number(m.expected_final?.away)+'</strong></p>'+
    '<p>Trois scores les plus probables : '+(m.top_scores||[]).map(x=>esc(x.score)+' ('+percent(x.pct)+')').join(' · ')+'</p></div>'+
    '<div><h4>Évaluation probabiliste</h4>'+
-   '<p>Issue la plus probable : <strong>'+esc(best[0]?.label||'Indéterminée')+' ('+percent(best[0]?.value)+')</strong></p>'+
+   '<p>Rappel de l’issue dominante : <strong>'+esc(best[0]?.label||'Indéterminée')+' ('+percent(best[0]?.value)+')</strong></p>'+
    '<p>Échantillon : <strong>'+esc(String(d.history?.home_matches??'–'))+' / '+esc(String(d.history?.away_matches??'–'))+' matchs</strong></p>'+
    '<p>Cotes théoriques : <strong>'+number(fair.home)+' / '+number(fair.draw)+' / '+number(fair.away)+'</strong></p></div></div>';
   if(d.ai_analysis?.resume)html+='<div class="betpro-poisson-verdict">'+esc(d.ai_analysis.resume)+'</div>';
