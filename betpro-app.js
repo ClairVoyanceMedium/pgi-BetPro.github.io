@@ -3617,7 +3617,13 @@ function betproLeagueCountry(record){
  }
  if(/^soccer_uefa_|^soccer_fifa_|^soccer_conmebol_/.test(key))return 'International';
  if(/^nba$|^nba |^national basketball association$/.test(comp))return 'États-Unis / Canada';
- if(/^wnba$|^wnba /.test(comp))return 'États-Unis / Canada';
+ if(/^wnba$|^wnba |^basketball wnba$/.test(comp))return 'États-Unis / Canada';
+ if(/^basketball nba$/.test(comp))return 'États-Unis / Canada';
+ if(/^basketball mens college basketball$|^basketball womens college basketball$/.test(comp))return 'États-Unis';
+ if(/^hockey nhl$/.test(comp))return 'États-Unis / Canada';
+ if(/^football nfl$|^football college football$/.test(comp))return 'États-Unis';
+ if(/^baseball mlb$/.test(comp))return 'États-Unis / Canada';
+ if(/^tennis atp$|^tennis wta$/.test(comp))return 'International';
  if(/\b(ncaa|college basketball|college football)\b/.test(comp))return 'États-Unis';
  if(/^nhl$|^national hockey league$/.test(comp))return 'États-Unis / Canada';
  if(/^nfl$|^national football league$/.test(comp))return 'États-Unis';
@@ -3631,7 +3637,7 @@ function betproLeagueCountry(record){
  return 'Pays non précisé';
 }
 function betproCompetitionWithCountry(record){
- const label=String(record?.competition||record?.sport_title||record?.sport_label||'Compétition non indiquée').trim();
+ const label=String(record?.competition||record?.sport_title||record?.sport_label||record?._sport||record?.sport||'Compétition non indiquée').trim();
  return label+' · '+betproLeagueCountry(record);
 }
 
@@ -5665,7 +5671,7 @@ function betproPoissonNormalizeFixture(event,origin,mode){
     mode,score:mode==='live'?(event.score||null):null,
     minute:mode==='live'?(event.minute??null):0,
     source:origin,
-    sport_source:String(event.sport||event._sport||''),
+    sport_source:String(event.sport_source||event.sport||event._sport||''),
     consensus:event.consensus||event.market_consensus||null,
     indicative:event.indicative||null,
     bookmaker_quotes:Array.isArray(event.bookmaker_quotes)?event.bookmaker_quotes:[],
@@ -6053,7 +6059,7 @@ async function betproPoissonLoadFixtures(mode='upcoming',force=false){
        Object.assign(existing,{consensus:f.consensus,indicative:f.indicative,bookmaker_quotes:f.bookmaker_quotes,classic_value:f.classic_value,market_available_books:f.market_available_books,source:'ESPN + marché'});
       else if(!existing.indicative&&f.indicative)existing.indicative=f.indicative;
       // Le dédoublonnage ESPN / catalogue ne doit pas effacer les informations sportives.
-      for(const field of ['injuries','suspensions','lineups','recent_form','standings','h2h','news','info_sources']){
+      for(const field of ['country','sport_source','injuries','suspensions','lineups','recent_form','standings','h2h','news','info_sources']){
        if((existing[field]===null||existing[field]===undefined||existing[field]==='')&&f[field]!=null)
         existing[field]=f[field];
       }
