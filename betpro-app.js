@@ -5508,21 +5508,24 @@ async function betproPoissonCopyFixture(index,button){
 }
 function betproPoissonFollowFixture(index,button){
  const f=betproPoissonPicker.fixtures[index];if(!f||!button)return;
- const key=betproPoissonFollowSportKey(f);
- if(!key){toast('Le suivi automatique de cette compétition n’est pas disponible.','err');return;}
+ const data=betproPoissonFollowCard(f);
+ if(data&&betproFollowSelected.has(data.id)){
+  if(data.status&&['win','loss','void'].includes(data.status)){
+   toast('Résultat déjà vérifié : consultez Résultats à suivre.','ok');return;
+  }
+  betproToggleFollow(button,data.id);return;
+ }
+ if(!betproPoissonFollowSportKey(f)){
+  toast('Le suivi automatique de cette compétition n’est pas disponible.','err');return;
+ }
  const when=Date.parse(f.start_time||'');
  if(!Number.isFinite(when)){toast('Horaire officiel manquant : suivi indisponible.','err');return;}
  if(when<Date.now()-2.5*3600000){
-  toast('Le suivi de pronostic n’accepte pas les matchs débutés depuis plus de 2 h 30.','err');return;
+  toast('Le suivi ne peut pas débuter plus de 2 h 30 après le coup d’envoi.','err');return;
  }
- const data=betproPoissonFollowCard(f);
  if(!data){
   betproPoissonPicker.openFollowKey=betproPoissonFixtureKey(f);
   betproPoissonRenderFixtures();
-  return;
- }
- if(betproFollowSelected.has(data.id)&&data.status&&['win','loss','void'].includes(data.status)){
-  toast('Ce résultat est déjà vérifié : consultez Résultats à suivre.','ok');
   return;
  }
  betproPoissonPicker.openFollowKey=null;
