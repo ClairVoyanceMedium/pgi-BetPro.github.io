@@ -5872,6 +5872,11 @@ async function betproPoissonLoadFixtures(mode='upcoming',force=false){
       if(betproPoissonTrustMarket(f,true)&&!betproPoissonTrustMarket(existing,true))
        Object.assign(existing,{consensus:f.consensus,indicative:f.indicative,bookmaker_quotes:f.bookmaker_quotes,classic_value:f.classic_value,market_available_books:f.market_available_books,source:'ESPN + marché'});
       else if(!existing.indicative&&f.indicative)existing.indicative=f.indicative;
+      // Le dédoublonnage ESPN / catalogue ne doit pas effacer les informations sportives.
+      for(const field of ['injuries','suspensions','lineups','recent_form','standings','h2h','news','info_sources']){
+       if((existing[field]===null||existing[field]===undefined||existing[field]==='')&&f[field]!=null)
+        existing[field]=f[field];
+      }
     }
     filtered.sort((a,b)=>a.mode==='live'?(a.sport.localeCompare(b.sport,'fr')||a.home.localeCompare(b.home,'fr')):
       Number(!!betproPoissonTrustMarket(b,true))-Number(!!betproPoissonTrustMarket(a,true))||
