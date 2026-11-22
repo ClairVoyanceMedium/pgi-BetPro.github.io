@@ -3869,6 +3869,7 @@ async function loadUpcomingBenter(){
 // Le suivi des résultats ne s'active que par une sélection explicite.
 const betproFollowCatalog=new Map();
 let betproFollowSelected=new Set();
+let betproFollowKnownItems=[];
 function betproFollowIdentifier(c){
  const t=[c.engine,c.sport,c.home,c.away,c.startTime,c.market,c.selection,c.line??'']
   .join('|').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -3900,7 +3901,9 @@ function betproFollowPaint(){
 async function betproFollowRefresh(){
  try{const d=await api('/api/results/tracked','GET',null,{noCache:true,timeoutMs:15000});
   if(!d?.ok)throw Error(d?.error||'Suivi non disponible');
-  betproFollowSelected=new Set((d.items||[]).map(x=>x.id));betproFollowPaint();
+  betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
+  betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));betproFollowPaint();
+  if(document.getElementById('s-chat')?.classList.contains('on'))betproPoissonRenderFixtures();
  }catch(e){console.warn('Suivi non disponible',e?.message||e);}
 }
 async function betproToggleFollow(btn,id){
@@ -3910,7 +3913,8 @@ async function betproToggleFollow(btn,id){
  const remove=betproFollowSelected.has(id);btn.disabled=true;btn.textContent='Enregistrement…';
  try{const d=await api('/api/results/tracked','POST',{action:remove?'remove':'add',card},{timeoutMs:20000});
   if(!d?.ok)throw Error(d?.error||'Enregistrement impossible');
-  betproFollowSelected=new Set((d.items||[]).map(x=>x.id));
+  betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
+  betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));
   toast(remove?'Pronostic retiré du suivi.':'Pronostic ajouté au suivi.','ok');
   if(document.getElementById('s-results')?.classList.contains('on'))loadResults();
  }catch(e){toast(e?.message||'Erreur de suivi','err');}
@@ -5408,20 +5412,138 @@ function betproPoissonRenderFixtures(){
   const single=!market&&betproPoissonTrustMarket(f,false);
   const when=f.mode==='live'?'EN DIRECT · '+(f.score?.home??'–')+' : '+(f.score?.away??'–'):betproPoissonFixtureDate(f.start_time);
   const label=market?'CONSENSUS BOOKMAKERS':single?'TENDANCE À CONFIRMER':f.mode==='live'?'DIRECT OFFICIEL':'RENCONTRE IDENTIFIÉE';
-  return '<button type="button" class="betpro-poisson-fixture'+selected+(market?' has-market':'')+'" onclick="betproPoissonSelectFixture('+i+')" aria-pressed="'+(selected?'true':'false')+'">'+
-   '<span class="betpro-poisson-fixture-meta">'+esc(betproPoissonSportLabel(f.sport))+' · '+esc(f.competition||'Compétition')+'</span>'+
-   '<span class="betpro-poisson-fixture-names">'+esc(f.home)+' <span class="betpro-poisson-versus">VS</span> '+esc(f.away)+'</span>'+
-   '<span class="betpro-poisson-fixture-time">'+esc(when)+' · '+esc(f.source)+'</span>'+
-   '<span class="betpro-poisson-fixture-end"><span class="betpro-poisson-market-label">'+esc(label)+'</span><span class="betpro-poisson-open-label">ANALYSER →</span></span>'+
-   '</button>';
+  const follow=betproPoissonFollowCard(f),followId=follow?.id||'',wasFollowed=!!followId&&betproFollowSelected.has(followId);
+  const options=p.openFollowKey===betproPoissonFixtureKey(f);
+  return '<article class="betpro-poisson-fixture'+selected+(market?' has-market':'')+'">'+
+   '<button type="button" class="betpro-poisson-fixture-main" onclick="betproPoissonSelectFixture('+i+')" aria-pressed="'+(selected?'true':'false')+'">'+
+    '<span class="betpro-poisson-fixture-meta">'+esc(betproPoissonSportLabel(f.sport))+' · '+esc(f.competition||'Compétition')+'</span>'+
+    '<span class="betpro-poisson-fixture-names">'+esc(f.home)+' <span class="betpro-poisson-versus">VS</span> '+esc(f.away)+'</span>'+
+    '<span class="betpro-poisson-fixture-time">'+esc(when)+' · '+esc(f.source)+'</span>'+
+    '<span class="betpro-poisson-fixture-end"><span class="betpro-poisson-market-label">'+esc(label)+'</span><span class="betpro-poisson-open-label">ANALYSER →</span></span>'+
+   '</button>'+
+   '<div class="betpro-poisson-fixture-actions">'+
+    '<button type="button" class="betpro-poisson-card-copy" onclick="betproPoissonCopyFixture('+i+',this)" title="Copier les deux participants" aria-label="Copier la rencontre">▢ Copier</button>'+
+    '<button type="button" class="betpro-follow-btn betpro-poisson-card-follow'+(wasFollowed?' is-followed':'')+'"'+(followId?' data-betpro-follow-id="'+esc(followId)+'"':'')+
+     ' onclick="betproPoissonFollowFixture('+i+',this)" aria-pressed="'+(wasFollowed?'true':'false')+'">'+(wasFollowed?'✓ Retirer du suivi':'Suivre le résultat')+'</button>'+
+   '</div>'+
+   (options?'<div class="betpro-poisson-follow-choices"><span>Quelle issue souhaites-tu suivre ?</span>'+
+     '<div>'+
+      '<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;home&#39;,this)">'+esc(f.home)+'</button>'+
+      (f.sport==='football'?'<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;draw&#39;,this)">Match nul</button>':'')+
+      '<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;away&#39;,this)">'+esc(f.away)+'</button>'+
+     '</div><small>Le suivi existant enregistre une issue précise, pas un résultat supposé.</small></div>':'')+
+  '</article>';
  }).join('');
  if(!rows.length)container.innerHTML='<div class="betpro-poisson-fixture-status">Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.</div>';
- if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+(strong?' · '+strong+' avec consensus bookmakers vérifié':'')+'. Sélectionnez une carte pour voir la direction.');
+ if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+(strong?' · '+strong+' avec consensus bookmakers vérifié':'')+'. Chaque carte permet aussi de copier ou suivre le résultat.');
+ betproFollowPaint();
 }
+
+// Cartes Poisson : réutilisation du suivi d'issues déjà disponible dans BetPro.
+// Les rencontres sans consensus demandent une sélection explicite : aucun favori inventé.
+function betproPoissonFixtureKey(f){
+ return [f.sport,betproPoissonNormalizeName(f.home),betproPoissonNormalizeName(f.away),String(f.start_time||'').slice(0,16)].join('|');
+}
+function betproPoissonFollowSportKey(f){
+ const raw=String(f.sport_source||'').toLowerCase().replace(/[-\s]/g,'_');
+ const comp=String(f.competition||'').toLowerCase();
+ if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|rugbyleague_|rugbyunion_)/.test(raw))return raw;
+ if(f.sport==='hockey')return'icehockey_nhl';
+ if(f.sport==='baseball')return'baseball_mlb';
+ if(f.sport==='nfl')return /ncaa|college|ncaaf/.test(comp)?'americanfootball_ncaaf':'americanfootball_nfl';
+ if(f.sport==='basketball')return /wnba/.test(comp)?'basketball_wnba':/ncaa|college/.test(comp)?'basketball_ncaab':'basketball_nba';
+ if(f.sport==='rugby')return /nrl/.test(comp)?'rugbyleague_nrl':/premiership/.test(comp)?'rugbyunion_premiership':'';
+ if(f.sport==='football'){
+  if(/premier league|english premier|eng\.1/.test(comp))return'soccer_epl';
+  if(/ligue 1|fra\.1/.test(comp))return'soccer_france_ligue1';
+  if(/bundesliga|ger\.1/.test(comp))return'soccer_germany_bundesliga';
+  if(/serie a|ita\.1/.test(comp))return'soccer_italy_serie_a';
+  if(/la liga|esp\.1/.test(comp))return'soccer_spain_la_liga';
+  if(/champions league|uefa\.champions/.test(comp))return'soccer_uefa_champions_league';
+  if(/major league soccer|\bmls\b|usa\.1/.test(comp))return'soccer_usa_mls';
+ }
+ return'';
+}
+function betproPoissonFollowMatchRecord(f){
+ const start=Date.parse(f.start_time||'');if(!Number.isFinite(start))return null;
+ const eq=(a,b)=>betproPoissonNormalizeName(a)===betproPoissonNormalizeName(b);
+ return betproFollowKnownItems.find(x=>
+  eq(x.home,f.home)&&eq(x.away,f.away)&&
+  Number.isFinite(Date.parse(x.startTime))&&Math.abs(Date.parse(x.startTime)-start)<75*60000)||null;
+}
+function betproPoissonFollowCard(f,choice){
+ const known=betproPoissonFollowMatchRecord(f);if(known){betproFollowCatalog.set(known.id,known);return known;}
+ const source=betproPoissonTrustMarket(f,true)||betproPoissonTrustMarket(f,false);
+ const picked=choice||f.followChoice||source?.choice;
+ if(!['home','draw','away'].includes(picked))return null;
+ const sport=betproPoissonFollowSportKey(f),at=Date.parse(f.start_time||'');
+ if(!sport||!Number.isFinite(at))return null;
+ if(picked==='draw'&&f.sport!=='football')return null;
+ const selection=picked==='draw'?'draw':picked==='home'?f.home:f.away;
+ const c={engine:'Classique',sport,home:f.home,away:f.away,market:'h2h',
+  selection,line:null,odds:null,startTime:new Date(at).toISOString(),competition:f.competition,
+  predictedProbability:source?.choice===picked?Number(source.probability):null};
+ const odd=Number(source?.market_odds||source?.median_market_odds);
+ if(source?.choice===picked&&odd>1&&Number.isFinite(odd))c.odds=odd;
+ c.id=betproFollowIdentifier(c);
+ betproFollowCatalog.set(c.id,c);
+ return c;
+}
+async function betproPoissonCopyFixture(index,button){
+ const f=betproPoissonPicker.fixtures[index];if(!f)return;
+ const value=f.home+' vs '+f.away;
+ let copied=false;
+ try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);copied=true;}}catch(_){}
+ if(!copied){
+  const t=document.createElement('textarea');t.value=value;t.readOnly=true;
+  Object.assign(t.style,{position:'fixed',opacity:'0',left:'0',top:'0'});
+  document.body.appendChild(t);t.focus();t.select();
+  try{copied=document.execCommand('copy')===true;}catch(_){}
+  t.remove();
+ }
+ if(!copied){toast('Copie indisponible dans ce navigateur.','err');return;}
+ toast('Rencontre copiée : '+value,'ok');
+ if(button?.isConnected){const old=button.textContent;button.textContent='✓ Copié';
+  setTimeout(()=>{if(button.isConnected)button.textContent=old;},1600);}
+}
+function betproPoissonFollowFixture(index,button){
+ const f=betproPoissonPicker.fixtures[index];if(!f||!button)return;
+ const key=betproPoissonFollowSportKey(f);
+ if(!key){toast('Le suivi automatique de cette compétition n’est pas disponible.','err');return;}
+ const when=Date.parse(f.start_time||'');
+ if(!Number.isFinite(when)){toast('Horaire officiel manquant : suivi indisponible.','err');return;}
+ if(when<Date.now()-2.5*3600000){
+  toast('Le suivi de pronostic n’accepte pas les matchs débutés depuis plus de 2 h 30.','err');return;
+ }
+ const data=betproPoissonFollowCard(f);
+ if(!data){
+  betproPoissonPicker.openFollowKey=betproPoissonFixtureKey(f);
+  betproPoissonRenderFixtures();
+  return;
+ }
+ if(betproFollowSelected.has(data.id)&&data.status&&['win','loss','void'].includes(data.status)){
+  toast('Ce résultat est déjà vérifié : consultez Résultats à suivre.','ok');
+  return;
+ }
+ betproPoissonPicker.openFollowKey=null;
+ betproToggleFollow(button,data.id);
+}
+function betproPoissonChooseFollow(index,choice,button){
+ const f=betproPoissonPicker.fixtures[index];if(!f)return;
+ f.followChoice=choice;
+ betproPoissonPicker.openFollowKey=null;
+ const data=betproPoissonFollowCard(f,choice);
+ if(!data){toast('Ce type de suivi n’est pas encore pris en charge.','err');return;}
+ betproPoissonRenderFixtures();
+ const el=document.querySelector('#betpro-poisson-fixtures [data-betpro-follow-id="'+data.id+'"]');
+ if(el)betproToggleFollow(el,data.id);
+}
+
 function betproPoissonFilterFixtures(){betproPoissonRenderFixtures();}
 function betproPoissonReload(){return betproPoissonLoadFixtures(betproPoissonPicker.mode,true);}
 async function betproPoissonLoadFixtures(mode='upcoming',force=false){
   const p=betproPoissonPicker;
+  if(!p.followRefreshedAt||Date.now()-p.followRefreshedAt>120000){p.followRefreshedAt=Date.now();betproFollowRefresh();}
   if(mode!=='live'&&mode!=='upcoming')mode='upcoming';
   p.mode=mode;
   for(const name of ['upcoming','live']){
