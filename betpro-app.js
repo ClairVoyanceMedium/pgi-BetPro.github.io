@@ -5812,6 +5812,7 @@ async function runLiveModelUI(options={}){
  if(!btn||!res)return;
  btn.disabled=true;btn.textContent='Calcul en cours…';
  res.innerHTML=(options.previewHtml||'')+'<div class="ls" style="padding:15px"><div class="sp"></div><p>Calcul Poisson complémentaire en cours…</p></div>';
+ betproPoissonShowResultAtTop(null);
  try{
   const d=await api('/api/live-analysis','POST',{home,away,competition,minute,score_home,score_away,sport,total_line},
    {timeoutMs:45000,noCache:true});
@@ -5884,7 +5885,10 @@ async function runLiveModelUI(options={}){
   res.innerHTML='<div class="betpro-poisson-panel"><div class="betpro-poisson-warning">Analyse impossible : '+
    esc(String(e?.message||e))+'. Aucun pourcentage n’a été inventé.</div></div>';
   toast('Analyse Poisson indisponible','err');
- }finally{btn.disabled=false;btn.textContent='Lancer Analyse Poisson Multisports';}
+ }finally{
+  btn.disabled=false;btn.textContent='Lancer Analyse Poisson Multisports';
+  betproPoissonShowResultAtTop(null);
+ }
 }
 function betproPoissonAskChat(){
  const d=betproPoissonLastAnalysis;if(!d?.model)return;
