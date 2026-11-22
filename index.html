@@ -3390,6 +3390,24 @@ a{color:var(--neon);text-decoration:none}
  #s-chat .betpro-poisson-fixture{transition:none}
 }
 
+
+/* Synthèse médicale et sportive sans supposer que les flux sont exhaustifs. */
+#s-chat .betpro-poisson-fixture-brief{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+ width:100%;margin:4px 0 1px;text-align:left;
+}
+#s-chat .betpro-poisson-quick-fact{
+ display:block;min-width:0;padding:8px 9px;
+ background:rgba(11,22,36,.76);border:1px solid rgba(255,199,177,.2);
+ border-radius:7px;color:#e6eaf3;font:650 10px/1.55 var(--hd);
+ overflow-wrap:anywhere;
+}
+#s-chat .betpro-poisson-quick-fact strong{color:#ffc4a9;font-weight:850}
+#s-chat .betpro-poisson-quick-fact .is-unverified{color:#b2becd}
+@media(max-width:430px){
+ #s-chat .betpro-poisson-fixture-brief{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -4738,7 +4756,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-all-fixtures-v237"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-all-fixtures-v238"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
