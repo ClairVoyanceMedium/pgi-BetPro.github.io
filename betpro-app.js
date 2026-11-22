@@ -5580,12 +5580,31 @@ function betproPoissonNoDirection(f,note){
  '<button type="button" class="btn betpro-poisson-chat-action" onclick="betproPoissonAskFixtureChat()">Rechercher une direction avec le Chat Expert</button>'+
  '</div>';
 }
+// À la sélection d'un match, place le début du pronostic sous l'en-tête fixe.
+// Évite "nearest" qui laisse la carte et le résultat coupés sur mobile.
+function betproPoissonShowResultAtTop(f){
+ requestAnimationFrame(()=>{
+  if(f && betproPoissonPicker.selected!==f)return;
+  if(document.querySelector('.sec.on')?.id!=='s-chat')return;
+  const res=document.getElementById('live-model-res');
+  if(!res||!res.textContent.trim())return;
+  const target=res.querySelector('.betpro-poisson-primary, .betpro-poisson-market-result, .betpro-poisson-panel')||res;
+  const mobileHeader=document.querySelector('.mb');
+  const h=mobileHeader&&getComputedStyle(mobileHeader).display!=='none'&&
+   getComputedStyle(mobileHeader).position==='fixed'?mobileHeader.getBoundingClientRect().height:0;
+  const y=Math.max(0,window.scrollY+target.getBoundingClientRect().top-h-14);
+  // Chrome mobile accepte 'instant', contrairement à 'auto' qui hérite du scroll smooth du CSS.
+  window.scrollTo({top:y,behavior:'instant'});
+ });
+}
+
 async function betproPoissonRunSelected(){
  const f=betproPoissonPicker.selected;if(!f)return;
  const btn=document.getElementById('betpro-poisson-run'),res=document.getElementById('live-model-res');
  if(!btn||!res)return;
  btn.disabled=true;btn.textContent='Recherche et analyse des données...';
  res.innerHTML=betproPoissonMarketResult(f)||'<div class="ls"><div class="sp"></div><p>Recherche d’une direction sportive et des cotes réelles disponibles...</p></div>';
+ betproPoissonShowResultAtTop(f);
  try{
   if(f.mode==='live'){
    const d=await api('/api/live','GET',null,{timeoutMs:23000,noCache:true});
@@ -5632,7 +5651,7 @@ async function betproPoissonRunSelected(){
     res.innerHTML=betproPoissonMarketResult(match||f,reason)||betproPoissonNoDirection(f,reason);
    }
   }
-  if(betproPoissonPicker.selected===f)res.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(betproPoissonPicker.selected===f)betproPoissonShowResultAtTop(f);
  }catch(e){
   if(betproPoissonPicker.selected!==f)return;
   let matched=null;
@@ -5640,6 +5659,7 @@ async function betproPoissonRunSelected(){
   if(betproPoissonPicker.selected!==f)return;
   res.innerHTML=(matched?betproPoissonMarketResult(matched,String(e?.message||e)):null)||
    betproPoissonNoDirection(f,String(e?.message||e));
+  betproPoissonShowResultAtTop(f);
  }finally{
   if(betproPoissonPicker.selected===f){btn.disabled=false;btn.textContent='Actualiser la direction de cette rencontre';}
  }
