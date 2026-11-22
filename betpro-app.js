@@ -5992,25 +5992,40 @@ function betproPoissonNoDirection(f,note){
 }
 // Résultat Poisson : boutons toujours accessibles même lorsque le moteur réécrit
 // intégralement le panneau après un calcul, un repli marché ou une analyse live.
+// Présentation commune des résultats Poisson, bookmakers et statistiques live.
+// Le statut de la source reste distinct : les probabilités du marché ne deviennent jamais des probabilités Poisson.
+function betproPoissonUnifiedShell(f,analysisHtml,sourceLabel='Données sportives à vérifier'){
+ const home=esc(f?.home||'Participant 1'),away=esc(f?.away||'Participant 2');
+ const copy='<button type="button" class="betpro-poisson-copy-match" onclick="betproPoissonCopyMatch(this)" title="Copier la rencontre" aria-label="Copier le nom de la rencontre">'+
+  '<svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></button>';
+ return '<div class="betpro-poisson-panel betpro-poisson-unified">'+
+  '<div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>'+esc(sourceLabel)+'</span></div>'+
+  '<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+home+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+away+'</strong> '+copy+'</p>'+
+  String(analysisHtml||'')+'</div>';
+}
+
 let betproPoissonResultActionObserver=null;
 function betproPoissonResultActionsEnsure(){
  const result=document.getElementById('live-model-res');
  const f=betproPoissonPicker.selected;
- if(!result||!f||!result.firstElementChild)return;
+ const panel=result?.querySelector(':scope > .betpro-poisson-panel');
+ if(!panel||!f)return;
  const key=betproPoissonFixtureKey(f);
- let row=result.querySelector(':scope > .betpro-poisson-result-actions');
+ let row=panel.querySelector(':scope > .betpro-poisson-result-actions');
  if(row&&row.dataset.fixtureKey===key){betproPoissonResultActionsPaint();return;}
  if(row)row.remove();
  row=document.createElement('div');row.className='betpro-poisson-result-actions';row.dataset.fixtureKey=key;
- const title=document.createElement('span');title.className='betpro-poisson-result-match';
- title.textContent=f.home+' vs '+f.away;
  const buttons=document.createElement('div');buttons.className='betpro-poisson-result-buttons';
  const follow=document.createElement('button');follow.type='button';
  follow.className='betpro-follow-btn betpro-poisson-result-follow';
  follow.textContent='Suivre le résultat';follow.setAttribute('aria-pressed','false');
  follow.addEventListener('click',()=>betproPoissonResultFollow(follow));
- buttons.append(follow);row.append(title,buttons);
- result.prepend(row);betproPoissonResultActionsPaint();
+ buttons.append(follow);row.appendChild(buttons);
+ const match=panel.querySelector(':scope > .betpro-poisson-match');
+ if(match)match.insertAdjacentElement('afterend',row);
+ else panel.querySelector(':scope > .betpro-poisson-head')?.insertAdjacentElement('afterend',row)
+   ||panel.prepend(row);
+ betproPoissonResultActionsPaint();
 }
 function betproPoissonResultActionsPaint(){
  const button=document.querySelector('#live-model-res .betpro-poisson-result-follow');
@@ -6086,7 +6101,7 @@ function betproPoissonShowResultAtTop(f){
   if(document.querySelector('.sec.on')?.id!=='s-chat')return;
   const res=document.getElementById('live-model-res');
   if(!res||!res.textContent.trim())return;
-  const target=res.querySelector('.betpro-poisson-result-actions, .betpro-poisson-primary, .betpro-poisson-market-result, .betpro-poisson-panel')||res;
+  const target=res.querySelector(':scope > .betpro-poisson-panel, :scope > .betpro-poisson-market-result, :scope > .betpro-poisson-result-actions')||res;
   const mobileHeader=document.querySelector('.mb');
   const h=mobileHeader&&getComputedStyle(mobileHeader).display!=='none'&&
    getComputedStyle(mobileHeader).position==='fixed'?mobileHeader.getBoundingClientRect().height:0;
@@ -6101,7 +6116,9 @@ async function betproPoissonRunSelected(){
  const btn=document.getElementById('betpro-poisson-run'),res=document.getElementById('live-model-res');
  if(!btn||!res)return;
  btn.disabled=true;btn.textContent='Recherche et analyse des données...';
- res.innerHTML=betproPoissonMarketResult(f)||'<div class="ls"><div class="sp"></div><p>Recherche d’une direction sportive et des cotes réelles disponibles...</p></div>';
+ res.innerHTML=betproPoissonUnifiedShell(f,betproPoissonMarketResult(f)||
+ '<div class="ls"><div class="sp"></div><p>Recherche d’une direction sportive et des cotes réelles disponibles...</p></div>',
+ 'Analyse sportive en cours');
  betproPoissonWatchResultActions();
  betproPoissonShowResultAtTop(f);
  try{
@@ -6126,13 +6143,14 @@ async function betproPoissonRunSelected(){
    const guess=live.sport==='soccer'?betproLiveHeuristicFootball(live,data):betproLiveHeuristicOther(live,data);
    const trend=betproLiveTrendDetails(live,data,guess,stat.fetched_at);
    const label=trend.valid&&!trend.stale&&!trend.paused?trend.selected:null;
-   res.innerHTML='<div class="betpro-poisson-market-result">'+
+   const liveAnalysis='<div class="betpro-poisson-market-result">'+
     '<div class="betpro-poisson-market-eyebrow">ANALYSE DU DIRECT · STATISTIQUES OBSERVÉES</div>'+
     '<div class="betpro-poisson-market-selection">'+esc(label?'AVANTAGE : '+label:'MATCH : '+f.home+' / '+f.away)+'</div>'+
     '<p class="betpro-poisson-market-context">'+esc(trend.direction)+'</p>'+
     (trend.evidence?'<p class="betpro-poisson-market-context"><strong>Indices : </strong>'+esc(trend.evidence)+'</p>':'')+
     '<p class="betpro-poisson-market-caveat">'+esc(label?'Il s’agit d’une tendance sportive non calibrée. Sans cote live confirmée, aucun avantage financier n’est démontré.':trend.reason)+'</p>'+
     '</div>';
+   res.innerHTML=betproPoissonUnifiedShell(f,liveAnalysis,'Direct observé · tendance non calibrée');
   }else{
    const fields={'ctx-home':f.home,'ctx-away':f.away,'ctx-sport':f.sport,'ctx-comp':f.competition,'ctx-sh':'0','ctx-sa':'0','ctx-min':'0','ctx-total-line':''};
    for(const [id,value] of Object.entries(fields)){const el=document.getElementById(id);if(el)el.value=value;}
@@ -6147,7 +6165,9 @@ async function betproPoissonRunSelected(){
      f.consensus=match.consensus;f.indicative=match.indicative;f.bookmaker_quotes=match.bookmaker_quotes;f.classic_value=match.classic_value;
      betproPoissonRenderFixtures();
     }
-    res.innerHTML=betproPoissonMarketResult(match||f,reason)||betproPoissonNoDirection(f,reason);
+    const marketAnalysis=betproPoissonMarketResult(match||f,reason);
+    res.innerHTML=betproPoissonUnifiedShell(f,marketAnalysis||betproPoissonNoDirection(f,reason),
+     marketAnalysis?'Orientation bookmakers · modèle Poisson incomplet':'Données insuffisantes · aucune issue inventée');
    }
   }
   if(betproPoissonPicker.selected===f)betproPoissonShowResultAtTop(f);
@@ -6156,8 +6176,9 @@ async function betproPoissonRunSelected(){
   let matched=null;
   if(f.mode==='upcoming')matched=await betproPoissonRecoverMarket(f);
   if(betproPoissonPicker.selected!==f)return;
-  res.innerHTML=(matched?betproPoissonMarketResult(matched,String(e?.message||e)):null)||
-   betproPoissonNoDirection(f,String(e?.message||e));
+  const marketAnalysis=matched?betproPoissonMarketResult(matched,String(e?.message||e)):null;
+  res.innerHTML=betproPoissonUnifiedShell(f,marketAnalysis||betproPoissonNoDirection(f,String(e?.message||e)),
+   marketAnalysis?'Orientation bookmakers · modèle Poisson indisponible':'Données insuffisantes · analyse non validée');
   betproPoissonShowResultAtTop(f);
  }finally{
   if(betproPoissonPicker.selected===f){btn.disabled=false;btn.textContent='Actualiser la direction de cette rencontre';}
