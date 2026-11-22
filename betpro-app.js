@@ -6342,7 +6342,7 @@ function betproPoissonMultisportRender(d,ctx,res){
    '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">ESPN '+esc(url.pathname.split('/').slice(-4).join(' / '))+'</a>':'';}
   catch(_){return'';}
  }).filter(Boolean).join(' ');
- let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>'+esc(d.sport==='hockey'?'Analyse Poisson avancée · '+sport:'Analyse statistique avancée · '+sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
+ let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>'+esc('Analyse statistique avancée · '+sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
    '<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(home)+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(away)+'</strong> <button type="button" class="betpro-poisson-copy-match" onclick="betproPoissonCopyMatch(this)" title="Copier les deux équipes" aria-label="Copier le nom de la rencontre"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></button></p>';
  if(!m){
   html+='<div class="betpro-poisson-warning">'+esc(d.explanation||'Données récentes insuffisantes.')+'</div>'+
@@ -6369,7 +6369,7 @@ function betproPoissonMultisportRender(d,ctx,res){
   html+='<div class="betpro-poisson-bottom"><div><h4>Projection du match</h4>'+
    '<p>Score moyen prévu (dom. / ext.) : <strong>'+num(m.expected_final?.home)+' / '+num(m.expected_final?.away)+'</strong></p>'+
    '<p>'+esc(scoreUnit.charAt(0).toUpperCase()+scoreUnit.slice(1))+' restant à marquer (estimation) : <strong>'+num(m.additional_goals?.home)+' / '+num(m.additional_goals?.away)+'</strong></p>'+
-   '<p>Type de calcul : <strong>'+esc(m.distribution||'Statistique')+'</strong> (projection, pas score exact)</p>'+
+   '<p>Type de calcul : <strong>'+esc(d.sport==='hockey'?'Modèle de comptage des buts : Poisson ou binomiale négative selon la dispersion':(m.distribution||'Statistique'))+'</strong> (projection, pas score exact)</p>'+
    (m.top_scores?.length?'<p>Scores les plus probables : '+m.top_scores.map(x=>esc(x.score)+' ('+pct(x.pct)+')').join(' · ')+'</p>':'')+
    '</div><div><h4>Lecture du modèle</h4>'+
    '<p>Rappel de la projection : <strong>'+esc(rank[0]?.label||'Non déterminée')+' ('+pct(rank[0]?.p)+')</strong></p>'+
