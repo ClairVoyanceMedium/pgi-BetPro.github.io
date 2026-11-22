@@ -5746,7 +5746,7 @@ function betproPoissonMultisportRender(d,ctx,res){
   catch(_){return'';}
  }).filter(Boolean).join(' ');
  let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>Analyse Poisson Multisports · '+esc(sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
-   '<p class="betpro-poisson-match">'+esc(home)+' <span>vs</span> '+esc(away)+'</p>';
+   '<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(home)+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(away)+'</strong></p>';
  if(!m){
   html+='<div class="betpro-poisson-warning">'+esc(d.explanation||'Données récentes insuffisantes.')+'</div>'+
    '<p class="betpro-poisson-note">Historique vérifiable : '+esc(String(d.history?.home_matches??0))+' / '+esc(String(d.history?.away_matches??0))+' rencontres. Aucun pourcentage fictif.</p>';
@@ -5848,7 +5848,7 @@ async function runLiveModelUI(options={}){
   const fair=m.fair_odds||{};
   let html='<div class="betpro-poisson-panel">';
   html+='<div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>'+esc(d.quality||'Historique consulté')+'</span></div>';
-  html+='<p class="betpro-poisson-match">'+esc(names[0])+' <span>vs</span> '+esc(names[1])+'</p>';
+  html+='<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(names[0])+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(names[1])+'</strong></p>';
   html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et minute confirmés par ESPN en direct':'Score et minute fournis manuellement, sans confirmation du direct')+'</p>'; 
   html+='<p class="betpro-poisson-note">Score de référence : '+esc((d.match?.score_home??score_home)+' - '+(d.match?.score_away??score_away))+
    ' · Minute : '+esc(String(d.match?.minute??minute))+
