@@ -3037,6 +3037,22 @@ a{color:var(--neon);text-decoration:none}
 #s-chat #live-model-res .betpro-poisson-primary,
 #s-chat #live-model-res .betpro-poisson-market-result{scroll-margin-top:110px}
 
+
+/* Neon team names Poisson v228 : pulse discret uniquement sur les deux equipes. */
+#s-chat #live-model-res .betpro-poisson-match .betpro-poisson-team-name{
+  color:#b6ff00;
+  font-weight:900;
+  text-shadow:0 0 7px rgba(182,255,0,.52),0 0 15px rgba(182,255,0,.20);
+  animation:betpro-poisson-team-breathe 3.4s ease-in-out infinite;
+}
+@keyframes betpro-poisson-team-breathe{
+  0%,100%{opacity:1;text-shadow:0 0 8px rgba(182,255,0,.63),0 0 18px rgba(182,255,0,.23)}
+  50%{opacity:.76;text-shadow:0 0 3px rgba(182,255,0,.20),0 0 8px rgba(182,255,0,.07)}
+}
+@media(prefers-reduced-motion:reduce){
+  #s-chat #live-model-res .betpro-poisson-match .betpro-poisson-team-name{animation:none;opacity:1}
+}
+
 </style>
 </head>
 <body>
@@ -4385,7 +4401,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-autoscroll-v227"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-green-teams-v228"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
