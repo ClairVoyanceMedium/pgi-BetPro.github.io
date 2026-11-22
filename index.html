@@ -4060,7 +4060,7 @@ a{color:var(--neon);text-decoration:none}
       <button type="button" class="betpro-poisson-reload" onclick="betproPoissonReload()" title="Actualiser les rencontres" aria-label="Actualiser les rencontres">&#8635; Actualiser</button>
     </div>
     <label class="betpro-poisson-search-label" for="betpro-poisson-sport-filter">Choisir le sport à afficher</label>
-    <select id="betpro-poisson-sport-filter" class="betpro-poisson-search betpro-poisson-sport-filter" onchange="betproPoissonFilterFixtures()" aria-label="Filtrer les rencontres par sport">
+    <select id="betpro-poisson-sport-filter" class="betpro-poisson-search betpro-poisson-sport-filter" onchange="betproPoissonSportFilterChanged()" aria-label="Filtrer les rencontres par sport">
       <option value="all" selected>Tous les sports</option>
       <option value="football">Football</option>
       <option value="basketball">Basketball</option>
@@ -4068,9 +4068,11 @@ a{color:var(--neon);text-decoration:none}
       <option value="nfl">Football américain</option>
       <option value="hockey">Hockey</option>
       <option value="rugby">Rugby</option>
-      <option value="boxing">Boxe (catalogue non disponible)</option>
-      <option value="tennis">Tennis (catalogue non disponible)</option>
-      <option value="mma">MMA (catalogue non disponible)</option>
+      <option value="handball">Handball</option>
+      <option value="volleyball">Volleyball</option>
+      <option value="boxing">Boxe</option>
+      <option value="tennis">Tennis</option>
+      <option value="mma">MMA</option>
     </select>
     <label class="betpro-poisson-search-label" for="betpro-poisson-filter">Rechercher une équipe ou une compétition</label>
     <input type="search" id="betpro-poisson-filter" class="betpro-poisson-search" placeholder="Ex. Arsenal, Chelsea, NBA, Ligue 1..." oninput="betproPoissonFilterFixtures()" autocomplete="off">
@@ -4890,7 +4892,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-sport-filter-v241"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-all-sports-v242"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
