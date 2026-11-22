@@ -5537,10 +5537,14 @@ function betproPoissonFixtureSport(value){
   if(s.includes('tennis')||s==='atp'||s==='wta')return'tennis';
   if(s.includes('volleyball')||s.includes('volley'))return'volleyball';
   if(s.includes('handball'))return'handball';
+  if(s.includes('cricket'))return'cricket';
+  if(s.includes('aussierules')||s.includes('australian_football'))return'aussierules';
+  if(s.includes('golf'))return'golf';
+  if(s.includes('darts'))return'darts';
   return null;
 }
 function betproPoissonSportLabel(s){
-  return({football:'Football',basketball:'Basketball',baseball:'Baseball',nfl:'Football américain',hockey:'Hockey',rugby:'Rugby',boxing:'Boxe',mma:'MMA',tennis:'Tennis',volleyball:'Volleyball',handball:'Handball'})[s]||'Sport';
+  return({football:'Football',basketball:'Basketball',baseball:'Baseball',nfl:'Football américain',hockey:'Hockey',rugby:'Rugby',boxing:'Boxe',mma:'MMA',tennis:'Tennis',volleyball:'Volleyball',handball:'Handball',cricket:'Cricket',aussierules:'Football australien',golf:'Golf',darts:'Fléchettes'})[s]||'Sport';
 }
 function betproPoissonNormalizeName(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -5860,7 +5864,7 @@ async function betproPoissonFetchSelectedSport(){
  if(p.mode!=='upcoming'||p.loading)return;
  const sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
  const categories={football:'soccer',basketball:'basketball',baseball:'baseball',nfl:'americanfootball',
-  hockey:'icehockey',rugby:'rugby',boxing:'boxing',mma:'mma',tennis:'tennis',volleyball:'volleyball',handball:'handball'};
+  hockey:'icehockey',rugby:'rugby',boxing:'boxing',mma:'mma',tennis:'tennis',volleyball:'volleyball',handball:'handball',cricket:'cricket',aussierules:'aussierules',golf:'golf',darts:'darts'};
  const category=categories[sport];if(!category)return;
  p.sportSearchCache=p.sportSearchCache||{};
  const recent=p.sportSearchCache[category];
