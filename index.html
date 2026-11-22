@@ -2123,6 +2123,30 @@ a{color:var(--neon);text-decoration:none}
 #s-strategy .valuepro-howto p{margin:0 0 9px;color:#e4d9d9;font-size:12px;line-height:1.65}
 #s-strategy .valuepro-howto p:last-child{margin-bottom:0}
 #s-strategy .valuepro-howto strong{color:#ffd0b7;font-weight:850}
+#s-strategy .valuepro-example{
+ margin:15px 0 0;padding:14px 15px;border:1px solid rgba(255,179,148,.32);
+ border-radius:10px;background:rgba(10,19,33,.6);
+}
+#s-strategy .valuepro-example-heading{
+ margin-bottom:9px;color:#ffbb9e;font:850 12px/1.5 var(--hd);letter-spacing:.04em;
+}
+#s-strategy .valuepro-example p{
+ margin:0 0 10px;color:#e7d9d6;font:600 11px/1.68 var(--hd);
+}
+#s-strategy .valuepro-example p:last-child{margin-bottom:0}
+#s-strategy .valuepro-example strong{color:#ffd2bc;font-weight:850}
+#s-strategy .valuepro-example-input{
+ display:inline;padding:2px 5px;border-radius:5px;
+ border:1px solid rgba(255,196,170,.25);color:#fff0e7;
+ background:rgba(255,170,145,.1);font-family:var(--mo);overflow-wrap:anywhere;
+}
+#s-strategy .valuepro-example p.valuepro-example-caution{
+ padding-top:9px;border-top:1px solid rgba(255,190,158,.2);color:#e2c6ba;
+}
+@media(max-width:600px){
+ #s-strategy .valuepro-example{padding:12px}
+ #s-strategy .valuepro-example-heading{font-size:11px}
+}
 #s-strategy .valuepro-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
 #s-strategy .valuepro-tags span{
   font:650 10px/1.4 var(--mo);color:#ffbaa5;
@@ -4120,6 +4144,14 @@ a{color:var(--neon);text-decoration:none}
       <p><strong>Comment l'utiliser ?</strong> Saisissez une rencontre et votre sélection (ex. Arsenal vs Chelsea, victoire Arsenal) ou ajoutez une capture. Indiquez votre capital et choisissez votre profil de prudence, puis lancez la comparaison. La cote saisie est facultative.</p>
       <p><strong>Comment lire la réponse ?</strong> BetPro indique les cotes disponibles, le bookmaker, la date du relevé, les sélections prioritaires ou une cote-cible à surveiller, ainsi qu'une mise indicative plafonnée selon le profil choisi.</p>
       <p><strong>Quel intérêt concret ?</strong> Éviter de prendre une cote moins favorable, repérer les prix à actualiser et mieux dimensionner votre mise. Un avantage théorique de prix n'est pas une probabilité de victoire vérifiée : contrôlez la cote en direct et les informations sportives avant de décider.</p>
+    </div>
+    <div class="valuepro-example" aria-label="Exemple pratique d'utilisation">
+      <div class="valuepro-example-heading">EXEMPLE CONCRET : ANALYSER UN PARI DE A À Z</div>
+      <p><strong>1. Préparer votre analyse :</strong> indiquez <span class="valuepro-example-input">Arsenal vs Chelsea — Arsenal</span> dans « Match et sélection » (ou ajoutez une capture), puis choisissez par exemple un capital de <strong>100 €</strong> et le profil <strong>Conservateur</strong>. Appuyez sur « Comparer et obtenir une direction ».</p>
+      <p><strong>2. Comprendre les chiffres :</strong> imaginons que BetPro affiche une <strong>cote-cible de 2,20</strong> et des relevés à <strong>2,10</strong> chez un bookmaker et <strong>2,35</strong> chez un autre. Ce sont des <strong>chiffres fictifs</strong>, uniquement pour apprendre à lire la réponse. À 2,35, le prix est meilleur qu'à 2,10 et dépasse la cote-cible indicative.</p>
+      <p><strong>3. Savoir quoi faire :</strong> si la cote proposée est encore à <strong>2,35</strong> sur le site du bookmaker, vous pouvez examiner la sélection et la <strong>mise indicative</strong> calculée par BetPro. Si elle est passée à <strong>2,05</strong>, elle est sous la cote-cible de 2,20 : l'ancien signal de prix n'est plus valable. Aucune mise n'est effectuée automatiquement.</p>
+      <p><strong>4. Interpréter le verdict :</strong> « Priorité » désigne un prix retenu par le calcul, « À surveiller » une cote qui n'a pas encore atteint son seuil, et « Marché à actualiser » des données insuffisantes ou trop anciennes. Vérifiez toujours l'horaire, les absences et la cote réellement offerte.</p>
+      <p class="valuepro-example-caution"><strong>Attention :</strong> une meilleure cote améliore le montant versé si le pari gagne, mais ne rend pas la victoire plus probable. La « value » théorique n'est pas une rentabilité démontrée ; la totalité de la mise peut être perdue.</p>
     </div>
     <div class="valuepro-tags" aria-label="Fonctions du comparateur"><span>Comparaison des cotes</span><span>Kelly fractionnaire</span><span>Prix à surveiller</span></div>
   </div>
