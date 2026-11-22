@@ -3073,6 +3073,65 @@ a{color:var(--neon);text-decoration:none}
  color:#10200c;background:#b6ff00;font-size:21px;font-weight:900;
 }
 
+
+/* Cartes de rencontres Poisson v231 : actions copier et suivi distinctes d'Analyser. */
+#s-chat .betpro-poisson-fixture-main{
+ display:flex;flex-direction:column;align-items:stretch;gap:5px;
+ width:100%;min-width:0;flex:1;padding:0;
+ border:0;border-radius:7px;background:transparent;
+ color:inherit;text-align:left;font:inherit;cursor:pointer;
+}
+#s-chat .betpro-poisson-fixture-main:focus-visible{
+ outline:2px solid #ffd0b7;outline-offset:3px;
+}
+#s-chat .betpro-poisson-fixture-actions{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);
+ gap:8px;padding-top:11px;margin-top:9px;
+ border-top:1px solid rgba(255,191,165,.27);
+}
+#s-chat .betpro-poisson-fixture-actions>button{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:100%;min-width:0;min-height:42px;margin:0;padding:8px 10px;
+ border-radius:8px;font:800 11px/1.35 var(--hd);
+ white-space:normal;text-align:center;cursor:pointer;
+}
+#s-chat .betpro-poisson-fixture-actions .betpro-poisson-card-copy{
+ background:#112330;color:#b6ff00;
+ border:1px solid rgba(182,255,0,.58);
+}
+#s-chat .betpro-poisson-fixture-actions .betpro-poisson-card-copy:hover,
+#s-chat .betpro-poisson-fixture-actions .betpro-poisson-card-copy:focus-visible{
+ background:#1e3336;box-shadow:0 0 12px rgba(182,255,0,.18);
+}
+#s-chat .betpro-poisson-fixture-actions .betpro-poisson-card-follow{
+ padding:7px 8px;
+}
+#s-chat .betpro-poisson-fixture-actions>button:focus-visible{
+ outline:2px solid #ffd0b7;outline-offset:2px;
+}
+#s-chat .betpro-poisson-follow-choices{
+ margin-top:8px;padding:10px;border:1px solid rgba(255,195,159,.4);
+ border-radius:9px;background:#142239;color:#f7d9c9;
+}
+#s-chat .betpro-poisson-follow-choices>span{
+ display:block;margin:0 0 8px;font:750 11px/1.4 var(--hd);
+}
+#s-chat .betpro-poisson-follow-choices>div{
+ display:flex;flex-wrap:wrap;gap:6px;
+}
+#s-chat .betpro-poisson-follow-choices button{
+ flex:1;min-width:92px;min-height:35px;padding:7px 9px;
+ border:1px solid #f5ba8c;border-radius:7px;background:#2a2737;
+ color:#ffdfc4;font:750 11px/1.4 var(--hd);cursor:pointer;
+}
+#s-chat .betpro-poisson-follow-choices small{
+ display:block;margin-top:8px;color:#d2bdb7;line-height:1.5;
+}
+@media(max-width:425px){
+ #s-chat .betpro-poisson-fixture-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ #s-chat .betpro-poisson-fixture-actions>button{font-size:10px;padding:8px 5px}
+}
+
 </style>
 </head>
 <body>
@@ -4421,7 +4480,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-copy-v230"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-card-actions-v231"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
