@@ -5889,6 +5889,102 @@ function betproPoissonNoDirection(f,note){
  '<button type="button" class="btn betpro-poisson-chat-action" onclick="betproPoissonAskFixtureChat()">Rechercher une direction avec le Chat Expert</button>'+
  '</div>';
 }
+// Résultat Poisson : boutons toujours accessibles même lorsque le moteur réécrit
+// intégralement le panneau après un calcul, un repli marché ou une analyse live.
+let betproPoissonResultActionObserver=null;
+function betproPoissonResultActionsEnsure(){
+ const result=document.getElementById('live-model-res');
+ const f=betproPoissonPicker.selected;
+ if(!result||!f||!result.firstElementChild)return;
+ const key=betproPoissonFixtureKey(f);
+ let row=result.querySelector(':scope > .betpro-poisson-result-actions');
+ if(row&&row.dataset.fixtureKey===key){betproPoissonResultActionsPaint();return;}
+ if(row)row.remove();
+ row=document.createElement('div');row.className='betpro-poisson-result-actions';row.dataset.fixtureKey=key;
+ const title=document.createElement('span');title.className='betpro-poisson-result-match';
+ title.textContent=f.home+' vs '+f.away;
+ const buttons=document.createElement('div');buttons.className='betpro-poisson-result-buttons';
+ const copy=document.createElement('button');copy.type='button';
+ copy.className='betpro-poisson-result-copy';copy.textContent='▢ Copier la rencontre';
+ copy.title='Copier les deux adversaires pour le bookmaker';
+ copy.addEventListener('click',()=>{
+  const index=betproPoissonPicker.fixtures.indexOf(betproPoissonPicker.selected);
+  if(index>=0)betproPoissonCopyFixture(index,copy);
+  else toast('Cette rencontre n’est plus dans la liste. Actualisez le calendrier.','err');
+ });
+ const follow=document.createElement('button');follow.type='button';
+ follow.className='betpro-follow-btn betpro-poisson-result-follow';
+ follow.textContent='Suivre le résultat';follow.setAttribute('aria-pressed','false');
+ follow.addEventListener('click',()=>betproPoissonResultFollow(follow));
+ buttons.append(copy,follow);row.append(title,buttons);
+ result.prepend(row);betproPoissonResultActionsPaint();
+}
+function betproPoissonResultActionsPaint(){
+ const button=document.querySelector('#live-model-res .betpro-poisson-result-follow');
+ const f=betproPoissonPicker.selected;
+ if(!button||!f||button.disabled)return;
+ const card=betproPoissonFollowCard(f);
+ if(card){button.dataset.betproFollowId=card.id;}
+ else button.removeAttribute('data-betpro-follow-id');
+ const followed=!!card&&betproFollowSelected.has(card.id);
+ button.classList.toggle('is-followed',followed);
+ button.setAttribute('aria-pressed',followed?'true':'false');
+ button.textContent=followed?'✓ Retirer du suivi':'Suivre le résultat';
+}
+function betproPoissonResultFollow(button,choice=null){
+ const f=betproPoissonPicker.selected;if(!f||!button)return;
+ const card=betproPoissonFollowCard(f,choice);
+ if(card&&betproFollowSelected.has(card.id)){
+  if(['win','loss','void'].includes(String(card.status||''))){
+   toast('Résultat déjà vérifié : consultez Résultats à suivre.','ok');return;
+  }
+  betproToggleFollow(button,card.id);return;
+ }
+ const sport=betproPoissonFollowSportKey(f);
+ if(!sport){toast('Suivi automatique indisponible pour cette compétition.','err');return;}
+ const at=Date.parse(f.start_time||'');
+ if(!Number.isFinite(at)){toast('Date officielle manquante : suivi indisponible.','err');return;}
+ if(at<Date.now()-2.5*3600000){
+  toast('Le suivi ne peut pas commencer plus de 2 h 30 après le coup d’envoi.','err');return;
+ }
+ const panel=button.closest('.betpro-poisson-result-actions');
+ if(!card){
+  if(choice){toast('Cette issue ne peut pas être suivie.','err');return;}
+  const old=panel?.querySelector('.betpro-poisson-result-choices');
+  if(old){old.remove();return;}
+  if(!panel)return;
+  const options=document.createElement('div');options.className='betpro-poisson-result-choices';
+  const caption=document.createElement('span');caption.textContent='Quelle issue souhaites-tu suivre ?';
+  options.appendChild(caption);
+  const choices=[
+   ['home','Victoire '+f.home],
+   ...(f.sport==='football'?[['draw','Match nul']]:[]),
+   ['away','Victoire '+f.away]
+  ];
+  for(const [value,label] of choices){
+   const select=document.createElement('button');select.type='button';select.textContent=label;
+   select.addEventListener('click',()=>betproPoissonResultFollow(button,value));
+   options.appendChild(select);
+  }
+  const foot=document.createElement('small');
+  foot.textContent='Le suivi porte sur l’issue choisie et non sur un score inventé.';
+  options.appendChild(foot);panel.appendChild(options);
+  return;
+ }
+ if(choice)f.followChoice=choice;
+ button.dataset.betproFollowId=card.id;
+ panel?.querySelector('.betpro-poisson-result-choices')?.remove();
+ betproToggleFollow(button,card.id);
+}
+function betproPoissonWatchResultActions(){
+ const result=document.getElementById('live-model-res');if(!result)return;
+ if(!betproPoissonResultActionObserver){
+  betproPoissonResultActionObserver=new MutationObserver(()=>betproPoissonResultActionsEnsure());
+  betproPoissonResultActionObserver.observe(result,{childList:true});
+ }
+ betproPoissonResultActionsEnsure();
+}
+
 // À la sélection d'un match, place le début du pronostic sous l'en-tête fixe.
 // Évite "nearest" qui laisse la carte et le résultat coupés sur mobile.
 function betproPoissonShowResultAtTop(f){
@@ -5897,7 +5993,7 @@ function betproPoissonShowResultAtTop(f){
   if(document.querySelector('.sec.on')?.id!=='s-chat')return;
   const res=document.getElementById('live-model-res');
   if(!res||!res.textContent.trim())return;
-  const target=res.querySelector('.betpro-poisson-primary, .betpro-poisson-market-result, .betpro-poisson-panel')||res;
+  const target=res.querySelector('.betpro-poisson-result-actions, .betpro-poisson-primary, .betpro-poisson-market-result, .betpro-poisson-panel')||res;
   const mobileHeader=document.querySelector('.mb');
   const h=mobileHeader&&getComputedStyle(mobileHeader).display!=='none'&&
    getComputedStyle(mobileHeader).position==='fixed'?mobileHeader.getBoundingClientRect().height:0;
@@ -5913,6 +6009,7 @@ async function betproPoissonRunSelected(){
  if(!btn||!res)return;
  btn.disabled=true;btn.textContent='Recherche et analyse des données...';
  res.innerHTML=betproPoissonMarketResult(f)||'<div class="ls"><div class="sp"></div><p>Recherche d’une direction sportive et des cotes réelles disponibles...</p></div>';
+ betproPoissonWatchResultActions();
  betproPoissonShowResultAtTop(f);
  try{
   if(f.mode==='live'){
