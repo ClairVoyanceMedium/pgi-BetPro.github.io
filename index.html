@@ -3132,6 +3132,61 @@ a{color:var(--neon);text-decoration:none}
  #s-chat .betpro-poisson-fixture-actions>button{font-size:10px;padding:8px 5px}
 }
 
+
+/* BetPro live page card actions v233 */
+#s-live .betpro-live-page-actions{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);
+ gap:9px;margin:12px 0 0;padding:12px 0 0;
+ border-top:1px solid rgba(231,205,168,.33);
+}
+#s-live .betpro-live-page-actions>button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:42px;width:100%;min-width:0;
+ margin:0;padding:8px 9px;
+ border-radius:8px;font:800 11px/1.4 var(--hd);
+ cursor:pointer;white-space:normal;text-align:center;
+}
+#s-live .betpro-live-page-copy{
+ background:#142333;color:#c1ff57;
+ border:1px solid rgba(185,255,75,.62);
+}
+#s-live .betpro-live-page-copy:hover{
+ background:#223b31;box-shadow:0 0 10px rgba(185,255,75,.15);
+}
+#s-live .betpro-live-page-actions .betpro-live-page-follow{
+ border-radius:8px;padding:8px;
+}
+#s-live .betpro-live-page-actions button:focus-visible{
+ outline:2px solid #f1d29e;outline-offset:2px;
+}
+#s-live .betpro-live-page-choices{
+ grid-column:1/-1;display:flex;flex-wrap:wrap;gap:7px;
+ padding:12px;background:#152232;
+ border:1px solid rgba(231,205,168,.4);
+ border-radius:8px;
+}
+#s-live .betpro-live-page-choices>span{
+ display:block;flex:0 0 100%;color:#f3dec2;
+ font:750 11px/1.5 var(--hd);
+}
+#s-live .betpro-live-page-choices button{
+ min-height:36px;flex:1 1 110px;padding:8px;
+ color:#f8e2bf;background:#2b2930;
+ border:1px solid #d4ad73;border-radius:7px;
+ font:750 11px/1.4 var(--hd);cursor:pointer;
+}
+#s-live .betpro-live-page-choices button:hover{
+ background:#473728;
+}
+#s-live .betpro-live-page-choices small{
+ display:block;flex:0 0 100%;
+ color:#c5b7a5;font-size:10px;line-height:1.5;
+}
+@media(max-width:425px){
+ #s-live .betpro-live-page-actions{gap:7px}
+ #s-live .betpro-live-page-actions>button{font-size:10px;padding:8px 6px}
+}
+
 </style>
 </head>
 <body>
@@ -4480,7 +4535,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-card-actions-v232"></script>
+<script defer src="./betpro-app.js?v=20261122-live-match-copy-follow-v233"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
