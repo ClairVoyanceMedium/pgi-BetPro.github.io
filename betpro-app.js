@@ -5756,7 +5756,8 @@ function betproPoissonMultisportRender(d,ctx,res){
   rank.sort((x,y)=>Number(y.p)-Number(x.p));
   html+=betproPoissonPrimaryDirection({sport:d.sport,home,away,outcomes:out,fairOdds:m.fair_odds,minute:d.match?.minute??ctx.minute,liveVerified:d.live_verified});
   const unit=d.sport==='baseball'?'manche(s)':'minute(s)';
-  html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et temps confirmés par ESPN en direct.':'Score et période saisis manuellement (non vérifiés).')+
+  const scoreUnit=d.sport==='hockey'?'buts':d.sport==='baseball'?'runs':'points';
+  html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et temps confirmés par ESPN en direct.':Number(d.match?.minute??ctx.minute)===0?'Hypothèse de début de match (score et temps non vérifiés en direct).':'Score et temps utilisés pour le calcul (non vérifiés en direct).')+
    ' · '+esc((d.match?.score_home??ctx.score_home)+' - '+(d.match?.score_away??ctx.score_away))+
    ' · Période : '+esc(String(d.match?.minute??ctx.minute))+' / '+esc(String(m.regulation_time))+' '+unit+'.</p>';
   html+='<div class="betpro-poisson-grid">'+
@@ -5764,14 +5765,14 @@ function betproPoissonMultisportRender(d,ctx,res){
    (out.draw!=null?box('Match nul',pct(out.draw),'Temps réglementaire'):'')+
    box(away,pct(out.away_win),'Victoire estimée')+'</div>';
   html+='<div class="betpro-poisson-grid">'+
-   box('Total projeté',num(m.expected_total),'Points / runs / buts cumulés')+
-   box('Plus de '+num(m.reference_line),pct(m.over_reference),'Ligne statistique, non bookmaker')+
-   box('Moins de '+num(m.reference_line),pct(m.under_reference),'Ligne statistique, non bookmaker')+
-   box('Égalité réglementaire',pct(m.regulation_outcomes?.tie),'Avant prolongation, si applicable')+'</div>';
+   box('Total prévu (2 équipes)',num(m.expected_total),'Total moyen estimé en '+scoreUnit)+
+   box('Plus de '+num(m.reference_line)+' '+scoreUnit,pct(m.over_reference),'Chance de dépasser ce total')+
+   box('Moins de '+num(m.reference_line)+' '+scoreUnit,pct(m.under_reference),'Chance de rester sous ce total')+
+   box('Égalité avant prolongation',pct(m.regulation_outcomes?.tie),'À la fin du temps réglementaire')+'</div>';
   html+='<div class="betpro-poisson-bottom"><div><h4>Projection du match</h4>'+
-   '<p>Score attendu : <strong>'+num(m.expected_final?.home)+' / '+num(m.expected_final?.away)+'</strong></p>'+
-   '<p>Points restants attendus : <strong>'+num(m.additional_goals?.home)+' / '+num(m.additional_goals?.away)+'</strong></p>'+
-   '<p>Distribution : <strong>'+esc(m.distribution||'Estimée')+'</strong></p>'+
+   '<p>Score moyen prévu (dom. / ext.) : <strong>'+num(m.expected_final?.home)+' / '+num(m.expected_final?.away)+'</strong></p>'+
+   '<p>'+esc(scoreUnit.charAt(0).toUpperCase()+scoreUnit.slice(1))+' restant à marquer (estimation) : <strong>'+num(m.additional_goals?.home)+' / '+num(m.additional_goals?.away)+'</strong></p>'+
+   '<p>Type de calcul : <strong>'+esc(m.distribution||'Statistique')+'</strong> (projection, pas score exact)</p>'+
    (m.top_scores?.length?'<p>Scores les plus probables : '+m.top_scores.map(x=>esc(x.score)+' ('+pct(x.pct)+')').join(' · ')+'</p>':'')+
    '</div><div><h4>Lecture du modèle</h4>'+
    '<p>Rappel de la projection : <strong>'+esc(rank[0]?.label||'Non déterminée')+' ('+pct(rank[0]?.p)+')</strong></p>'+
