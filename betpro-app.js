@@ -6155,7 +6155,8 @@ async function betproPoissonRunSelected(){
    const fields={'ctx-home':f.home,'ctx-away':f.away,'ctx-sport':f.sport,'ctx-comp':f.competition,'ctx-sh':'0','ctx-sa':'0','ctx-min':'0','ctx-total-line':''};
    for(const [id,value] of Object.entries(fields)){const el=document.getElementById(id);if(el)el.value=value;}
    betproPoissonSportChanged();
-   await runLiveModelUI({previewHtml:betproPoissonMarketResult(f)||''});
+   await runLiveModelUI({previewHtml:betproPoissonUnifiedShell(f,betproPoissonMarketResult(f)||
+    '<p class="betpro-poisson-note">Recherche de l’historique et du modèle statistique...</p>','Calcul Poisson en cours')});
    if(betproPoissonPicker.selected!==f)return;
    if(!betproPoissonLastAnalysis?.model){
     const reason=res.textContent.trim().slice(0,550);
