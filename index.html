@@ -3200,10 +3200,10 @@ a{color:var(--neon);text-decoration:none}
  overflow-wrap:anywhere;flex:1 1 210px;
 }
 #s-chat .betpro-poisson-result-buttons{
- display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:0 1 auto;
+ display:flex;align-items:stretch;flex:1 0 100%;width:100%;min-width:0;
 }
 #s-chat .betpro-poisson-result-buttons>button{
- min-height:41px;min-width:118px;padding:9px 12px;margin:0;
+ min-height:44px;min-width:0;width:100%;padding:10px 12px;margin:0;
  border-radius:8px;font:800 11px/1.35 var(--hd);
  cursor:pointer;white-space:normal;
 }
@@ -4588,7 +4588,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-poisson-result-actions-v235"></script>
+<script defer src="./betpro-app.js?v=20261122-poisson-result-follow-full-v236"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
