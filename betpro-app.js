@@ -5667,10 +5667,27 @@ function betproPoissonFixtureSignal(f){
    '<span class="betpro-poisson-fixture-signal-note">Le modèle statistique ne s’affiche que lorsque le score et la période sont vérifiés. Aucun favori inventé.</span></span>';
  }
  const c=betproPoissonTrustMarket(f,true)||betproPoissonTrustMarket(f,false);
- if(!c)return '<span class="betpro-poisson-fixture-signal is-pending">'+
-  '<span class="betpro-poisson-fixture-signal-eyebrow">DIRECTION SPORTIVE À ANALYSER</span>'+
-  '<strong class="betpro-poisson-fixture-signal-pick">Sélection à déterminer</strong>'+
-  '<span class="betpro-poisson-fixture-signal-note">Pas de consensus récent vérifiable : aucune probabilité inventée</span></span>';
+ if(!c){
+  const previous=betproPoissonHistoricalMarket(f);
+  if(previous){
+   const choice=previous.choice==='draw'?'Match nul':'Victoire de '+(previous.choice==='home'?f.home:f.away);
+   const p=Number(previous.probability)*100;
+   return '<span class="betpro-poisson-fixture-signal is-dated">'+
+    '<span class="betpro-poisson-fixture-signal-eyebrow">DERNIÈRE TENDANCE DE MARCHÉ · COTES DATÉES</span>'+
+    '<strong class="betpro-poisson-fixture-signal-pick">'+esc(choice)+'</strong>'+
+    '<span class="betpro-poisson-fixture-signal-percent">'+p.toLocaleString('fr-FR',{maximumFractionDigits:1})+
+     ' %<small>Estimation des anciennes cotes, pas probabilité Poisson</small></span>'+
+    '<span class="betpro-poisson-fixture-signal-note">Relevé '+esc(betproPoissonFixtureDate(previous.last_odds_at))+
+     ' · non actualisé, aucune mise sans vérifier la cote actuelle</span></span>';
+  }
+  const model=['football','basketball','baseball','nfl','hockey','rugby'].includes(f.sport);
+  return '<span class="betpro-poisson-fixture-signal is-action">'+
+   '<span class="betpro-poisson-fixture-signal-eyebrow">'+(model?'MODÈLE STATISTIQUE MULTISPORTS':'RECHERCHE DE MARCHÉ PAR DISCIPLINE')+'</span>'+
+   '<strong class="betpro-poisson-fixture-signal-pick">'+(model?'Calculer la direction':'Analyser les données disponibles')+'</strong>'+
+   '<span class="betpro-poisson-fixture-signal-note">'+(model?
+    'Touchez ce match pour calculer les probabilités à partir des résultats vérifiés.':
+    'Touchez ce match pour rechercher des cotes et des informations sportives réelles.')+'</span></span>';
+ }
  const strict=c.status==='ok',side=c.choice==='draw'?'Match nul':'Victoire de '+(c.choice==='home'?f.home:f.away);
  const p=Number(c.probability)*100;
  const odds=Number(c.median_market_odds||c.market_odds);
@@ -5704,6 +5721,8 @@ function betproPoissonRenderFixtures(){
   (sport==='all'||f.sport===sport)&&
   (!q||betproPoissonNormalizeName([f.home,f.away,f.competition,betproPoissonSportLabel(f.sport)].join(' ')).includes(q)));
  const strong=rows.filter(({f})=>betproPoissonTrustMarket(f,true)).length;
+ const historical=rows.filter(({f})=>!betproPoissonTrustMarket(f,true)&&
+  !betproPoissonTrustMarket(f,false)&&betproPoissonHistoricalMarket(f)).length;
  container.innerHTML=rows.map(({f,i})=>{
   const selected=p.selected===f?' is-selected':'';
   const market=betproPoissonTrustMarket(f,true);
@@ -5744,7 +5763,10 @@ function betproPoissonRenderFixtures(){
    (sport!=='all'?'Aucune rencontre confirmée pour '+esc(sportName)+' dans la période chargée. Les calendriers et les cotes dépendent des sources disponibles.':
     'Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.')+'</div>';
  }
- if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+(strong?' · '+strong+' avec consensus bookmakers vérifié':'')+'. Les cartes précisent les sources, les absences connues et les limites des données.');
+ if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+
+  (strong?' · '+strong+' avec consensus bookmakers vérifié':'')+
+  (historical?' · '+historical+' avec ancienne tendance datée':'')+
+  '. Les autres rencontres disposent d’une analyse sur sélection. Une cote datée n’est pas une cote actuelle.');
  betproFollowPaint();
 }
 
@@ -5887,7 +5909,8 @@ async function betproPoissonFetchSelectedSport(){
      existing[field]=event[field];
    }
   }
-  if(added)p.fixtures.sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time));
+  if(added)p.fixtures.sort((a,b)=>betproPoissonSignalPriority(b)-betproPoissonSignalPriority(a)||
+   Date.parse(a.start_time)-Date.parse(b.start_time));
   p.cache.upcoming={time:Date.now(),fixtures:p.fixtures};
   betproPoissonRenderFixtures();
  }catch(error){
@@ -5955,7 +5978,7 @@ async function betproPoissonLoadFixtures(mode='upcoming',force=false){
       }
     }
     filtered.sort((a,b)=>a.mode==='live'?(a.sport.localeCompare(b.sport,'fr')||a.home.localeCompare(b.home,'fr')):
-      Number(!!betproPoissonTrustMarket(b,true))-Number(!!betproPoissonTrustMarket(a,true))||
+      betproPoissonSignalPriority(b)-betproPoissonSignalPriority(a)||
       Date.parse(a.start_time)-Date.parse(b.start_time));
     p.fixtures=filtered;p.cache[mode]={time:Date.now(),fixtures:filtered};p.loading=false;
     betproPoissonRenderFixtures();
@@ -6004,9 +6027,46 @@ function betproPoissonTrustMarket(f,strict=true){
  if(c.choice==='draw'&&!f.sport.startsWith('football')&&!c.draw_included&&!strict)return null;
  return c;
 }
+// Un dernier marché daté peut indiquer le favori historique, mais ne devient
+// jamais une cote actuelle ni une recommandation de mise : horodatage obligatoire.
+function betproPoissonHistoricalMarket(f){
+ if(!f||f.mode==='live')return null;
+ const now=Date.now(),start=Date.parse(f.start_time||'');
+ if(!Number.isFinite(start)||start<=now+120000)return null;
+ const sources=[f.consensus,f.indicative].filter(Boolean);
+ let best=null;
+ for(const c of sources){
+  if(!['ok','single_source','historical'].includes(c.status)||!['home','away','draw'].includes(c.choice))continue;
+  const p=Number(c.probability),at=Date.parse(c.last_odds_at||'');
+  const books=Number(c.bookmakers||c.source_count||0);
+  if(!Number.isFinite(at)||at>now+30000||at>=start||now-at>72*3600000||
+   !Number.isFinite(p)||p<=0||p>=1||books<1)continue;
+  if(!best||at>best.time)best={...c,time:at};
+ }
+ return best;
+}
+function betproPoissonHistoricalResult(f,note=''){
+ const c=betproPoissonHistoricalMarket(f);if(!c)return null;
+ const side=c.choice==='draw'?'Match nul':c.choice==='home'?f.home:f.away;
+ const pct=(Number(c.probability)*100).toLocaleString('fr-FR',{maximumFractionDigits:1});
+ const at=betproPoissonFixtureDate(c.last_odds_at),books=Number(c.bookmakers||c.source_count||1);
+ return '<div class="betpro-poisson-market-result is-limited">'+
+  '<div class="betpro-poisson-market-eyebrow">DERNIÈRE TENDANCE DE MARCHÉ · À ACTUALISER</div>'+
+  '<div class="betpro-poisson-market-selection">'+esc(c.choice==='draw'?'MATCH NUL':'VICTOIRE '+side)+'</div>'+
+  '<div class="betpro-poisson-market-main"><strong>'+pct+' %</strong>'+
+   '<span>Probabilité implicite d’anciennes cotes, non issue du modèle Poisson</span></div>'+
+  '<p class="betpro-poisson-market-context">Dernier relevé : <strong>'+esc(at)+'</strong> · '+
+   esc(String(books))+' source(s) de marché. Il indique une préférence passée, pas le niveau actuel des cotes.</p>'+
+  '<p class="betpro-poisson-market-caveat"><strong>À vérifier :</strong> une cote ancienne ne permet pas de valider une mise. Actualisez la cote, les compositions et les absences avant toute décision.</p>'+
+  (note?'<details class="betpro-poisson-model-issue"><summary>Limites du modèle statistique</summary><p>'+esc(note)+'</p></details>':'')+'</div>';
+}
+function betproPoissonSignalPriority(f){
+ return betproPoissonTrustMarket(f,true)?3:betproPoissonTrustMarket(f,false)?2:
+  betproPoissonHistoricalMarket(f)?1:0;
+}
 function betproPoissonMarketResult(f,note=''){
  const c=betproPoissonTrustMarket(f,true)||betproPoissonTrustMarket(f,false);
- if(!c)return null;
+ if(!c)return betproPoissonHistoricalResult(f,note);
  const strong=c.status==='ok',prob=Number(c.probability)*100;
  const side=c.choice==='draw'?'Match nul':c.choice==='home'?f.home:f.away;
  const selection=c.choice==='draw'?'NUL (N)':c.choice==='home'?'VICTOIRE '+f.home:'VICTOIRE '+f.away;
