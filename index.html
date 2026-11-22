@@ -2131,8 +2131,8 @@ a{color:var(--neon);text-decoration:none}
 }
 #s-strategy .valuepro-guide>summary::-webkit-details-marker{display:none}
 #s-strategy .valuepro-guide>summary span{color:#e5c8bd;font:650 10px/1.4 var(--hd)}
-#s-strategy .valuepro-guide>summary::after{content:"";display:block;flex:0 0 9px;width:9px;height:9px;margin-left:auto;margin-right:3px;border-right:2px solid #ffd3bb;border-bottom:2px solid #ffd3bb;transform:rotate(45deg);transition:transform .18s ease}
-#s-strategy .valuepro-guide[open]>summary::after{transform:rotate(225deg)}
+#s-strategy .valuepro-guide>summary::after{content:"";display:block;flex:0 0 auto;width:0;height:0;margin-left:auto;margin-right:3px;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid #ffd3bb;border-bottom:0;transform:translateY(2px);transition:transform .18s ease}
+#s-strategy .valuepro-guide[open]>summary::after{transform:rotate(180deg) translateY(2px)}
 #s-strategy .valuepro-guide>summary:focus-visible{outline:2px solid #ffb48c;outline-offset:3px}
 #s-strategy .valuepro-guide-content{padding:8px 2px 2px}
 @media(max-width:480px){#s-strategy .valuepro-guide>summary{padding:11px 12px}}
