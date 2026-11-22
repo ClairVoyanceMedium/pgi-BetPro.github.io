@@ -4051,6 +4051,7 @@ function betproLivePageAttachActions(containerId,items,kind){
   row.className='betpro-live-page-actions';
   row.dataset.livePageKey=key;
   row.addEventListener('click',event=>event.stopPropagation());
+  row.addEventListener('keydown',event=>event.stopPropagation());
   const copy=document.createElement('button');
   copy.className='betpro-live-page-copy';copy.type='button';copy.textContent='▢ Copier';
   copy.title='Copier '+record.home+' vs '+record.away;
