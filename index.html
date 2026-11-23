@@ -3512,9 +3512,23 @@ a{color:var(--neon);text-decoration:none}
 
 /* Raccourci direct vers Chat Expert : palette vert pomme existante. */
 #s-chat .betpro-expert-jump-row{
-  display:flex;align-items:center;justify-content:flex-end;
+  display:flex;align-items:center;justify-content:flex-end;gap:10px;
   margin:0 0 13px;
 }
+#s-chat .betpro-home-jump{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:43px;margin:0;padding:9px 15px;
+  border:1px solid rgba(226,196,154,.82);border-radius:10px;
+  background:linear-gradient(115deg,rgba(211,181,137,.21),rgba(166,128,86,.12));
+  color:#f7e4ca;box-shadow:0 0 15px rgba(211,181,137,.1);
+  font:850 12px/1.25 var(--hd);cursor:pointer;
+  transition:background .2s,box-shadow .2s;
+}
+#s-chat .betpro-home-jump svg{width:17px;height:17px;flex-shrink:0;color:#ebc99a}
+#s-chat .betpro-home-jump:hover,#s-chat .betpro-home-jump:focus-visible{
+  background:rgba(211,181,137,.3);box-shadow:0 0 18px rgba(211,181,137,.2);
+}
+#s-chat .betpro-home-jump:focus-visible{outline:2px solid #f6dfba;outline-offset:3px}
 #s-chat .betpro-expert-jump{
   display:inline-flex;align-items:center;justify-content:center;gap:9px;
   min-height:43px;margin:0;padding:9px 15px;
@@ -3533,9 +3547,12 @@ a{color:var(--neon);text-decoration:none}
 .betpro-copy-mark{display:inline-block;flex:0 0 18px;vertical-align:middle}
 .copy-btn,#s-live .betpro-live-page-copy{gap:7px}
 @media(max-width:600px){
-  #s-chat .betpro-expert-jump{min-height:44px}
+  #s-chat .betpro-expert-jump-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+  #s-chat .betpro-expert-jump,#s-chat .betpro-home-jump{
+    min-height:44px;min-width:0;padding:9px 8px;font-size:11px;white-space:normal;text-align:center
+  }
 }
-@media(prefers-reduced-motion:reduce){#s-chat .betpro-expert-jump{transition:none}}
+@media(prefers-reduced-motion:reduce){#s-chat .betpro-expert-jump,#s-chat .betpro-home-jump{transition:none}}
 
 </style>
 </head>
@@ -4056,6 +4073,7 @@ a{color:var(--neon);text-decoration:none}
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
     <div class="betpro-expert-jump-row">
+      <button class="betpro-home-jump" type="button" onclick="go('dash')" aria-label="Accéder au tableau de bord d'accueil"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-7h6v7"/></svg> Accéder à l'accueil</button>
       <button class="betpro-expert-jump" type="button" onclick="document.getElementById('betpro-expert-title').scrollIntoView({behavior:'smooth',block:'start'})" aria-label="Accéder directement à la section Chat Expert"><span class="betpro-expert-jump-arrow" aria-hidden="true">&#8595;</span> Accéder au Chat Expert</button>
     </div>
     <div class="ph betpro-poisson-hero">
