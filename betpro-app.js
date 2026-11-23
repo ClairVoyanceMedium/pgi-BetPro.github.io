@@ -1,3 +1,4 @@
+const BETPRO_COPY_ICON_HTML = '<svg class="betpro-copy-mark" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="13" height="13" rx="2"></rect><rect x="8" y="8" width="13" height="13" rx="2"></rect></svg>';
 const NO_RELIABLE_CARD_MESSAGE = 'Aucune carte n’est fiable pour l’instant.';
 // ═══════════════════════════════════════════════
 //  CONFIG
@@ -2697,14 +2698,14 @@ function copyTeamNames(btn) {
   var text = (home + ' ' + away).trim();
   if(navigator.clipboard) {
     navigator.clipboard.writeText(text).then(function(){
-      var orig = btn.textContent;
+      var orig = btn.innerHTML;
       btn.textContent = 'Copie!';
-      setTimeout(function(){ btn.textContent = orig; }, 1500);
+      setTimeout(function(){ btn.innerHTML = orig; }, 1500);
     });
   }
 }
-function copyMatchText(match,sel,odds,btn){ const t=`${match} — ${sel} @ ${odds}`; navigator.clipboard?.writeText(t).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);}).catch(()=>{}); }
-function copyCard(btn,match){ navigator.clipboard?.writeText(match).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copier';btn.classList.remove('copied');},1500);}); }
+function copyMatchText(match,sel,odds,btn){ const t=`${match} — ${sel} @ ${odds}`; navigator.clipboard?.writeText(t).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.innerHTML=BETPRO_COPY_ICON_HTML+' Copier';btn.classList.remove('copied');},1500);}).catch(()=>{}); }
+function copyCard(btn,match){ navigator.clipboard?.writeText(match).then(()=>{btn.textContent='✓ Copié';btn.classList.add('copied');setTimeout(()=>{btn.innerHTML=BETPRO_COPY_ICON_HTML+' Copier';btn.classList.remove('copied');},1500);}); }
 
 function getSportLabel(sport){
   if(sport.includes('soccer')) return '⚽ Foot';
@@ -4064,7 +4065,7 @@ async function betproLivePageCopy(key,button){
  if(!ok){toast('Copie indisponible dans ce navigateur.','err');return;}
  toast('Rencontre copiée : '+text,'ok');
  if(button?.isConnected){button.textContent='✓ Copié';
-  setTimeout(()=>{if(button.isConnected)button.textContent='▢ Copier';},1600);}
+  setTimeout(()=>{if(button.isConnected)button.innerHTML=BETPRO_COPY_ICON_HTML+' Copier';},1600);}
 }
 function betproLivePageFollowChoices(key,button){
  const rec=betproLivePageCards.get(key);
@@ -4139,7 +4140,7 @@ function betproLivePageAttachActions(containerId,items,kind){
   row.addEventListener('click',event=>event.stopPropagation());
   row.addEventListener('keydown',event=>event.stopPropagation());
   const copy=document.createElement('button');
-  copy.className='betpro-live-page-copy';copy.type='button';copy.textContent='▢ Copier';
+  copy.className='betpro-live-page-copy';copy.type='button';copy.innerHTML=BETPRO_COPY_ICON_HTML+' Copier';
   copy.title='Copier '+record.home+' vs '+record.away;
   copy.addEventListener('click',e=>{e.stopPropagation();betproLivePageCopy(key,copy);});
   const follow=document.createElement('button');
@@ -4331,7 +4332,7 @@ function betproClassicCard(match,idx){
       ${verified&&marketValue&&Number.isFinite(Number(marketValue.estimated_ev_pct))?`<div style="font-size:10px;color:#cad5e9">Meilleure cote : ${priceDisplay||'–'} (${esc(marketValue.best_bookmaker||'')}) · EV indicative ${esc(Number(marketValue.estimated_ev_pct).toFixed(1))} %. Calculée avec les mêmes cotes.</div>`:''}
     </div>${bookieDetails}${verifiedStats}
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px"><span style="font-size:10px;color:#becde3">${footnote}</span>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">${bookieLinkHtml()}<button class="copy-btn" onclick="event.stopPropagation();copyTeamNames(this)" data-home="${esc(home)}" data-away="${esc(away)}">&#128203; Copier</button></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${bookieLinkHtml()}<button class="copy-btn" onclick="event.stopPropagation();copyTeamNames(this)" data-home="${esc(home)}" data-away="${esc(away)}">${BETPRO_COPY_ICON_HTML} Copier</button></div>
       </div>
     </div>
   </div>`;
@@ -9766,7 +9767,7 @@ function renderDirectionCard(o, i, containerId) {
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           ${bookieLinkHtml()}
           <button class="copy-btn" onclick="event.stopPropagation();copyTeamNames(this)"
-            data-home="${esc(o.home_team||'')}" data-away="${esc(o.away_team||'')}">&#128203; Copier</button>
+            data-home="${esc(o.home_team||'')}" data-away="${esc(o.away_team||'')}">${BETPRO_COPY_ICON_HTML} Copier</button>
         </div>
       </div>
     </div>
