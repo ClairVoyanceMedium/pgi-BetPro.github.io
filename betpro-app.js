@@ -9689,7 +9689,7 @@ function renderDirectionCard(o, i, containerId) {
     ? '<div style="font-size:9px;color:var(--gr);font-family:var(--mo);margin-top:4px">Rattrapage autorisé uniquement avec mise réduite</div>'
     : '<div style="font-size:9px;color:var(--gr);font-family:var(--mo);margin-top:4px">&#9989; Rattrapage autorisé, dans la limite de bankroll définie. Aucune garantie.</div>';
 
-  return `<div class="dir-card${pgiStrong?' pgi-signal-tres-fort':''}" data-sport-key="${sport}" data-tier="${tier}"
+  return `<div class="dir-card${pgiStrong?' pgi-signal-tres-fort':''}${containerId==='upc'&&pgiGreen?' betpro-upcoming-green':''}" data-sport-key="${sport}" data-tier="${tier}"
     style="border:1px solid ${tierCfg.border};background:${tierCfg.bg};border-radius:8px;overflow:hidden;margin-bottom:10px;cursor:pointer;transition:all .2s"
     id="dc-${containerId}-${i}" onclick="tDC(this,event)">
 
