@@ -3510,6 +3510,29 @@ a{color:var(--neon);text-decoration:none}
  }
 }
 
+/* Raccourci direct vers Chat Expert : palette vert pomme existante. */
+#s-chat .betpro-expert-jump{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  float:right;min-height:43px;margin:0 0 12px 14px;padding:9px 15px;
+  border:1px solid rgba(182,255,0,.8);border-radius:10px;
+  background:linear-gradient(115deg,rgba(182,255,0,.2),rgba(120,236,37,.11));
+  color:#eaffce;box-shadow:0 0 15px rgba(182,255,0,.13);
+  font:850 12px/1.25 var(--hd);cursor:pointer;transition:background .2s,box-shadow .2s;
+}
+#s-chat .betpro-expert-jump:hover,
+#s-chat .betpro-expert-jump:focus-visible{
+  background:rgba(182,255,0,.27);box-shadow:0 0 18px rgba(182,255,0,.26);
+}
+#s-chat .betpro-expert-jump:focus-visible{outline:2px solid #d9ff84;outline-offset:3px}
+#s-chat .betpro-expert-jump .betpro-expert-jump-arrow{color:#b6ff00;font-size:19px;line-height:1}
+#s-chat #betpro-expert-title{scroll-margin-top:85px}
+.betpro-copy-mark{display:inline-block;flex:0 0 18px;vertical-align:middle}
+.copy-btn,#s-live .betpro-live-page-copy{gap:7px}
+@media(max-width:600px){
+  #s-chat .betpro-expert-jump{float:none;min-height:44px;margin:0 0 15px}
+}
+@media(prefers-reduced-motion:reduce){#s-chat .betpro-expert-jump{transition:none}}
+
 </style>
 </head>
 <body>
@@ -4029,6 +4052,7 @@ a{color:var(--neon);text-decoration:none}
 <!-- ═══════════════ CHAT ═══════════════ -->
 <section class="sec" id="s-chat">
     <div class="ph betpro-poisson-hero">
+      <button class="betpro-expert-jump" type="button" onclick="document.getElementById('betpro-expert-title').scrollIntoView({behavior:'smooth',block:'start'})" aria-label="Accéder directement à la section Chat Expert"><span class="betpro-expert-jump-arrow" aria-hidden="true">&#8595;</span> Chat Expert</button>
       <div class="betpro-poisson-eyebrow"><span class="betpro-poisson-eyebrow-dot"></span> MODÈLE STATISTIQUE MULTISPORTS</div>
       <h3 id="betpro-poisson-title" class="betpro-poisson-title">Analyse Poisson</h3>
       <p class="betpro-poisson-description">Choisissez directement une rencontre ci-dessous. BetPro privilégie l'analyse statistique et, si les historiques sont incomplets, recherche un consensus de bookmakers ou une tendance sportive réellement documentée.</p>
@@ -4896,7 +4920,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261122-countries-all-sports-v246"></script>
+<script defer src="./betpro-app.js?v=20261123-copy-icons-chat-jump-v247"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
