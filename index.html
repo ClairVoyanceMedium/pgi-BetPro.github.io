@@ -3554,6 +3554,66 @@ a{color:var(--neon);text-decoration:none}
 }
 @media(prefers-reduced-motion:reduce){#s-chat .betpro-expert-jump,#s-chat .betpro-home-jump{transition:none}}
 
+/* Cartes À VENIR uniquement : accent orange ou vert selon le signal.
+   Les cartes de matches EN DIRECT et les commandes de la page restent inchangées. */
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .opp-grid > .dir-card{
+  --upcoming-accent:#f59e0b;
+  --upcoming-accent-rgb:245,158,11;
+  --neon:var(--upcoming-accent);
+  --neon2:var(--upcoming-accent);
+  --nbg:rgba(var(--upcoming-accent-rgb),.1);
+  --bd:rgba(var(--upcoming-accent-rgb),.22);
+  --bd2:rgba(var(--upcoming-accent-rgb),.35);
+  box-shadow:inset 3px 0 0 var(--upcoming-accent),0 4px 12px rgba(0,0,0,.14);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .opp-grid > :is(.dir-play,.betpro-upcoming-green){
+  --upcoming-accent:#00ff9d;
+  --upcoming-accent-rgb:0,255,157;
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .opp-grid > .dir-card:hover{
+  box-shadow:inset 3px 0 0 var(--upcoming-accent),0 7px 18px rgba(var(--upcoming-accent-rgb),.18);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-match{color:#edf4f7}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card :is(.dir-sel-name,.bdg.bsp,.bdg.bgr){
+  color:var(--upcoming-accent);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card :is(.bdg.bsp,.bdg.bgr){
+  background:rgba(var(--upcoming-accent-rgb),.1);
+  border-color:rgba(var(--upcoming-accent-rgb),.28);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card .betpro-live-page-actions{
+  border-top-color:rgba(var(--upcoming-accent-rgb),.29);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card :is(.betpro-live-page-copy,.betpro-live-page-follow){
+  border:1px solid rgba(var(--upcoming-accent-rgb),.6);
+  background:rgba(var(--upcoming-accent-rgb),.11);
+  color:var(--upcoming-accent);
+  box-shadow:none;text-shadow:none;-webkit-text-stroke:0;
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card :is(.betpro-live-page-copy,.betpro-live-page-follow):hover{
+  background:rgba(var(--upcoming-accent-rgb),.2);
+  box-shadow:0 0 11px rgba(var(--upcoming-accent-rgb),.18);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card .betpro-live-page-follow.is-followed{
+  background:rgba(var(--upcoming-accent-rgb),.19);
+  border-color:var(--upcoming-accent);
+  color:#f4faf8;
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card .betpro-live-page-actions button:focus-visible{
+  outline-color:var(--upcoming-accent);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card .betpro-live-page-choices{
+  border-color:rgba(var(--upcoming-accent-rgb),.4);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card .betpro-live-page-choices > span{
+  color:var(--upcoming-accent);
+}
+#s-live :is(#upcoming-cnt,#upcoming-classic-cnt) .dir-card .betpro-live-page-choices button{
+  background:rgba(var(--upcoming-accent-rgb),.1);
+  border-color:rgba(var(--upcoming-accent-rgb),.5);
+  color:var(--upcoming-accent);
+}
+
 </style>
 </head>
 <body>
@@ -4944,7 +5004,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261123-copy-icons-chat-jump-v247"></script>
+<script defer src="./betpro-app.js?v=20261123-upcoming-orange-green-v248"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
