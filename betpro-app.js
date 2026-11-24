@@ -8980,6 +8980,77 @@ function tickerMatchMarketHtml(art){
   </div>`;
 }
 
+
+// Association prudente des titres Sport.fr / L'Équipe aux rencontres existantes.
+// Le titre ne modifie jamais les probabilités ; seules des cotes déjà vérifiées
+// par le moteur BetPro autorisent l'affichage d'une orientation bookmakers.
+function tickerArticleNameKey(value){
+ return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function tickerArticleTeamInTitle(title,rawTeam){
+ const name=tickerArticleNameKey(rawTeam);
+ if(name.length<4)return false;
+ const normalized=' '+title+' ';
+ const choices=[name,name.replace(/\b(?:fc|cf|sc|afc|the|football club)\b/g,' ').replace(/\s+/g,' ').trim()];
+ const aliases=[
+  [/paris saint germain|paris sg/,['psg','paris saint germain']],
+  [/olympique de marseille|marseille/,['marseille','om']],
+  [/olympique lyonnais|lyon/,['lyon','ol']],
+  [/manchester city/,['man city','manchester city']],
+  [/manchester united/,['man utd','man united','manchester united']],
+  [/barcelona|barcelone/,['barca','barcelona','barcelone']],
+  [/bayern munich|bayern munchen/,['bayern','bayern munich']],
+  [/inter milan|internazionale/,['inter milan','internazionale']],
+  [/real madrid/,['real madrid']],
+  [/atletico madrid/,['atletico madrid']],
+  [/juventus/,['juventus']]
+ ];
+ for(const [re,values] of aliases)if(re.test(name))choices.push(...values);
+ return choices.some(c=>c.length>=2&&normalized.includes(' '+c+' '));
+}
+function tickerArticleRelatedMatch(article,allItems){
+ if(!['Sport.fr',"L'Équipe"].includes(String(article?.source||''))||article?.is_match)return null;
+ const sport=tickerCategory(article.sport),title=tickerArticleNameKey(article.title);
+ if(title.length<12)return null;
+ const now=Date.now(),unique=new Set(),candidates=[];
+ for(const item of allItems||[]){
+  if(!item?.is_match||tickerCategory(item.sport)!==sport||!item.home_name||!item.away_name)continue;
+  const kickoff=Date.parse(item.event_start_at||'');
+  if(!Number.isFinite(kickoff)||kickoff<=now+120000||kickoff>now+72*3600000)continue;
+  const key=String(item.event_id||[item.home_name,item.away_name,item.event_start_at].join('|'));
+  if(unique.has(key))continue;
+  unique.add(key);
+  const home=tickerArticleTeamInTitle(title,item.home_name);
+  const away=tickerArticleTeamInTitle(title,item.away_name);
+  if(home||away)candidates.push({item,matchCount:Number(home)+Number(away)});
+ }
+ if(!candidates.length)return null;
+ const highest=Math.max(...candidates.map(x=>x.matchCount));
+ const selected=candidates.filter(x=>x.matchCount===highest);
+ // Si plusieurs rencontres restent possibles, on s'abstient d'en recommander une.
+ return selected.length===1?selected[0].item:null;
+}
+function tickerArticleRecommendationHtml(article,fixtures){
+ const match=tickerArticleRelatedMatch(article,fixtures);
+ if(!match)return '';
+ const kickoff=Date.parse(match.event_start_at),now=Date.now();
+ const consensus=match.market_consensus;
+ const observed=Date.parse(consensus?.last_odds_at||'');
+ const maxAge=kickoff-now<=86400000?6*3600000:24*3600000;
+ const verified=consensus?.status==='ok'&&Number(consensus.bookmakers)>=2
+  &&Number(consensus.probability)>0&&Number(consensus.probability)<1
+  &&Number.isFinite(observed)&&observed<=now+30000&&now-observed>=0&&now-observed<=maxAge;
+ const recommendation=verified?tickerMatchMarketHtml(match):'';
+ const when=new Date(kickoff).toLocaleString('fr-FR',{timeZone:'Europe/Paris',weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ return '<div class="ticker-news-related">'+
+  '<div class="ticker-news-related-label">'+(recommendation?'ANALYSE BETPRO · RENCONTRE ASSOCIÉE':'RENCONTRE ASSOCIÉE · SANS SIGNAL VÉRIFIÉ')+'</div>'+
+  '<div class="ticker-news-related-match">'+esc(String(match.home_name))+' contre '+esc(String(match.away_name))+' · '+esc(when)+'</div>'+
+  (recommendation||'<div class="ticker-news-related-note">Aucune recommandation chiffrée : consensus bookmaker récent et indépendant insuffisant.</div>')+
+  '<div class="ticker-news-related-note">Association fondée sur l’équipe citée. L’article ne valide ni le pronostic ni la rentabilité de la mise. Vérifier les cotes et les compositions avant toute décision.</div>'+
+ '</div>';
+}
+
 // Recherche multisports rapide: affichage instantané depuis le dernier résultat
 // encore exploitable, actualisation parallèle et traductions non bloquantes.
 const BETPRO_TICKER_FAST_SNAPSHOT_KEY='betpro_ticker_snapshot_v1';
@@ -9123,12 +9194,14 @@ ${blocks}`}]
         }).finally(()=>{if(tickerTranslateJobs.get(key)===work)tickerTranslateJobs.delete(key);});
       }
     }
+    const insightFixtures=[...(sportPayload?.items||[]),...news.filter(x=>x?.is_match)];
     const renderItem = (art) => {
       const style = getTickerStyle(art.sport||'');
       const label = art._label || TICKER_LABELS[tickerCategory(art.sport)] || '🏆 SPORT';
       const displayTitle = art.is_match&&!art._turfRaceId ? tickerFrenchMatchTitle(art) : normalizeTickerFrenchText(art._translatedTitle || art.title || '', art.sport);
       const displayDescription = normalizeTickerFrenchText((art.is_match||art._turfRaceId)?(art.description||''):(art._translatedDescription||''), art.sport);
       const marketLine = tickerMatchMarketHtml(art);
+      const newsInsight = !art.is_match?tickerArticleRecommendationHtml(art,insightFixtures):'';
 
       let dateStr = '';
       if (art.published) {
@@ -9157,6 +9230,7 @@ ${blocks}`}]
           ${art.source?`<div class="ticker-meta">Source : ${esc(art.source)}</div>`:''}
           ${dateStr?`<div class="ticker-meta">${art.is_match?'Rencontre le':'Publié le'} ${esc(dateStr)} (Paris)</div>`:''}
           ${marketLine}
+          ${newsInsight}
           ${frenchArticle?`<div class="ticker-read-links"><a class="ticker-read-primary" href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer">${nativeFrench?'Lire l’article en français':'Lire la traduction française'}</a>${nativeFrench?'':`<a class="ticker-read-original" href="${esc(originalArticle)}" target="_blank" rel="noopener noreferrer" title="Voir l’article original">Article original</a>`}</div>`:''}
           ${art._turfRaceId?`<div class="ticker-meta" style="color:#a8efc0">Voir la course PMU dans BetPro</div>`:''}
         </div>
