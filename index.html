@@ -3656,6 +3656,26 @@ a{color:var(--neon);text-decoration:none}
 #s-live .betpro-top-live-signal{margin:0 0 8px;padding:8px 11px;border:1px solid rgba(231,205,168,.46);border-radius:8px;background:rgba(231,205,168,.12);color:#f5e8d4;font:800 11px/1.45 var(--mo)}
 @media(max-width:500px){#s-live .betpro-top-live-bar{align-items:stretch}#s-live .betpro-top-live-btn{width:100%}}
 
+/* Actualités Sport.fr et L'Équipe : bloc contextuel, sans modification des cartes match. */
+#news-ticker-list .ticker-news-related{
+  margin-top:9px;padding:9px 11px;
+  border:1px solid rgba(0,212,255,.27);border-radius:8px;
+  background:rgba(0,212,255,.045);
+}
+#news-ticker-list .ticker-news-related-label{
+  color:var(--neon);font:800 10px/1.45 var(--mo);
+  letter-spacing:.03em;
+}
+#news-ticker-list .ticker-news-related-match{
+  margin-top:4px;color:#edfff9;font:750 11px/1.5 var(--hd);
+}
+#news-ticker-list .ticker-news-related-note{
+  margin-top:6px;color:#c0d5e7;font:500 10px/1.5 var(--mo);
+}
+#news-ticker-list .ticker-news-related .ticker-consensus{
+  margin-top:7px;
+}
+
 </style>
 </head>
 <body>
@@ -5073,7 +5093,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261124-sportfr-feed-v253"></script>
+<script defer src="./betpro-app.js?v=20261124-lequipe-article-recommendations-v254"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
