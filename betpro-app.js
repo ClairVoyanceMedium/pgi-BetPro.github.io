@@ -3525,6 +3525,186 @@ const BETPRO_LIVE_STATUSES = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']
 let betproLiveRequestSequence = 0;
 let betproLiveFixtureSnapshots = new Map();
 
+// TOP LIVE : recherche volontaire des signaux live les mieux documentes.
+// Aucune probabilite de gain financier n'est deduite du score ou des seules cotes.
+const BETPRO_TOP_LIVE_LIMIT=16;
+let betproTopLiveEnabled=false;
+let betproTopLiveSequence=0;
+const betproTopLiveAnalysisCache=new Map();
+
+function betproTopLiveContainerId(){
+  return betProActiveEngine==='benter'?'live-cnt':'live-classic-cnt';
+}
+function betproTopLiveMessage(message){
+  const el=document.getElementById('betpro-top-live-status');
+  if(!el)return;
+  el.textContent=String(message||'');
+  el.hidden=!message;
+}
+function betproTopLiveButton(){
+  const btn=document.getElementById('betpro-top-live-btn');
+  if(!btn)return;
+  btn.setAttribute('aria-pressed',betproTopLiveEnabled?'true':'false');
+  btn.textContent=betproTopLiveEnabled?'TOUS LES MATCHS LIVE':'TOP LIVE · MEILLEURES CHANCES';
+}
+function betproTopLiveRestore(containerId){
+  const grid=document.getElementById(containerId)?.querySelector('.betpro-real-live-grid');
+  if(!grid)return;
+  [...grid.querySelectorAll('.betpro-real-live-card')]
+    .sort((a,b)=>Number(a.dataset.liveOrder||0)-Number(b.dataset.liveOrder||0))
+    .forEach(card=>{
+      card.hidden=false;
+      card.querySelector('.betpro-top-live-signal')?.remove();
+      grid.appendChild(card);
+    });
+}
+function betproTopLiveEligible(m){
+  if(!m||!betproLiveIsActive(m))return false;
+  if(['HT','INT','BT','P'].includes(String(m.status||'').toUpperCase()))return false;
+  return m.sport==='soccer'||/basketball|icehockey|americanfootball|baseball/.test(String(m.sport||''));
+}
+async function betproTopLiveAssess(m){
+  const k=[m.source,m.sport,m.fixture_id,m.status,m.minute,m.score?.home,m.score?.away].join('|');
+  const cached=betproTopLiveAnalysisCache.get(k);
+  if(cached&&Date.now()-cached.time<65000)return cached.result;
+  const query=new URLSearchParams({source:String(m.source),fixture:String(m.fixture_id),sport:String(m.sport)});
+  const d=await api('/api/live/analysis?'+query.toString(),'GET',null,{noCache:true,timeoutMs:12500});
+  if(!d?.ok)throw Error(d?.error||'Statistiques live indisponibles');
+  const fetched=Date.parse(d.fetched_at||'');
+  if(!Number.isFinite(fetched)||Date.now()-fetched>150000||fetched>Date.now()+30000)return null;
+  const stats=betproLiveStatsForMatch(m,d);
+  if(!stats)return null;
+  const trend=betproLiveTrendDetails(m,stats,null,d.fetched_at);
+  if(trend.stale||trend.paused||!trend.valid)return null;
+  let result=null;
+  if(m.sport==='soccer'){
+    const a=betproLiveHeuristicFootball(m,stats);
+    if(!a.abstain&&Number(a.quality)>=.55){
+      const outcomes=[
+        {name:String(m.home),p:Number(a.home)},
+        {name:'Match nul',p:Number(a.draw)},
+        {name:String(m.away),p:Number(a.away)}
+      ].filter(x=>Number.isFinite(x.p)&&x.p>=0&&x.p<=1).sort((x,y)=>y.p-x.p);
+      if(outcomes.length===3&&outcomes[0].name!=='Match nul'
+        &&trend.selected===outcomes[0].name
+        &&outcomes[0].p>=.65&&outcomes[0].p-outcomes[1].p>=.13){
+        result={
+          key:[m.source,m.sport,m.fixture_id].join(':'),type:'prob',
+          score:outcomes[0].p,quality:Number(a.quality),
+          name:outcomes[0].name,percent:Math.round(outcomes[0].p*100)
+        };
+      }
+    }
+  }else if(trend.strong&&trend.selected){
+    // Les autres sports n'ont pas de probabilites calibrees : classement de tendance seulement.
+    result={
+      key:[m.source,m.sport,m.fixture_id].join(':'),type:'trend',
+      score:trend.metrics||0,quality:trend.metrics||0,
+      name:String(trend.selected),percent:null
+    };
+  }
+  betproTopLiveAnalysisCache.set(k,{time:Date.now(),result});
+  if(betproTopLiveAnalysisCache.size>120){
+    betproTopLiveAnalysisCache.delete(betproTopLiveAnalysisCache.keys().next().value);
+  }
+  return result;
+}
+async function betproTopLiveApply(containerId){
+  if(!betproTopLiveEnabled||containerId!==betproTopLiveContainerId())return;
+  const container=document.getElementById(containerId);
+  const grid=container?.querySelector('.betpro-real-live-grid');
+  if(!grid){
+    betproTopLiveMessage('Aucune rencontre en direct confirmée pour établir ce classement.');
+    return;
+  }
+  const seq=++betproTopLiveSequence;
+  betproTopLiveRestore(containerId);
+  const cards=[...grid.querySelectorAll('.betpro-real-live-card')];
+  cards.forEach((card,i)=>{if(!card.dataset.liveOrder)card.dataset.liveOrder=String(i+1);});
+  const fixtures=[...betproLiveFixtureSnapshots.values()]
+    .filter(m=>betproTopLiveEligible(m)&&Date.now()-m._loadedAt<=150000);
+  // Echantillonnage reparti entre les sports pour eviter un appel de masse aux API.
+  const buckets=new Map();
+  for(const m of fixtures){
+    const key=String(m.sport);
+    if(!buckets.has(key))buckets.set(key,[]);
+    buckets.get(key).push(m);
+  }
+  const chosen=[];
+  while(chosen.length<BETPRO_TOP_LIVE_LIMIT&&[...buckets.values()].some(xs=>xs.length)){
+    for(const list of buckets.values()){
+      if(list.length&&chosen.length<BETPRO_TOP_LIVE_LIMIT)chosen.push(list.shift());
+    }
+  }
+  if(!chosen.length){
+    cards.forEach(card=>card.hidden=true);
+    betproTopLiveMessage('Aucun match live compatible avec une analyse statistique actualisée. Cliquez sur « Tous les matchs live » pour revenir à la liste complète.');
+    return;
+  }
+  betproTopLiveMessage('Analyse des rencontres en direct : 0 / '+chosen.length+'. Les statistiques sont vérifiées avant classement.');
+  const results=[],workers=Array.from({length:Math.min(4,chosen.length)},()=>null);
+  let cursor=0,done=0;
+  await Promise.all(workers.map(async()=>{
+    while(cursor<chosen.length){
+      if(seq!==betproTopLiveSequence||!betproTopLiveEnabled)return;
+      const m=chosen[cursor++];
+      try{
+        const assessment=await betproTopLiveAssess(m);
+        if(assessment)results.push(assessment);
+      }catch(err){
+        console.warn('Top live : statistiques absentes pour '+String(m.fixture_id),err?.message||err);
+      }
+      done++;
+      if(seq===betproTopLiveSequence&&betproTopLiveEnabled){
+        betproTopLiveMessage('Analyse des rencontres en direct : '+done+' / '+chosen.length+'.');
+      }
+    }
+  }));
+  if(seq!==betproTopLiveSequence||!betproTopLiveEnabled||containerId!==betproTopLiveContainerId())return;
+  results.sort((a,b)=>(a.type===b.type?0:a.type==='prob'?-1:1)
+      ||b.score-a.score||b.quality-a.quality);
+  const best=results.slice(0,8),ranking=new Map(best.map((x,i)=>[x.key,{...x,rank:i+1}]));
+  for(const card of cards){
+    const record=ranking.get(card.dataset.liveKey);
+    card.hidden=!record;
+    card.querySelector('.betpro-top-live-signal')?.remove();
+    if(!record)continue;
+    const band=document.createElement('div');
+    band.className='betpro-top-live-signal';
+    band.textContent=record.type==='prob'
+      ?'TOP '+record.rank+' · '+record.name+' · '+record.percent+' % (simulation Poisson indicative, non calibrée)'
+      :'TOP '+record.rank+' · '+record.name+' · tendance statistique forte, sans probabilité chiffrée';
+    card.querySelector('.betpro-real-live-body')?.prepend(band);
+  }
+  const matching=cards.filter(card=>!card.hidden);
+  for(const card of matching)grid.appendChild(card);
+  if(!matching.length){
+    betproTopLiveMessage('Aucune rencontre ne dispose actuellement d’indicateurs assez solides pour un classement. Les autres matchs restent disponibles avec « Tous les matchs live ».');
+  }else{
+    const extra=fixtures.length-chosen.length;
+    betproTopLiveMessage(matching.length+' rencontre(s) retenue(s) sur '+chosen.length+' analysée(s)'
+      +(extra>0?' ; '+extra+' autre(s) non analysée(s) pour protéger les quotas':'')
+      +'. Pour le football, les pourcentages sont des simulations non calibrées. Une forte chance de victoire ne garantit pas un gain financier.');
+  }
+}
+function betproTopLiveToggle(){
+  betproTopLiveEnabled=!betproTopLiveEnabled;
+  ++betproTopLiveSequence;
+  betproTopLiveButton();
+  if(!betproTopLiveEnabled){
+    betproTopLiveRestore('live-cnt');
+    betproTopLiveRestore('live-classic-cnt');
+    betproTopLiveMessage('');
+    return;
+  }
+  const id=betproTopLiveContainerId();
+  const latest=[...betproLiveFixtureSnapshots.values()].some(m=>Date.now()-m._loadedAt<120000);
+  if(!latest||!document.getElementById(id)?.querySelector('.betpro-real-live-grid')){
+    betproTopLiveMessage('Actualisation des matchs en direct avant classement…');
+    loadLive();
+  }else betproTopLiveApply(id);
+}
+
 function betproLiveIsActive(m){
   const id=String(m?.fixture_id??'');
   const status=String(m?.status||'').toUpperCase();
@@ -3684,6 +3864,7 @@ async function betproLoadRealLive(containerId){
     const empty=`<div class="empty"><div class="empty-t">Aucun match actuellement confirmé en direct par les sources consultées.</div><div class="empty-s">Les rencontres programmées restent uniquement dans la rubrique « Matchs à venir ». Réactualisez le Live pour un nouveau relevé.</div></div>`;
     cnt.innerHTML=liveTitle+warningNote+(matches.length?'<div class="betpro-real-live-grid">'+matches.map(betproLiveCard).join('')+'</div>':empty);
     if(matches.length)betproLivePageAttachActions(containerId,matches,'live');
+    if(betproTopLiveEnabled&&containerId===betproTopLiveContainerId())betproTopLiveApply(containerId);
   }catch(err){if(seq===betproLiveRequestSequence)cnt.innerHTML='<div class="warn">Flux live indisponible : '+esc(err?.message||String(err))+'. Aucun match programmé ne sera substitué à un vrai match en direct.</div>';}
 }
 
@@ -4215,6 +4396,9 @@ let betProClassicScanSeq=0,betProClassicLiveSeq=0,betProClassicUpcomingSeq=0;
 function setBetProEngine(engine){
   if(engine!=='classic'&&engine!=='benter')return;
   betProActiveEngine=engine;
+  ++betproTopLiveSequence;
+  betproTopLiveButton();
+  if(betproTopLiveEnabled)betproTopLiveMessage('Actualisation du classement pour le moteur sélectionné…');
   try{sessionStorage.setItem('betpro-live-engine-v1',engine)}catch(_){ }
   const isClassic=engine==='classic';
   const switchDisplay=(id,show)=>{const el=document.getElementById(id);if(el)el.style.display=show?'':'none';};
