@@ -5802,11 +5802,17 @@ function betproPoissonResearchFixture(index){
 }
 // Filtrage local des rencontres chargées ; aucun pourcentage n'est inventé.
 function betproPoissonSearchMatches(f,query){
- const words=betproPoissonNormalizeName(query).split(/\s+/).filter(Boolean);
+ // Recherche Unicode et insensible aux accents : clubs de tous les pays.
+ const normalize=value=>String(value||'').normalize('NFKD')
+  .replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+ const words=normalize(query).split(/\s+/).filter(Boolean);
  if(!words.length)return true;
- const fields=[f.home,f.away,f.competition,betproPoissonSportLabel(f.sport)]
-  .map(betproPoissonNormalizeName);
- const hasToken=(name,word)=>name.includes(word)||name.split(' ').some(token=>token.startsWith(word));
+ const fields=[f.home,f.away,f.competition,betproPoissonSportLabel(f.sport)].map(normalize);
+ const hasToken=(name,word)=>{
+  const tokens=name.split(' ');
+  return name.includes(word)||tokens.some(token=>token.startsWith(word))||
+   (word.length>=3&&tokens.length>=2&&tokens.map(token=>token[0]||'').join('')===word);
+ };
  return fields.some(name=>words.every(word=>hasToken(name,word)))||
   words.every(word=>fields.some(name=>hasToken(name,word)));
 }
