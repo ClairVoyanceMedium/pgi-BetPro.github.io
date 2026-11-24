@@ -3544,8 +3544,16 @@ function betproTopLiveMessage(message){
 function betproTopLiveButton(){
   const btn=document.getElementById('betpro-top-live-btn');
   if(!btn)return;
-  btn.setAttribute('aria-pressed',betproTopLiveEnabled?'true':'false');
-  btn.textContent=betproTopLiveEnabled?'TOUS LES MATCHS LIVE':'TOP LIVE · MEILLEURES CHANCES';
+  const enabled=betproTopLiveEnabled;
+  btn.setAttribute('aria-pressed',enabled?'true':'false');
+  btn.textContent=enabled?'✓ TOP LIVE ACTIVÉ · VOIR TOUS LES MATCHS':'TOP LIVE · ACTIVER LE FILTRE';
+  btn.title=enabled?'Cliquer pour désactiver le filtre et revoir tous les matchs en direct':'Cliquer pour afficher les matchs live aux signaux statistiques les plus favorables';
+  const bar=btn.closest('.betpro-top-live-bar');
+  if(bar)bar.classList.toggle('is-top-live-active',enabled);
+  const help=document.getElementById('betpro-top-live-description');
+  if(help)help.textContent=enabled
+    ?'Filtre actif : seules les rencontres retenues sont visibles. Cliquez de nouveau pour afficher tous les matchs.'
+    :'Cliquez pour voir uniquement les matchs en direct avec les meilleurs signaux statistiques.';
 }
 function betproTopLiveRestore(containerId){
   const grid=document.getElementById(containerId)?.querySelector('.betpro-real-live-grid');
