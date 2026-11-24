@@ -3546,14 +3546,14 @@ function betproTopLiveButton(){
   if(!btn)return;
   const enabled=betproTopLiveEnabled;
   btn.setAttribute('aria-pressed',enabled?'true':'false');
-  btn.textContent=enabled?'✓ TOP LIVE ACTIVÉ · VOIR TOUS LES MATCHS':'TOP LIVE · ACTIVER LE FILTRE';
-  btn.title=enabled?'Cliquer pour désactiver le filtre et revoir tous les matchs en direct':'Cliquer pour afficher les matchs live aux signaux statistiques les plus favorables';
+  btn.textContent=enabled?'✓ TOP LIVE ACTIF · AFFICHER TOUS LES MATCHS':'TOP LIVE · AFFICHER LES MATCHS LES MIEUX ÉVALUÉS';
+  btn.title=enabled?'Désactiver le filtre pour revoir toutes les rencontres en direct':'Afficher seulement les matchs en direct retenus après analyse des statistiques récentes';
   const bar=btn.closest('.betpro-top-live-bar');
   if(bar)bar.classList.toggle('is-top-live-active',enabled);
   const help=document.getElementById('betpro-top-live-description');
   if(help)help.textContent=enabled
-    ?'Filtre actif : seules les rencontres retenues sont visibles. Cliquez de nouveau pour afficher tous les matchs.'
-    :'Cliquez pour voir uniquement les matchs en direct avec les meilleurs signaux statistiques.';
+    ?'Filtre actif : seules les rencontres en direct sélectionnées après analyse sont affichées. Cliquez de nouveau pour revoir tous les matchs.'
+    :'Sélection des matchs en cours à partir de statistiques récentes. Seuls les signaux suffisamment documentés sont retenus.';
 }
 function betproTopLiveRestore(containerId){
   const grid=document.getElementById(containerId)?.querySelector('.betpro-real-live-grid');
@@ -3622,7 +3622,7 @@ async function betproTopLiveApply(containerId){
   const container=document.getElementById(containerId);
   const grid=container?.querySelector('.betpro-real-live-grid');
   if(!grid){
-    betproTopLiveMessage('Aucune rencontre en direct confirmée pour établir ce classement.');
+    betproTopLiveMessage('TOP LIVE : aucune rencontre en cours confirmée pour établir une sélection statistique.');
     return;
   }
   const seq=++betproTopLiveSequence;
@@ -3646,10 +3646,10 @@ async function betproTopLiveApply(containerId){
   }
   if(!chosen.length){
     cards.forEach(card=>card.hidden=true);
-    betproTopLiveMessage('Aucun match live compatible avec une analyse statistique actualisée. Cliquez sur « Tous les matchs live » pour revenir à la liste complète.');
+    betproTopLiveMessage('TOP LIVE : aucune rencontre en direct compatible avec une analyse statistique récente. Utilisez « AFFICHER TOUS LES MATCHS » pour revenir à la liste complète.');
     return;
   }
-  betproTopLiveMessage('Analyse des rencontres en direct : 0 / '+chosen.length+'. Les statistiques sont vérifiées avant classement.');
+  betproTopLiveMessage('TOP LIVE : analyse des matchs en cours, 0 sur '+chosen.length+'. Classement établi uniquement à partir des données disponibles.');
   const results=[],workers=Array.from({length:Math.min(4,chosen.length)},()=>null);
   let cursor=0,done=0;
   await Promise.all(workers.map(async()=>{
@@ -3664,7 +3664,7 @@ async function betproTopLiveApply(containerId){
       }
       done++;
       if(seq===betproTopLiveSequence&&betproTopLiveEnabled){
-        betproTopLiveMessage('Analyse des rencontres en direct : '+done+' / '+chosen.length+'.');
+        betproTopLiveMessage('TOP LIVE : '+done+' match(s) examiné(s) sur '+chosen.length+'.');
       }
     }
   }));
@@ -3680,17 +3680,17 @@ async function betproTopLiveApply(containerId){
     const band=document.createElement('div');
     band.className='betpro-top-live-signal';
     band.textContent=record.type==='prob'
-      ?'TOP '+record.rank+' · '+record.name+' · '+record.percent+' % (simulation Poisson indicative, non calibrée)'
-      :'TOP '+record.rank+' · '+record.name+' · tendance statistique forte, sans probabilité chiffrée';
+      ?'TOP LIVE · RANG '+record.rank+' · Équipe : '+record.name+' · '+record.percent+' % estimés (modèle statistique non calibré)'
+      :'TOP LIVE · RANG '+record.rank+' · Équipe : '+record.name+' · Tendance statistique forte (aucun pourcentage fiable disponible)';
     card.querySelector('.betpro-real-live-body')?.prepend(band);
   }
   const matching=cards.filter(card=>!card.hidden);
   for(const card of matching)grid.appendChild(card);
   if(!matching.length){
-    betproTopLiveMessage('Aucune rencontre ne dispose actuellement d’indicateurs assez solides pour un classement. Les autres matchs restent disponibles avec « Tous les matchs live ».');
+    betproTopLiveMessage('TOP LIVE : aucun match ne satisfait actuellement les critères statistiques. Utilisez « AFFICHER TOUS LES MATCHS » pour revoir les rencontres en direct.');
   }else{
     const extra=fixtures.length-chosen.length;
-    betproTopLiveMessage(matching.length+' rencontre(s) retenue(s) sur '+chosen.length+' analysée(s)'
+    betproTopLiveMessage('TOP LIVE : '+matching.length+' rencontre(s) sélectionnée(s) parmi '+chosen.length+' match(s) examiné(s)'
       +(extra>0?' ; '+extra+' autre(s) non analysée(s) pour protéger les quotas':'')
       +'. Pour le football, les pourcentages sont des simulations non calibrées. Une forte chance de victoire ne garantit pas un gain financier.');
   }
@@ -3708,7 +3708,7 @@ function betproTopLiveToggle(){
   const id=betproTopLiveContainerId();
   const latest=[...betproLiveFixtureSnapshots.values()].some(m=>Date.now()-m._loadedAt<120000);
   if(!latest||!document.getElementById(id)?.querySelector('.betpro-real-live-grid')){
-    betproTopLiveMessage('Actualisation des matchs en direct avant classement…');
+    betproTopLiveMessage('TOP LIVE : actualisation des scores et des statistiques des matchs en cours…');
     loadLive();
   }else betproTopLiveApply(id);
 }
