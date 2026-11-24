@@ -3619,6 +3619,27 @@ a{color:var(--neon);text-decoration:none}
   border:1.5px solid #e7cda8;
 }
 
+/* Recherche et sélection par probabilité, strictement dans Analyse Poisson. */
+#s-chat .betpro-poisson-smart-search{margin:0 0 14px;padding:16px 17px;border:1px solid rgba(255,161,129,.45);border-radius:13px;background:linear-gradient(115deg,rgba(255,148,118,.11),rgba(18,27,43,.97) 45%,#141f30);box-shadow:0 6px 21px rgba(0,0,0,.13)}
+#s-chat .betpro-poisson-smart-title{display:flex;align-items:center;gap:9px;margin-bottom:13px;color:#ffd0ba;font:850 12px/1.5 var(--hd);letter-spacing:.035em}
+#s-chat .betpro-poisson-smart-title svg{flex-shrink:0;color:#ffac8b}
+#s-chat .betpro-poisson-smart-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(115px,.6fr) minmax(175px,1.25fr) auto;gap:10px;align-items:end}
+#s-chat .betpro-poisson-smart-field{min-width:0}
+#s-chat .betpro-poisson-smart-field label{display:block;margin-bottom:6px;color:#e9d2c7;font:750 11px/1.45 var(--hd)}
+#s-chat .betpro-poisson-smart-field input,#s-chat .betpro-poisson-smart-field select{display:block;width:100%;height:45px;min-width:0;box-sizing:border-box;border:1px solid rgba(255,171,146,.35);border-radius:8px;padding:10px 12px;background:#111e30;color:#f8ece7;font:600 12px/1.35 var(--hd);outline:none}
+#s-chat .betpro-poisson-smart-field input::placeholder{color:#a7afbe;opacity:1}
+#s-chat .betpro-poisson-smart-field input:focus-visible,#s-chat .betpro-poisson-smart-field select:focus-visible{border-color:#ffb297;box-shadow:0 0 0 2px rgba(255,171,145,.17)}
+#s-chat .betpro-poisson-smart-percent{position:relative}
+#s-chat .betpro-poisson-smart-percent input{padding-right:29px}
+#s-chat .betpro-poisson-smart-percent span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#ffc8ae;font:800 12px var(--hd);pointer-events:none}
+#s-chat .betpro-poisson-smart-reset{min-height:45px;padding:9px 12px;border:1px solid rgba(255,171,146,.55);border-radius:8px;background:rgba(255,155,123,.12);color:#ffd1ba;font:800 11px/1.35 var(--hd);cursor:pointer;white-space:nowrap}
+#s-chat .betpro-poisson-smart-reset:hover{background:rgba(255,155,123,.22)}
+#s-chat .betpro-poisson-smart-reset:focus-visible{outline:2px solid #ffba9c;outline-offset:2px}
+#s-chat .betpro-poisson-smart-feedback{margin-top:12px;color:#ffe0cd;font:750 11px/1.5 var(--hd)}
+#s-chat .betpro-poisson-smart-note{margin:5px 0 0;color:#c9c8d0;font:500 10px/1.6 var(--hd)}
+@media(max-width:880px){#s-chat .betpro-poisson-smart-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#s-chat .betpro-poisson-smart-name{grid-column:1/-1}#s-chat .betpro-poisson-smart-reset{grid-column:1/-1}}
+@media(max-width:425px){#s-chat .betpro-poisson-smart-search{padding:14px 12px}#s-chat .betpro-poisson-smart-grid{grid-template-columns:minmax(0,1fr)}#s-chat .betpro-poisson-smart-name,#s-chat .betpro-poisson-smart-reset{grid-column:auto}}
+
 </style>
 </head>
 <body>
@@ -4164,6 +4185,30 @@ a{color:var(--neon);text-decoration:none}
       <p class="betpro-poisson-guide-note">Une direction affichée reste une estimation statistique ou une tendance de marché. Les cotes réelles doivent être vérifiées avant toute mise.</p>
       </details>
     </div>
+  <div class="betpro-poisson-smart-search" role="search" aria-label="Recherche de rencontres par équipe et pourcentage">
+    <div class="betpro-poisson-smart-title"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><strong>RECHERCHE RAPIDE DES RENCONTRES</strong></div>
+    <div class="betpro-poisson-smart-grid">
+      <div class="betpro-poisson-smart-field betpro-poisson-smart-name">
+        <label for="betpro-poisson-filter">Équipe ou rencontre</label>
+        <input type="search" id="betpro-poisson-filter" placeholder="Ex. PSG, Real Madrid, Lakers..." oninput="betproPoissonFilterFixtures()" autocomplete="off" spellcheck="false" aria-controls="betpro-poisson-fixtures">
+      </div>
+      <div class="betpro-poisson-smart-field">
+        <label for="betpro-poisson-min-percent">Pourcentage minimum</label>
+        <div class="betpro-poisson-smart-percent"><input type="number" id="betpro-poisson-min-percent" min="0" max="100" step="1" inputmode="numeric" placeholder="Tous" oninput="betproPoissonFilterFixtures()" aria-controls="betpro-poisson-fixtures"><span aria-hidden="true">%</span></div>
+      </div>
+      <div class="betpro-poisson-smart-field">
+        <label for="betpro-poisson-percent-quality">Fiabilité du pourcentage</label>
+        <select id="betpro-poisson-percent-quality" onchange="betproPoissonFilterFixtures()" aria-controls="betpro-poisson-fixtures">
+          <option value="verified" selected>2+ bookmakers vérifiés</option>
+          <option value="single">Inclure 1 bookmaker</option>
+          <option value="historical">Inclure les anciennes cotes</option>
+        </select>
+      </div>
+      <button class="betpro-poisson-smart-reset" type="button" onclick="betproPoissonResetSearch()">Effacer les filtres</button>
+    </div>
+    <div id="betpro-poisson-search-feedback" class="betpro-poisson-smart-feedback" role="status" aria-live="polite">Affichage des rencontres disponibles</div>
+    <p class="betpro-poisson-smart-note">Recherche instantanée parmi les rencontres chargées. Le seuil utilise les pourcentages issus des cotes, pas les calculs Poisson. Les matchs sans pourcentage sont exclus quand un seuil est demandé.</p>
+  </div>
   <div class="card betpro-poisson-choice" aria-label="Choisir une rencontre à analyser">
     <div class="ct betpro-poisson-choice-title">RENCONTRES À ANALYSER</div>
     <p class="betpro-poisson-choice-intro">Repérez les rencontres avec une direction de marché, puis sélectionnez le match qui vous intéresse. Les statistiques et la direction s'affichent sous votre sélection.</p>
@@ -4191,8 +4236,6 @@ a{color:var(--neon);text-decoration:none}
       <option value="tennis">Tennis</option>
       <option value="mma">MMA</option>
     </select>
-    <label class="betpro-poisson-search-label" for="betpro-poisson-filter">Rechercher une équipe ou une compétition</label>
-    <input type="search" id="betpro-poisson-filter" class="betpro-poisson-search" placeholder="Ex. Arsenal, Chelsea, NBA, Ligue 1..." oninput="betproPoissonFilterFixtures()" autocomplete="off">
     <div id="betpro-poisson-fixture-status" class="betpro-poisson-fixture-status" role="status" aria-live="polite">Ouverture du calendrier des rencontres...</div>
     <div id="betpro-poisson-selected" class="betpro-poisson-selected" aria-live="polite"></div>
     <div id="live-model-res" aria-live="polite"></div>
@@ -5009,7 +5052,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261123-upcoming-orange-green-v248"></script>
+<script defer src="./betpro-app.js?v=20261124-poisson-smart-filter-v249"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
