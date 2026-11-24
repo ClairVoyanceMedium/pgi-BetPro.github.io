@@ -1744,6 +1744,9 @@ a{color:var(--neon);text-decoration:none}
 @media(max-width:640px){#s-dash #dash-res .betpro-find-coverage{padding:10px 11px}#s-dash #dash-res .betpro-find-coverage .bdg{font-size:9px}}
 
 /* Identité BetPro : icône native de la PWA et nom agrandi, sans modifier la palette du site. */
+/* Logo et nom cliquables sur mobile et dans le volet latéral : accueil immédiat. */
+.betpro-brand-home{padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;appearance:none;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
+.betpro-brand-home:focus-visible{outline:2px solid var(--neon);outline-offset:4px;border-radius:8px}
 .betpro-sidebar-brand{display:flex;align-items:center;gap:9px;min-width:0}
 .betpro-sidebar-brand .logo{font-size:29px;line-height:1.07;letter-spacing:-.035em;white-space:nowrap;min-width:0}
 .betpro-sidebar-app-icon{display:block;width:44px;height:44px;flex:0 0 44px;object-fit:contain;border-radius:12px;border:1px solid rgba(56,232,255,.32);background:#07121b;box-shadow:0 0 14px rgba(0,212,255,.23)}
@@ -3684,10 +3687,10 @@ a{color:var(--neon);text-decoration:none}
 <!-- MOBILE BAR -->
 <div class="mb">
   <div class="betpro-mobile-left">
-    <div class="betpro-mobile-brand">
-      <img src="./betpro-icon-192.png" alt="Icône de l’application BetPro" class="betpro-mobile-app-icon" width="38" height="38" decoding="async">
+    <button class="betpro-mobile-brand betpro-brand-home" type="button" onclick="go('dash');window.scrollTo({top:0,behavior:'instant'})" aria-label="BetPro : revenir à la page d'accueil" title="Retour à l'accueil">
+      <img src="./betpro-icon-192.png" alt="" class="betpro-mobile-app-icon" width="38" height="38" decoding="async">
       <span class="betpro-mobile-wordmark">PGI<span class="ldot">•</span>BETPRO</span>
-    </div>
+    </button>
     <div class="betpro-mobile-status" aria-label="Télémétrie des services Cloudflare et Odds API : réseau, quota, clé et contrôle">
       <div id="m-cf-badge" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;border:1px solid rgba(44,64,96,.6);background:rgba(6,8,16,.6)">
         <div id="m-cf-dot" style="width:5px;height:5px;border-radius:50%;background:var(--dm);flex-shrink:0"></div>
@@ -3720,10 +3723,10 @@ a{color:var(--neon);text-decoration:none}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sbh">
-    <div class="betpro-sidebar-brand">
-      <img src="./betpro-icon-192.png" alt="Icône de l’application BetPro" class="betpro-sidebar-app-icon" width="44" height="44" decoding="async">
-      <div class="logo">PGI<span class="ldot">•</span>BetPro</div>
-    </div>
+    <button class="betpro-sidebar-brand betpro-brand-home" type="button" onclick="go('dash');window.scrollTo({top:0,behavior:'instant'})" aria-label="BetPro : revenir à la page d'accueil" title="Retour à l'accueil">
+      <img src="./betpro-icon-192.png" alt="" class="betpro-sidebar-app-icon" width="44" height="44" decoding="async">
+      <span class="logo">PGI<span class="ldot">•</span>BetPro</span>
+    </button>
     <div class="lsub">Plateforme d'analyse probabiliste</div>
     <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
       <div id="cf-badge" style="display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:6px;border:1px solid rgba(44,64,96,.5);background:rgba(6,8,16,.4)">
