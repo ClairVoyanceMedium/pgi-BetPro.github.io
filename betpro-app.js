@@ -5800,14 +5800,62 @@ function betproPoissonResearchFixture(index){
  document.querySelector('#betpro-expert-title')?.scrollIntoView({behavior:'smooth',block:'start'});
  sendChat();
 }
+// Filtrage local des rencontres chargées ; aucun pourcentage n'est inventé.
+function betproPoissonSearchMatches(f,query){
+ const words=betproPoissonNormalizeName(query).split(/\s+/).filter(Boolean);
+ if(!words.length)return true;
+ const fields=[f.home,f.away,f.competition,betproPoissonSportLabel(f.sport)]
+  .map(betproPoissonNormalizeName);
+ const hasToken=(name,word)=>name.includes(word)||name.split(' ').some(token=>token.startsWith(word));
+ return fields.some(name=>words.every(word=>hasToken(name,word)))||
+  words.every(word=>fields.some(name=>hasToken(name,word)));
+}
+function betproPoissonDisplayedPercent(f,quality){
+ if(f.mode==='live')return null; // Aucun chiffre inventé avant analyse du direct.
+ const verified=betproPoissonTrustMarket(f,true);
+ if(verified)return Number(verified.probability)*100;
+ if(quality!=='verified'){
+  const isolated=betproPoissonTrustMarket(f,false);
+  if(isolated)return Number(isolated.probability)*100;
+ }
+ if(quality==='historical'){
+  const historical=betproPoissonHistoricalMarket(f);
+  if(historical)return Number(historical.probability)*100;
+ }
+ return null;
+}
+function betproPoissonResetSearch(){
+ const search=document.getElementById('betpro-poisson-filter');
+ const minimum=document.getElementById('betpro-poisson-min-percent');
+ const quality=document.getElementById('betpro-poisson-percent-quality');
+ const sport=document.getElementById('betpro-poisson-sport-filter');
+ if(search)search.value='';
+ if(minimum)minimum.value='';
+ if(quality)quality.value='verified';
+ if(sport)sport.value='all';
+ betproPoissonRenderFixtures();
+ search?.focus();
+}
 function betproPoissonRenderFixtures(){
  const p=betproPoissonPicker,container=document.getElementById('betpro-poisson-fixtures');
  if(!container)return;
- const q=betproPoissonNormalizeName(document.getElementById('betpro-poisson-filter')?.value||'');
+ const query=document.getElementById('betpro-poisson-filter')?.value||'';
+ const rawMinimum=document.getElementById('betpro-poisson-min-percent')?.value||'';
+ const parsed=Number(String(rawMinimum).replace(',','.'));
+ const minimum=rawMinimum!==''&&Number.isFinite(parsed)?Math.max(0,Math.min(100,parsed)):0;
+ const quality=document.getElementById('betpro-poisson-percent-quality')?.value||'verified';
  const sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
- const rows=p.fixtures.map((f,i)=>({f,i})).filter(({f})=>
-  (sport==='all'||f.sport===sport)&&
-  (!q||betproPoissonNormalizeName([f.home,f.away,f.competition,betproPoissonSportLabel(f.sport)].join(' ')).includes(q)));
+ const sportRows=p.fixtures.map((f,i)=>({f,i})).filter(({f})=>sport==='all'||f.sport===sport);
+ const rows=sportRows.filter(({f})=>betproPoissonSearchMatches(f,query)&&
+  (minimum<=0||((betproPoissonDisplayedPercent(f,quality)??-1)>=minimum)));
+ const feedback=document.getElementById('betpro-poisson-search-feedback');
+ if(feedback){
+  const active=Boolean(query.trim())||minimum>0||sport!=='all';
+  feedback.textContent=rows.length+' rencontre(s) affichée(s) sur '+sportRows.length+
+   (active?' pour les filtres choisis.':' disponibles.')+
+   (minimum>0?' Seuil : '+minimum.toLocaleString('fr-FR')+' % de probabilité de marché, pas Poisson.':'')+
+   (minimum>0&&p.mode==='live'?' Aucun pourcentage avant l’analyse des rencontres en direct.':'');
+ }
  const strong=rows.filter(({f})=>betproPoissonTrustMarket(f,true)).length;
  const historical=rows.filter(({f})=>!betproPoissonTrustMarket(f,true)&&
   !betproPoissonTrustMarket(f,false)&&betproPoissonHistoricalMarket(f)).length;
@@ -5848,7 +5896,9 @@ function betproPoissonRenderFixtures(){
  if(!rows.length){
   const sportName=document.getElementById('betpro-poisson-sport-filter')?.selectedOptions?.[0]?.textContent||'ce sport';
   container.innerHTML='<div class="betpro-poisson-fixture-status">'+
-   (sport!=='all'?'Aucune rencontre confirmée pour '+esc(sportName)+' dans la période chargée. Les calendriers et les cotes dépendent des sources disponibles.':
+   (minimum>0?'Aucune carte ne correspond au seuil de probabilité de marché et aux critères choisis. Réduisez le seuil ou élargissez les sources.':
+    query.trim()?'Aucune rencontre correspondante dans la liste chargée. Essayez un autre nom d’équipe.':
+    sport!=='all'?'Aucune rencontre confirmée pour '+esc(sportName)+' dans la période chargée. Les calendriers et les cotes dépendent des sources disponibles.':
     'Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.')+'</div>';
  }
  if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+
