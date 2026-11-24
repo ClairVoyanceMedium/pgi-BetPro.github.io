@@ -8476,7 +8476,7 @@ function tickerHasFrenchArticleTitle(art){
   if(art?.is_match||art?._turfRaceId)return true;
   // Google Actualités fournit déjà des titres en français : aucune traduction AI
   // n'est nécessaire pour les afficher, et les rencontres restent prioritaires.
-  if(art?.language==='fr' && (String(art?.source||'').startsWith('Google Actualités')||String(art?.source||'').startsWith('Le Parisien · PSG')||String(art?.source||'')==='Sport.fr')){
+  if(art?.language==='fr' && (String(art?.source||'').startsWith('Google Actualités')||String(art?.source||'').startsWith('Le Parisien · PSG')||String(art?.source||'')==='Sport.fr'||String(art?.source||'')==="L'Équipe")){
     const title=String(art.title||'').trim();
     return title.length>=12 && !/[<>]/.test(title);
   }
@@ -8516,6 +8516,26 @@ function tickerWriteTranslationCache(cache) {
 // Un tour par catégorie avant de passer au deuxième élément. Ainsi le PMU
 // reste visible sans repousser le football, le MMA et les autres sports sous
 // plusieurs écrans. Les doublons et les flux surabondants sont plafonnés.
+
+// Les anciennes sources gardent leur place : au plus un titre de chaque éditeur,
+// puis les autres titres sont choisis selon leur fraîcheur.
+function betproTickerEditorialDiversity(items,limit){
+ const selected=[],used=new Set();
+ const family=x=>x.source==='Sport.fr'?'sportfr':x.source==="L'Équipe"?'lequipe':'existing';
+ for(const item of items){
+  const key=family(item);
+  if(used.has(key))continue;
+  used.add(key);selected.push(item);
+  if(selected.length>=limit)return selected;
+ }
+ for(const item of items){
+  if(selected.includes(item))continue;
+  selected.push(item);
+  if(selected.length>=limit)break;
+ }
+ return selected;
+}
+
 function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
   // Augmente la couverture sans évincer les vrais articles de presse.
   const groups = new Map(),seen=new Set();
@@ -8535,10 +8555,10 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
     if(group.matches.length){
       // Rencontres toujours prioritaires, mais les nouvelles en français restent visibles.
       // Maximum 8 rencontres et 2 actualités par sport, sans remplacer les affiches.
-      const matches=group.matches.slice(0,8), articles=group.articles.slice(0,2);
+      const matches=group.matches.slice(0,8), articles=betproTickerEditorialDiversity(group.articles,3);
       entries=[...matches.slice(0,3),...articles.slice(0,1),
         ...matches.slice(3),...articles.slice(1)];
-    }else entries=group.articles.slice(0,4);
+    }else entries=betproTickerEditorialDiversity(group.articles,4);
     buckets.set(category,entries);
   }
   const extraCategories=[...buckets.keys()].filter(x=>!TICKER_SPORT_ORDER.includes(x)).sort();
@@ -8867,10 +8887,51 @@ function betproLoadSportFrNewsInBackground(){
   .finally(()=>{betproSportFrNewsRequest=null;});
 }
 
+
+// L'Équipe via l'index public Google Actualités : pas d'appel au RSS de l'éditeur.
+// Source indépendante avec repli local, sans intervention sur les modèles sportifs.
+const BETPRO_LEQUIPE_LOCAL_KEY='pgi_betpro_lequipe_public_v1';
+let betproLEquipeRequest=null,betproLEquipeLastCheck=0;
+function betproTickerReadLEquipeNews(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(BETPRO_LEQUIPE_LOCAL_KEY)||'null');
+  const age=Date.now()-Date.parse(saved?.at||'');
+  if(!Array.isArray(saved?.items)||!Number.isFinite(age)||age<0||age>6*3600000)return[];
+  return saved.items.filter(a=>{
+   const date=Date.parse(a?.published||'');
+   return a?.source==="L'Équipe"&&a?.language==='fr'&&!a?.is_match
+    &&Boolean(tickerExactArticleUrl(a?.link))&&String(a?.title||'').trim().length>=12
+    &&Number.isFinite(date)&&date<=Date.now()+3600000&&date>Date.now()-7*86400000;
+  }).slice(0,15);
+ }catch(_){return[];}
+}
+function betproLoadLEquipeNewsInBackground(){
+ const now=Date.now();
+ if(betproLEquipeRequest||now-betproLEquipeLastCheck<25*60000)return;
+ betproLEquipeLastCheck=now;
+ const before=betproTickerReadLEquipeNews();
+ betproLEquipeRequest=api('/api/news/lequipe','GET',null,{timeoutMs:11500})
+  .then(data=>{
+   if(!Array.isArray(data?.news)||!data.news.length)return;
+   const items=data.news.filter(a=>a?.source==="L'Équipe"&&a?.language==='fr'
+    &&Boolean(tickerExactArticleUrl(a?.link))
+    &&Number.isFinite(Date.parse(a?.published||''))).slice(0,15);
+   if(!items.length)return;
+   const signature=arr=>JSON.stringify(arr.map(a=>[a.sport,a.title,a.link,a.published]));
+   const changed=signature(items)!==signature(before);
+   try{localStorage.setItem(BETPRO_LEQUIPE_LOCAL_KEY,JSON.stringify({at:new Date().toISOString(),items}));}catch(_){}
+   if(changed&&!document.hidden&&document.getElementById('news-ticker-inner'))
+    setTimeout(()=>loadTicker().catch(e=>console.warn('L Équipe : actualisation indisponible',e?.message||e)),450);
+  })
+  .catch(e=>console.warn('L Équipe index public indisponible, autres sources conservées',e?.message||e))
+  .finally(()=>{betproLEquipeRequest=null;});
+}
+
 async function getSportTickerArticles(){
   betproLoadTranslatedNewsInBackground();
   betproLoadPsgNewsInBackground();
   betproLoadSportFrNewsInBackground();
+  betproLoadLEquipeNewsInBackground();
   const sports='soccer,boxing,mma,basketball,tennis,rugby,icehockey,baseball,americanfootball,handball,volleyball';
   const local=betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE));
   try{
@@ -8881,16 +8942,16 @@ async function getSportTickerArticles(){
     const restored=local.filter(x=>!unique.has(String(x.event_id)));
     const combined=[...matches,...restored].sort((a,b)=>Date.parse(a.event_start_at)-Date.parse(b.event_start_at));
     if(combined.length)betproTickerSaveLocal(BETPRO_TICKER_FIXTURES_STORE,combined);
-    return{items:[...combined,...betproTickerReadGlobalNews(),...incoming.filter(x=>!x?.is_match&&!x?.is_status),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews()],
+    return{items:[...combined,...betproTickerReadGlobalNews(),...incoming.filter(x=>!x?.is_match&&!x?.is_status),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews(),...betproTickerReadLEquipeNews()],
       meta:{...data,fixtures_visible:combined.length,fixtures_from_local:restored.length}};
   }catch(error){
     // La panne de l'API principale ne transforme plus le flux en simples titres.
     try{
       const legacy=await api('/api/news?sports='+enc(sports),'GET',null,{timeoutMs:11000});
-      return{items:[...local,...betproTickerReadGlobalNews(),...(legacy.news||[]),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews()],meta:{...legacy,degraded:true,fixtures_from_local:local.length}};
+      return{items:[...local,...betproTickerReadGlobalNews(),...(legacy.news||[]),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews(),...betproTickerReadLEquipeNews()],meta:{...legacy,degraded:true,fixtures_from_local:local.length}};
     }catch(_){
       console.warn('Ticker multisports temporairement indisponible:',error?.message||error);
-      return{items:[...local,...betproTickerReadGlobalNews(),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews()],meta:{degraded:true,fixtures_from_local:local.length}};
+      return{items:[...local,...betproTickerReadGlobalNews(),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews(),...betproTickerReadLEquipeNews()],meta:{degraded:true,fixtures_from_local:local.length}};
     }
   }
 }
@@ -9081,7 +9142,7 @@ ${blocks}`}]
       // Les affiches sportives D1 ne sont pas des articles : on ne leur invente pas de lien.
       const originalArticle = (!art.is_status && !art.is_match && !art._turfRaceId)
         ? tickerExactArticleUrl(art.link) : '';
-      const nativeFrench=art.language==='fr' && (String(art.source||'').startsWith('Google Actualités')||String(art.source||'').startsWith('Le Parisien · PSG')||String(art.source||'')==='Sport.fr');
+      const nativeFrench=art.language==='fr' && (String(art.source||'').startsWith('Google Actualités')||String(art.source||'').startsWith('Le Parisien · PSG')||String(art.source||'')==='Sport.fr'||String(art.source||'')==="L'Équipe");
       const frenchArticle = nativeFrench?originalArticle:tickerFrenchArticleUrl(originalArticle);
       const titleHtml = frenchArticle
         ? `<a href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer" title="${nativeFrench?'Lire l’article original en français':'Lire cet article en français (traduction automatique)'}">${esc(displayTitle)}</a>`
@@ -9231,12 +9292,12 @@ async function loadTicker(){
   else{
     const localMatches=betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE));
     const localTurf=betproTickerReadLocal(BETPRO_TICKER_TURF_STORE).filter(x=>Number.isFinite(Date.parse(x.published||''))&&Date.parse(x.published)>Date.now()-300000);
-    const immediate=buildBalancedTickerItems([...localMatches,...betproTickerReadGlobalNews(),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews()],localTurf);
+    const immediate=buildBalancedTickerItems([...localMatches,...betproTickerReadGlobalNews(),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews(),...betproTickerReadLEquipeNews()],localTurf);
     if(immediate.length)betproTickerRender(immediate,{meta:{degraded:true}},loadSequence);
     else renderTickerSafetyFallback('Connexion aux flux en cours…');
   }
   const task=(async()=>{
-    let sportPayload={items:[...betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE)),...betproTickerReadGlobalNews(),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews()],meta:{degraded:true}};
+    let sportPayload={items:[...betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE)),...betproTickerReadGlobalNews(),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews(),...betproTickerReadLEquipeNews()],meta:{degraded:true}};
     let turfItems=betproTickerReadLocal(BETPRO_TICKER_TURF_STORE).filter(x=>Number.isFinite(Date.parse(x.published||''))&&Date.parse(x.published)>Date.now()-300000);
     let sportsLoaded=false,turfLoaded=false;
     const show=()=>{
