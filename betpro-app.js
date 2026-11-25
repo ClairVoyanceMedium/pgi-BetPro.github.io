@@ -1031,19 +1031,37 @@ function betproOutsiderLive(m,stat,analysis,at){
   risk:'Signal de dynamique en direct, pas une cote vérifiée ni une probabilité calibrée de renversement.'};
 }
 function betproOutsiderHorsePMU(d,r,active){
- if(!r||r.is_non_partant||active<8||Number(d?.data_quality_score)<65)return null;
- const odds=Number(String(r.odds??'').replace(',','.')),music=String(r.music||'').trim();
+ const start=Date.parse(d?.start_time||''),fetched=Date.parse(d?.fetched_at||'');
+ const now=Date.now(),status=String(d?.race_status||'').toLowerCase();
+ if(!Number.isFinite(start)||start<=now+120000||!Number.isFinite(fetched)||fetched>now+30000||
+    now-fetched>10*60000||/arriv|termine|fini|final|annule|cancel/.test(status)||
+    !r||r.is_non_partant||active<8||Number(d?.data_quality_score)<65)return null;
+ const odds=Number(String(r.odds??'').replace(',','.'));
  if(!Number.isFinite(odds)||odds<6||odds>28)return null;
- const recent=[...music.matchAll(/(?:^|[^0-9])([1-9])(?=[a-zA-Z]|[^0-9]|$)/g)].map(x=>Number(x[1])).slice(0,5);
- if(recent.length<4)return null;
- const top3=recent.filter(x=>x<=3).length,avg=recent.reduce((a,b)=>a+b,0)/recent.length;
- if(top3<2||avg>4.5||recent[0]>6)return null;
- return{pick:'n°'+String(r.number)+' '+String(r.name||''),category:'PMU',confidence:'Candidat de forme, avantage non démontré',
-  explanation:'Cote '+odds.toFixed(2)+' · '+top3+' classements dans les trois premiers sur '+recent.length+
-   ' résultats lisibles · rang moyen '+avg.toFixed(1)+' · '+active+' partants · qualité fiche '+Number(d.data_quality_score)+' %.',
-  risk:'Musique et cote ne donnent pas de probabilité calibrée. Vérifier terrain, distance, poids, jockey/driver, entraîneur, engagement, partants et heure de départ.'};
+ const source=(Array.isArray(r.source_history)?r.source_history:[])
+  .filter(h=>Number.isFinite(Number(h.rank))&&Number(h.rank)>=1&&Number.isFinite(Date.parse(h.date||'')))
+  .sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)).slice(0,6);
+ if(source.length<4)return null;
+ const recent=source.slice(0,5);
+ const top3=recent.filter(h=>Number(h.rank)<=3).length;
+ const avg=recent.reduce((n,h)=>n+Number(h.rank),0)/recent.length;
+ const distance=Number(d.distance);
+ const similar=recent.filter(h=>
+  (!Number.isFinite(distance)||distance<=0||Number(h.distance)>0&&Math.abs(Number(h.distance)-distance)<=distance*.18)
+  &&(!h.discipline||!d.discipline||String(h.discipline).toLowerCase()===String(d.discipline).toLowerCase()));
+ if(top3<2||avg>4.5||Number(recent[0].rank)>6||similar.length<1||
+   !String(r.jockey_driver||'').trim()||!String(r.trainer||'').trim())return null;
+ return{pick:'n°'+String(r.number)+' '+String(r.name||''),category:'PMU',
+  confidence:'Signal de forme documenté, aucune valeur de pari validée',
+  explanation:'Cote '+odds.toFixed(2)+' · '+top3+' TOP 3 sur '+recent.length+
+    ' courses historiques datées · rang moyen '+avg.toFixed(1)+' · '+similar.length+
+    ' performance(s) sur profil distance/discipline proche · '+active+' partants.',
+  risk:'Étude exploratoire sur historiques, non calibrée : vérifier terrain, poids, corde, jockey/driver, opposition, équipements, non-partants et cote fraîche. Aucune probabilité gagnant inventée.'};
 }
 function betproOutsiderHorseHKJC(c){
+ const time=Date.parse(c?.race_time||''),now=Date.now();
+ const quoteTime=Date.parse(c?.quote_observed_at||c?.observed_at||'');
+ if(!Number.isFinite(time)||time<=now+120000||!Number.isFinite(quoteTime)||quoteTime>now+30000||now-quoteTime>90*60000||c?.is_non_runner)return null;
  const p=betproOutsiderPercent(c?.calibrated_probability),market=betproOutsiderPercent(c?.market_probability);
  const q=betproOutsiderPercent(c?.data_quality_score),odds=Number(c?.odds);
  const ev=Number(c?.expected_value),edge=Number(c?.edge);
@@ -6186,10 +6204,9 @@ function betproPoissonRenderFixtures(){
     '<span class="betpro-poisson-fixture-names">'+esc(f.home)+' <span class="betpro-poisson-versus">VS</span> '+esc(f.away)+'</span>'+
     '<span class="betpro-poisson-fixture-time">'+esc(when)+' · '+esc(f.source)+'</span>'+
     betproPoissonFixtureSignal(f)+
-    (f.mode==='upcoming'?betproOutsiderBadge(betproOutsiderMarket(f)):'')+
     betproPoissonFixtureQuickFacts(f)+
     '<span class="betpro-poisson-open-label">'+(f.mode==='live'?'ANALYSER LE DIRECT':'ANALYSER LA RENCONTRE')+'</span>'+
-   '</button>'+
+   '</button>'+betproOutsiderBadge(f.mode==='upcoming'?betproOutsiderMarket(f):null)+
    '<button type="button" class="betpro-poisson-card-copy" onclick="betproPoissonCopyFixture('+i+',this)" title="Copier les participants" aria-label="Copier le nom de la rencontre">'+copyIcon+'</button>'+
    '<div class="betpro-poisson-fixture-actions">'+
     '<button type="button" class="betpro-follow-btn betpro-poisson-card-follow'+(wasFollowed?' is-followed':'')+'"'+(followId?' data-betpro-follow-id="'+esc(followId)+'"':'')+
