@@ -947,6 +947,7 @@ async function doLiveScan() {
     if (currentScanMode !== 'complet') setScanCache(cacheKey, filtered);
 
     renderScanResults(filtered, cnt, 0, diag);
+    betproIndependentOutsiderLane(cnt,deduped);
     loadQuotas();
   } catch (e) {
     cnt.innerHTML = `<div class="card" style="border-color:var(--re)"><div style="color:var(--re)">❌ Erreur pendant le scan : ${esc(e.message || String(e))}</div></div>`;
@@ -4722,9 +4723,100 @@ async function betproToggleFollow(btn,id){
  }catch(e){toast(e?.message||'Erreur de suivi','err');}
  finally{btn.disabled=false;betproFollowPaint();}
 }
+
+// v260: second avis sportif ESPN, séparé du moteur historique de cotes.
+// Aucun score interne, probabilité de marché ou ajustement de cote ne devient une preuve indépendante.
+const betproIndependentCache=new Map(),betproIndependentAutoTimes=[];
+let betproIndependentActive=0;
+function betproIndependentDescriptor(o,engine){
+ const classic=engine==='Classique',c=o?.consensus||{},market=String(classic?'h2h':o?.market||'').toLowerCase();
+ const sport=betproPoissonFixtureSport(o?.sport||o?._sport||'');
+ if(!['football','basketball','baseball','nfl','hockey','rugby'].includes(sport)||!['h2h','moneyline'].includes(market))return null;
+ const home=String(classic?(o.home_name||o.home||''):o.home_team||'').trim(),away=String(classic?(o.away_name||o.away||''):o.away_team||'').trim();
+ const start=String(o.start_time||o.commence_time||o.event_start_at||''),kickoff=Date.parse(start);
+ if(!home||!away||!Number.isFinite(kickoff)||kickoff<=Date.now()+120000||o.is_live)return null;
+ const norm=betproPoissonNormalizeName,sel=String(classic?(c.choice==='draw'?'draw':c.favorite||''):o.selection||'').trim();
+ const side=norm(sel)===norm(home)?'home':norm(sel)===norm(away)?'away':['draw','nul','match nul','x'].includes(norm(sel))?'draw':null;
+ if(!side||side==='draw'&&sport!=='football')return null;
+ const price=Number(classic?(o.classic_value?.best_price||c.median_market_odds):o.odds);
+ const raw=classic?o.bookmaker_quotes:o.all_bookmakers;
+ const quotes=(Array.isArray(raw)?raw:[]).map(q=>({name:String(q.bookmaker||q.name||''),price:Number(q.odds),at:Date.parse(q.last_observed_at||q.updated_at||'')})).filter(q=>q.name&&q.price>1&&Number.isFinite(q.at)&&q.at<=Date.now()+30000&&Date.now()-q.at<=20*60000);
+ const matching=quotes.filter(q=>Math.abs(q.price-price)<.005);
+ const count=new Set(quotes.map(q=>norm(q.name))).size;
+ return {home,away,start,sport,competition:String(o.competition||o.sport_title||o.sport_label||''),selection:sel,side,price:Number.isFinite(price)&&price>1?price:null,quoteAt:matching.length?Math.max(...matching.map(q=>q.at)):null,books:count,engine,market};
+}
+function betproIndependentExactName(x,y){
+ const norm=v=>betproPoissonNormalizeName(v).replace(/\b(fc|afc|cf|sc)\b/g,'').replace(/\s+/g,' ').trim();
+ return Boolean(norm(x)&&norm(x)===norm(y));
+}
+function betproIndependentRead(d,f){
+ if(!d?.ok||!d.model||!d.history||d.live_verified===true)return null;
+ const h=d.history,at=Date.parse(d.checked_at||'');
+ if(!betproIndependentExactName(h.home_name,f.home)||!betproIndependentExactName(h.away_name,f.away))return null;
+ if(!Number.isFinite(at)||at>Date.now()+30000||Date.now()-at>24*3600000)return null;
+ if(Number(d.match?.minute)!==0||Number(d.match?.score_home)!==0||Number(d.match?.score_away)!==0||Date.parse(f.start)<=Date.now()+120000)return null;
+ if(d.sport&&d.sport!==f.sport)return null;
+ const n1=Number(h.home_matches),n2=Number(h.away_matches);
+ if(!Number.isFinite(n1)||!Number.isFinite(n2)||Math.min(n1,n2)<7)return null;
+ if(!Array.isArray(d.source_urls)||!d.source_urls.some(u=>{try{return new URL(u).hostname==='site.api.espn.com';}catch(_){return false;}}))return null;
+ const o=d.model.outcomes||{},p=Number(o[f.side==='draw'?'draw':f.side+'_win']),other=Number(o[f.side==='home'?'away_win':'home_win']);
+ const valid=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=100;
+ if(!valid(o.home_win)||!valid(o.away_win)||f.sport==='football'&&!valid(o.draw)||!valid(o[f.side==='draw'?'draw':f.side+'_win'])||p<=0||p>=100)return null;
+ const sum=Number(o.home_win)+Number(o.away_win)+(valid(o.draw)?Number(o.draw):0);
+ if(Math.abs(sum-100)>1)return null;
+ const sample=Math.min(n1,n2),effective=Math.min(Number(h.home_effective??n1),Number(h.away_effective??n2));
+ // Comparison financière only where settlement is explicit: football 1X2 at 90 minutes.
+ const fresh=f.quoteAt!==null&&Date.now()-f.quoteAt<=20*60000&&f.books>=2&&f.price>1;
+ const comparable=f.sport==='football'&&f.market==='h2h'&&fresh;
+ const edge=comparable?p-100/f.price:null,ev=comparable?(p*f.price/100-1)*100:null;
+ const outsider=comparable&&f.side!=='draw'&&f.price>=2.4&&f.price<=9&&p>=18&&p<=47&&Number.isFinite(other)&&other>p&&sample>=10&&effective>=7&&edge>=4&&ev>=6;
+ return {p,n1,n2,sample,effective,edge,ev,outsider,method:String(d.method||'Historique ESPN'),at,other,modelOdds:100/p};
+}
+function betproIndependentKey(f){return [f.sport,betproPoissonNormalizeName(f.home),betproPoissonNormalizeName(f.away),f.competition,f.start].join('|');}
+async function betproIndependentFetch(f){
+ const key=betproIndependentKey(f),cached=betproIndependentCache.get(key);
+ if(cached&&Date.now()-cached.at<15*60000)return cached.promise;
+ if(betproIndependentActive>=3)throw Error('Capacité d’analyse atteinte. Relancer après les analyses en cours.');
+ betproIndependentActive++;
+ const promise=api('/api/live-analysis','POST',{home:f.home,away:f.away,competition:f.competition,sport:f.sport,minute:0,score_home:0,score_away:0},{timeoutMs:45000,noCache:true}).finally(()=>betproIndependentActive--);
+ betproIndependentCache.set(key,{at:Date.now(),promise});
+ if(betproIndependentCache.size>80)betproIndependentCache.delete(betproIndependentCache.keys().next().value);
+ try{return await promise;}catch(e){if(betproIndependentCache.get(key)?.promise===promise)betproIndependentCache.delete(key);throw e;}
+}
+function betproIndependentRender(f,r){
+ if(!r)return '<p style="font-size:11px;color:var(--am)">Historique indépendant insuffisant, non récent ou identité non confirmée. La direction de marché n’est pas validée.</p>';
+ const pct=v=>Number(v).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %';
+ const comparison=r.ev===null?'Comparaison financière non validée : prix récent ou règles de règlement non confirmés.':(r.ev>0?'Écart positif indicatif':'Écart non positif')+' · '+(r.edge>=0?'+':'')+r.edge.toFixed(1)+' points face au seuil de rentabilité de la cote · EV simulée '+(r.ev>=0?'+':'')+r.ev.toFixed(1)+' %.';
+ const state=r.outsider?'OUTSIDER QUI POURRAIT SURPRENDRE · À CONFIRMER':r.ev!==null&&r.ev<=0?'MODÈLE INDÉPENDANT DÉFAVORABLE':'ESTIMATION SPORTIVE INDÉPENDANTE';
+ return '<div style="border-left:3px solid '+(r.outsider?'#ff4552':'var(--bd)')+';padding:8px 10px;margin-top:8px"><strong style="font-size:11px;color:'+(r.outsider?'#ff5360':'var(--tx)')+'">'+esc(state)+'</strong><p style="font-size:12px;margin:5px 0"><strong>'+esc(f.selection)+' · '+esc(pct(r.p))+'</strong> de victoire estimée '+(f.side==='draw'?'(issue nulle)':'')+'</p><p style="font-size:11px;color:var(--mu)">Historique ESPN : '+r.n1+' / '+r.n2+' matchs · cote théorique '+r.modelOdds.toFixed(2)+' · '+esc(comparison)+'</p><p style="font-size:10px;color:var(--dm)">Modèle non calibré prospectivement. Blessures, compositions et autres facteurs non confirmés ici ; aucune mise validée par ce contrôle.</p></div>';
+}
+function betproIndependentAttach(body,f){
+ if(!f||!body||body.querySelector('.betpro-independent-panel'))return null;
+ const panel=document.createElement('div');panel.className='betpro-independent-panel';panel.style.cssText='margin:8px 0;padding:8px;border:1px solid var(--bd);border-radius:7px';
+ const btn=document.createElement('button');btn.type='button';btn.className='btn bs';btn.style.fontSize='10px';btn.textContent='Vérifier avec les statistiques sportives';
+ const out=document.createElement('div');out.setAttribute('aria-live','polite');out.style.fontSize='10px';out.textContent='Second avis ESPN indépendant des bookmakers non effectué.';
+ const run=async()=>{if(btn.disabled||!panel.isConnected)return;btn.disabled=true;btn.textContent='Étude historique…';try{const d=await betproIndependentFetch(f);if(panel.isConnected)out.innerHTML=betproIndependentRender(f,betproIndependentRead(d,f));}catch(e){if(panel.isConnected)out.textContent='Second avis indisponible : '+String(e?.message||e)+' · aucune validation indépendante.';}finally{btn.disabled=false;btn.textContent='Actualiser le second avis';}};
+ btn.addEventListener('click',e=>{e.stopPropagation();void run();});
+ panel.append(btn,out);body.appendChild(panel);return run;
+}
+async function betproIndependentAuto(runs){
+ const now=Date.now();while(betproIndependentAutoTimes.length&&now-betproIndependentAutoTimes[0]>300000)betproIndependentAutoTimes.shift();
+ const count=Math.max(0,Math.min(runs.length,3,6-betproIndependentAutoTimes.length));
+ for(const run of runs.slice(0,count)){if(document.hidden)return;betproIndependentAutoTimes.push(Date.now());await run();}
+}
+function betproIndependentOutsiderLane(cnt,raw){
+ const candidates=(Array.isArray(raw)?raw:[]).map(o=>betproIndependentDescriptor(o,'Benter')).filter(f=>f&&f.sport==='football'&&f.side!=='draw'&&f.price>=2.4&&f.price<=9&&f.quoteAt!==null&&f.books>=2);
+ const seen=new Set(),chosen=candidates.sort((a,b)=>b.books-a.books||Date.parse(a.start)-Date.parse(b.start)).filter(f=>{const k=betproIndependentKey(f)+'|'+f.side;if(seen.has(k))return false;seen.add(k);return true;}).slice(0,6);
+ const box=document.createElement('details');box.className='card';box.style.margin='12px 0';const label=document.createElement('summary');label.style.cssText='cursor:pointer;font-weight:800;color:#ff5360';label.textContent='OUTSIDERS BENTER · CONTRÔLE SPORTIF ('+chosen.length+' candidats à examiner)';box.appendChild(label);
+ const desc=document.createElement('p');desc.style.cssText='font-size:10px;color:var(--mu);margin:8px 0';desc.textContent='Parcours séparé du filtre favoris : '+chosen.length+' candidats sur '+candidates.length+' avec cotes récentes et plusieurs opérateurs. Aucun signal rouge avant contrôle ESPN. Ouvrez pour analyser.';box.appendChild(desc);
+ const runs=[];for(const f of chosen){const item=document.createElement('div');item.style.margin='8px 0';const title=document.createElement('strong');title.style.fontSize='11px';title.textContent=f.home+' / '+f.away+' · '+f.selection+' @ '+f.price.toFixed(2);item.appendChild(title);box.appendChild(item);const run=betproIndependentAttach(item,f);if(run)runs.push(run);}
+ let launched=false;box.addEventListener('toggle',()=>{if(box.open&&!launched){launched=true;void betproIndependentAuto(runs);}});cnt.prepend(box);
+}
+
 function betproEnhanceScanFollow(containerId,items,engine){
  const wrap=document.getElementById(containerId);if(!wrap||!Array.isArray(items))return;
  const cards=[...wrap.querySelectorAll('.opp-grid > .dir-card')];
+ const independentRuns=[];
  for(let i=0;i<items.length;i++){
   const el=engine==='Benter'?wrap.querySelector('#dc-scan-res-'+i):cards[i];if(!el)continue;
   const body=el.querySelector('.dir-body')||el.children[1];if(!body)continue;
@@ -4736,9 +4828,11 @@ function betproEnhanceScanFollow(containerId,items,engine){
   button.textContent='Suivre le résultat';
   button.addEventListener('click',event=>{event.stopPropagation();betproToggleFollow(button,id);});
   body.appendChild(button);
+  const independent=betproIndependentAttach(body,betproIndependentDescriptor(items[i],engine));if(independent)independentRuns.push(independent);
  }
  betproFollowPaint();
  betproFollowRefresh();
+ void betproIndependentAuto(independentRuns);
 }
 // Module Classique : séparation stricte du code et des résultats Benter.
 const BETPRO_CLASSIC_UI_VERSION='v117-dual-live-isolated';
@@ -10516,6 +10610,8 @@ function renderDirectionCard(o, i, containerId) {
   const pgiGreen=pgiStrong||betproBenterIsHighProbability(o,res);
   if(pgiGreen&&!pgiStrong){tierCfg.label='PROBABILITÉ MODÈLE ÉLEVÉE';tierCfg.border='var(--gr)';tierCfg.bg='rgba(0,255,157,.04)';tierCfg.bannerBg='rgba(0,255,157,.16)';tierCfg.icon='&#10003;';}
   if(pgiStrong){tierCfg.label='SÉLECTION TRÈS FORTE À JOUER';tierCfg.border='#39ff14';tierCfg.bannerBg='rgba(57,255,20,.18)';tierCfg.icon='&#10003;';}
+  // Legacy Benter probability is odds-derived; preserve score and colors but qualify the verdict.
+  tierCfg.label='SIGNAL BENTER · À CONFIRMER';
   const bannerColor=pgiGreen?'var(--gr)':tierColor;
 
   const stakeNote = tier==='basic'
@@ -10540,7 +10636,7 @@ function renderDirectionCard(o, i, containerId) {
         ${ico} ${esc(o.home_team||'?')} <span style="color:var(--dm)">vs</span> ${esc(o.away_team||'?')}
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
-        <span class="bdg bgr">À JOUER</span>
+        <span class="bdg bgr">À CONFIRMER · MODÈLE DE COTES</span>
         <span class="bdg bsp">${esc(betproCompetitionWithCountry(o))}</span>
         <span class="bdg bmk">${mktLabel}</span>
         ${o.start_time?`<span class="bdg bsr">${fmtDate(o.start_time)}</span>`:''}
@@ -10559,18 +10655,18 @@ function renderDirectionCard(o, i, containerId) {
         </div>
         <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:6px 8px;text-align:center">
           <div style="font-family:var(--mo);font-size:12px;font-weight:700;color:${tierColor}">${modelProb}%</div>
-          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Prob. modèle</div>
+          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Prob. dérivée des cotes</div>
         </div>
         <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:6px 8px;text-align:center">
           <div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--gr)">+${edgeProb}%</div>
-          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Avantage sur la cote</div>
+          <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Écart indicatif sur la cote</div>
         </div>
         <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:6px 8px;text-align:center">
           <div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--am)">${evSimple?evSimple.toFixed(3):'—'}</div>
           <div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Valeur attendue</div>
         </div>
         ${kellyFull?`<div style="background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:6px 8px;text-align:center"><div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--pu)">${kellyFull}%</div><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Kelly</div></div>`:''}
-        ${stakeRecommended?`<div style="background:rgba(0,255,157,.06);border:1px solid rgba(0,255,157,.2);border-radius:5px;padding:6px 8px;text-align:center"><div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--gr)">${stakeRecommended} €</div><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Mise conseillée</div></div>`:''}
+        ${stakeRecommended?`<div style="background:rgba(0,255,157,.06);border:1px solid rgba(0,255,157,.2);border-radius:5px;padding:6px 8px;text-align:center"><div style="font-family:var(--mo);font-size:12px;font-weight:700;color:var(--gr)">${stakeRecommended} €</div><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Mise simulée (non validée)</div></div>`:''}
       </div>
 
       ${warning?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:5px;padding:6px 10px;font-size:10px;color:var(--am);margin-bottom:6px">&#9888; ${esc(warning)}</div>`:''}
