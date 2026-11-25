@@ -3645,6 +3645,8 @@ function renderManualMatchResult(result,inputCtx){
    (Number(x.o.odds)>1?esc(Number(x.o.odds).toFixed(2).replace('.',',')):'non indiquée')+
    ' · confiance '+Math.round(Number(x.res.displayConf)||0)+' %</div>').join('');
  }
+ const manualOutsiders=picks.map(x=>betproOutsiderModel(x.o,x.res)).filter(Boolean);
+ if(manualOutsiders.length)content+='<div class="betpro-manual-hero-kicker">SIGNAUX OUTSIDERS DANS CETTE RENCONTRE</div>'+manualOutsiders.map(betproOutsiderBadge).join('');
  const serial=++betproManualRenderSerial;
  const details=picks.map((x,i)=>{
   x.o._res=x.res;
