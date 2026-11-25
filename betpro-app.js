@@ -987,15 +987,15 @@ function betproOutsiderModel(o,res){
   ||!Number.isFinite(p)||p<18||p>47||!Number.isFinite(implied)||implied>=43
   ||!Number.isFinite(edge)||edge<6||!Number.isFinite(value)||value<1.06
   ||dqs<70||reliability<75||families.size<3
-  ||['negative','blocked'].includes(res.historicalAdjustment?.status)
+  ||res.historicalAdjustment?.status!=='positive'||Number(res.historicalAdjustment?.volume||0)<100
   ||['negative','blocked'].includes(res.sportHistoricalAdjustment?.status))return null;
  const selection=String(o.selection||'').trim();
  const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
  if(![norm(o.home_team),norm(o.away_team)].includes(norm(selection)))return null;
- return{pick:selection,category:'modèle',confidence:'Avantage du modèle à vérifier hors échantillon',
+ return{pick:selection,category:'modèle',confidence:'Candidat de surprise avec historique favorable, valeur indépendante non démontrée',
   explanation:'Cote '+odds.toFixed(2)+' · modèle '+p.toLocaleString('fr-FR')+' % contre marché '+implied.toLocaleString('fr-FR')+
-  ' % · écart +'+edge.toLocaleString('fr-FR')+' points · '+families.size+' bookmakers · qualité '+dqs+' %.',
-  risk:'Signal statistique risqué, pas une victoire garantie. Contrôler blessures, composition, forme, calendrier et cote au moment de décider.'};
+  ' % · écart indicatif +'+edge.toLocaleString('fr-FR')+' points · '+families.size+' bookmakers · qualité '+dqs+' % · historique '+Number(res.historicalAdjustment.volume)+' sélections.',
+  risk:'Le modèle part en partie des cotes : son écart n’est pas une preuve indépendante de value bet. L’historique favorable peut être biaisé. Vérifier blessures, forme, compositions et cote actualisée ; perte possible.'};
 }
 function betproOutsiderMarket(m){
  const c=m?.consensus||m?.market_consensus;
@@ -1022,6 +1022,7 @@ function betproOutsiderMarket(m){
   risk:'La probabilité vient des mêmes cotes que le marché : aucun avantage financier indépendant n’est établi. Vérifier forme, absences et contexte avant toute sélection.'};
 }
 function betproOutsiderLive(m,stat,analysis,at){
+ if(m?.score?.home==null||m?.score?.away==null)return null;
  const t=betproLiveTrendDetails(m,stat,analysis,at),h=Number(m?.score?.home),a=Number(m?.score?.away);
  if(!t?.strong||t.stale||t.paused||t.metrics<3||!Number.isFinite(h)||!Number.isFinite(a)||h===a)return null;
  const behind=h<a?String(m.home):String(m.away);
