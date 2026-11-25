@@ -973,6 +973,7 @@ const BETPRO_OUTSIDER_LABEL='OUTSIDER QUI POURRAIT SURPRENDRE';
 const BETPRO_OUTSIDER_NOTIFIED=new Set();
 const BETPRO_OUTSIDER_LIVE_ANALYSIS=new Map();
 function betproOutsiderPercent(x){
+ if(x==null||x==='')return null;
  const n=Number(x);
  return Number.isFinite(n)&&n>=0&&n<=100?(n<=1&&n>0?n*100:n):null;
 }
@@ -986,7 +987,7 @@ function betproOutsiderModel(o,res){
  if(!Number.isFinite(start)||start<=Date.now()+120000||!Number.isFinite(odds)||odds<2.4||odds>9
   ||!Number.isFinite(p)||p<18||p>47||!Number.isFinite(implied)||implied>=43
   ||!Number.isFinite(edge)||edge<6||!Number.isFinite(value)||value<1.06
-  ||dqs<70||reliability<75||families.size<3
+  ||!Number.isFinite(dqs)||!Number.isFinite(reliability)||dqs<70||reliability<75||families.size<3
   ||res.historicalAdjustment?.status!=='positive'||Number(res.historicalAdjustment?.volume||0)<100
   ||['negative','blocked'].includes(res.sportHistoricalAdjustment?.status))return null;
  const selection=String(o.selection||'').trim();
@@ -1021,15 +1022,90 @@ function betproOutsiderMarket(m){
    ' % pour le favori · '+n+' bookmakers indépendants. Rencontre relativement ouverte.',
   risk:'La probabilité vient des mêmes cotes que le marché : aucun avantage financier indépendant n’est établi. Vérifier forme, absences et contexte avant toute sélection.'};
 }
+// Outsider live v2 : critères distincts, temps/score vérifiés, aucun prix inventé.
+function betproOutsiderLiveContext(m){
+ const sport=String(m?.sport||'').toLowerCase(),status=String(m?.status||'').toUpperCase();
+ if(!betproLiveIsActive(m)||['HT','INT','BT','P'].includes(status))return null;
+ const h=betproLiveNum(m.score?.home),a=betproLiveNum(m.score?.away);
+ if(h===null||a===null||h===a||h<0||a<0)return null;
+ const gap=Math.abs(h-a),period=betproLiveNum(m.period),minute=betproLiveNum(m.minute);
+ const clock=String(m.clock||'').match(/^(\d{1,2}):([0-5]\d)$/);
+ const left=clock?Number(clock[1])+Number(clock[2])/60:null;
+ let remaining=null;
+ if(sport==='soccer'){
+  if(minute===null||minute<15||minute>85||status==='ET')return null;
+  remaining=90-minute;if(gap>2||gap===2&&remaining<35||gap===1&&remaining<7)return null;
+ }else if(sport.includes('basketball')){
+  const nba=sport.includes('_nba'),half=sport.includes('ncaab')&&!sport.includes('ncaaw'),count=half?2:4,length=half?20:nba?12:10;
+  if(period===null||period<1||period>count||left===null||left>length)return null;
+  remaining=(count-period)*length+left;
+  if(remaining<2||gap>Math.min(18,Math.max(4,remaining*.95+2)))return null;
+ }else if(sport.includes('icehockey')){
+  if(period===null||period<1||period>3||left===null||left>20)return null;
+  remaining=(3-period)*20+left;if(remaining<3||gap>2||gap===2&&remaining<16)return null;
+ }else if(sport.includes('americanfootball')){
+  if(period===null||period<1||period>4||left===null||left>15)return null;
+  remaining=(4-period)*15+left;if(remaining<3||gap>16||gap>8&&remaining<15)return null;
+ }else if(sport.includes('baseball')){
+  if(period===null||period<1||period>8||gap>3||gap>1&&period>=8)return null;
+  return {behind:h<a?String(m.home):String(m.away),side:h<a?1:-1,gap,context:'manche '+period+' · retard '+gap+' point(s)'};
+ }else if(sport.includes('rugby')){
+  if(minute===null||minute<15||minute>74||gap>14)return null;
+  remaining=80-minute;if(gap>7&&remaining<20)return null;
+ }else return null;
+ return {behind:h<a?String(m.home):String(m.away),side:h<a?1:-1,gap,context:remaining.toFixed(0)+' min réglementaires restantes · retard '+gap};
+}
+function betproOutsiderLiveEvidence(m,stat,context){
+ const sport=String(m.sport||'').toLowerCase();
+ // Une famille ne peut pas multiplier son poids avec plusieurs mesures corrélées.
+ const specs=sport==='soccer'?[
+ ['occasions','xG',['expected_goals','expectedgoals','xg'],.65,1],['occasions','Tirs cadrés',['shots_on_goal','shots_on_target','shotsontarget','shotsongoal'],3,1],['occasions','Tirs dans la surface',['shots_insidebox','shotsinsidebox','shots_in_box'],4,1],['occasions','Tirs',['total_shots','totalshots','shots'],7,1],
+ ['territoire','Corners',['corner_kicks','corners','cornerkicks'],4,1],['territoire','Possession',['ball_possession','possession','possessionpct'],20,1],['territoire','Passes réussies %',['passes_pct','pass_accuracy','passaccuracy'],12,1],
+ ['discipline','Cartons rouges',['red_cards','redcards'],1,-1]
+ ]:sport.includes('basketball')?[
+ ['adresse','Réussite aux tirs',['fieldgoalpct','field_goal_pct','fg_pct'],12,1],['adresse','Réussite à 3 points',['threepointpct','three_point_pct','threepointfieldgoalpct'],18,1],
+ ['possession','Rebonds',['totalrebounds','total_rebounds','rebounds'],10,1],['possession','Rebonds offensifs',['offensiverebounds','offensive_rebounds'],5,1],
+ ['création','Passes décisives',['assists'],7,1],['sécurité','Pertes de balle',['turnovers'],5,-1],['défense','Interceptions',['steals'],5,1],['défense','Contres',['blocks'],4,1]
+ ]:sport.includes('icehockey')?[
+ ['occasions','Tirs cadrés',['shots','shotsongoal','shots_on_goal','shots_on_target'],8,1],['territoire','Mises en jeu gagnées',['faceoffwins','faceoffs_won'],10,1],['discipline','Minutes de pénalité',['penaltyminutes','penalty_minutes','pim'],6,-1],['défense','Tirs bloqués',['blockedshots','blocked_shots'],8,1]
+ ]:sport.includes('americanfootball')?[
+ ['progression','Yards gagnés',['totalyards','total_yards'],100,1],['progression','Premières tentatives',['firstdowns','first_downs'],6,1],['conversion','Conversion 3e tentative %',['thirddownpct','third_down_pct'],18,1],['sécurité','Pertes de balle',['turnovers'],2,-1],['discipline','Yards de pénalité',['penaltyyards','penalty_yards'],40,-1],['territoire','Yards à la course',['rushingyards','rushing_yards'],70,1]
+ ]:sport.includes('baseball')?[
+ ['attaque','Coups sûrs',['hits'],3,1],['sélection','Buts sur balles',['walks','bases_on_balls'],3,1],['défense','Erreurs',['errors'],1,-1],['attaque','Total de bases',['totalbases','total_bases'],6,1]
+ ]:sport.includes('rugby')?[
+ ['territoire','Territoire %',['territory','territorypct'],18,1],['attaque','Mètres gagnés',['metersrun','metresrun','meters_run','metres_run'],100,1],['attaque','Franchissements',['cleanbreaks','clean_breaks'],3,1],['possession','Possession %',['possession','possessionpct'],18,1],['sécurité','Pertes de balle',['turnoversconceded','turnovers_conceded'],4,-1],['discipline','Pénalités concédées',['penaltiesconceded','penalties_conceded'],4,-1]
+ ]:[];
+ const groups=new Map(),observations=[];
+ for(const [family,label,keys,scale,polarity] of specs){
+  const h=betproLiveEspnMetric(stat?.home,keys),a=betproLiveEspnMetric(stat?.away,keys);
+  if(h===null||a===null||h<0||a<0)continue;
+  const v=betproLiveClamp((h-a)*polarity*context.side/scale,-1.5,1.5);
+  const item={family,label,h,a,v};observations.push(item);
+  if(!groups.has(family))groups.set(family,[]);groups.get(family).push(item);
+ }
+ const families=[...groups].map(([name,items])=>({name,v:items.reduce((n,x)=>n+x.v,0)/items.length}));
+ const supportive=families.filter(x=>x.v>=.20),opposing=families.filter(x=>x.v<=-.25);
+ const score=families.length?families.reduce((n,x)=>n+x.v,0)/families.length:0;
+ const positive=observations.filter(x=>x.v>=.25);
+ const primary=sport==='soccer'?'occasions':sport.includes('basketball')?'adresse':sport.includes('icehockey')?'occasions':sport.includes('americanfootball')?'progression':'attaque';
+ const core=families.find(x=>x.name===primary);
+ const red=observations.find(x=>x.label==='Cartons rouges');
+ const enough=observations.length>=4&&families.length>=2&&supportive.length>=2&&positive.length>=3&&score>=.32&&opposing.length<=1&&core?.v>=.30&&!(red&&red.v<0);
+ return {enough,score,positive,supportive,opposing,observations,families};
+}
 function betproOutsiderLive(m,stat,analysis,at){
- if(m?.score?.home==null||m?.score?.away==null)return null;
- const t=betproLiveTrendDetails(m,stat,analysis,at),h=Number(m?.score?.home),a=Number(m?.score?.away);
- if(!t?.strong||t.stale||t.paused||t.metrics<3||!Number.isFinite(h)||!Number.isFinite(a)||h===a)return null;
- const behind=h<a?String(m.home):String(m.away);
- if(t.selected!==behind)return null;
- return{pick:behind,category:'direct',confidence:'Remontée possible, outsider de marché non confirmé',
-  explanation:'L’équipe menée présente au moins trois indicateurs concordants : '+(t.evidence||t.reason)+'.',
-  risk:'Signal de dynamique en direct, pas une cote vérifiée ni une probabilité calibrée de renversement.'};
+ const context=betproOutsiderLiveContext(m),age=Date.now()-Date.parse(at||'');
+ if(!context||!Number.isFinite(age)||age< -30000||age>150000)return null;
+ const e=betproOutsiderLiveEvidence(m,stat,context);
+ if(!e.enough)return null;
+ if(m.sport==='soccer'&&analysis&&!analysis.abstain){
+  const p=Number(context.side===1?analysis.home:analysis.away);
+  if(!Number.isFinite(p)||p<.12)return null;
+ }
+ const evidence=e.positive.sort((a,b)=>b.v-a.v).slice(0,5).map(x=>x.label+' : '+x.h+' / '+x.a).join(' · ');
+ return {pick:context.behind,category:'direct',confidence:'Remontée plausible · signal statistique non calibré',
+ explanation:context.context+' · '+e.supportive.length+'/'+e.families.length+' familles favorables · '+e.positive.length+'/'+e.observations.length+' indicateurs favorables · '+evidence,
+ risk:'Données du jeu, pas une cote live vérifiée. '+e.opposing.length+' famille(s) contradictoire(s). Une domination ne garantit pas une victoire ; aucune probabilité ni rentabilité indépendante démontrée.'};
 }
 function betproOutsiderHorsePMU(d,r,active){
  const start=Date.parse(d?.start_time||''),fetched=Date.parse(d?.fetched_at||'');
@@ -1040,7 +1116,7 @@ function betproOutsiderHorsePMU(d,r,active){
  const odds=Number(String(r.odds??'').replace(',','.'));
  if(!Number.isFinite(odds)||odds<6||odds>28)return null;
  const source=(Array.isArray(r.source_history)?r.source_history:[])
-  .filter(h=>Number.isFinite(Number(h.rank))&&Number(h.rank)>=1&&Number.isFinite(Date.parse(h.date||'')))
+  .filter(h=>Number.isFinite(Number(h.rank))&&Number(h.rank)>=1&&Number.isFinite(Date.parse(h.date||''))&&Date.parse(h.date)<now&&now-Date.parse(h.date)<365*86400000)
   .sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)).slice(0,6);
  if(source.length<4)return null;
  const recent=source.slice(0,5);
@@ -1050,7 +1126,7 @@ function betproOutsiderHorsePMU(d,r,active){
  const similar=recent.filter(h=>
   (!Number.isFinite(distance)||distance<=0||Number(h.distance)>0&&Math.abs(Number(h.distance)-distance)<=distance*.18)
   &&(!h.discipline||!d.discipline||String(h.discipline).toLowerCase()===String(d.discipline).toLowerCase()));
- if(top3<2||avg>4.5||Number(recent[0].rank)>6||similar.length<1||
+ if(top3<2||avg>4.5||Number(recent[0].rank)>6||similar.length<1||now-Date.parse(recent[0].date)>90*86400000||
    !String(r.jockey_driver||'').trim()||!String(r.trainer||'').trim())return null;
  return{pick:'n°'+String(r.number)+' '+String(r.name||''),category:'PMU',
   confidence:'Signal de forme documenté, aucune valeur de pari validée',
@@ -3730,7 +3806,7 @@ async function betproTopLiveAssess(m){
   const cached=betproTopLiveAnalysisCache.get(k);
   if(cached&&Date.now()-cached.time<65000)return cached.result;
   const query=new URLSearchParams({source:String(m.source),fixture:String(m.fixture_id),sport:String(m.sport)});
-  const d=await api('/api/live/analysis?'+query.toString(),'GET',null,{noCache:true,timeoutMs:12500});
+  const d=await betproOutsiderLiveData(m);
   if(!d?.ok)throw Error(d?.error||'Statistiques live indisponibles');
   const fetched=Date.parse(d.fetched_at||'');
   if(!Number.isFinite(fetched)||Date.now()-fetched>150000||fetched>Date.now()+30000)return null;
@@ -3999,10 +4075,71 @@ function betproLiveCard(m){
       <div class="betpro-real-live-score">${tennisScore||(hasScore?`${esc(String(score.home))} <span>:</span> ${esc(String(score.away))}`:sport.startsWith('tennis_')?'Jeux non transmis par ESPN':'Score non communiqué')}</div>
       <div class="betpro-real-live-sub">${m.source==='api-football'?'Minute officielle : '+esc(lbl):'Période et chronomètre officiels : '+esc(lbl)}${cards.length?' · Cartons : '+esc(cards.join(' ; ')):''}</div>
       <div class="betpro-real-live-actions"><button type="button" class="btn bp" onclick="betproAnalyzeRealLive('${esc(key)}', this)">Analyser ce match en direct</button><span>Analyse fondée sur les statistiques, pas seulement sur le score</span></div>
+      <div class="betpro-outsider-auto-slot" style="font-size:10px;color:var(--mu);margin:7px 0" aria-live="polite"></div>
       <div class="betpro-real-live-analysis" id="betpro-live-analysis-${esc(id)}-${esc(sport)}"></div>
     </div>
   </div>`;
 }
+
+// Détection automatique commune aux deux Scan Live, sans masquer les cartes.
+const betproOutsiderAutoCache=new Map(),betproOutsiderAutoChecked=new Map(),betproOutsiderAutoRequests=[];
+function betproOutsiderLiveKey(m){return [m.source,m.sport,m.fixture_id,m.status,m.period,m.minute,m.clock,m.score?.home,m.score?.away].join('|');}
+async function betproOutsiderLiveData(m){
+ const key=betproOutsiderLiveKey(m),old=betproOutsiderAutoCache.get(key);
+ if(old&&Date.now()-old.at<65000)return old.promise;
+ const query=new URLSearchParams({source:String(m.source),fixture:String(m.fixture_id),sport:String(m.sport)});
+ const promise=api('/api/live/analysis?'+query.toString(),'GET',null,{noCache:true,timeoutMs:12500});
+ betproOutsiderAutoCache.set(key,{at:Date.now(),promise});
+ if(betproOutsiderAutoCache.size>120)betproOutsiderAutoCache.delete(betproOutsiderAutoCache.keys().next().value);
+ try{return await promise;}catch(err){if(betproOutsiderAutoCache.get(key)?.promise===promise)betproOutsiderAutoCache.delete(key);throw err;}
+}
+function betproOutsiderLivePublish(m,signal){
+ const key=String(m.fixture_id)+'|'+String(m.sport);
+ if(!signal){BETPRO_OUTSIDER_LIVE_ANALYSIS.delete(key);return;}
+ BETPRO_OUTSIDER_LIVE_ANALYSIS.set(key,signal);
+ if(BETPRO_OUTSIDER_LIVE_ANALYSIS.size>120)BETPRO_OUTSIDER_LIVE_ANALYSIS.delete(BETPRO_OUTSIDER_LIVE_ANALYSIS.keys().next().value);
+ const existing=betproLivePageKnownFollow({home:m.home,away:m.away,startTime:m.start_time||m.event_start_at||''});
+ if(existing){betproFollowCatalog.set(existing.id,{...existing,outsiderSignal:signal});betproOutsiderFollowNotify(signal,existing.id);}
+}
+async function betproOutsiderAutoScan(containerId,matches,seq){
+ const cnt=document.getElementById(containerId),summary=cnt?.querySelector('.betpro-outsider-scan-summary');
+ if(!summary)return;
+ const now=Date.now();
+ while(betproOutsiderAutoRequests.length&&now-betproOutsiderAutoRequests[0]>180000)betproOutsiderAutoRequests.shift();
+ const key=m=>[m.source,m.sport,m.fixture_id].join(':');
+ const card=m=>[...cnt.querySelectorAll('.betpro-real-live-card')].find(el=>el.dataset.liveKey===key(m));
+ const alive=()=>seq===betproLiveRequestSequence&&summary.isConnected&&!document.hidden;
+ const slot=m=>card(m)?.querySelector('.betpro-outsider-auto-slot');
+ const eligible=matches.filter(m=>betproOutsiderLiveContext(m));
+ let done=0,signals=0,missing=0;
+ for(const m of matches){const el=slot(m);if(el)el.textContent=eligible.includes(m)?'Outsider : contrôle statistique en attente.':'Outsider : score, temps ou sport non compatible avec le modèle actuel.';}
+ const sorted=eligible.sort((a,b)=>(betproOutsiderAutoChecked.get(key(a))||0)-(betproOutsiderAutoChecked.get(key(b))||0));
+ const chosen=sorted.slice(0,Math.max(0,Math.min(8,12-betproOutsiderAutoRequests.length)));
+ const report=()=>{if(alive())summary.textContent='OUTSIDERS LIVE · '+done+'/'+chosen.length+' examinés · '+signals+' signal(s) rouge(s) · '+missing+' sans données suffisantes · '+(matches.length-eligible.length)+' hors critères score/temps/sport · '+(eligible.length-chosen.length)+' en attente (quota protégé).';};
+ report();let cursor=0;
+ await Promise.all(Array.from({length:Math.min(3,chosen.length)},async()=>{
+  while(cursor<chosen.length&&alive()){
+   const m=chosen[cursor++],id=key(m);betproOutsiderAutoRequests.push(Date.now());betproOutsiderAutoChecked.set(id,Date.now());
+   if(betproOutsiderAutoChecked.size>500)betproOutsiderAutoChecked.delete(betproOutsiderAutoChecked.keys().next().value);
+   try{
+    const d=await betproOutsiderLiveData(m);
+    if(!alive())return;
+    const stats=d?.ok?betproLiveStatsForMatch(m,d):null;
+    const age=Date.now()-Date.parse(d?.fetched_at||'');
+    if(!stats||!Number.isFinite(age)||age< -30000||age>150000){missing++;const el=slot(m);if(el)el.textContent='Outsider : données officielles insuffisantes ou périmées.';betproOutsiderLivePublish(m,null);}
+    else{
+     const a=m.sport==='soccer'?betproLiveHeuristicFootball(m,stats):null;
+     const signal=betproOutsiderLive(m,stats,a,d.fetched_at),el=slot(m);
+     betproOutsiderLivePublish(m,signal);
+     if(signal){signals++;if(el)el.innerHTML=betproOutsiderBadge(signal);}
+     else if(el){const e=betproOutsiderLiveEvidence(m,stats,betproOutsiderLiveContext(m));if(e.observations.length<4||e.families.length<2)missing++;el.textContent='Outsider : aucun signal confirmé · '+e.observations.length+' indicateurs / '+e.families.length+' familles disponibles.';}
+    }
+   }catch(_){if(!alive())return;missing++;const el=slot(m);if(el)el.textContent='Outsider : statistiques momentanément indisponibles.';betproOutsiderLivePublish(m,null);}
+   done++;report();
+  }
+ }));
+}
+
 async function betproLoadRealLive(containerId){
   const cnt=document.getElementById(containerId);if(!cnt)return;
   const seq=++betproLiveRequestSequence;
@@ -4024,8 +4161,9 @@ async function betproLoadRealLive(containerId){
     const liveTitle=`<div class="sbar"><span style="color:var(--re);font-weight:800">● MATCHS RÉELLEMENT EN COURS</span><span>${matches.length} rencontre(s) live confirmée(s)</span><span style="margin-left:auto">Relevé : ${esc(fetchDate)}${serverNote}</span></div>`;
     const warningNote=warnings.length?`<div class="info" style="font-size:10px">Certaines sources sont momentanément indisponibles : ${esc(warnings.slice(0,3).join(' ; '))}. Aucun match non confirmé n'a été ajouté.</div>`:'';
     const empty=`<div class="empty"><div class="empty-t">Aucun match actuellement confirmé en direct par les sources consultées.</div><div class="empty-s">Les rencontres programmées restent uniquement dans la rubrique « Matchs à venir ». Réactualisez le Live pour un nouveau relevé.</div></div>`;
-    cnt.innerHTML=liveTitle+warningNote+(matches.length?'<div class="betpro-real-live-grid">'+matches.map(betproLiveCard).join('')+'</div>':empty);
-    if(matches.length)betproLivePageAttachActions(containerId,matches,'live');
+    cnt.innerHTML=liveTitle+warningNote+(matches.length?'<div class="betpro-outsider-scan-summary info" style="font-size:11px" role="status"></div><div class="betpro-real-live-grid">'+matches.map(betproLiveCard).join('')+'</div>':empty);
+    BETPRO_OUTSIDER_LIVE_ANALYSIS.clear();
+    if(matches.length){betproLivePageAttachActions(containerId,matches,'live');void betproOutsiderAutoScan(containerId,matches,seq);}
     if(betproTopLiveEnabled&&containerId===betproTopLiveContainerId())betproTopLiveApply(containerId);
   }catch(err){if(seq===betproLiveRequestSequence)cnt.innerHTML='<div class="warn">Flux live indisponible : '+esc(err?.message||String(err))+'. Aucun match programmé ne sera substitué à un vrai match en direct.</div>';}
 }
@@ -4234,15 +4372,13 @@ async function betproAnalyzeRealLive(key,button){
   el.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des statistiques officielles…</p></div>';
   try{
     const query=new URLSearchParams({source:m.source,fixture:String(m.fixture_id),sport:m.sport});
-    const d=await api('/api/live/analysis?'+query.toString(),'GET',null,{timeoutMs:16000});
+    const d=await betproOutsiderLiveData(m);
     if(!d?.ok)throw Error(d?.error||'Statistiques non disponibles');
     const stats=betproLiveStatsForMatch(m,d);
     if(!stats){el.innerHTML='<div class="info">Les deux équipes ne sont pas identifiables avec certitude dans les statistiques reçues. Aucune prédiction non vérifiée.</div>';return;}
     const a=m.sport==='soccer'?betproLiveHeuristicFootball(m,stats):betproLiveHeuristicOther(m,stats);
     const outsider=betproOutsiderLive(m,stats,a,d.fetched_at);
-    if(outsider){BETPRO_OUTSIDER_LIVE_ANALYSIS.set(String(m.fixture_id)+'|'+String(m.sport),outsider);
-     if(betproLivePageKnownFollow({home:m.home,away:m.away,startTime:m.start_time||m.event_start_at||''}))betproOutsiderFollowNotify(outsider,String(m.fixture_id)+'|'+String(m.sport));
-    }
+    betproOutsiderLivePublish(m,outsider);
     const date=d.fetched_at?betproClassicDate(d.fetched_at):'non transmis';
     const disclaimer='<div class="betpro-live-footnote">Analyse indicative à partir de statistiques observées. Les estimations ne sont pas calibrées sur un historique indépendant et ne remplacent pas des cotes live vérifiées. Aucune recommandation de mise automatique.</div>';
     if(a.abstain){el.innerHTML=`<div class="betpro-real-live-panel">${betproLiveSimpleTiming(m,a,d.fetched_at,stats)}${betproOutsiderBadge(outsider)}<strong>ANALYSE PROBABILISTE LIMITÉE</strong><p>${esc(a.reason)}</p>${a.html}${disclaimer}<small>Dernières statistiques : ${esc(date)}</small></div>`;return;}
@@ -4359,7 +4495,7 @@ function betproLivePageKnownFollow(rec){
 }
 function betproLivePageFollowPayload(rec,choice=null){
  const existing=betproLivePageKnownFollow(rec);
- if(existing){betproFollowCatalog.set(existing.id,existing);return existing;}
+ if(existing){const liveSignal=rec.kind==='live'?BETPRO_OUTSIDER_LIVE_ANALYSIS.get(String(rec.raw?.fixture_id)+'|'+String(rec.raw?.sport)):null;const enriched={...existing,outsiderSignal:liveSignal||betproOutsiderFollowSignalFor(existing.id)||existing.outsiderSignal||null};betproFollowCatalog.set(existing.id,enriched);return enriched;}
  let payload=null;
  if(rec.kind==='benter'&&!choice){
   const b=betproFollowBenterPayload(rec.raw);
