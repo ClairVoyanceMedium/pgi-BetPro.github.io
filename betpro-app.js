@@ -947,6 +947,7 @@ async function doLiveScan() {
     if (currentScanMode !== 'complet') setScanCache(cacheKey, filtered);
 
     renderScanResults(filtered, cnt, 0, diag);
+    betproPoissonOutsiderRememberQuotes(deduped);
     betproIndependentOutsiderLane(cnt,deduped);
     loadQuotas();
   } catch (e) {
@@ -6351,7 +6352,7 @@ function betproPoissonNormalizeFixture(event,origin,mode){
     provider:mode==='live'?String(event.source||''):origin,
     sport,home,away,start_time:start,competition,
     country:String(event.country?.name||event.country||event.league_country?.name||event.league_country||event.country_name||'').trim(),
-    mode,score:mode==='live'?(event.score||null):null,
+    mode,liveRaw:mode==='live'?event:null,score:mode==='live'?(event.score||null):null,
     minute:mode==='live'?(event.minute??null):0,
     source:origin,
     sport_source:String(event.sport_source||event.sport||event._sport||''),
@@ -6520,10 +6521,107 @@ function betproPoissonResetSearch(){
  if(search)search.value='';
  if(minimum)minimum.value='';
  if(quality)quality.value='verified';
+ const outsider=document.getElementById('betpro-poisson-outsider-filter');if(outsider)outsider.value='all';
  if(sport)sport.value='all';
  betproPoissonRenderFixtures();
  search?.focus();
 }
+
+// Poisson : recherche explicite des signaux stricts, par lots et sans modifier les scans ordinaires.
+const betproPoissonOutsiderResults=new Map(),betproPoissonOutsiderQuotes=new Map(),betproPoissonOutsiderQuoteTimes=[];
+let betproPoissonOutsiderBusy=false,betproPoissonOutsiderLastScope='';
+function betproPoissonOutsiderEnabled(){return document.getElementById('betpro-poisson-outsider-filter')?.value==='only';}
+function betproPoissonOutsiderKey(f){return f.mode==='live'?'live|'+betproOutsiderLiveKey(f.liveRaw||{}):'upcoming|'+betproPoissonFixtureKey(f);}
+function betproPoissonOutsiderEntry(f){
+ const r=betproPoissonOutsiderResults.get(betproPoissonOutsiderKey(f));
+ if(!r)return null;
+ const ttl=f.mode==='live'?60000:180000;
+ if(Date.now()-r.at>ttl||f.mode==='upcoming'&&Date.parse(f.start_time)<=Date.now()+120000)return null;
+ return r;
+}
+function betproPoissonOutsiderRows(){
+ const query=document.getElementById('betpro-poisson-filter')?.value||'',sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
+ return betproPoissonPicker.fixtures.map((f,i)=>({f,i})).filter(({f})=>(sport==='all'||f.sport===sport)&&betproPoissonSearchMatches(f,query));
+}
+function betproPoissonOutsiderEligible(f){
+ if(f.mode==='live')return !!f.liveRaw&&!!betproOutsiderLiveContext(f.liveRaw);
+ return f.sport==='football'&&Date.parse(f.start_time)>Date.now()+120000&&!!betproPoissonFollowSportKey(f);
+}
+function betproPoissonOutsiderRememberQuotes(raw){
+ const groups=new Map();
+ for(const o of Array.isArray(raw)?raw:[]){
+  const sport=String(o.sport||o._sport||'');
+  if(!sport.startsWith('soccer_')||String(o.market||'')!=='h2h')continue;
+  if(!groups.has(sport))groups.set(sport,[]);groups.get(sport).push(o);
+ }
+ for(const [sport,items] of groups)betproPoissonOutsiderQuotes.set(sport,{at:Date.now(),promise:Promise.resolve(items),partial:true});
+}
+async function betproPoissonOutsiderPrices(sport){
+ const now=Date.now(),old=betproPoissonOutsiderQuotes.get(sport);
+ if(old&&now-old.at<120000)return old.promise;
+ while(betproPoissonOutsiderQuoteTimes.length&&now-betproPoissonOutsiderQuoteTimes[0]>300000)betproPoissonOutsiderQuoteTimes.shift();
+ if(betproPoissonOutsiderQuoteTimes.length>=3)throw Error('Quota de recherche protégé');
+ betproPoissonOutsiderQuoteTimes.push(now);
+ const promise=api('/api/analyze?sport='+encodeURIComponent(sport)+'&market=h2h&mode=quick','GET',null,{timeoutMs:25000}).then(d=>{
+  if(!d||d.ok===false||!Array.isArray(d.opportunities))throw Error('Cotes par sélection indisponibles');
+  return d.opportunities;
+ });
+ betproPoissonOutsiderQuotes.set(sport,{at:now,promise});
+ try{return await promise;}catch(e){if(betproPoissonOutsiderQuotes.get(sport)?.promise===promise)betproPoissonOutsiderQuotes.delete(sport);throw e;}
+}
+async function betproPoissonOutsiderCheck(f){
+ if(f.mode==='live'){
+  const m=f.liveRaw,d=await betproOutsiderLiveData(m);
+  const stats=d?.ok?betproLiveStatsForMatch(m,d):null,age=Date.now()-Date.parse(d?.fetched_at||'');
+  if(!stats||!Number.isFinite(age)||age< -30000||age>150000)return {state:'missing'};
+  const a=m.sport==='soccer'?betproLiveHeuristicFootball({...m,minute:betproOutsiderOfficialMinute(m)},stats):null;
+  const signal=betproOutsiderLive(m,stats,a,d.fetched_at);
+  return {state:signal?'confirmed':'rejected',signal};
+ }
+ const sport=betproPoissonFollowSportKey(f),raw=await betproPoissonOutsiderPrices(sport);
+ const descriptors=raw.map(o=>betproIndependentDescriptor(o,'Benter')).filter(x=>x&&x.sport==='football'&&x.side!=='draw'&&x.price>=2.4&&x.price<=9&&x.books>=3&&x.quoteAt!==null&&betproIndependentExactName(x.home,f.home)&&betproIndependentExactName(x.away,f.away)&&Math.abs(Date.parse(x.start)-Date.parse(f.start_time))<=15*60000);
+ if(!descriptors.length)return {state:'missing'};
+ const d=await betproIndependentFetch(descriptors[0]);
+ if(!d?.ok||!d.model)return {state:'missing'};
+ const evaluations=descriptors.map(x=>({x,r:betproIndependentRead(d,x)})).filter(z=>z.r);
+ const best=evaluations.filter(z=>z.r.outsider).sort((a,b)=>b.r.ev-a.r.ev)[0];
+ if(!best)return {state:evaluations.length?'rejected':'missing'};
+ const {x,r}=best,pct=v=>Number(v).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %';
+ const signal={pick:x.selection,category:'independent',qualifiedVersion:'v263',winProbability:r.p,probabilityLabel:'Estimation ESPN non calibrée',mainReason:'Historique sportif ESPN : '+r.n1+' / '+r.n2+' matchs. Probabilité '+pct(r.p)+' contre seuil de rentabilité '+pct(100/x.price)+' ; écart de '+r.edge.toFixed(1)+' points.',confidence:'Filtre strict passé · estimation indépendante à confirmer',metrics:[{label:'Cote relevée',value:x.price.toFixed(2)},{label:'Seuil de rentabilité',value:pct(100/x.price)},{label:'Cote théorique',value:r.modelOdds.toFixed(2)},{label:'Historique ESPN',value:r.n1+' / '+r.n2+' matchs'}],explanation:'EV simulée '+pct(r.ev)+'. Estimation non calibrée ; le filtre strict inclut une réduction de quatre points de probabilité.',risk:'Blessures et compositions non confirmées ici ; aucune mise validée. La cote peut évoluer.'};
+ return {state:'confirmed',signal};
+}
+function betproPoissonOutsiderScope(){
+ const p=betproPoissonPicker;
+ return [p.seq,p.mode,document.getElementById('betpro-poisson-filter')?.value||'',document.getElementById('betpro-poisson-sport-filter')?.value||'all',p.fixtures.length].join('|');
+}
+async function betproPoissonOutsiderSearch(force=false){
+ if(!betproPoissonOutsiderEnabled()||betproPoissonOutsiderBusy||betproPoissonPicker.loading)return;
+ const scope=betproPoissonOutsiderScope();
+ if(!force&&scope===betproPoissonOutsiderLastScope)return;
+ betproPoissonOutsiderLastScope=scope;
+ const rows=betproPoissonOutsiderRows().map(x=>x.f).filter(betproPoissonOutsiderEligible);
+ const pending=rows.filter(f=>!betproPoissonOutsiderEntry(f));
+ if(!pending.length)return;
+ betproPoissonOutsiderBusy=true;betproPoissonRenderFixtures();
+ const chosen=pending.slice(0,6);
+ try{
+  for(let i=0;i<chosen.length;i+=2){
+   if(!betproPoissonOutsiderEnabled()||scope!==betproPoissonOutsiderScope())break;
+   await Promise.all(chosen.slice(i,i+2).map(async f=>{
+    const key=betproPoissonOutsiderKey(f);
+    let result;try{result=await betproPoissonOutsiderCheck(f);}catch(_){result={state:'missing'};}
+    betproPoissonOutsiderResults.set(key,{...result,at:Date.now()});
+    if(betproPoissonOutsiderResults.size>300)betproPoissonOutsiderResults.delete(betproPoissonOutsiderResults.keys().next().value);
+   }));
+   if(betproPoissonOutsiderEnabled())betproPoissonRenderFixtures();
+  }
+ }finally{betproPoissonOutsiderBusy=false;if(betproPoissonOutsiderEnabled())betproPoissonRenderFixtures();}
+}
+function betproPoissonOutsiderChanged(){
+ betproPoissonOutsiderLastScope='';
+ betproPoissonRenderFixtures();
+}
+
 function betproPoissonRenderFixtures(){
  const p=betproPoissonPicker,container=document.getElementById('betpro-poisson-fixtures');
  if(!container)return;
@@ -6534,8 +6632,9 @@ function betproPoissonRenderFixtures(){
  const quality=document.getElementById('betpro-poisson-percent-quality')?.value||'verified';
  const sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
  const sportRows=p.fixtures.map((f,i)=>({f,i})).filter(({f})=>sport==='all'||f.sport===sport);
- const rows=sportRows.filter(({f})=>betproPoissonSearchMatches(f,query)&&
-  (minimum<=0||((betproPoissonDisplayedPercent(f,quality)??-1)>=minimum)));
+ const outsiderOnly=betproPoissonOutsiderEnabled();
+ const baseRows=sportRows.filter(({f})=>betproPoissonSearchMatches(f,query));
+ const rows=baseRows.filter(({f})=>outsiderOnly?(betproOutsiderIsQualified(betproPoissonOutsiderEntry(f)?.signal)&&(minimum<=0||(betproPoissonOutsiderEntry(f)?.signal?.winProbability??-1)>=minimum)):(minimum<=0||((betproPoissonDisplayedPercent(f,quality)??-1)>=minimum)));
  const feedback=document.getElementById('betpro-poisson-search-feedback');
  if(feedback){
   const active=Boolean(query.trim())||minimum>0||sport!=='all';
@@ -6544,6 +6643,10 @@ function betproPoissonRenderFixtures(){
    (minimum>0?' Seuil : '+minimum.toLocaleString('fr-FR')+' % de probabilité de marché, pas Poisson.':'')+
    (minimum>0&&p.mode==='live'?' Aucun pourcentage avant l’analyse des rencontres en direct.':'');
  }
+ const control=document.getElementById('betpro-poisson-outsider-more');
+ if(control){control.hidden=!outsiderOnly;control.disabled=betproPoissonOutsiderBusy;control.textContent=betproPoissonOutsiderBusy?'Analyse en cours…':'Examiner les prochaines rencontres';}
+ if(outsiderOnly&&feedback){const eligible=baseRows.filter(({f})=>betproPoissonOutsiderEligible(f));const checked=eligible.map(({f})=>betproPoissonOutsiderEntry(f)).filter(Boolean);const pending=eligible.length-checked.length;feedback.textContent=rows.length+' outsider(s) retenu(s) · '+checked.length+'/'+eligible.length+' rencontres admissibles examinées · '+checked.filter(x=>x.state==='missing').length+' sans données suffisantes · '+pending+' à examiner'+(baseRows.length>eligible.length?' · '+(baseRows.length-eligible.length)+' hors couverture du modèle':'')+(minimum>0?' · seuil appliqué à la probabilité sportive disponible.':'.');if(control&&!pending&&!betproPoissonOutsiderBusy)control.hidden=true;}
+ if(outsiderOnly&&!p.loading&&!betproPoissonOutsiderBusy&&betproPoissonOutsiderLastScope!==betproPoissonOutsiderScope())void Promise.resolve().then(()=>betproPoissonOutsiderSearch());
  const strong=rows.filter(({f})=>betproPoissonTrustMarket(f,true)).length;
  const historical=rows.filter(({f})=>!betproPoissonTrustMarket(f,true)&&
   !betproPoissonTrustMarket(f,false)&&betproPoissonHistoricalMarket(f)).length;
@@ -6563,7 +6666,7 @@ function betproPoissonRenderFixtures(){
     betproPoissonFixtureSignal(f)+
     betproPoissonFixtureQuickFacts(f)+
     '<span class="betpro-poisson-open-label">'+(f.mode==='live'?'ANALYSER LE DIRECT':'ANALYSER LA RENCONTRE')+'</span>'+
-   '</button>'+betproOutsiderBadge(f.mode==='upcoming'?betproOutsiderMarket(f):null)+
+   '</button>'+betproOutsiderBadge(betproPoissonOutsiderEntry(f)?.signal||(f.mode==='upcoming'?betproOutsiderMarket(f):null))+
    '<button type="button" class="betpro-poisson-card-copy" onclick="betproPoissonCopyFixture('+i+',this)" title="Copier les participants" aria-label="Copier le nom de la rencontre">'+copyIcon+'</button>'+
    '<div class="betpro-poisson-fixture-actions">'+
     '<button type="button" class="betpro-follow-btn betpro-poisson-card-follow'+(wasFollowed?' is-followed':'')+'"'+(followId?' data-betpro-follow-id="'+esc(followId)+'"':'')+
@@ -6584,12 +6687,14 @@ function betproPoissonRenderFixtures(){
  if(!rows.length){
   const sportName=document.getElementById('betpro-poisson-sport-filter')?.selectedOptions?.[0]?.textContent||'ce sport';
   container.innerHTML='<div class="betpro-poisson-fixture-status">'+
-   (minimum>0?'Aucune carte ne correspond au seuil de probabilité de marché et aux critères choisis. Réduisez le seuil ou élargissez les sources.':
+   (outsiderOnly?(betproPoissonOutsiderBusy?'Contrôle strict en cours. Seules les cartes validées apparaissent.':'Aucun outsider strict retenu parmi les rencontres examinées. Les rencontres restantes ou non couvertes ne sont pas considérées comme rejetées.'):
+    minimum>0?'Aucune carte ne correspond au seuil de probabilité de marché et aux critères choisis. Réduisez le seuil ou élargissez les sources.':
     query.trim()?'Aucune rencontre correspondante dans la liste chargée. Essayez un autre nom d’équipe.':
     sport!=='all'?'Aucune rencontre confirmée pour '+esc(sportName)+' dans la période chargée. Les calendriers et les cotes dépendent des sources disponibles.':
     'Aucune rencontre correspondante. Essayez un autre nom d’équipe ou utilisez la saisie avancée.')+'</div>';
  }
- if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+
+ if(!p.loading&&outsiderOnly)betproPoissonSetPickerStatus(rows.length+' OUTSIDER(S) RETENU(S) · FILTRE STRICT');
+ else if(!p.loading)betproPoissonSetPickerStatus(rows.length+' RENCONTRE(S) À ANALYSER'+
   (strong?' · '+strong+' avec consensus bookmakers vérifié':'')+
   (historical?' · '+historical+' avec ancienne tendance datée':'')+
   '. Les autres rencontres disposent d’une analyse sur sélection. Une cote datée n’est pas une cote actuelle.');
