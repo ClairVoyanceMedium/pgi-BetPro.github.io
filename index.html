@@ -3709,6 +3709,37 @@ a{color:var(--neon);text-decoration:none}
 .ticker-news-related .betpro-outsider-signal{margin:7px 0}
 @media(max-width:490px){.betpro-outsider-signal{padding:9px 10px}.betpro-outsider-head{font-size:10px}.toast.outsider{max-width:min(90vw,310px)}}
 
+/* v262 — hierarchy and readable statistics, scoped to outsider cards only */
+.betpro-outsider-structured{padding:13px 14px;margin:10px 0;border-radius:12px;background:linear-gradient(150deg,#281923 0%,#181b27 60%,#1b1722 100%);box-shadow:0 3px 16px rgba(0,0,0,.18);line-height:1.5}
+.betpro-outsider-structured .betpro-outsider-head{display:flex;align-items:center;gap:8px;letter-spacing:.055em;font:800 11px/1.5 var(--hd);color:#ff717b}
+.betpro-outsider-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#ff4b58;box-shadow:0 0 9px rgba(255,75,88,.6)}
+.betpro-outsider-identity{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 0;border-bottom:1px solid rgba(255,135,145,.17);margin-bottom:10px}
+.betpro-outsider-identity-name{min-width:0;flex:1 1 115px}
+.betpro-outsider-type{display:block;color:#d4aeb6;font:600 10px/1.4 var(--hd);text-transform:uppercase;letter-spacing:.06em}
+.betpro-outsider-structured .betpro-outsider-pick{font:800 17px/1.25 var(--hd);margin:4px 0 0;color:#fff5f5;overflow-wrap:anywhere}
+.betpro-outsider-prob{display:flex;flex-direction:column;align-items:flex-end;text-align:right;flex:0 1 auto;max-width:100%;gap:2px;color:#dec2ca;font:500 10px/1.4 var(--hd)}
+.betpro-outsider-prob-value{color:#ff7b84;font:800 27px/1.1 var(--mo);font-variant-numeric:tabular-nums;white-space:nowrap}
+.betpro-outsider-prob-value small{font-size:15px}
+.betpro-outsider-no-prob{font:500 10px/1.5 var(--hd);color:#d4aeb6;margin:0 0 9px}
+.betpro-outsider-primary{background:rgba(255,75,88,.07);border:1px solid rgba(255,109,124,.24);border-radius:8px;padding:10px 11px;margin:0 0 10px}
+.betpro-outsider-section-label{display:flex;align-items:center;gap:6px;font:800 11px/1.4 var(--hd);letter-spacing:.035em;text-transform:uppercase;color:#ff8790;margin-bottom:5px}
+.betpro-outsider-section-label svg{flex:0 0 15px}
+.betpro-outsider-main-copy{font:600 12px/1.6 var(--hd);color:#fff1f3;overflow-wrap:anywhere}
+.betpro-outsider-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0 0 10px}
+.betpro-outsider-metric{display:flex;flex-direction:column;gap:3px;min-width:0;padding:8px 9px;border:1px solid rgba(255,170,180,.15);background:rgba(4,8,16,.23);border-radius:7px;overflow-wrap:anywhere}
+.betpro-outsider-metric>span{color:#d5b8c2;font:600 10px/1.35 var(--hd)}
+.betpro-outsider-metric>strong{color:#fff0f3;font:700 13px/1.4 var(--mo);font-variant-numeric:tabular-nums}
+.betpro-outsider-metric>small{color:#c2a8b1;font:500 9px/1.35 var(--hd)}
+.betpro-outsider-structured .betpro-outsider-risk-panel{margin:0 0 9px;padding:9px 10px;border:1px solid rgba(241,177,104,.17);border-left:2px solid #d9a365;background:rgba(223,154,76,.05);border-radius:7px;color:#e8d3bf;font:500 11px/1.55 var(--hd)}
+.betpro-outsider-risk-panel .betpro-outsider-section-label{color:#f3c28c;font-size:10px}
+.betpro-outsider-status{font:600 10px/1.5 var(--hd);color:#cdb9c2;overflow-wrap:anywhere}
+.betpro-outsider-more{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,135,145,.15);font:500 11px/1.55 var(--hd);color:#dec8ce}
+.betpro-outsider-more summary{cursor:pointer;font-weight:700;color:#ffd1d6;white-space:normal}
+.betpro-outsider-more p{margin:7px 0 0;overflow-wrap:anywhere}
+@media(max-width:490px){.betpro-outsider-structured{padding:10px 11px}.betpro-outsider-structured .betpro-outsider-head{font-size:10px}.betpro-outsider-structured .betpro-outsider-pick{font-size:16px}.betpro-outsider-prob-value{font-size:24px}.betpro-outsider-metric>strong{font-size:12px}}
+@media(max-width:340px){.betpro-outsider-identity{gap:6px}.betpro-outsider-prob{align-items:flex-start;text-align:left}.betpro-outsider-metrics{gap:5px}}
+
+
 </style>
 </head>
 <body>
@@ -5162,7 +5193,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261125-outsider-reason-v261"></script>
+<script defer src="./betpro-app.js?v=20261125-outsider-layout-v262"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
