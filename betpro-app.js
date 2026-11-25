@@ -4195,14 +4195,18 @@ async function betproAnalyzeRealLive(key,button){
     const stats=betproLiveStatsForMatch(m,d);
     if(!stats){el.innerHTML='<div class="info">Les deux équipes ne sont pas identifiables avec certitude dans les statistiques reçues. Aucune prédiction non vérifiée.</div>';return;}
     const a=m.sport==='soccer'?betproLiveHeuristicFootball(m,stats):betproLiveHeuristicOther(m,stats);
+    const outsider=betproOutsiderLive(m,stats,a,d.fetched_at);
+    if(outsider){BETPRO_OUTSIDER_LIVE_ANALYSIS.set(String(m.fixture_id)+'|'+String(m.sport),outsider);
+     if(betproLivePageKnownFollow({home:m.home,away:m.away,startTime:m.start_time||m.event_start_at||''}))betproOutsiderFollowNotify(outsider,String(m.fixture_id)+'|'+String(m.sport));
+    }
     const date=d.fetched_at?betproClassicDate(d.fetched_at):'non transmis';
     const disclaimer='<div class="betpro-live-footnote">Analyse indicative à partir de statistiques observées. Les estimations ne sont pas calibrées sur un historique indépendant et ne remplacent pas des cotes live vérifiées. Aucune recommandation de mise automatique.</div>';
-    if(a.abstain){el.innerHTML=`<div class="betpro-real-live-panel">${betproLiveSimpleTiming(m,a,d.fetched_at,stats)}<strong>ANALYSE PROBABILISTE LIMITÉE</strong><p>${esc(a.reason)}</p>${a.html}${disclaimer}<small>Dernières statistiques : ${esc(date)}</small></div>`;return;}
+    if(a.abstain){el.innerHTML=`<div class="betpro-real-live-panel">${betproLiveSimpleTiming(m,a,d.fetched_at,stats)}${betproOutsiderBadge(outsider)}<strong>ANALYSE PROBABILISTE LIMITÉE</strong><p>${esc(a.reason)}</p>${a.html}${disclaimer}<small>Dernières statistiques : ${esc(date)}</small></div>`;return;}
     const pct=x=>(100*x).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %';
     const probs=a.home!=null?`<div class="betpro-real-live-outcomes"><span>${esc(m.home)} : ${pct(a.home)}</span><span>Nul : ${pct(a.draw)}</span><span>${esc(m.away)} : ${pct(a.away)}</span></div>`:'';
     el.innerHTML=`<div class="betpro-real-live-panel ${a.green?'betpro-real-live-strong':''}">${betproLiveSimpleTiming(m,a,d.fetched_at,stats)}<div class="betpro-real-live-verdict">${a.green?'SIGNAL STATISTIQUE FORT':'ANALYSE LIVE DÉTAILLÉE'}<strong>${esc(a.verdict)}</strong></div>
       ${a.predictedTop?`<p>Scénario dominant du modèle : ${esc(a.predictedTop)}. Ce chiffre est une simulation heuristique, pas une probabilité calibrée.</p>`:''}
-      ${probs}${a.html}
+      ${probs}${betproOutsiderBadge(outsider)}${a.html}
       <div class="betpro-real-live-reasons">${(a.explanations||[]).map(x=>'<p>• '+esc(x)+'</p>').join('')}</div>
       <div class="betpro-real-live-method">Méthode : ${esc(a.method)}</div>
       ${disclaimer}<small>Statistiques reçues : ${esc(date)}</small></div>`;
@@ -4485,6 +4489,7 @@ async function betproToggleFollow(btn,id){
   betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
   betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));
   toast(remove?'Pronostic retiré du suivi.':'Pronostic ajouté au suivi.','ok');
+  if(!remove&&card.outsiderSignal)betproOutsiderFollowNotify(card.outsiderSignal,id);
   if(document.getElementById('s-results')?.classList.contains('on'))loadResults();
  }catch(e){toast(e?.message||'Erreur de suivi','err');}
  finally{btn.disabled=false;betproFollowPaint();}
@@ -4497,7 +4502,7 @@ function betproEnhanceScanFollow(containerId,items,engine){
   const body=el.querySelector('.dir-body')||el.children[1];if(!body)continue;
   const data=engine==='Benter'?betproFollowBenterPayload(items[i]):betproFollowClassicPayload(items[i]);
   if(!data.home||!data.away||!data.selection||!Number.isFinite(Date.parse(data.startTime)))continue;
-  const id=betproFollowIdentifier(data),card={...data,id};betproFollowCatalog.set(id,card);
+  const id=betproFollowIdentifier(data),card={...data,id,outsiderSignal:engine==='Benter'?betproOutsiderModel(items[i],items[i]._res||computeDirection(items[i])):betproOutsiderMarket(items[i])};betproFollowCatalog.set(id,card);
   const button=document.createElement('button');button.type='button';button.className='betpro-follow-btn';
   button.dataset.betproFollowId=id;button.setAttribute('aria-pressed','false');
   button.textContent='Suivre le résultat';
@@ -4632,7 +4637,7 @@ function betproClassicCard(match,idx){
       <div style="font-size:11px;color:#dce6f7;line-height:1.7">${details}</div>
       ${probabilities}
       ${verified&&marketValue&&Number.isFinite(Number(marketValue.estimated_ev_pct))?`<div style="font-size:10px;color:#cad5e9">Meilleure cote : ${priceDisplay||'–'} (${esc(marketValue.best_bookmaker||'')}) · EV indicative ${esc(Number(marketValue.estimated_ev_pct).toFixed(1))} %. Calculée avec les mêmes cotes.</div>`:''}
-    </div>${bookieDetails}${verifiedStats}
+    </div>${betproOutsiderBadge(betproOutsiderMarket(match))}${bookieDetails}${verifiedStats}
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px"><span style="font-size:10px;color:#becde3">${footnote}</span>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${bookieLinkHtml()}<button class="copy-btn" onclick="event.stopPropagation();copyTeamNames(this)" data-home="${esc(home)}" data-away="${esc(away)}">${BETPRO_COPY_ICON_HTML} Copier</button></div>
       </div>
@@ -6181,6 +6186,7 @@ function betproPoissonRenderFixtures(){
     '<span class="betpro-poisson-fixture-names">'+esc(f.home)+' <span class="betpro-poisson-versus">VS</span> '+esc(f.away)+'</span>'+
     '<span class="betpro-poisson-fixture-time">'+esc(when)+' · '+esc(f.source)+'</span>'+
     betproPoissonFixtureSignal(f)+
+    (f.mode==='upcoming'?betproOutsiderBadge(betproOutsiderMarket(f)):'')+
     betproPoissonFixtureQuickFacts(f)+
     '<span class="betpro-poisson-open-label">'+(f.mode==='live'?'ANALYSER LE DIRECT':'ANALYSER LA RENCONTRE')+'</span>'+
    '</button>'+
@@ -6263,6 +6269,7 @@ function betproPoissonFollowCard(f,choice){
  const odd=Number(source?.market_odds||source?.median_market_odds);
  if(source?.choice===picked&&odd>1&&Number.isFinite(odd))c.odds=odd;
  c.id=betproFollowIdentifier(c);
+ c.outsiderSignal=betproOutsiderMarket(f);
  betproFollowCatalog.set(c.id,c);
  return c;
 }
@@ -9200,6 +9207,7 @@ function tickerArticleRecommendationHtml(article,fixtures){
   '<div class="ticker-news-related-label">'+(recommendation?'ANALYSE BETPRO · RENCONTRE ASSOCIÉE':'RENCONTRE ASSOCIÉE · SANS SIGNAL VÉRIFIÉ')+'</div>'+
   '<div class="ticker-news-related-match">'+esc(String(match.home_name))+' contre '+esc(String(match.away_name))+' · '+esc(when)+'</div>'+
   (recommendation||'<div class="ticker-news-related-note">Aucune recommandation chiffrée : consensus bookmaker récent et indépendant insuffisant.</div>')+
+  betproOutsiderBadge(betproOutsiderMarket(match))+
   '<div class="ticker-news-related-note">Association fondée sur l’équipe citée. L’article ne valide ni le pronostic ni la rentabilité de la mise. Vérifier les cotes et les compositions avant toute décision.</div>'+
  '</div>';
 }
@@ -9354,7 +9362,7 @@ ${blocks}`}]
       const displayTitle = art.is_match&&!art._turfRaceId ? tickerFrenchMatchTitle(art) : normalizeTickerFrenchText(art._translatedTitle || art.title || '', art.sport);
       const displayDescription = normalizeTickerFrenchText((art.is_match||art._turfRaceId)?(art.description||''):(art._translatedDescription||''), art.sport);
       const marketLine = tickerMatchMarketHtml(art);
-      const newsInsight = !art.is_match?tickerArticleRecommendationHtml(art,insightFixtures):'';
+      const newsInsight = !art.is_match?tickerArticleRecommendationHtml(art,insightFixtures):betproOutsiderBadge(betproOutsiderMarket(art));
 
       let dateStr = '';
       if (art.published) {
@@ -10324,6 +10332,7 @@ function renderDirectionCard(o, i, containerId) {
       ${histBadge}
       ${sportHistBadge}
       ${renderProfessionalEvidence(o.card_evidence)}
+      ${betproOutsiderBadge(betproOutsiderModel(o,res))}
       ${stakeNote}
     </div>
 
