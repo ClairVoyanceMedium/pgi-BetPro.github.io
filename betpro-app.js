@@ -994,7 +994,7 @@ function betproOutsiderModel(o,res){
  const selection=String(o.selection||'').trim();
  const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
  if(![norm(o.home_team),norm(o.away_team)].includes(norm(selection)))return null;
- return{pick:selection,category:'modèle',confidence:'Candidat de surprise avec historique favorable, valeur indépendante non démontrée',
+ return{pick:selection,category:'modèle',winProbability:p,probabilityLabel:'Estimation dérivée des cotes',metrics:[{label:'Cote',value:odds.toFixed(2)},{label:'Écart indicatif',value:'+'+edge.toLocaleString('fr-FR')+' pts'},{label:'Bookmakers',value:families.size},{label:'Historique',value:Number(res.historicalAdjustment.volume)+' sélections'}],confidence:'Candidat de surprise avec historique favorable, valeur indépendante non démontrée',
   mainReason:'Écart indicatif de '+edge.toLocaleString('fr-FR')+' points entre le modèle dérivé des cotes et le marché, avec '+Number(res.historicalAdjustment.volume)+' sélections dans un historique favorable. Ce n’est pas une preuve sportive indépendante.',
   explanation:'Cote '+odds.toFixed(2)+' · modèle '+p.toLocaleString('fr-FR')+' % contre marché '+implied.toLocaleString('fr-FR')+
   ' % · écart indicatif +'+edge.toLocaleString('fr-FR')+' points · '+families.size+' bookmakers · qualité '+dqs+' % · historique '+Number(res.historicalAdjustment.volume)+' sélections'+(res.historicalAdjustment.winRate!=null?' · réussite historique '+res.historicalAdjustment.winRate+' %':'')+(res.historicalAdjustment.roi!=null?' · ROI historique '+res.historicalAdjustment.roi+' %':'')+'.',
@@ -1018,7 +1018,7 @@ function betproOutsiderMarket(m){
  if(!chosen||favorite<.45||favorite>0.75)return null;
  if(c.quality==='indisponible'||Number(c.agreement||0)<2)return null;
  const n=Number(c.bookmakers);
- return{pick:chosen.pick,category:'marché',confidence:'Surprise plausible, valeur non démontrée',
+ return{pick:chosen.pick,category:'marché',winProbability:chosen.p*100,probabilityLabel:'Probabilité du marché',metrics:[{label:'Issue dominante',value:(favorite*100).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %'},{label:'Bookmakers',value:n}],confidence:'Surprise plausible, valeur non démontrée',
   mainReason:'Le marché ne désigne pas ce concurrent comme favori, mais lui attribue encore '+(chosen.p*100).toLocaleString('fr-FR',{maximumFractionDigits:1})+' % de chances contre '+(favorite*100).toLocaleString('fr-FR',{maximumFractionDigits:1})+' % pour l’issue dominante. Aucun facteur sportif indépendant confirmé.',
   explanation:'Marché corrigé de la marge : '+(chosen.p*100).toLocaleString('fr-FR',{maximumFractionDigits:1})+
    ' % de victoire contre '+(favorite*100).toLocaleString('fr-FR',{maximumFractionDigits:1})+
@@ -1152,6 +1152,7 @@ function betproOutsiderLive(m,stat,analysis,at){
  const mainReason=principal?context.behind+' est mené, mais son indicateur le plus favorable est '+principal.label+' ('+pair(principal)+', outsider puis adversaire). '+context.context+'.':'Avantage statistique concordant malgré le retard au score.';
  const evidence=ranked.slice(0,5).map(x=>x.label+' : '+x.h+' / '+x.a).join(' · ');
  return {pick:context.behind,category:'direct',confidence:'Remontée plausible · signal statistique non calibré',winProbability,probabilityLabel:winProbability!==null?'Simulation Poisson live non calibrée':null,
+ metrics:ranked.slice(0,4).map(x=>({label:x.label,value:pair(x),hint:'Outsider / adversaire'})),
  mainReason,
  explanation:context.context+' · '+e.supportive.length+'/'+e.families.length+' familles favorables · '+e.positive.length+'/'+e.observations.length+' indicateurs favorables · '+evidence,
  risk:(opposition?'Indicateur contraire : '+opposition.label+' ('+pair(opposition)+', outsider puis adversaire). ':'')+'Retard au score et temps restant limité ; '+e.opposing.length+' famille(s) contradictoire(s). Cote live non vérifiée ; remontée et rentabilité non garanties.'};
@@ -1179,7 +1180,7 @@ function betproOutsiderHorsePMU(d,r,active){
   &&(!h.discipline||!d.discipline||String(h.discipline).toLowerCase()===String(d.discipline).toLowerCase()));
  if(top3<2||avg>4.5||Number(recent[0].rank)>6||similar.length<1||now-Date.parse(recent[0].date)>90*86400000||
    !String(r.jockey_driver||'').trim()||!String(r.trainer||'').trim())return null;
- return{pick:'n°'+String(r.number)+' '+String(r.name||''),category:'PMU',
+ return{pick:'n°'+String(r.number)+' '+String(r.name||''),category:'PMU',metrics:[{label:'Cote',value:odds.toFixed(2)},{label:'TOP 3 récents',value:top3+'/'+recent.length},{label:'Rang moyen',value:avg.toFixed(1)},{label:'Dernière course',value:days+' j'}],
   confidence:'Signal de forme documenté, aucune valeur de pari validée',
   mainReason:'Malgré sa cote de '+odds.toFixed(2)+', ce cheval a terminé dans les trois premiers '+top3+' fois sur ses '+recent.length+' courses historiques récentes exploitables, avec un rang moyen de '+avg.toFixed(1)+'.',
   explanation:'Cote '+odds.toFixed(2)+' · '+top3+' TOP 3 sur '+recent.length+
@@ -1200,7 +1201,7 @@ function betproOutsiderHorseHKJC(c){
    Number.isFinite(q)&&q>=70&&odds>=4.5&&odds<=28&&Number.isFinite(ev)&&ev>0&&
    Number.isFinite(edge)&&edge>0&&Number(c?.field_size)>=8;
  if(!valid)return null;
- return{pick:'n°'+String(c.horse_number)+' '+String(c.horse_name||''),category:'HKJC',
+ return{pick:'n°'+String(c.horse_number)+' '+String(c.horse_name||''),category:'HKJC',winProbability:p,probabilityLabel:'Estimation calibrée HKJC',metrics:[{label:'Cote',value:odds.toFixed(2)},{label:'Marché',value:market.toLocaleString('fr-FR',{maximumFractionDigits:1})+' %'},{label:'Écart modèle / marché',value:'+'+(p-market).toLocaleString('fr-FR',{maximumFractionDigits:1})+' pts'},{label:'Qualité des données',value:q.toLocaleString('fr-FR',{maximumFractionDigits:1})+' %'}],
   confidence:'Modèle gagnant calibré, décision BET',
   mainReason:'Le modèle HKJC estime ses chances de victoire à '+p.toLocaleString('fr-FR',{maximumFractionDigits:1})+' %, soit '+(p-market).toLocaleString('fr-FR',{maximumFractionDigits:1})+' points au-dessus de la probabilité du marché. La valeur attendue est positive selon ce modèle.',
   explanation:'Cote '+odds.toFixed(2)+' · probabilité calibrée '+p.toLocaleString('fr-FR',{maximumFractionDigits:1})+
@@ -1209,13 +1210,24 @@ function betproOutsiderHorseHKJC(c){
 }
 function betproOutsiderBadge(signal){
  if(!signal)return '';
- return '<div class="betpro-outsider-signal" role="note">'+
-  '<div class="betpro-outsider-head">'+esc(BETPRO_OUTSIDER_LABEL)+'</div>'+
-  '<div class="betpro-outsider-pick">'+esc(signal.pick)+'</div>'+
-  '<div class="betpro-outsider-reason"><strong>Raison principale : </strong>'+esc(signal.mainReason||signal.explanation||'Motif détaillé non conservé dans cet ancien signal.')+'</div>'+
-  (signal.category==='direct'?'<div class="betpro-outsider-reason"><strong>Probabilité de victoire : '+(Number.isFinite(signal.winProbability)?esc(signal.winProbability.toLocaleString('fr-FR')+' % · '+signal.probabilityLabel):'non calculable de façon suffisamment fiable')+'</strong></div>':'')+
-  '<div class="betpro-outsider-reason">'+esc(signal.confidence)+' · '+esc(signal.explanation)+'</div>'+
-  '<div class="betpro-outsider-risk"><strong>Risque principal : </strong>'+esc(signal.risk||'Risque non documenté dans cet ancien signal.')+'</div></div>';
+ const p=signal.winProbability;
+ const valid=typeof p==='number'&&Number.isFinite(p)&&p>=0&&p<=100;
+ const metrics=Array.isArray(signal.metrics)?signal.metrics.filter(m=>m&&m.label&&m.value!=null).slice(0,6):[];
+ const reason=signal.mainReason||signal.explanation||'Motif détaillé non conservé dans cet ancien signal.';
+ const risk=signal.risk||'Risque non documenté dans cet ancien signal.';
+ const type=({direct:'En direct',marché:'Marché uniquement',modèle:'Modèle de cotes',PMU:'PMU France',HKJC:'Hong Kong',independent:'Historique ESPN'})[signal.category]||'Signal enregistré';
+ const info=signal.explanation&&signal.explanation!==reason?signal.explanation:'';
+ const dot='<span class="betpro-outsider-dot" aria-hidden="true"></span>';
+ return '<div class="betpro-outsider-signal betpro-outsider-structured" role="note">'+
+  '<div class="betpro-outsider-head">'+dot+'<span>'+esc(BETPRO_OUTSIDER_LABEL)+'</span></div>'+
+  '<div class="betpro-outsider-identity"><div class="betpro-outsider-identity-name"><span class="betpro-outsider-type">'+esc(type)+'</span><div class="betpro-outsider-pick">'+esc(signal.pick)+'</div></div>'+
+  (valid?'<div class="betpro-outsider-prob"><span class="betpro-outsider-prob-value">'+esc(p.toLocaleString('fr-FR',{maximumFractionDigits:1}))+'<small> %</small></span><span>'+esc(signal.probabilityLabel||'Estimation de victoire')+'</span></div>':'')+'</div>'+
+  (!valid?'<div class="betpro-outsider-no-prob">Probabilité de victoire : non établie</div>':'')+
+  '<div class="betpro-outsider-primary"><span class="betpro-outsider-section-label"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg> Raison principale</span><div class="betpro-outsider-main-copy">'+esc(reason)+'</div></div>'+
+  (metrics.length?'<div class="betpro-outsider-metrics">'+metrics.map(m=>'<div class="betpro-outsider-metric"><span>'+esc(String(m.label))+'</span><strong>'+esc(String(m.value))+'</strong>'+(m.hint?'<small>'+esc(String(m.hint))+'</small>':'')+'</div>').join('')+'</div>':'')+
+  '<div class="betpro-outsider-risk betpro-outsider-risk-panel"><span class="betpro-outsider-section-label"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v4m0 3v1"/></svg> Risque principal</span><div>'+esc(risk)+'</div></div>'+
+  '<div class="betpro-outsider-status">'+esc(signal.confidence||'Signal indicatif')+'</div>'+
+  (info?'<details class="betpro-outsider-more" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"><summary>Voir les données et le détail de l’analyse</summary><p>'+esc(info)+'</p></details>':'')+'</div>';
 }
 const BETPRO_OUTSIDER_FOLLOW_CACHE_KEY='pgi_betpro_outsider_follow_v1';
 function betproOutsiderFollowCache(){
@@ -4800,6 +4812,7 @@ function betproIndependentRender(f,r){
  const comparison=r.ev===null?'Comparaison financière non validée : prix récent ou règles de règlement non confirmés.':(r.ev>0?'Écart positif indicatif':'Écart non positif')+' · '+(r.edge>=0?'+':'')+r.edge.toFixed(1)+' points face au seuil de rentabilité de la cote · EV simulée '+(r.ev>=0?'+':'')+r.ev.toFixed(1)+' %.';
  const state=r.outsider?'OUTSIDER QUI POURRAIT SURPRENDRE · À CONFIRMER':r.ev!==null&&r.ev<=0?'MODÈLE INDÉPENDANT DÉFAVORABLE':'ESTIMATION SPORTIVE INDÉPENDANTE';
  const reason=r.outsider?'Le modèle sportif ESPN, fondé sur '+r.n1+' / '+r.n2+' matchs, estime '+pct(r.p)+' pour cette sélection, au-dessus du seuil de rentabilité de '+pct(100/f.price)+'. Écart : +'+r.edge.toFixed(1)+' points. Le modèle la considère néanmoins moins probable que son adversaire.':'';
+ if(r.outsider)return betproOutsiderBadge({pick:f.selection,category:'independent',winProbability:r.p,probabilityLabel:'Estimation ESPN non calibrée',mainReason:reason,confidence:'Signal indépendant à confirmer',metrics:[{label:'Cote relevée',value:f.price.toFixed(2)},{label:'Seuil de rentabilité',value:pct(100/f.price)},{label:'Cote théorique',value:r.modelOdds.toFixed(2)},{label:'Historique ESPN',value:r.n1+' / '+r.n2+' matchs'}],explanation:comparison,risk:'Modèle non calibré prospectivement. Blessures, compositions et autres facteurs non confirmés ici ; aucune mise validée par ce contrôle.'});
  return '<div style="border-left:3px solid '+(r.outsider?'#ff4552':'var(--bd)')+';padding:8px 10px;margin-top:8px"><strong style="font-size:11px;color:'+(r.outsider?'#ff5360':'var(--tx)')+'">'+esc(state)+'</strong><p style="font-size:12px;margin:5px 0"><strong>'+esc(f.selection)+' · '+esc(pct(r.p))+'</strong> '+(f.side==='draw'?'de match nul estimé':'de victoire estimée')+'</p>'+(reason?'<p class="betpro-outsider-reason"><strong>Raison principale : </strong>'+esc(reason)+'</p>':'')+'<p style="font-size:11px;color:var(--mu)">Historique ESPN : '+r.n1+' / '+r.n2+' matchs · cote théorique '+r.modelOdds.toFixed(2)+' · '+esc(comparison)+'</p><p style="font-size:10px;color:var(--dm)"><strong>Risque principal :</strong> modèle non calibré prospectivement. Blessures, compositions et autres facteurs non confirmés ici ; aucune mise validée par ce contrôle.</p></div>';
 }
 function betproIndependentAttach(body,f){
