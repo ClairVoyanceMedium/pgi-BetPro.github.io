@@ -1086,14 +1086,37 @@ function betproOutsiderBadge(signal){
   '<div class="betpro-outsider-reason">'+esc(signal.confidence)+' · '+esc(signal.explanation)+'</div>'+
   '<div class="betpro-outsider-risk">'+esc(signal.risk)+'</div></div>';
 }
+const BETPRO_OUTSIDER_FOLLOW_CACHE_KEY='pgi_betpro_outsider_follow_v1';
+function betproOutsiderFollowCache(){
+ try{const v=JSON.parse(localStorage.getItem(BETPRO_OUTSIDER_FOLLOW_CACHE_KEY)||'{}');
+  return v&&typeof v==='object'&&!Array.isArray(v)?v:{};}catch(_){return{};}
+}
+function betproOutsiderSaveFollowCache(items){
+ try{const entries=Object.entries(items).filter(([,v])=>Number.isFinite(v?.at)&&Date.now()-v.at<30*86400000)
+   .sort((a,b)=>b[1].at-a[1].at).slice(0,100);
+  localStorage.setItem(BETPRO_OUTSIDER_FOLLOW_CACHE_KEY,JSON.stringify(Object.fromEntries(entries)));}catch(_){}
+}
+function betproOutsiderFollowSignalFor(id){
+ const v=betproOutsiderFollowCache()[String(id||'')];
+ return v?.signal&&Date.now()-v.at<30*86400000?v.signal:null;
+}
+function betproOutsiderClearFollowSignal(id){
+ const x=betproOutsiderFollowCache();delete x[String(id||'')];betproOutsiderSaveFollowCache(x);
+}
 function betproOutsiderFollowNotify(signal,key){
- if(!signal)return;
- const k=String(key||signal.pick)+'|'+signal.category;
- if(BETPRO_OUTSIDER_NOTIFIED.has(k))return;
- BETPRO_OUTSIDER_NOTIFIED.add(k);
+ if(!signal||!key)return;
+ const id=String(key),cache=betproOutsiderFollowCache(),prior=cache[id],now=Date.now();
+ const recent=Number.isFinite(prior?.notifiedAt)&&now-prior.notifiedAt<6*3600000;
+ cache[id]={at:now,notifiedAt:recent?prior.notifiedAt:now,signal};
+ betproOutsiderSaveFollowCache(cache);
+ if(recent||BETPRO_OUTSIDER_NOTIFIED.has(id))return;
+ BETPRO_OUTSIDER_NOTIFIED.add(id);
  toast(BETPRO_OUTSIDER_LABEL+' : '+signal.pick+' · '+signal.confidence,'outsider');
 }
-
+function betproOutsiderNotifyTrackedCards(){
+ for(const [id,card] of betproFollowCatalog)
+  if(betproFollowSelected.has(id)&&card?.outsiderSignal)betproOutsiderFollowNotify(card.outsiderSignal,id);
+}
 function renderScanResults(opps, cnt, cacheAge, diag) {
   // Filtre reapplique aussi aux caches de scans, apres expiration d'une cote.
   opps=(Array.isArray(opps)?opps:[]).filter(o=>betproBenterIsActionable(o));
@@ -4497,6 +4520,7 @@ async function betproFollowRefresh(){
   if(!d?.ok)throw Error(d?.error||'Suivi non disponible');
   betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
   betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));betproFollowPaint();
+  betproOutsiderNotifyTrackedCards();
   if(document.getElementById('s-chat')?.classList.contains('on'))betproPoissonRenderFixtures();
   if(document.getElementById('s-live')?.classList.contains('on'))betproLivePageRefreshFollowIndicators();
  }catch(e){console.warn('Suivi non disponible',e?.message||e);}
@@ -4511,7 +4535,8 @@ async function betproToggleFollow(btn,id){
   betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
   betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));
   toast(remove?'Pronostic retiré du suivi.':'Pronostic ajouté au suivi.','ok');
-  if(!remove&&card.outsiderSignal)betproOutsiderFollowNotify(card.outsiderSignal,id);
+  if(remove)betproOutsiderClearFollowSignal(id);
+  else if(card.outsiderSignal)betproOutsiderFollowNotify(card.outsiderSignal,id);
   if(document.getElementById('s-results')?.classList.contains('on'))loadResults();
  }catch(e){toast(e?.message||'Erreur de suivi','err');}
  finally{btn.disabled=false;betproFollowPaint();}
@@ -5082,7 +5107,7 @@ async function clearResults(){
 function betproChosenResultRow(item){
  const row=betproResultNormalize({...item,detectedAt:item.selectedAt},'Suivi personnel');
  if(!row||!/^[A-Za-z0-9_-]+$/.test(String(item.id||'')))return'';
- const outsider=betproFollowCatalog.get(item.id)?.outsiderSignal||item.outsiderSignal||null;
+ const outsider=betproFollowCatalog.get(item.id)?.outsiderSignal||item.outsiderSignal||betproOutsiderFollowSignalFor(item.id)||null;
  betproFollowCatalog.set(item.id,{...item,outsiderSignal:outsider});
  const button='<button type="button" class="betpro-follow-btn is-followed" data-betpro-follow-id="'+item.id+'" aria-pressed="true" onclick="event.stopPropagation();betproToggleFollow(this,\''+item.id+'\')">Retirer du suivi</button>';
  return '<div class="betpro-chosen-card">'+betproResultRow(row)
