@@ -3679,6 +3679,36 @@ a{color:var(--neon);text-decoration:none}
   margin-top:7px;
 }
 
+
+/* Signal exclusif : OUTSIDER QUI POURRAIT SURPRENDRE. Aucun style existant changé. */
+.betpro-outsider-signal{
+ margin:10px 0 9px;padding:10px 12px;border:1.5px solid #ff3b47!important;
+ border-left:4px solid #ff2638!important;border-radius:8px;
+ background:linear-gradient(110deg,rgba(200,12,37,.18),rgba(132,5,25,.08));
+ color:#ffe1e3;box-shadow:0 0 13px rgba(255,38,56,.10);
+ line-height:1.55;max-width:100%;box-sizing:border-box;
+}
+.betpro-outsider-head{
+ font:900 11px/1.5 var(--hd);color:#ff5e67;
+ letter-spacing:.035em;text-transform:uppercase;
+}
+.betpro-outsider-pick{font:800 12px/1.55 var(--hd);color:#fff2f2;margin-top:3px;overflow-wrap:anywhere}
+.betpro-outsider-reason{font:500 10px/1.55 var(--mo);color:#ffd3d6;margin-top:5px;overflow-wrap:anywhere}
+.betpro-outsider-risk{font:500 9px/1.55 var(--mo);color:#f6acb1;margin-top:6px;overflow-wrap:anywhere}
+.betpro-outsider-unavailable{
+ font:500 10px/1.6 var(--mo);color:#d6a7af;
+ padding:9px 12px;border-radius:7px;margin:9px 0;
+ background:rgba(132,5,25,.05);border:1px solid rgba(255,66,78,.17);
+}
+.betpro-outsider-intro{font:500 11px/1.6 var(--mo);color:#eed3d5;margin:10px 0;padding:9px 12px;border-left:3px solid #ff4552;border-radius:6px;background:rgba(255,40,64,.06)}
+.betpro-outsider-intro strong{font-weight:900;color:#ff5360}
+.betpro-outsider-button{background:rgba(184,10,30,.13)!important;border:1.5px solid #ff4253!important;color:#ff717d!important;font-weight:800!important}
+.betpro-outsider-button:focus-visible{outline:2px solid #ff7f86;outline-offset:2px}
+.toast.outsider{border:1.5px solid #ff4655;background:#380f1c;color:#ffe8e9;box-shadow:0 4px 28px rgba(235,28,47,.25);font-weight:700}
+.betpro-poisson-fixture>.betpro-outsider-signal{margin:8px 13px}
+.ticker-news-related .betpro-outsider-signal{margin:7px 0}
+@media(max-width:490px){.betpro-outsider-signal{padding:9px 10px}.betpro-outsider-head{font-size:10px}.toast.outsider{max-width:min(90vw,310px)}}
+
 </style>
 </head>
 <body>
@@ -3785,6 +3815,7 @@ a{color:var(--neon);text-decoration:none}
   <div class="scan-hero">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px"><div class="scan-pulse"></div><div class="scan-title">SCAN LIVE GLOBAL</div></div>
     <div style="font-size:12px;color:var(--mu);line-height:1.65;margin-bottom:12px">Détecte les meilleures opportunités sportives</div>
+    <div class="betpro-outsider-intro"><strong>OUTSIDER QUI POURRAIT SURPRENDRE</strong> : signaux rouges pour les sélections à cote élevée réellement soutenues par un modèle indépendant. Cote élevée seule : aucun signal.</div>
     <div style="margin:0 0 14px">
       <div style="font-size:10px;font-weight:600;color:var(--dm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Filtrer par sport</div>
       <div class="scan-sport-btns">
@@ -4115,6 +4146,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="live-pro-overline"><span class="live-pro-pulse" aria-hidden="true"></span> ESPACE MULTISPORTS · RENCONTRES</div>
     <div class="pt">MATCHS <span class="live-pro-slash">/</span> EN DIRECT &amp; À VENIR</div>
     <div class="ps">Rencontres réellement en cours, scores, chronomètres et analyses statistiques. Calendrier des prochains matchs séparé du direct.</div>
+    <div class="betpro-outsider-intro"><strong>OUTSIDER QUI POURRAIT SURPRENDRE</strong> : un signal rouge peut apparaître après étude du match ou de son marché. En direct, une remontée possible ne constitue pas une cote exploitable.</div>
     <div class="live-pro-tags" aria-label="Fonctions de cette rubrique">
       <span>Matchs en direct</span><span>Prochaines rencontres</span><span>Directions de pari</span>
     </div>
@@ -4210,6 +4242,7 @@ a{color:var(--neon);text-decoration:none}
       <div class="betpro-poisson-eyebrow"><span class="betpro-poisson-eyebrow-dot"></span> MODÈLE STATISTIQUE MULTISPORTS</div>
       <h3 id="betpro-poisson-title" class="betpro-poisson-title">Analyse Poisson</h3>
       <p class="betpro-poisson-description">Choisissez directement une rencontre ci-dessous. BetPro privilégie l'analyse statistique et, si les historiques sont incomplets, recherche un consensus de bookmakers ou une tendance sportive réellement documentée.</p>
+      <div class="betpro-outsider-intro"><strong>OUTSIDER QUI POURRAIT SURPRENDRE</strong> : recherche de l’adversaire sous-estimé, avec contrôle des cotes et sources disponibles. Une probabilité de marché n’est pas une preuve de rentabilité.</div>
       <details class="betpro-poisson-guide-collapsed"><summary>Comprendre l’analyse et consulter des exemples</summary>
       <div class="betpro-poisson-guide" aria-label="À quoi sert l'analyse Poisson et comment l'utiliser">
         <div class="betpro-poisson-guide-item">
@@ -4567,6 +4600,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="turf-hero-overline"><span class="turf-hero-pulse" aria-hidden="true"></span> ESPACE HIPPIQUE · FRANCE</div>
     <div class="pt">PMU <span class="turf-hero-slash">/</span> TURF FRANCE</div>
     <div class="ps">Courses à venir, partants, cotes et historique dans un espace dédié aux courses hippiques.</div>
+    <div class="betpro-outsider-intro"><strong>OUTSIDER QUI POURRAIT SURPRENDRE</strong> : chevaux affichés en rouge uniquement avec forme récente datée, profil de course comparable, partants et cotes pré-départ. Signal exploratoire sans probabilité gagnante inventée.</div>
     <div class="turf-hero-tags" aria-label="Fonctions PMU disponibles">
       <span>Programme des courses</span><span>Analyse des partants</span><span>Historique PMU</span>
     </div>
@@ -4705,6 +4739,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="hkjc-hero-overline"><span class="hkjc-hero-pulse" aria-hidden="true"></span> HIPPISME INTERNATIONAL · HONG KONG</div>
     <div class="pt">&#127464;&#127475; HKJC <span class="hkjc-hero-slash">/</span> HONG KONG</div>
     <div class="ps">Sha Tin, Happy Valley et Conghua : calendrier, marchés Gagnant et Placé et calibration propre à chaque piste.</div>
+    <div class="betpro-outsider-intro"><strong>OUTSIDER QUI POURRAIT SURPRENDRE</strong> : filtre rouge réservé aux chevaux du marché GAGNANT validés par le modèle HKJC, avec calibration, valeur et cotes fraîches. Aucun pronostic si les preuves manquent.</div>
     <div class="hkjc-hero-tags" aria-label="Fonctions Hong Kong disponibles"><span>Réunions hippiques</span><span>Gagnant / Placé</span><span>Cartes décisionnelles</span></div>
   </div>
   <div class="card hkjc-panel hkjc-panel-status" style="padding:12px 14px">
@@ -5096,7 +5131,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261124-google-multisport-v255"></script>
+<script defer src="./betpro-app.js?v=20261125-outsider-multisports-pmu-hk-v256"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
