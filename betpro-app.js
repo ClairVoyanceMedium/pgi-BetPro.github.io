@@ -177,7 +177,7 @@ let _toastT;
 function toast(msg, type='') {
   const d=document.getElementById('toasts'); if(!d) return;
   const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg;
-  d.appendChild(t); setTimeout(()=>t.remove(), 3800);
+  d.appendChild(t); setTimeout(()=>t.remove(), type==='outsider'?7000:3800);
 }
 
 // ═══════════════════════════════════════════════
@@ -4356,6 +4356,9 @@ function betproLivePageFollowPayload(rec,choice=null){
  if(!payload.sport||!payload.home||!payload.away||!payload.selection||
   !Number.isFinite(Date.parse(payload.startTime)))return null;
  payload.id=betproFollowIdentifier(payload);
+ payload.outsiderSignal=rec.kind==='benter'?betproOutsiderModel(rec.raw,rec.raw?._res||computeDirection(rec.raw)):
+  rec.kind==='classic'?betproOutsiderMarket(rec.raw):
+  BETPRO_OUTSIDER_LIVE_ANALYSIS.get(String(rec.raw?.fixture_id)+'|'+String(rec.raw?.sport))||null;
  betproFollowCatalog.set(payload.id,payload);
  return payload;
 }
@@ -5078,9 +5081,11 @@ async function clearResults(){
 function betproChosenResultRow(item){
  const row=betproResultNormalize({...item,detectedAt:item.selectedAt},'Suivi personnel');
  if(!row||!/^[A-Za-z0-9_-]+$/.test(String(item.id||'')))return'';
- betproFollowCatalog.set(item.id,item);
+ const outsider=betproFollowCatalog.get(item.id)?.outsiderSignal||item.outsiderSignal||null;
+ betproFollowCatalog.set(item.id,{...item,outsiderSignal:outsider});
  const button='<button type="button" class="betpro-follow-btn is-followed" data-betpro-follow-id="'+item.id+'" aria-pressed="true" onclick="event.stopPropagation();betproToggleFollow(this,\''+item.id+'\')">Retirer du suivi</button>';
  return '<div class="betpro-chosen-card">'+betproResultRow(row)
+  +betproOutsiderBadge(outsider)
   +'<div style="font-size:10px;color:var(--mu);margin:0 0 7px">Scan '+esc(item.engine||'')+' · Sélectionné le '+betproResultDate(item.selectedAt)+(item.phase==='en_direct'?' · Sélection en direct':'')+'</div>'
   +(item.status==='pending'&&item.automaticVerification===false?'<div class="betpro-follow-unavailable">Source automatique non disponible pour cette compétition. Aucun résultat ne sera inventé.</div>':'')
   +'<div style="display:flex;justify-content:flex-end;margin:0 0 12px">'+button+'</div></div>';
