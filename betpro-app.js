@@ -995,7 +995,7 @@ function betproOutsiderModel(o,res){
  if(![norm(o.home_team),norm(o.away_team)].includes(norm(selection)))return null;
  return{pick:selection,category:'modèle',confidence:'Candidat de surprise avec historique favorable, valeur indépendante non démontrée',
   explanation:'Cote '+odds.toFixed(2)+' · modèle '+p.toLocaleString('fr-FR')+' % contre marché '+implied.toLocaleString('fr-FR')+
-  ' % · écart indicatif +'+edge.toLocaleString('fr-FR')+' points · '+families.size+' bookmakers · qualité '+dqs+' % · historique '+Number(res.historicalAdjustment.volume)+' sélections.',
+  ' % · écart indicatif +'+edge.toLocaleString('fr-FR')+' points · '+families.size+' bookmakers · qualité '+dqs+' % · historique '+Number(res.historicalAdjustment.volume)+' sélections'+(res.historicalAdjustment.winRate!=null?' · réussite historique '+res.historicalAdjustment.winRate+' %':'')+(res.historicalAdjustment.roi!=null?' · ROI historique '+res.historicalAdjustment.roi+' %':'')+'.',
   risk:'Le modèle part en partie des cotes : son écart n’est pas une preuve indépendante de value bet. L’historique favorable peut être biaisé. Vérifier blessures, forme, compositions et cote actualisée ; perte possible.'};
 }
 function betproOutsiderMarket(m){
@@ -1122,6 +1122,8 @@ function betproOutsiderHorsePMU(d,r,active){
  const recent=source.slice(0,5);
  const top3=recent.filter(h=>Number(h.rank)<=3).length;
  const avg=recent.reduce((n,h)=>n+Number(h.rank),0)/recent.length;
+ const wins=recent.filter(h=>Number(h.rank)===1).length;
+ const days=Math.floor((now-Date.parse(recent[0].date))/86400000);
  const distance=Number(d.distance);
  const similar=recent.filter(h=>
   (!Number.isFinite(distance)||distance<=0||Number(h.distance)>0&&Math.abs(Number(h.distance)-distance)<=distance*.18)
@@ -1131,7 +1133,7 @@ function betproOutsiderHorsePMU(d,r,active){
  return{pick:'n°'+String(r.number)+' '+String(r.name||''),category:'PMU',
   confidence:'Signal de forme documenté, aucune valeur de pari validée',
   explanation:'Cote '+odds.toFixed(2)+' · '+top3+' TOP 3 sur '+recent.length+
-    ' courses historiques datées · rang moyen '+avg.toFixed(1)+' · '+similar.length+
+    ' courses historiques datées · '+wins+' victoire(s) · dernière course il y a '+days+' j · rang moyen '+avg.toFixed(1)+' · '+similar.length+
     ' performance(s) sur profil distance/discipline proche · '+active+' partants.',
   risk:'Étude exploratoire sur historiques, non calibrée : vérifier terrain, poids, corde, jockey/driver, opposition, équipements, non-partants et cote fraîche. Aucune probabilité gagnant inventée.'};
 }
@@ -5255,6 +5257,22 @@ function betproChosenResultRow(item){
   +'<div style="display:flex;justify-content:flex-end;margin:0 0 12px">'+button+'</div></div>';
 }
 let betproFinishedOpen=false,betproAnalyticsOpen=false;
+function betproOutsiderTrackedStats(items){
+ const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const cache=betproOutsiderFollowCache(),seen=new Set(),rows=[];
+ for(const x of items){
+  const sig=cache[x.id]?.signal||x.outsiderSignal;
+  if(!sig||!['direct','modèle','marché'].includes(sig.category)||!['h2h','moneyline'].includes(String(x.market||'').toLowerCase())||!norm(x.selection)||norm(x.selection)!==norm(sig.pick))continue;
+  const k=[norm(x.home),norm(x.away),String(x.startTime||''),norm(x.selection)].join('|');
+  if(seen.has(k))continue;seen.add(k);rows.push(x);
+ }
+ const w=rows.filter(x=>x.status==='win').length,l=rows.filter(x=>x.status==='loss').length,n=w+l;
+ let interval='Non mesurable';
+ if(n){const p=w/n,z=1.96,den=1+z*z/n,mid=(p+z*z/(2*n))/den,half=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/den;interval=(100*Math.max(0,mid-half)).toFixed(1)+' à '+(100*Math.min(1,mid+half)).toFixed(1)+' %';}
+ const pending=rows.filter(x=>!['win','loss','void'].includes(x.status)).length;
+ return '<div class="card betpro-results-section" style="margin-top:12px;border-left:3px solid #ff4552"><strong style="color:#ff5360">OUTSIDER QUI POURRAIT SURPRENDRE · RÉSULTATS OBSERVÉS</strong><p style="font-size:11px;line-height:1.7">'+w+' victoire(s) · '+l+' défaite(s) · '+pending+' en attente · '+(n?(100*w/n).toFixed(1)+' % de réussite':'taux non mesurable')+' · intervalle de Wilson à 95 % : '+interval+'.</p><p style="font-size:10px;color:var(--mu)">Sélections suivies dont le vainqueur choisi correspond exactement au signal outsider, résultats vérifiés uniquement. '+(n<100?'Échantillon inférieur à 100 résultats : insuffisant pour juger la stabilité. ':'')+'Historique partiel sur cet appareil ; biais de sélection possible. Le taux de victoire seul ne démontre pas une rentabilité.</p></div>';
+}
+
 function betproRenderChosenResults(items,stats){
  const target=document.getElementById('res-cnt');if(!target)return;
  // Conserver les panneaux ouverts si la page se recharge en arriere-plan.
@@ -5276,7 +5294,7 @@ function betproRenderChosenResults(items,stats){
   +(stats?.last_check?' · Dernier contrôle des sources : '+betproResultDate(stats.last_check):' · Contrôle ESPN en attente')+'</p>'
   +'<div class="tracker-summary betpro-results-kpis">'
   +stat('Sélections suivies',chosen.length)+stat('À confirmer',pending.length)
-  +stat('Gagnées',won)+stat('Perdues',lost)+'</div>';
+  +stat('Gagnées',won)+stat('Perdues',lost)+'</div>'+betproOutsiderTrackedStats(chosen);
  if(!chosen.length){
   html+='<div class="card betpro-results-section betpro-results-empty"><div class="ct">Aucun match suivi pour le moment</div>'
    +'<p>Sur une carte Scan Live, utilise « Suivre le résultat ». Les matchs enregistrés apparaîtront ici sur tes appareils.</p></div>';
