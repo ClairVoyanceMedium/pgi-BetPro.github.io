@@ -11671,9 +11671,12 @@ async function hkjcShowRace(raceId){try{const d=await api('/api/hkjc/race?race_i
 function hkjcMetric(label,value){return'<div style="background:var(--bg2);border:1px solid var(--bd);padding:8px;border-radius:6px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase">'+label+'</div><div style="font-family:var(--mo);font-weight:700;margin-top:3px">'+value+'</div></div>';}
 function hkjcRenderCards(cards,el){
   if(!cards.length){el.innerHTML='<div class="empty"><div class="empty-i">🧠</div><div class="empty-t">Aucune prédiction HKJC exploitable actuellement</div><div style="font-size:10px;color:var(--dm);margin-top:5px">Le moteur attend des partants, des règles de places, des cotes et une calibration suffisante.</div></div>';return;}
+  const horseSignals=cards.filter(c=>betproOutsiderHorseHKJC(c));
+  el.setAttribute('data-betpro-outsiders',String(horseSignals.length));
   el.innerHTML=cards.map(c=>{const bet=c.decision==='BET',strong=pgiIsStrongHkjcSignal(c),globalConfidence=pgiHkjcGlobalConfidence(c),value=bet?'AVANTAGE RENTABLE VALIDÉ':Number(c.edge)>0?'AVANTAGE TROP FAIBLE':'AUCUN AVANTAGE',color=bet?'var(--gr)':Number(c.edge)>0?'var(--go)':'var(--re)',label=c.market==='WIN'?'PROBABILITÉ GAGNANT':'PROBABILITÉ PLACÉ';let reasons=[];try{reasons=JSON.parse(c.reasons||'[]');}catch(_){}
-    return '<div class="card'+(strong?' pgi-signal-tres-fort':'')+'" style="border-left:3px solid '+color+';margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><div class="ct" style="margin:0;border:0;padding:0">'+esc(c.racecourse_code)+' R'+esc(c.race_number)+' · n°'+esc(c.horse_number)+' '+esc(c.horse_name)+'</div><div style="font-size:10px;color:var(--dm);margin-top:4px">'+hkjcDateTime(c.race_time)+' · '+Number(c.field_size||0)+' partants · '+Number(c.paid_places||0)+' places rémunérées</div></div><span class="bdg" style="background:'+color+'22;color:'+color+'">'+(bet?'À JOUER':'NE PAS JOUER')+'</span></div><div class="fg" style="grid-template-columns:repeat(4,minmax(110px,1fr));margin-top:12px">'+hkjcMetric('Cote',hkjcNum(c.odds,2))+hkjcMetric('Probabilité modèle',hkjcPct(c.model_probability))+hkjcMetric('Probabilité marché',hkjcPct(c.market_probability))+hkjcMetric(label,hkjcPct(c.calibrated_probability))+hkjcMetric('Cote juste',hkjcNum(c.fair_odds,2))+hkjcMetric('Avantage sur le marché',hkjcPct(c.edge))+hkjcMetric('Valeur attendue',hkjcPct(c.expected_value))+hkjcMetric('Niveau de confiance',esc(pgiConfidenceFr(c.confidence)))+'</div><div style="margin-top:10px"><span class="bdg" style="background:'+color+'22;color:'+color+'">'+value+'</span><span style="margin-left:7px">'+pgiGlobalConfidenceBadge(globalConfidence)+'</span><span style="font-size:9px;color:var(--dm);margin-left:7px">Qualité des données '+hkjcPct(c.data_quality_score)+'</span></div>'+(reasons.length?'<div style="font-size:9px;color:var(--dm);margin-top:7px">Motifs de prudence : '+reasons.map(esc).join(' · ')+'</div>':'')+'<div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(c.place_rules||'')+'</div></div>';
+    return '<div class="card'+(strong?' pgi-signal-tres-fort':'')+'" style="border-left:3px solid '+color+';margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><div class="ct" style="margin:0;border:0;padding:0">'+esc(c.racecourse_code)+' R'+esc(c.race_number)+' · n°'+esc(c.horse_number)+' '+esc(c.horse_name)+'</div><div style="font-size:10px;color:var(--dm);margin-top:4px">'+hkjcDateTime(c.race_time)+' · '+Number(c.field_size||0)+' partants · '+Number(c.paid_places||0)+' places rémunérées</div></div><span class="bdg" style="background:'+color+'22;color:'+color+'">'+(bet?'À JOUER':'NE PAS JOUER')+'</span></div><div class="fg" style="grid-template-columns:repeat(4,minmax(110px,1fr));margin-top:12px">'+hkjcMetric('Cote',hkjcNum(c.odds,2))+hkjcMetric('Probabilité modèle',hkjcPct(c.model_probability))+hkjcMetric('Probabilité marché',hkjcPct(c.market_probability))+hkjcMetric(label,hkjcPct(c.calibrated_probability))+hkjcMetric('Cote juste',hkjcNum(c.fair_odds,2))+hkjcMetric('Avantage sur le marché',hkjcPct(c.edge))+hkjcMetric('Valeur attendue',hkjcPct(c.expected_value))+hkjcMetric('Niveau de confiance',esc(pgiConfidenceFr(c.confidence)))+'</div><div style="margin-top:10px"><span class="bdg" style="background:'+color+'22;color:'+color+'">'+value+'</span><span style="margin-left:7px">'+pgiGlobalConfidenceBadge(globalConfidence)+'</span><span style="font-size:9px;color:var(--dm);margin-left:7px">Qualité des données '+hkjcPct(c.data_quality_score)+'</span></div>'+(reasons.length?'<div style="font-size:9px;color:var(--dm);margin-top:7px">Motifs de prudence : '+reasons.map(esc).join(' · ')+'</div>':'')+'<div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(c.place_rules||'')+'</div>'+betproOutsiderBadge(betproOutsiderHorseHKJC(c))+'</div>';
   }).join('');
+  if(!horseSignals.length)el.insertAdjacentHTML('beforeend','<div class="betpro-outsider-unavailable">OUTSIDER QUI POURRAIT SURPRENDRE : aucun cheval gagnant n’a actuellement passé les filtres de calibration, de valeur attendue et de qualité. Aucun signal inventé.</div>');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -11843,6 +11846,7 @@ function turfRenderRaceDetail(d) {
   const activeRunners=(d.runners||[]).filter(r=>!r.is_non_partant).length;
   const nonRunners=(d.runners||[]).filter(r=>r.is_non_partant).length;
   const paidPlaces=activeRunners>=8?3:(activeRunners>=4?2:1);
+  const outsiderPMU=(d.runners||[]).map(r=>betproOutsiderHorsePMU(d,r,activeRunners)).filter(Boolean).slice(0,3);
   const runnersHtml = (d.runners||[]).map(r => `
     <tr data-runner-num="${esc(String(r.number))}"${r.is_non_partant?' style="opacity:.4"':''}>
       <td style="font-family:var(--mo);font-weight:700">${r.number}</td>
@@ -11870,6 +11874,7 @@ function turfRenderRaceDetail(d) {
       <span class="bdg bsr">${paidPlaces} place(s) payée(s)</span>
       <span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Qualité des données : ${d.data_quality_score}%</span>
     </div>
+    ${outsiderPMU.length?'<div class="betpro-outsider-horse-list">'+outsiderPMU.map(betproOutsiderBadge).join('')+'</div>':'<div class="betpro-outsider-unavailable">OUTSIDER QUI POURRAIT SURPRENDRE : aucun cheval ne satisfait actuellement les critères minimum de forme, cote et qualité des données. La sélection restera vide plutôt que d’inventer un pronostic.</div>'}
     <div style="overflow-x:auto">
       <table class="tracker-table" id="turf-runners-table"><thead><tr><th>N°</th><th>Cheval</th><th>Jockey/Driver</th><th>Entraîneur</th><th>Musique</th><th>Cote</th></tr></thead>
       <tbody>${runnersHtml}</tbody></table>
@@ -11884,7 +11889,7 @@ function turfRenderRaceDetail(d) {
       <button class="btn bs" onclick="turfAskQuick('quinte_order')">Quinté ordre</button>
       <button class="btn bs" onclick="turfAskQuick('quinte_desordre')">Quinté désordre</button>
       <button class="btn bs" onclick="turfAskQuick('quinte_speculative')">Quinté spéculatif</button>
-      <button class="btn bs" onclick="turfAskQuick('outsider')">Outsider value</button>
+      <button class="btn bs betpro-outsider-button" onclick="turfAskQuick('outsider')">OUTSIDER QUI POURRAIT SURPRENDRE</button>
       <button class="btn bs" onclick="turfAskQuick('avoid')">Favori à éviter</button>
     </div>
   </div>
@@ -11939,14 +11944,14 @@ function turfRenderAskResult(d) {
   if (!el) return;
   if (!d.ok) { el.innerHTML = `<div class="warn">⚠ ${esc(d.error||'Analyse indisponible')}</div>`; return; }
 
-  const recoColor = { favorable:'var(--gr)', 'placé fiable':'var(--gr)', 'carte validée':'var(--gr)', 'carte placé validée':'var(--gr)', 'carte gagnant validée':'var(--gr)', 'outsider value':'var(--am)', 'jouable':'var(--gr)',
+  const recoColor = { favorable:'var(--gr)', 'placé fiable':'var(--gr)', 'carte validée':'var(--gr)', 'carte placé validée':'var(--gr)', 'carte gagnant validée':'var(--gr)', 'outsider value':'var(--re)', 'jouable':'var(--gr)',
     'jouable seulement placé':'var(--am)', 'trop risqué':'var(--re)', 'favori surcoté':'var(--re)', 'à éviter':'var(--re)',
     'course à passer':'var(--re)' }[d.recommendation] || 'var(--neon)';
 
   const globalConfidence=pgiTurfGlobalConfidence(d);
   const strong=pgiIsStrongTurfSignal(d);
   const recommendationFr={
-    'outsider value':'Outsider avec avantage statistique',
+    'outsider value':BETPRO_OUTSIDER_LABEL,
     'jouable seulement placé':'À jouer uniquement placé',
     'favori surcoté':'Favori trop coté',
   }[String(d.recommendation||'').toLowerCase()]||d.recommendation;
@@ -11955,6 +11960,7 @@ function turfRenderAskResult(d) {
     <div class="ct">Analyse</div>
     <div style="font-size:13px;font-weight:700;margin-bottom:8px">${esc(d.answer||'')}</div>
     ${d.recommendation?`<span class="bdg" style="background:${recoColor}22;color:${recoColor};border:1px solid ${recoColor}55">${esc(recommendationFr)}</span>`:''}
+    ${String(d.recommendation||'').toLowerCase()==='outsider value'?'<div class="betpro-outsider-risk">Le signal doit rester confirmé par des données de course vérifiables et des cotes actualisées. Il ne garantit pas un gagnant.</div>':''}
     <span style="margin-left:6px">${pgiGlobalConfidenceBadge(globalConfidence)}</span>
     ${d.confidence!=null?`<div style="margin-top:8px;font-family:var(--mo);font-size:20px;font-weight:700;color:${recoColor}">${d.confidence}%</div><div style="font-size:9px;color:var(--dm)">${esc(d.confidence_label||'Probabilité conservatrice')}</div>`:''}
     ${renderProfessionalEvidence(d.evidence)}
