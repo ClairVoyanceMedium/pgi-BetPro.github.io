@@ -4758,6 +4758,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="bg" id="hkjc-market-buttons" style="margin-bottom:10px;flex-wrap:wrap">
       <button class="fbtn" data-market="WIN" onclick="hkjcSetMarket('WIN',this)">&#129351; Simple Gagnant</button>
       <button class="fbtn on" data-market="PLACE" onclick="hkjcSetMarket('PLACE',this)">&#127942; Simple Placé</button>
+      <button type="button" class="btn betpro-outsider-button" onclick="hkjcSetMarket('WIN',document.querySelector('#hkjc-market-buttons [data-market=WIN]'));document.getElementById('hkjc-cards')?.scrollIntoView({behavior:'smooth',block:'start'})" title="Afficher les chevaux outsiders sur le marché Simple Gagnant, sans modifier les paris placés déjà suivis">OUTSIDER QUI POURRAIT SURPRENDRE · GAGNANT</button>
       <label for="hkjc-date-filter" style="font-size:11px;color:var(--dm);margin-left:8px">Date de réunion</label>
       <input id="hkjc-date-filter" aria-label="Date de réunion HKJC" type="date" onchange="hkjcSetDate(this.value)" style="background:var(--bg2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:7px 9px;font-size:11px">
       <button class="btn bp" onclick="hkjcLoad()">&#128260; Actualiser</button>
