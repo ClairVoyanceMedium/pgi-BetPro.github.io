@@ -9666,22 +9666,30 @@ function betproLoadEditorialNews(){
  betproEditorialRequest=fetch('https://betpro-editorial-news.peritoregroupindustries.workers.dev/news',{credentials:'omit',signal:AbortSignal.timeout(22000)}).then(async r=>{
   if(!r.ok)throw Error('Flux éditorial indisponible');return r.json();
  }).then(data=>{
-  if(!data?.ok||!Array.isArray(data.news))return;
-  const items=data.news.filter(betproTickerEditorialExtraValid);if(!items.length)return;
+  if(!data?.ok||!Array.isArray(data.news))throw Error('Aucun article éditorial disponible');
+  const items=data.news.filter(betproTickerEditorialExtraValid);if(!items.length)throw Error('Aucun article éditorial valide');
   const map=new Map();for(const a of [...items,...before])if(!map.has(a.link))map.set(a.link,a);
   betproEditorialMemory=[...map.values()].sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,40);
   try{localStorage.setItem(BETPRO_EDITORIAL_NEWS_KEY,JSON.stringify(betproEditorialMemory));}catch(_){}
-  if(items.some(x=>!before.some(y=>x.link===y.link))&&tickerHomeVisible())setTimeout(()=>loadTicker().catch(()=>{}),800);
+  if(items.some(x=>!before.some(y=>x.link===y.link))&&tickerHomeVisible()){
+   const refresh=()=>{if(tickerHomeVisible())void loadTicker().catch(()=>{});};
+   const active=tickerRefreshPending;
+   if(active)void active.then(()=>setTimeout(refresh,0),()=>setTimeout(refresh,0));else setTimeout(refresh,0);
+  }
  }).catch(()=>{betproEditorialLast=Date.now()-25*60000;}).finally(()=>{betproEditorialRequest=null;});
 }
 function betproTickerAppendEditorial(base,extra){
  const seen=new Set(base.map(x=>tickerArticleNameKey(x.title))),links=new Set(base.map(x=>x.link).filter(Boolean)),chosen=[],counts=new Map();
  const relevant=x=>/\b(blessure|blesse|forfait|absence|absent|suspension|suspendu|composition|titulaire|qualification|penalite|essais|grille|meteo|strategie|panne|abandon)\b/.test(tickerArticleNameKey(x.title));
  const rows=extra.filter(betproTickerEditorialExtraValid).sort((a,b)=>Number(relevant(b))-Number(relevant(a))||Date.parse(b.published)-Date.parse(a.published));
- for(const x of rows){const k=tickerArticleNameKey(x.title),sport=x.sport,n=counts.get(sport)||0;if(seen.has(k)||links.has(x.link)||n>=(sport==='formula1'?4:sport==='soccer'?5:3))continue;seen.add(k);links.add(x.link);counts.set(sport,n+1);chosen.push(x);}
- // Guarantee the new sport has an early slot when its source is available.
- const first=chosen.findIndex(x=>x.sport==='formula1');if(first>0)chosen.unshift(chosen.splice(first,1)[0]);
- const result=[];let i=0;for(let n=0;n<base.length;n++){result.push(base[n]);if(n%5===2&&i<chosen.length)result.push(chosen[i++]);}return result.concat(chosen.slice(i));
+ const publishers=new Set(),firstPass=[],secondPass=[];
+ const add=x=>{const k=tickerArticleNameKey(x.title),sport=x.sport,n=counts.get(sport)||0;if(seen.has(k)||links.has(x.link)||n>=(sport==='formula1'?4:sport==='soccer'?5:3))return false;seen.add(k);links.add(x.link);counts.set(sport,n+1);chosen.push(x);return true;};
+ for(const x of rows){if(publishers.has(x.source))continue;if(add(x)){publishers.add(x.source);firstPass.push(x);}}
+ for(const x of rows){if(add(x))secondPass.push(x);}
+ const first=firstPass.findIndex(x=>x.sport==='formula1');if(first>0)firstPass.unshift(firstPass.splice(first,1)[0]);
+ const queue=firstPass.concat(secondPass),result=[];let i=0;
+ for(let n=0;n<base.length;n++){result.push(base[n]);if(n%2===1&&i<queue.length)result.push(queue[i++]);}
+ return result.concat(queue.slice(i));
 }
 
 async function getSportTickerArticles(){
@@ -9831,7 +9839,7 @@ function betproTickerReadFastSnapshot(){
       const t=Date.parse(x.published||''),ttl=['boxing','mma','rugby','handball','volleyball','baseball'].includes(String(x.sport))?7*86400000:3*86400000;
       return Number.isFinite(t)&&t<=now+3600000&&now-t<ttl;
     });
-    return buildBalancedTickerItems([...matches,...articles],turf);
+    return buildBalancedTickerItems([...matches,...articles,...betproTickerReadEditorialNews()],turf);
   }catch(_){return[];}
 }
 function betproTickerSaveFastSnapshot(items){
@@ -9852,8 +9860,9 @@ function betproTickerRender(news,sportPayload,loadSequence,persistSnapshot=false
     const hasTurf = news.some(item => tickerCategory(item.sport) === 'turf');
     const degraded = !!sportPayload.meta?.degraded;
     const completeMultisport = sportCategories.size >= 11;
+    const editorialMedia=new Set(news.filter(betproTickerEditorialExtraValid).map(x=>x.source));
     if (source) source.textContent = news.length
-      ? `${news.filter(x=>x.is_match).length} rencontres · ${news.filter(x=>!x.is_match&&!x.is_status&&tickerHasFrenchArticleTitle(x)).length} actus FR · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
+      ? `${news.filter(x=>x.is_match).length} rencontres · ${news.filter(x=>!x.is_match&&!x.is_status&&tickerHasFrenchArticleTitle(x)).length} actus FR · ${sportCategories.size} sport${sportCategories.size>1?'s':''}${hasTurf?' + PMU':''}${editorialMedia.size?' · '+editorialMedia.size+' médias supplémentaires':''}${completeMultisport?' · couverture complète':(degraded?' · flux partiel':'')}`
       : 'Flux momentanément indisponible';
     if (!news.length) {
       if (tickerAnimFrame) cancelAnimationFrame(tickerAnimFrame);
@@ -10032,7 +10041,7 @@ ${blocks}`}]
 
     // Vitesse constante sur les écrans 60/90/120 Hz, sans mesure de mise en page
     // forcée toutes les deux secondes dans la boucle d'animation.
-    const TICKER_SPEED_PX_PER_SECOND=24;
+    const TICKER_SPEED_PX_PER_SECOND=22;
     let tickerScrollHeight=inner.scrollHeight;
     const tickerViewHeight=tickerBox?.clientHeight||270;
     if(typeof ResizeObserver!=='undefined'){
