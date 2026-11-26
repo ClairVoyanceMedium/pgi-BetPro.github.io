@@ -85,18 +85,25 @@ async function readExpanded([sport,query,pattern]){
  for(const item of items){if(chosen.length>=6)break;if(!chosen.includes(item))chosen.push(item);}
  return chosen;
 }
+function failureReason(r){return r.status==='rejected'?String(r.reason?.message||r.reason||'Erreur RSS').slice(0,120):undefined;}
+async function staleNews(cacheKey){
+ try{const response=await caches.default.match(cacheKey);if(!response)return[];const p=await response.json();return Array.isArray(p.news)?p.news.filter(x=>{const t=Date.parse(x.published);return Number.isFinite(t)&&t<=Date.now()+300000&&Date.now()-t<=72*3600000;}):[];}catch(_){return[];}
+}
+function saveStale(ctx,key,news){if(!news.length)return;ctx.waitUntil(caches.default.put(key,Response.json({news},{headers:{'Cache-Control':'public, max-age=259200'}})).catch(()=>{}));}
 let expandedMemory=null,expandedPending=null;
 async function expandedResponse(u,ctx){
- const cacheKey=new Request(u.origin+'/news/expanded-v1'),cached=await caches.default.match(cacheKey);if(cached)return cached;
+ const cacheKey=new Request(u.origin+'/news/expanded-v2'),backupKey=new Request(u.origin+'/news/expanded-last-good'),cached=await caches.default.match(cacheKey);if(cached)return cached;
  if(expandedMemory&&Date.now()-expandedMemory.at<1800000)return Response.json(expandedMemory.payload,{headers});
  if(!expandedPending)expandedPending=(async()=>{
   const results=[];for(let i=0;i<EXPANDED_SPORTS.length;i+=6)results.push(...await Promise.allSettled(EXPANDED_SPORTS.slice(i,i+6).map(readExpanded)));
   const news=[],coverage=[],seen=new Set();
-  for(let i=0;i<results.length;i++){const r=results[i],items=r.status==='fulfilled'?r.value:[];coverage.push({sport:EXPANDED_SPORTS[i][0],count:items.length,ok:r.status==='fulfilled'});for(const item of items){const k=key(item.title);if(!seen.has(k)){seen.add(k);news.push(item);}}}
-  const p={ok:news.length>0,news,coverage,fetched_at:new Date().toISOString(),version:'expanded-v1'};
-  if(p.ok)expandedMemory={at:Date.now(),payload:p};return p;
+  for(let i=0;i<results.length;i++){const r=results[i],items=r.status==='fulfilled'?r.value:[];coverage.push({sport:EXPANDED_SPORTS[i][0],count:items.length,ok:r.status==='fulfilled',error:failureReason(r)});for(const item of items){const k=key(item.title);if(!seen.has(k)){seen.add(k);news.push(item);}}}
+  const stale=await staleNews(backupKey),keys=new Set(news.map(x=>key(x.title)));for(const x of stale){const k=key(x.title);if(!keys.has(k)&&news.filter(y=>y.sport===x.sport).length<6){keys.add(k);news.push(x);}}
+  const fresh=coverage.some(x=>x.count>0);if(fresh)saveStale(ctx,backupKey,news);
+  const p={ok:news.length>0,news,coverage,fetched_at:new Date().toISOString(),version:'expanded-v2',stale:!fresh};
+  if(fresh)expandedMemory={at:Date.now(),payload:p};return p;
  })().finally(()=>{expandedPending=null;});
- const p=await expandedPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok?'public, max-age=1800':'public, max-age=120'}});
+ const p=await expandedPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=120'}});
  ctx.waitUntil(caches.default.put(cacheKey,response.clone()).catch(()=>{}));return response;
 }
 
@@ -105,21 +112,23 @@ export default {async fetch(req,env,ctx){
  const u=new URL(req.url);
  if(req.method==='GET'&&u.pathname==='/news/expanded')return expandedResponse(u,ctx);
  if(req.method!=='GET'||u.pathname!=='/news')return new Response('Not found',{status:404});
- const cacheKey=new Request(u.origin+'/news'),cached=await caches.default.match(cacheKey);
+ const cacheKey=new Request(u.origin+'/news-v2'),backupKey=new Request(u.origin+'/news-last-good'),cached=await caches.default.match(cacheKey);
  if(cached)return cached;
  if(memory&&Date.now()-memory.at<1800000)return Response.json(memory.payload,{headers});
  if(!pending)pending=(async()=>{
-  const settled=await Promise.allSettled(SOURCES.map(readSource)),seen=new Set(),news=[],coverage=[];
+  const settled=[];for(let i=0;i<SOURCES.length;i+=6)settled.push(...await Promise.allSettled(SOURCES.slice(i,i+6).map(readSource)));const seen=new Set(),news=[],coverage=[];
   for(let i=0;i<settled.length;i++){
    const r=settled[i],items=r.status==='fulfilled'?r.value:[];
-   coverage.push({source:SOURCES[i][0],sport:SOURCES[i][2],count:items.length,ok:r.status==='fulfilled'});
+   coverage.push({source:SOURCES[i][0],sport:SOURCES[i][2],count:items.length,ok:r.status==='fulfilled',error:failureReason(r)});
    for(const item of items){const k=key(item.title);if(!seen.has(k)){seen.add(k);news.push(item);}}
   }
-  const p={ok:news.length>0,news,coverage,fetched_at:new Date().toISOString()};
-  if(p.ok)memory={at:Date.now(),payload:p};
+  const stale=await staleNews(backupKey);for(const x of stale){const k=key(x.title);if(!seen.has(k)&&news.filter(y=>y.source===x.source).length<3){seen.add(k);news.push(x);}}
+  const fresh=coverage.some(x=>x.count>0);if(fresh)saveStale(ctx,backupKey,news);
+  const p={ok:news.length>0,news,coverage,fetched_at:new Date().toISOString(),stale:!fresh};
+  if(fresh)memory={at:Date.now(),payload:p};
   return p;
  })().finally(()=>{pending=null;});
  const p=await pending;
- const response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok?'public, max-age=1800':'public, max-age=120'}});
+ const response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=120'}});
  ctx.waitUntil(caches.default.put(cacheKey,response.clone()).catch(()=>{}));return response;
 }};
