@@ -38,9 +38,72 @@ async function readSource([name,domain,sport,query]){
  }
  return out.sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,3);
 }
+
+/* Independent expanded Google News feed. Existing /news endpoint remains intact. */
+const EXPANDED_SPORTS=[
+ ['soccer','football OR "Ligue 1" OR "Ligue des champions" OR "Premier League"',/\b(foot(?:ball)?|ligue 1|ligue 2|ligue des champions|premier league|liga|serie a|bundesliga|psg|om|mercato|equipe de france|champions league)\b/],
+ ['basketball','basketball OR NBA OR EuroLeague OR "Betclic Elite"',/\b(basket(?:ball)?|nba|eurol(?:eague|igue)|betclic elite|wnba|eurocup|asvel)\b/],
+ ['tennis','tennis OR ATP OR WTA OR "Coupe Davis"',/\b(tennis|atp|wta|coupe davis|roland garros|grand chelem|wimbledon|open d australie|us open)\b/],
+ ['formula1','"Formule 1" OR F1 OR "Grand Prix de F1"',/\b(formule 1|f1|grand prix|fia|ecurie|paddock)\b/],
+ ['rugby','rugby OR "Top 14" OR "Champions Cup rugby" OR "Pro D2"',/\b(rugby|top 14|pro d2|six nations|6 nations|all blacks|xv de france)\b/],
+ ['handball','handball OR "Starligue" OR "Ligue des champions handball"',/\b(handball|starligue|ehf|liqui moly|ligue feminine de handball)\b/],
+ ['mma','MMA OR UFC OR "combat MMA" OR PFL',/\b(mma|ufc|pfl|cage warriors|octogone|bellator|ares fc)\b/],
+ ['boxing','boxe OR "boxe anglaise" OR "champion du monde boxe"',/\b(boxe|boxeur|boxeuse|wbc|wba|wbo|ibf|poids lourds)\b/],
+ ['icehockey','"hockey sur glace" OR NHL OR "Ligue Magnus"',/\b(hockey|nhl|ligue magnus|stanley cup|coupe stanley)\b/],
+ ['baseball','baseball OR MLB OR "World Series baseball"',/\b(baseball|mlb|world series|serie mondiale|ligues majeures)\b/],
+ ['americanfootball','"football américain" OR NFL OR "Super Bowl"',/\b(football americain|nfl|super bowl|quarterback|touchdown)\b/],
+ ['volleyball','"volley-ball" OR volleyball OR "Ligue des champions volley"',/\b(volley(?: ball|ball)?|ligue a volley|vnl|fivb|marmara spikeleague)\b/]
+];
+const EXPANDED_PUBLISHERS=[
+ ['lequipe.fr',"L’Équipe"],['rmcsport.bfmtv.com','RMC Sport'],['eurosport.fr','Eurosport'],['sport.fr','Sport.fr'],['leparisien.fr','Le Parisien'],['ouest-france.fr','Ouest-France'],['franceinfo.fr','Franceinfo'],['francetvinfo.fr','Franceinfo'],['francetv.fr','France Télévisions'],['sports.fr','Sports.fr'],['beinsports.com','beIN SPORTS'],
+ ['footmercato.net','Foot Mercato','soccer'],['maxifoot.fr','Maxifoot','soccer'],['sofoot.com','So Foot','soccer'],['onze-mondial.com','Onze Mondial','soccer'],['basketusa.com','Basket USA','basketball'],['basketeurope.com','Basket Europe','basketball'],['tennisactu.net','Tennis Actu','tennis'],['welovetennis.fr','We Love Tennis','tennis'],['rugbyrama.fr','Rugbyrama','rugby'],['midi-olympique.fr','Midi Olympique','rugby'],['handnews.fr','HandNews','handball'],['ffhandball.fr','FFHandball','handball'],['fr.motorsport.com','Motorsport.com','formula1'],['autohebdo.fr','AUTOhebdo','formula1'],['f1i.autojournal.fr','F1i','formula1'],['lasueur.com','La Sueur'],['boxemag.com','Boxemag'],['hockeyfrance.com','FFHG','icehockey'],['ffbs.fr','FFBS','baseball'],['touchdownactu.com','Touchdown Actu','americanfootball'],['ffvolley.org','FFVolley','volleyball'],['lnv.fr','Ligue nationale de volley','volleyball']
+];
+function expandedPublisher(domain){return EXPANDED_PUBLISHERS.find(([d])=>domain===d||domain.endsWith('.'+d));}
+async function readExpanded([sport,query,pattern]){
+ const url=new URL('https://news.google.com/rss/search');
+ url.search=new URLSearchParams({q:'('+query+') when:3d',hl:'fr',gl:'FR',ceid:'FR:fr'}).toString();
+ const res=await fetch(url,{signal:AbortSignal.timeout(7000),headers:{Accept:'application/rss+xml, application/xml, text/xml'}});
+ if(!res.ok)throw Error('HTTP '+res.status);
+ const xml=await res.text();if(xml.length>1500000||!/<rss\b/i.test(xml))throw Error('RSS invalide');
+ const now=Date.now(),items=[],seen=new Set();
+ for(const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)){
+  const item=m[1],sourceTag=item.match(/<source\b[^>]*\burl="([^"]+)"[^>]*>/i),publisher=expandedPublisher(host(decode(sourceTag?.[1])));
+  if(!publisher)continue;
+  const pub=Date.parse(field(item,'pubDate')),link=field(item,'link');
+  if(!Number.isFinite(pub)||pub>now+300000||now-pub>72*3600000||!/^https:\/\/news\.google\.com\/rss\/articles\//i.test(link)||host(link)!=='news.google.com')continue;
+  let title=field(item,'title');const suffix=field(item,'source');if(suffix&&title.endsWith(' - '+suffix))title=title.slice(0,-suffix.length-3).trim();
+  const k=key(title);if(title.length<12||title.length>300||/[<>]/.test(title)||seen.has(k))continue;
+  if(/\b(bonus|code promo|offre de bienvenue|freebet|pari gratuit|pronostic gratuit)\b/.test(k))continue;
+  if(publisher[2]!==sport&&!pattern.test(k))continue;
+  if(publisher[2]&&publisher[2]!==sport)continue;
+  if(/\b(?:live stream|watch live|how to watch|odds and picks)\b/i.test(title))continue;
+  seen.add(k);items.push({title,link,published:new Date(pub).toISOString(),source:'Google Actualités · '+publisher[1],publisher:publisher[1],sport,language:'fr',is_match:false,editorial_extra:true,google_expanded:true});
+ }
+ items.sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));
+ const chosen=[],publishers=new Set();
+ for(const item of items){if(publishers.has(item.publisher))continue;publishers.add(item.publisher);chosen.push(item);if(chosen.length>=6)break;}
+ for(const item of items){if(chosen.length>=6)break;if(!chosen.includes(item))chosen.push(item);}
+ return chosen;
+}
+let expandedMemory=null,expandedPending=null;
+async function expandedResponse(u,ctx){
+ const cacheKey=new Request(u.origin+'/news/expanded-v1'),cached=await caches.default.match(cacheKey);if(cached)return cached;
+ if(expandedMemory&&Date.now()-expandedMemory.at<1800000)return Response.json(expandedMemory.payload,{headers});
+ if(!expandedPending)expandedPending=(async()=>{
+  const results=[];for(let i=0;i<EXPANDED_SPORTS.length;i+=6)results.push(...await Promise.allSettled(EXPANDED_SPORTS.slice(i,i+6).map(readExpanded)));
+  const news=[],coverage=[],seen=new Set();
+  for(let i=0;i<results.length;i++){const r=results[i],items=r.status==='fulfilled'?r.value:[];coverage.push({sport:EXPANDED_SPORTS[i][0],count:items.length,ok:r.status==='fulfilled'});for(const item of items){const k=key(item.title);if(!seen.has(k)){seen.add(k);news.push(item);}}}
+  const p={ok:news.length>0,news,coverage,fetched_at:new Date().toISOString(),version:'expanded-v1'};
+  if(p.ok)expandedMemory={at:Date.now(),payload:p};return p;
+ })().finally(()=>{expandedPending=null;});
+ const p=await expandedPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok?'public, max-age=1800':'public, max-age=120'}});
+ ctx.waitUntil(caches.default.put(cacheKey,response.clone()).catch(()=>{}));return response;
+}
+
 let memory=null,pending=null;
 export default {async fetch(req,env,ctx){
  const u=new URL(req.url);
+ if(req.method==='GET'&&u.pathname==='/news/expanded')return expandedResponse(u,ctx);
  if(req.method!=='GET'||u.pathname!=='/news')return new Response('Not found',{status:404});
  const cacheKey=new Request(u.origin+'/news'),cached=await caches.default.match(cacheKey);
  if(cached)return cached;
