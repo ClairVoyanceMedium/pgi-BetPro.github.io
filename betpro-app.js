@@ -9141,7 +9141,7 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
   // Augmente la couverture sans évincer les vrais articles de presse.
   const groups = new Map(),seen=new Set();
   const all=[...(sportItems||[]),...(turfItems||[])];
-  const editorial=[...all.filter(x=>x?.editorial_extra===true),...betproTickerReadExpandedNews()];
+  const editorial=[...all.filter(x=>x?.editorial_extra===true),...betproTickerReadExpandedNews(),...betproTickerReadDirectNews()];
   for(const item of all.filter(x=>x?.editorial_extra!==true)) {
     if(item?.is_status)continue;const title=String(item?.title||'').trim();if(!title)continue;
     const category=tickerCategory(item.sport),fp=(category+'|'+title).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g,' ').trim();
@@ -9652,10 +9652,10 @@ const BETPRO_EDITORIAL_SOURCES=new Set(['Foot Mercato','Maxifoot','RMC Sport','E
 let betproEditorialRequest=null,betproEditorialLast=0,betproEditorialMemory=[];
 function betproTickerEditorialExtraValid(a){
  if(!a||a.editorial_extra!==true||a.is_match||a.language!=='fr')return false;
- if(a.google_expanded===true){if(!['soccer','basketball','tennis','rugby','handball','formula1','mma','boxing','icehockey','baseball','americanfootball','volleyball'].includes(a.sport)||typeof a.publisher!=='string'||a.publisher.length<2||a.publisher.length>60||/[<>]/.test(a.publisher)||a.source!=='Google Actualités · '+a.publisher)return false;}
+ if(a.google_expanded===true){if(!['soccer','basketball','tennis','rugby','handball','formula1','mma','boxing','icehockey','baseball','americanfootball','volleyball'].includes(a.sport)||typeof a.publisher!=='string'||a.publisher.length<2||a.publisher.length>60||/[<>]/.test(a.publisher))return false;if(a.direct_editorial===true){if(a.source!==a.publisher||!betproDirectNewsLinkValid(a))return false;}else if(a.source!=='Google Actualités · '+a.publisher)return false;}
  else if(!BETPRO_EDITORIAL_SOURCES.has(a.source)||!['soccer','basketball','tennis','rugby','handball','formula1'].includes(a.sport))return false;
  const t=Date.parse(a.published||''),title=String(a.title||'').trim();
- return Number.isFinite(t)&&t<=Date.now()+300000&&Date.now()-t<=72*3600000&&title.length>=12&&title.length<=300&&!/[<>]/.test(title)&&/^https:\/\/news\.google\.com\/rss\/articles\//i.test(String(a.link||''));
+ return Number.isFinite(t)&&t<=Date.now()+300000&&Date.now()-t<=72*3600000&&title.length>=12&&title.length<=300&&!/[<>]/.test(title)&&(a.direct_editorial===true?betproDirectNewsLinkValid(a):/^https:\/\/news\.google\.com\/rss\/articles\//i.test(String(a.link||'')));
 }
 function betproTickerReadEditorialNews(){
  try{const disk=JSON.parse(localStorage.getItem(BETPRO_EDITORIAL_NEWS_KEY)||'[]');if(Array.isArray(disk)&&!betproEditorialMemory.length)betproEditorialMemory=disk;}catch(_){}
@@ -9676,7 +9676,7 @@ function betproLoadEditorialNews(){
   betproEditorialMemory=[...map.values()].sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,40);
   try{localStorage.setItem(BETPRO_EDITORIAL_NEWS_KEY,JSON.stringify(betproEditorialMemory));}catch(_){}
   return betproTickerReadEditorialNews();
- }).catch(e=>{betproEditorialLast=Date.now()-25*60000;console.warn('BetPro flux éditorial :',e?.message||e);return before;}).finally(()=>{clearTimeout(timer);betproEditorialRequest=null;});
+ }).catch(e=>{betproEditorialLast=Date.now();return before;}).finally(()=>{clearTimeout(timer);betproEditorialRequest=null;});
  return betproEditorialRequest;
 }
 
@@ -9700,8 +9700,37 @@ function betproLoadExpandedNews(){
   betproExpandedMemory=[...bySport.values()].flat();
   try{localStorage.setItem(BETPRO_EXPANDED_NEWS_KEY,JSON.stringify(betproExpandedMemory));}catch(_){}
   return betproTickerReadExpandedNews();
- }).catch(e=>{betproExpandedLast=Date.now()-25*60000;console.warn('Google Actualités étendu :',e?.message||e);return before;}).finally(()=>{clearTimeout(timer);betproExpandedRequest=null;});
+ }).catch(e=>{betproExpandedLast=Date.now();return before;}).finally(()=>{clearTimeout(timer);betproExpandedRequest=null;});
  return betproExpandedRequest;
+}
+
+
+const BETPRO_DIRECT_NEWS_KEY='pgi_betpro_direct_news_v1';
+const BETPRO_DIRECT_PUBLISHERS={'RMC Sport':'rmcsport.bfmtv.com','Basket USA':'basketusa.com','Tennis Actu':'tennisactu.net','La Sueur':'lasueur.com','Hockeyarchives':'passionhockey.com','FFBS':'ffbs.fr','Touchdown Actu':'touchdownactu.com','AUTOhebdo':'autohebdo.fr'};
+let betproDirectRequest=null,betproDirectLast=0,betproDirectMemory=[];
+function betproDirectNewsLinkValid(a){
+ try{const u=new URL(a.link),host=u.hostname.toLowerCase().replace(/^www\./,''),domain=BETPRO_DIRECT_PUBLISHERS[a.publisher];return !!domain&&u.protocol==='https:'&&!u.username&&!u.password&&u.pathname!=='/'&&(host===domain||host.endsWith('.'+domain));}catch(_){return false;}
+}
+function betproTickerReadDirectNews(){
+ try{if(!betproDirectMemory.length){const disk=JSON.parse(localStorage.getItem(BETPRO_DIRECT_NEWS_KEY)||'[]');if(Array.isArray(disk))betproDirectMemory=disk;}}catch(_){}
+ return betproDirectMemory.filter(x=>x?.direct_editorial===true&&betproTickerEditorialExtraValid(x)).slice(0,72);
+}
+function betproLoadDirectNews(){
+ if(betproDirectRequest)return betproDirectRequest;
+ const before=betproTickerReadDirectNews();
+ if(!tickerHomeVisible()||Date.now()-betproDirectLast<30*60000)return Promise.resolve(before);
+ betproDirectLast=Date.now();
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+ betproDirectRequest=fetch('https://betpro-editorial-news.peritoregroupindustries.workers.dev/news/direct',{mode:'cors',credentials:'omit',signal:controller.signal}).then(async r=>{if(!r.ok)return null;return r.json();}).then(data=>{
+  const fresh=Array.isArray(data?.news)?data.news.filter(x=>x?.direct_editorial===true&&betproTickerEditorialExtraValid(x)):[];
+  if(!fresh.length){betproDirectLast=Date.now()-20*60000;return before;}
+  const map=new Map();for(const x of [...fresh,...before])if(!map.has(x.link))map.set(x.link,x);
+  const groups=new Map();for(const x of [...map.values()].sort((a,b)=>Date.parse(b.published)-Date.parse(a.published))){const g=groups.get(x.sport)||[];if(g.length<6)g.push(x);groups.set(x.sport,g);}
+  betproDirectMemory=[...groups.values()].flat();
+  try{localStorage.setItem(BETPRO_DIRECT_NEWS_KEY,JSON.stringify(betproDirectMemory));}catch(_){}
+  return betproTickerReadDirectNews();
+ }).catch(()=>{betproDirectLast=Date.now()-20*60000;return before;}).finally(()=>{clearTimeout(timer);betproDirectRequest=null;});
+ return betproDirectRequest;
 }
 
 function betproTickerAppendEditorial(base,extra){
@@ -10190,7 +10219,8 @@ async function loadTicker(){
       getSportTickerArticles().then(value=>{sportPayload=value;sportsLoaded=true;show();}),
       getTurfTickerArticles().then(value=>{turfItems=value;turfLoaded=true;show();}),
       betproLoadEditorialNews().then(items=>{if(items.length)show();}),
-      betproLoadExpandedNews().then(items=>{if(items.length)show();})
+      betproLoadExpandedNews().then(items=>{if(items.length)show();}),
+      betproLoadDirectNews().then(items=>{if(items.length)show();})
     ]);
     if(!sportsLoaded&&!turfLoaded)renderTickerSafetyFallback('Flux momentanément indisponible',false);
   })();

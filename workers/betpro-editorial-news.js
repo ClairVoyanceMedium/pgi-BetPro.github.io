@@ -103,13 +103,70 @@ async function expandedResponse(u,ctx){
   const p={ok:news.length>0,news,coverage,fetched_at:new Date().toISOString(),version:'expanded-v2',stale:!fresh};
   if(fresh)expandedMemory={at:Date.now(),payload:p};return p;
  })().finally(()=>{expandedPending=null;});
- const p=await expandedPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=120'}});
+ const p=await expandedPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=600'}});
+ ctx.waitUntil(caches.default.put(cacheKey,response.clone()).catch(()=>{}));return response;
+}
+
+
+/* Direct publisher RSS: independent of Google News and main BetPro API. */
+const DIRECT_FEEDS=[
+ ['soccer','RMC Sport','https://rmcsport.bfmtv.com/rss/football/'],
+ ['basketball','Basket USA','https://www.basketusa.com/feed/'],
+ ['tennis','Tennis Actu','https://www.tennisactu.net/rss_social.xml'],
+ ['formula1','RMC Sport','https://rmcsport.bfmtv.com/rss/auto-moto/f1/'],
+ ['rugby','RMC Sport','https://rmcsport.bfmtv.com/rss/rugby/'],
+ ['handball','RMC Sport','https://rmcsport.bfmtv.com/rss/handball/'],
+ ['mma','La Sueur','https://lasueur.com/feed'],
+ ['boxing','RMC Sport','https://rmcsport.bfmtv.com/rss/sports-de-combat/boxe/'],
+ ['icehockey','Hockeyarchives','https://www.passionhockey.com/feed/'],
+ ['baseball','FFBS','https://ffbs.fr/feed/'],
+ ['americanfootball','Touchdown Actu','https://touchdownactu.com/feed/'],
+ ['volleyball','RMC Sport','https://rmcsport.bfmtv.com/rss/volley/'],
+ ['formula1','AUTOhebdo','https://www.autohebdo.fr/feed/'],
+ ['tennis','RMC Sport','https://rmcsport.bfmtv.com/rss/tennis/']
+];
+async function readDirect([sport,publisher,address]){
+ const res=await fetch(address,{signal:AbortSignal.timeout(4500),headers:{Accept:'application/rss+xml, application/xml, text/xml, */*;q=0.1'}});
+ if(!res.ok)throw Error('HTTP '+res.status);
+ const xml=await res.text();if(xml.length>2500000||!/<rss\b/i.test(xml))throw Error('RSS invalide');
+ const now=Date.now(),items=[],seen=new Set(),domain=host(address);
+ for(const m of xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)){
+  const item=m[1],title=field(item,'title'),link=field(item,'link'),pub=Date.parse(field(item,'pubDate')||field(item,'dc:date')),k=key(title);
+  let parsed;try{parsed=new URL(link);}catch(_){continue;}
+  const d=host(link);if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.pathname==='/'||(d!==domain&&!d.endsWith('.'+domain)))continue;
+  if(!Number.isFinite(pub)||pub>now+300000||now-pub>72*3600000||title.length<12||title.length>300||/[<>]/.test(title)||seen.has(k))continue;
+  if(/\b(bonus|code promo|offre de bienvenue|freebet|pari gratuit|pronostic gratuit)\b/.test(k))continue;
+  const category=key([...item.matchAll(/<category(?:\s[^>]*)?>([\s\S]*?)<\/category>/gi)].map(x=>decode(x[1])).join(' '));
+  const context=k+' '+category+' '+key(parsed.pathname);
+  if(publisher==='AUTOhebdo'&&!/\b(formule 1|f1)\b/.test(context))continue;
+  if(publisher==='La Sueur'&&!/\b(mma|ufc|pfl|octogone|cage warriors|bellator|ares)\b/.test(context))continue;
+  if(publisher==='FFBS'&&/\b(softball|baseball5)\b/.test(context)&&!/\bbaseball\b/.test(k))continue;
+  seen.add(k);items.push({title,link,published:new Date(pub).toISOString(),source:publisher,publisher,sport,language:'fr',is_match:false,editorial_extra:true,google_expanded:true,direct_editorial:true});
+ }
+ return items.sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,6);
+}
+let directMemory=null,directPending=null;
+async function directResponse(u,ctx){
+ const cacheKey=new Request(u.origin+'/news/direct-v1'),backupKey=new Request(u.origin+'/news/direct-last-good'),cached=await caches.default.match(cacheKey);if(cached)return cached;
+ if(directMemory&&Date.now()-directMemory.at<1800000)return Response.json(directMemory.payload,{headers});
+ if(!directPending)directPending=(async()=>{
+  const settled=[];for(let i=0;i<DIRECT_FEEDS.length;i+=6)settled.push(...await Promise.allSettled(DIRECT_FEEDS.slice(i,i+6).map(readDirect)));
+  const news=[],coverage=[],seen=new Set(),counts=new Map();
+  function add(item){const k=key(item.title),n=counts.get(item.sport)||0;if(seen.has(k)||n>=6)return;seen.add(k);counts.set(item.sport,n+1);news.push(item);}
+  for(let i=0;i<settled.length;i++){const r=settled[i],items=r.status==='fulfilled'?r.value:[];coverage.push({sport:DIRECT_FEEDS[i][0],source:DIRECT_FEEDS[i][1],count:items.length,ok:r.status==='fulfilled',error:failureReason(r)});for(const item of items)add(item);}
+  for(const item of await staleNews(backupKey))add(item);
+  const fresh=coverage.some(x=>x.count>0);if(fresh)saveStale(ctx,backupKey,news);
+  const payload={ok:news.length>0,news,coverage,version:'direct-v1',stale:!fresh,fetched_at:new Date().toISOString()};
+  if(fresh)directMemory={at:Date.now(),payload};return payload;
+ })().finally(()=>{directPending=null;});
+ const p=await directPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=600'}});
  ctx.waitUntil(caches.default.put(cacheKey,response.clone()).catch(()=>{}));return response;
 }
 
 let memory=null,pending=null;
 export default {async fetch(req,env,ctx){
  const u=new URL(req.url);
+ if(req.method==='GET'&&u.pathname==='/news/direct')return directResponse(u,ctx);
  if(req.method==='GET'&&u.pathname==='/news/expanded')return expandedResponse(u,ctx);
  if(req.method!=='GET'||u.pathname!=='/news')return new Response('Not found',{status:404});
  const cacheKey=new Request(u.origin+'/news-v2'),backupKey=new Request(u.origin+'/news-last-good'),cached=await caches.default.match(cacheKey);
@@ -122,13 +179,13 @@ export default {async fetch(req,env,ctx){
    coverage.push({source:SOURCES[i][0],sport:SOURCES[i][2],count:items.length,ok:r.status==='fulfilled',error:failureReason(r)});
    for(const item of items){const k=key(item.title);if(!seen.has(k)){seen.add(k);news.push(item);}}
   }
-  const stale=await staleNews(backupKey);for(const x of stale){const k=key(x.title);if(!seen.has(k)&&news.filter(y=>y.source===x.source).length<3){seen.add(k);news.push(x);}}
+  const stale=[...await staleNews(backupKey),...await staleNews(new Request(u.origin+'/news'))];for(const x of stale){const k=key(x.title);if(!seen.has(k)&&news.filter(y=>y.source===x.source).length<3){seen.add(k);news.push(x);}}
   const fresh=coverage.some(x=>x.count>0);if(fresh)saveStale(ctx,backupKey,news);
   const p={ok:news.length>0,news,coverage,fetched_at:new Date().toISOString(),stale:!fresh};
   if(fresh)memory={at:Date.now(),payload:p};
   return p;
  })().finally(()=>{pending=null;});
  const p=await pending;
- const response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=120'}});
+ const response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=600'}});
  ctx.waitUntil(caches.default.put(cacheKey,response.clone()).catch(()=>{}));return response;
 }};
