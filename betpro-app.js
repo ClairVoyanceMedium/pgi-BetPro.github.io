@@ -10137,8 +10137,6 @@ ${blocks}`}]
     // Conserver toutes les rencontres; un article ESPN sans titre français
     // reste en réserve jusqu'à traduction vérifiable, sans titre anglais affiché.
     const visibleItems=sorted.filter(tickerHasFrenchArticleTitle);
-    const editorialStatus=document.getElementById('ticker-editorial-sources');
-    if(editorialStatus){const names=[...new Set(visibleItems.filter(betproTickerEditorialExtraValid).map(x=>x.source))];editorialStatus.textContent=names.length?'Médias supplémentaires dans le flux : '+names.join(' · '):'Médias supplémentaires : aucun article reçu pour le moment';}
     // Ne jamais vider un flux déjà visible lorsque des articles attendent
     // leur traduction : éviter une zone blanche et un nouveau saut au chargement.
     if(!visibleItems.length){
