@@ -5240,6 +5240,68 @@ function betproAnalyticsExportCsv(){
  document.body.appendChild(el);el.click();el.remove();
  setTimeout(()=>URL.revokeObjectURL(url),4000);
 }
+
+let betproAdvancedPanels=new Set(['overview-avant_match','overview-en_direct','bands-avant_match','sports-avant_match','windows']);
+function betproAdvancedExportCsv(){
+ const a=betproAnalyticsReport?.advanced;if(!a?.phases)return toast('Analyse avancée indisponible.','err');
+ const cols=['Phase','Dimension','Catégorie','Paris réglés à cote connue','Gagnés','Perdus','Jours distincts','Réussite %','Cote moyenne','Cote gagnants','Cote perdants','Probabilité implicite moyenne %','Mise théorique EUR','Bénéfice net théorique EUR','ROI %','Borne basse ROI %','Borne haute ROI %','Niveau indicatif','Date séparation','Validation'];
+ const lines=[cols],row=(phase,kind,label,x,cut='',status='')=>[phase,kind,label,x.n,x.wins,x.losses,x.days,x.rate,x.avg_odds,x.win_odds,x.loss_odds,x.implied,x.stake,x.profit,x.roi,x.roi_floor,x.roi_ceiling,x.sample,cut,status];
+ for(const [phase,d] of Object.entries(a.phases)){
+  lines.push(row(phase,'ensemble','Tous les sports',d.overall));
+  for(const [key,entries] of Object.entries(d))if(Array.isArray(entries))for(const x of entries)lines.push(row(phase,key,x.label,x));
+ }
+ for(const x of a.windows||[]){lines.push(row(x.phase,'plage découverte',x.label+' | '+x.range,x.train,x.cut_day,x.status),row(x.phase,'validation chronologique',x.label+' | '+x.range,x.holdout,x.cut_day,x.status));}
+ const quote=v=>{const str=String(v??'');return '"'+(/^[=+@-]/.test(str)&&typeof v!=='number'?"'"+str:str).replace(/"/g,'""')+'"';};
+ const url=URL.createObjectURL(new Blob(['\ufeff'+lines.map(r=>r.map(quote).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'})),el=document.createElement('a');
+ el.href=url;el.download='BetPro_Analyse_avancee_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(el);el.click();el.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+function betproAdvancedDashboard(a){
+ if(!a?.phases)return '<div class="betpro-analytics-info"><strong>Analyse avancée des cotes et de la rentabilité</strong><p>Analyse avancée momentanément indisponible. Les statistiques existantes restent accessibles.</p></div>';
+ const fmt=(v,d=2)=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:d});
+ const pct=(v,sign=false)=>v==null?'—':(sign&&v>0?'+':'')+fmt(v)+' %';
+ const euro=v=>v==null?'—':(v>0?'+':'')+fmt(v)+' €';
+ const color=v=>v==null?'var(--mu)':v>0?'var(--gr)':v<0?'var(--re)':'var(--tx)';
+ const cell=(v,text)=>'<td style="color:'+color(v)+';font-weight:700">'+text+'</td>';
+ const open=k=>betproAdvancedPanels.has(k)?' open':'';
+ const details=(key,title,body)=>'<details class="betpro-analytics-group" data-advanced-key="'+esc(key)+'"'+open(key)+'><summary>'+title+'</summary>'+body+'</details>';
+ const note=v=>'<p class="betpro-analytics-note">'+v+'</p>';
+ const table=(rows,limit=90)=>{
+  if(!rows?.length)return note('Aucune sélection admissible pour cette catégorie.');
+  const render=xs=>xs.map(x=>'<tr><td><strong>'+esc(x.label)+'</strong></td><td>'+fmt(x.n,0)+' · '+fmt(x.days,0)+' j</td><td>'+fmt(x.wins,0)+' / '+fmt(x.losses,0)+'</td><td>'+pct(x.rate)+'</td><td>'+fmt(x.avg_odds)+'</td><td>'+fmt(x.win_odds)+'</td><td>'+fmt(x.loss_odds)+'</td>'+cell(x.roi,pct(x.roi,true))+cell(x.profit,euro(x.profit))+'<td>'+pct(x.roi_floor,true)+'</td><td>'+esc(x.sample)+'</td></tr>').join('');
+  const headers='<thead><tr><th>Catégorie</th><th>Paris / jours</th><th>G / P</th><th>Réussite</th><th>Cote moy.</th><th>Cote G</th><th>Cote P</th><th>ROI</th><th>Profit net</th><th>ROI prudent</th><th>Volume</th></tr></thead>';
+  const wrap=xs=>'<div class="betpro-analytics-overflow"><table class="betpro-results-table betpro-analytics-table">'+headers+'<tbody>'+render(xs)+'</tbody></table></div>';
+  return wrap(rows.slice(0,limit))+(rows.length>limit?'<details><summary>'+fmt(rows.length-limit,0)+' autres catégories</summary>'+wrap(rows.slice(limit))+'</details>':'');
+ };
+ const kpi=(label,value,desc)=>'<div class="tsm-cell"><div class="sv" style="color:var(--tx)">'+value+'</div><label>'+label+'</label><div class="betpro-analytics-hint">'+desc+'</div></div>';
+ const phaseTitle=k=>k==='avant_match'?'Avant-match':'En direct';
+ const windowRows=a.windows||[];
+ const windowTable=windowRows.length?'<div class="betpro-analytics-overflow"><table class="betpro-results-table betpro-analytics-table"><thead><tr><th>Phase / sport</th><th>Plage détectée</th><th>Apprentissage</th><th>Validation ultérieure</th><th>ROI prudent validation</th><th>Conclusion</th></tr></thead><tbody>'+
+ windowRows.map(x=>'<tr><td>'+phaseTitle(x.phase)+' · '+esc(x.label)+'</td><td>'+esc(x.range)+'</td><td>'+fmt(x.train.n,0)+' paris · '+pct(x.train.roi,true)+'</td><td>'+fmt(x.holdout.n,0)+' paris · '+pct(x.holdout.roi,true)+'<br><small>Depuis '+esc(x.cut_day)+'</small></td>'+cell(x.holdout.roi_floor,pct(x.holdout.roi_floor,true))+'<td>'+esc(x.status)+'</td></tr>').join('')+'</tbody></table></div>':note('Aucune plage validable : il faut au moins 100 résultats admissibles dans une même phase ou un même sport, puis suffisamment de résultats répartis sur des jours distincts dans les périodes d’apprentissage et de validation.');
+ let html='<div class="betpro-analytics-head" style="margin-top:18px"><div class="ct">Analyse avancée des cotes et de la rentabilité</div><button type="button" class="btn bs" onclick="betproAdvancedExportCsv()">CSV avancé</button></div>'+
+ note('Analyse des pronostics suivis, sur cotes initiales enregistrées et résultats confirmés. Mise théorique identique de 10 € ; aucun gain réel n’est supposé. Les classements sont descriptifs et ne constituent pas une prédiction.')+
+ note(fmt(a.eligible,0)+' résultats admissibles · '+fmt(a.excluded?.pending,0)+' en attente · '+fmt(a.excluded?.void,0)+' annulés · '+fmt(a.excluded?.unknown_odds,0)+' sans cote valable · '+fmt(a.excluded?.unverified,0)+' sans source de résultat · '+fmt(a.excluded?.unknown_phase,0)+' sans chronologie fiable.')+
+ details('windows','Plages de cotes détectées et validation chronologique',note('Une seule plage par sport et phase est choisie sur les premiers résultats, puis confrontée à la période suivante, sans choisir la plage d’après cette validation. Une plage avec peu de résultats ne reçoit aucun signal favorable. La borne prudente de validation est corrigée de manière conservatrice pour les multiples segments.')+windowTable);
+ for(const phase of ['avant_match','en_direct']){
+  const d=a.phases[phase];if(!d?.overall)continue;const x=d.overall;
+  const overview='<div class="tracker-summary" style="margin:12px 0">'+kpi('Paris réglés',fmt(x.n,0),fmt(x.days,0)+' jours distincts')+kpi('Réussite',pct(x.rate),fmt(x.wins,0)+' G · '+fmt(x.losses,0)+' P')+kpi('ROI théorique',pct(x.roi,true),'Mises fixes, '+fmt(x.stake)+' €')+kpi('Profit net',euro(x.profit),'Gain net théorique')+kpi('Cote des gagnants',fmt(x.win_odds),'Moyenne des cotes initiales')+kpi('Cote des perdants',fmt(x.loss_odds),'Moyenne des cotes initiales')+'</div>'+
+  note('Cote moyenne globale : <strong>'+fmt(x.avg_odds)+'</strong> · Probabilité implicite moyenne : '+pct(x.implied)+' · Borne basse indicative du ROI : '+pct(x.roi_floor,true)+'. Un rendement élevé sur peu de résultats ne démontre pas un avantage.');
+  const enough=d.sports?.filter(z=>z.n>=30&&z.roi_floor!==null)||[],top=enough[0];
+  const hit=[...enough].sort((u,v)=>v.rate-u.rate||v.n-u.n)[0];
+  const insight=top?note('Sport en tête par borne prudente du ROI : <strong>'+esc(top.label)+'</strong> ('+pct(top.roi,true)+', '+fmt(top.n,0)+' résultats).'+(hit?' Sport au taux de réussite le plus élevé parmi les segments évaluables : <strong>'+esc(hit.label)+'</strong> ('+pct(hit.rate)+').':'')+' Ce sont des constats historiques, non des garanties.'):note('Volume encore insuffisant pour classer les sports avec prudence.');
+  html+=details('overview-'+phase,phaseTitle(phase)+' · '+fmt(x.n,0)+' résultats admissibles',overview+insight+
+   details('bands-'+phase,'Plages de cotes fines',table(d.bands))+
+   details('sports-'+phase,'Sports · réussite et rentabilité',table(d.sports))+
+   details('sport_odds-'+phase,'Sport × plage de cotes',table(d.sport_odds))+
+   details('engine_odds-'+phase,'Moteur × plage de cotes',table(d.engine_odds))+
+   details('sport_engine_odds-'+phase,'Sport × moteur × plage de cotes',table(d.sport_engine_odds))+
+   details('sport_market-'+phase,'Sport × marché',table(d.sport_market))+
+   details('origins-'+phase,'Origine de la sélection · Scan / interface Poisson',note('L’interface Poisson utilise parfois une cote ou un choix du marché ; son origine ne prouve pas que le modèle Poisson a fourni le pronostic. Les sélections anciennes non documentées restent non attribuées.')+table(d.origins))+
+   details('outsiders-'+phase,'Outsiders qualifiés suivis',note('Signaux v263 déclarés au moment de la sélection et correspondant exactement au choix suivi. Aucun historique ancien n’est reconstitué.')+table(d.outsiders))+
+   details('months-'+phase,'Stabilité mois par mois',table(d.months)));
+ }
+ return '<div id="betpro-advanced-analytics">'+html+note('Méthode : tranches fixes à bornes supérieures exclues ; borne de ROI approximative regroupée par jour du match en UTC, avec un minimum de 30 résultats et 10 jours. Les choix d’un même jour peuvent être corrélés, et les données suivent uniquement tes sélections, sans mesurer tous les paris du marché. Les résultats en direct sont simulés aux cotes enregistrées, pas aux prix réellement exécutés. Aucune garantie de rentabilité.')+'</div>';
+}
+
 function betproAnalyticsDashboard(d){
  betproAnalyticsReport=d;
  const format=(n,places=1)=>n==null||!Number.isFinite(Number(n))?'—':Number(n).toLocaleString('fr-FR',{maximumFractionDigits:places});
@@ -5305,6 +5367,7 @@ function betproAnalyticsDashboard(d){
   +insight
   +section('Performances par sport','sport',true,'Les sports sont classés par une estimation prudente seulement lorsque le volume est suffisant.')
   +section('Meilleures plages de cotes','odds',true,'Les cotes sont celles enregistrées lorsque tu as choisi la carte, pas les cotes ultérieures.')
+  +betproAdvancedDashboard(d.advanced)
   +section('Scan Benter contre Scan Classique','engine',false,'Analyse séparée des deux moteurs à partir de tes choix.')
   +section('Performance selon le marché','market',false,'Vainqueur, buts, handicaps et autres marchés qui ont fait l’objet de tes sélections.')
   +section('Performance par compétition','competition',false,'Classement par championnat et compétition avec leur volume réel.')
@@ -5452,6 +5515,7 @@ function betproRenderChosenResults(items,stats){
  const analytics=target.querySelector('#betpro-results-analytics');
  if(older)betproFinishedOpen=older.open;
  if(analytics)betproAnalyticsOpen=analytics.open;
+ target.querySelectorAll('[data-advanced-key]').forEach(el=>{if(el.open)betproAdvancedPanels.add(el.dataset.advancedKey);else betproAdvancedPanels.delete(el.dataset.advancedKey);});
  const chosen=[...items].sort((a,b)=>(Date.parse(b.selectedAt||'')||0)-(Date.parse(a.selectedAt||'')||0));
  const settled=chosen.filter(x=>['win','loss','void'].includes(String(x.status||'')));
  const pending=chosen.filter(x=>!['win','loss','void'].includes(String(x.status||'')));
@@ -6743,7 +6807,7 @@ function betproPoissonFollowCard(f,choice){
  if(!sport||!Number.isFinite(at))return null;
  if(picked==='draw'&&f.sport!=='football')return null;
  const selection=picked==='draw'?'draw':picked==='home'?f.home:f.away;
- const c={engine:'Classique',sport,home:f.home,away:f.away,market:'h2h',
+ const c={engine:'Classique',selectionOrigin:'Poisson',sport,home:f.home,away:f.away,market:'h2h',
   selection,line:null,odds:null,startTime:new Date(at).toISOString(),competition:f.competition,
   predictedProbability:source?.choice===picked?Number(source.probability):null};
  const odd=Number(source?.market_odds||source?.median_market_odds);
