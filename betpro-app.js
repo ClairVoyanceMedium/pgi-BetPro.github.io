@@ -4554,7 +4554,7 @@ function betproLivePageRecord(m,kind){
 }
 function betproLivePageSportKey(record){
  const raw=record.sport.toLowerCase().replace(/[\s-]+/g,'_');
- if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|tennis_atp|tennis_wta|mma_|rugbyleague_|rugbyunion_)/.test(raw))return raw;
+ if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|tennis_atp|tennis_wta|mma_|rugbyleague_|rugbyunion_|boxing_|handball_|volleyball_)/.test(raw)&&!/(?:winner|outright)/.test(raw))return raw;
  const normalized=betproPoissonFixtureSport(raw);
  const key=betproPoissonFollowSportKey({
   sport:normalized, sport_source:raw,competition:record.competition
@@ -4748,7 +4748,7 @@ async function betproToggleFollow(btn,id){
   if(!d?.ok)throw Error(d?.error||'Enregistrement impossible');
   betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
   betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));
-  toast(remove?'Pronostic retiré du suivi.':'Pronostic ajouté au suivi.','ok');
+  toast(remove?'Pronostic retiré du suivi.':String(card.sport||'').startsWith('boxing_')?'Combat enregistré. Résultat à confirmer : source automatique de boxe non disponible.':'Pronostic ajouté au suivi.','ok');
   if(remove)betproOutsiderClearFollowSignal(id);
   else if(card.outsiderSignal)betproOutsiderFollowNotify(card.outsiderSignal,id);
   if(document.getElementById('s-results')?.classList.contains('on'))loadResults();
@@ -6774,7 +6774,11 @@ function betproPoissonFixtureKey(f){
 function betproPoissonFollowSportKey(f){
  const raw=String(f.sport_source||'').toLowerCase().replace(/[-\s]/g,'_');
  const comp=String(f.competition||'').toLowerCase();
- if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|rugbyleague_|rugbyunion_)/.test(raw))return raw;
+ if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|rugbyleague_|rugbyunion_|tennis_atp(?:_|$)|tennis_wta(?:_|$)|mma_|boxing_|handball_|volleyball_)/.test(raw)&&!/(?:winner|outright)/.test(raw))return raw;
+ if(f.sport==='boxing')return 'boxing_boxing';
+ if(f.sport==='mma')return 'mma_mixed_martial_arts';
+ if(f.sport==='tennis'){if(/\bwta\b|women|feminin/.test(comp))return 'tennis_wta';if(/\batp\b|men|masculin/.test(comp))return 'tennis_atp';}
+ if(f.sport==='handball'&&/bundesliga|germany|allemagne/.test(comp))return 'handball_germany_bundesliga';
  if(f.sport==='hockey')return'icehockey_nhl';
  if(f.sport==='baseball')return'baseball_mlb';
  if(f.sport==='nfl')return /ncaa|college|ncaaf/.test(comp)?'americanfootball_ncaaf':'americanfootball_nfl';
