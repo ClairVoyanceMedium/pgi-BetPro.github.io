@@ -123,8 +123,6 @@ const DIRECT_FEEDS=[
  ['americanfootball','Touchdown Actu','https://touchdownactu.com/feed/'],
  ['volleyball','Midi Libre','https://www.midilibre.fr/sport/volley-ball/rss.xml'],
  ['formula1','Motorsport.com','https://fr.motorsport.com/rss/f1/news/'],
- ['volleyball','Le Progrès','https://www.leprogres.fr/sport/volley-ball/rss'],
- ['handball','FFHandball','https://www.ffhandball.fr/feed/'],
  ['tennis','RMC Sport','https://rmcsport.bfmtv.com/rss/tennis/']
 ];
 async function readDirect([sport,publisher,address]){
@@ -149,7 +147,7 @@ async function readDirect([sport,publisher,address]){
 }
 let directMemory=null,directPending=null;
 async function directResponse(u,ctx){
- const cacheKey=new Request(u.origin+'/news/direct-v2'),backupKey=new Request(u.origin+'/news/direct-last-good'),cached=await caches.default.match(cacheKey);if(cached)return cached;
+ const cacheKey=new Request(u.origin+'/news/direct-v3'),backupKey=new Request(u.origin+'/news/direct-last-good'),cached=await caches.default.match(cacheKey);if(cached)return cached;
  if(directMemory&&Date.now()-directMemory.at<1800000)return Response.json(directMemory.payload,{headers});
  if(!directPending)directPending=(async()=>{
   const settled=[];for(let i=0;i<DIRECT_FEEDS.length;i+=6)settled.push(...await Promise.allSettled(DIRECT_FEEDS.slice(i,i+6).map(readDirect)));
@@ -159,7 +157,7 @@ async function directResponse(u,ctx){
   for(let round=0;round<6;round++)for(const items of rows)if(items[round])add(items[round]);
   for(const item of await staleNews(backupKey))add(item);
   const fresh=coverage.some(x=>x.count>0);if(fresh)saveStale(ctx,backupKey,news);
-  const payload={ok:news.length>0,news,coverage,version:'direct-v2',stale:!fresh,fetched_at:new Date().toISOString()};
+  const payload={ok:news.length>0,news,coverage,version:'direct-v3',stale:!fresh,fetched_at:new Date().toISOString()};
   if(fresh)directMemory={at:Date.now(),payload};return payload;
  })().finally(()=>{directPending=null;});
  const p=await directPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=600'}});
