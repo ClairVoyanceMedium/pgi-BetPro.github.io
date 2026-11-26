@@ -115,14 +115,16 @@ const DIRECT_FEEDS=[
  ['tennis','Tennis Actu','https://www.tennisactu.net/rss_social.xml'],
  ['formula1','RMC Sport','https://rmcsport.bfmtv.com/rss/auto-moto/f1/'],
  ['rugby','RMC Sport','https://rmcsport.bfmtv.com/rss/rugby/'],
- ['handball','RMC Sport','https://rmcsport.bfmtv.com/rss/handball/'],
+ ['handball','HandNews','https://handnews.fr/feed/'],
  ['mma','La Sueur','https://lasueur.com/feed'],
  ['boxing','RMC Sport','https://rmcsport.bfmtv.com/rss/sports-de-combat/boxe/'],
  ['icehockey','Hockeyarchives','https://www.passionhockey.com/feed/'],
  ['baseball','FFBS','https://ffbs.fr/feed/'],
  ['americanfootball','Touchdown Actu','https://touchdownactu.com/feed/'],
- ['volleyball','RMC Sport','https://rmcsport.bfmtv.com/rss/volley/'],
- ['formula1','AUTOhebdo','https://www.autohebdo.fr/feed/'],
+ ['volleyball','Midi Libre','https://www.midilibre.fr/sport/volley-ball/rss.xml'],
+ ['formula1','Motorsport.com','https://fr.motorsport.com/rss/f1/news/'],
+ ['volleyball','Le Progrès','https://www.leprogres.fr/sport/volley-ball/rss'],
+ ['handball','FFHandball','https://www.ffhandball.fr/feed/'],
  ['tennis','RMC Sport','https://rmcsport.bfmtv.com/rss/tennis/']
 ];
 async function readDirect([sport,publisher,address]){
@@ -147,16 +149,17 @@ async function readDirect([sport,publisher,address]){
 }
 let directMemory=null,directPending=null;
 async function directResponse(u,ctx){
- const cacheKey=new Request(u.origin+'/news/direct-v1'),backupKey=new Request(u.origin+'/news/direct-last-good'),cached=await caches.default.match(cacheKey);if(cached)return cached;
+ const cacheKey=new Request(u.origin+'/news/direct-v2'),backupKey=new Request(u.origin+'/news/direct-last-good'),cached=await caches.default.match(cacheKey);if(cached)return cached;
  if(directMemory&&Date.now()-directMemory.at<1800000)return Response.json(directMemory.payload,{headers});
  if(!directPending)directPending=(async()=>{
   const settled=[];for(let i=0;i<DIRECT_FEEDS.length;i+=6)settled.push(...await Promise.allSettled(DIRECT_FEEDS.slice(i,i+6).map(readDirect)));
   const news=[],coverage=[],seen=new Set(),counts=new Map();
   function add(item){const k=key(item.title),n=counts.get(item.sport)||0;if(seen.has(k)||n>=6)return;seen.add(k);counts.set(item.sport,n+1);news.push(item);}
-  for(let i=0;i<settled.length;i++){const r=settled[i],items=r.status==='fulfilled'?r.value:[];coverage.push({sport:DIRECT_FEEDS[i][0],source:DIRECT_FEEDS[i][1],count:items.length,ok:r.status==='fulfilled',error:failureReason(r)});for(const item of items)add(item);}
+  const rows=[];for(let i=0;i<settled.length;i++){const r=settled[i],items=r.status==='fulfilled'?r.value:[];coverage.push({sport:DIRECT_FEEDS[i][0],source:DIRECT_FEEDS[i][1],count:items.length,ok:r.status==='fulfilled',error:failureReason(r)});rows.push(items);}
+  for(let round=0;round<6;round++)for(const items of rows)if(items[round])add(items[round]);
   for(const item of await staleNews(backupKey))add(item);
   const fresh=coverage.some(x=>x.count>0);if(fresh)saveStale(ctx,backupKey,news);
-  const payload={ok:news.length>0,news,coverage,version:'direct-v1',stale:!fresh,fetched_at:new Date().toISOString()};
+  const payload={ok:news.length>0,news,coverage,version:'direct-v2',stale:!fresh,fetched_at:new Date().toISOString()};
   if(fresh)directMemory={at:Date.now(),payload};return payload;
  })().finally(()=>{directPending=null;});
  const p=await directPending,response=Response.json(p,{headers:{...headers,'Cache-Control':p.ok&&!p.stale?'public, max-age=1800':'public, max-age=600'}});

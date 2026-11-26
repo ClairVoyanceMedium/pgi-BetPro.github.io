@@ -9706,7 +9706,7 @@ function betproLoadExpandedNews(){
 
 
 const BETPRO_DIRECT_NEWS_KEY='pgi_betpro_direct_news_v1';
-const BETPRO_DIRECT_PUBLISHERS={'RMC Sport':'rmcsport.bfmtv.com','Basket USA':'basketusa.com','Tennis Actu':'tennisactu.net','La Sueur':'lasueur.com','Hockeyarchives':'passionhockey.com','FFBS':'ffbs.fr','Touchdown Actu':'touchdownactu.com','AUTOhebdo':'autohebdo.fr'};
+const BETPRO_DIRECT_PUBLISHERS={'RMC Sport':'rmcsport.bfmtv.com','Basket USA':'basketusa.com','Tennis Actu':'tennisactu.net','La Sueur':'lasueur.com','Hockeyarchives':'passionhockey.com','FFBS':'ffbs.fr','Touchdown Actu':'touchdownactu.com','AUTOhebdo':'autohebdo.fr','Motorsport.com':'fr.motorsport.com','HandNews':'handnews.fr','FFHandball':'ffhandball.fr','Midi Libre':'midilibre.fr','Le Progrès':'leprogres.fr'};
 let betproDirectRequest=null,betproDirectLast=0,betproDirectMemory=[];
 function betproDirectNewsLinkValid(a){
  try{const u=new URL(a.link),host=u.hostname.toLowerCase().replace(/^www\./,''),domain=BETPRO_DIRECT_PUBLISHERS[a.publisher];return !!domain&&u.protocol==='https:'&&!u.username&&!u.password&&u.pathname!=='/'&&(host===domain||host.endsWith('.'+domain));}catch(_){return false;}
