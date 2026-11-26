@@ -4554,7 +4554,6 @@ function betproLivePageRecord(m,kind){
 }
 function betproLivePageSportKey(record){
  const raw=record.sport.toLowerCase().replace(/[\s-]+/g,'_');
- if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|tennis_atp|tennis_wta|mma_|rugbyleague_|rugbyunion_|boxing_|handball_|volleyball_)/.test(raw)&&!/(?:winner|outright)/.test(raw))return raw;
  const normalized=betproPoissonFixtureSport(raw);
  const key=betproPoissonFollowSportKey({
   sport:normalized, sport_source:raw,competition:record.competition
@@ -4584,7 +4583,7 @@ function betproLivePageFollowPayload(rec,choice=null){
  }
  const key=betproLivePageSportKey(rec);
  if(!payload&&choice&&key&&rec.home&&rec.away&&Number.isFinite(Date.parse(rec.startTime))){
-  if(choice==='draw'&&!key.startsWith('soccer_'))return null;
+  if(choice==='draw'&&!/^(soccer_|football_unclassified$)/.test(key))return null;
   const selection=choice==='draw'?'draw':choice==='home'?rec.home:rec.away;
   payload={engine:'Classique',sport:key,home:rec.home,away:rec.away,
    market:'h2h',selection,line:null,odds:null,startTime:rec.startTime,
@@ -4748,7 +4747,7 @@ async function betproToggleFollow(btn,id){
   if(!d?.ok)throw Error(d?.error||'Enregistrement impossible');
   betproFollowKnownItems=Array.isArray(d.items)?d.items:[];
   betproFollowSelected=new Set(betproFollowKnownItems.map(x=>x.id));
-  toast(remove?'Pronostic retiré du suivi.':String(card.sport||'').startsWith('boxing_')?'Combat enregistré. Résultat à confirmer : source automatique de boxe non disponible.':'Pronostic ajouté au suivi.','ok');
+  toast(remove?'Pronostic retiré du suivi.':'Pronostic ajouté au suivi.','ok');
   if(remove)betproOutsiderClearFollowSignal(id);
   else if(card.outsiderSignal)betproOutsiderFollowNotify(card.outsiderSignal,id);
   if(document.getElementById('s-results')?.classList.contains('on'))loadResults();
@@ -6772,28 +6771,34 @@ function betproPoissonFixtureKey(f){
  return [f.sport,betproPoissonNormalizeName(f.home),betproPoissonNormalizeName(f.away),String(f.start_time||'').slice(0,16)].join('|');
 }
 function betproPoissonFollowSportKey(f){
- const raw=String(f.sport_source||'').toLowerCase().replace(/[-\s]/g,'_');
- const comp=String(f.competition||'').toLowerCase();
- if(/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|rugbyleague_|rugbyunion_|tennis_atp(?:_|$)|tennis_wta(?:_|$)|mma_|boxing_|handball_|volleyball_)/.test(raw)&&!/(?:winner|outright)/.test(raw))return raw;
+ const raw=String(f.sport_source||'').trim().toLowerCase().replace(/[-\s]+/g,'_');
+ const comp=betproPoissonNormalizeName(f.competition||'');
+ const sport=f.sport||betproPoissonFixtureSport(raw);
+ // Do not turn season/outright markets into head-to-head selections.
+ if(/(?:^|_)(?:winner|outright|outrights|champion|championship_winner)(?:_|$)/.test(raw))return '';
+ // Preserve exact provider competition keys, never infer an unrelated league.
+ if(/^(?:soccer|basketball|americanfootball|icehockey|baseball|rugbyleague|rugbyunion|tennis|mma|boxing|handball|volleyball|cricket|aussierules|golf|darts|formula1)_[a-z0-9_]+$/.test(raw))return raw;
  if(f.sport==='boxing')return 'boxing_boxing';
- if(f.sport==='mma')return 'mma_mixed_martial_arts';
- if(f.sport==='tennis'){if(/\bwta\b|women|feminin/.test(comp))return 'tennis_wta';if(/\batp\b|men|masculin/.test(comp))return 'tennis_atp';}
- if(f.sport==='handball'&&/bundesliga|germany|allemagne/.test(comp))return 'handball_germany_bundesliga';
- if(f.sport==='hockey')return'icehockey_nhl';
- if(f.sport==='baseball')return'baseball_mlb';
- if(f.sport==='nfl')return /ncaa|college|ncaaf/.test(comp)?'americanfootball_ncaaf':'americanfootball_nfl';
- if(f.sport==='basketball')return /wnba/.test(comp)?'basketball_wnba':/ncaa|college/.test(comp)?'basketball_ncaab':'basketball_nba';
- if(f.sport==='rugby')return /nrl/.test(comp)?'rugbyleague_nrl':/premiership/.test(comp)?'rugbyunion_premiership':'';
- if(f.sport==='football'){
-  if(/premier league|english premier|eng\.1/.test(comp))return'soccer_epl';
-  if(/ligue 1|fra\.1/.test(comp))return'soccer_france_ligue1';
-  if(/bundesliga|ger\.1/.test(comp))return'soccer_germany_bundesliga';
-  if(/serie a|ita\.1/.test(comp))return'soccer_italy_serie_a';
-  if(/la liga|esp\.1/.test(comp))return'soccer_spain_la_liga';
-  if(/champions league|uefa\.champions/.test(comp))return'soccer_uefa_champions_league';
-  if(/major league soccer|\bmls\b|usa\.1/.test(comp))return'soccer_usa_mls';
+ if(sport==='mma')return 'mma_mixed_martial_arts';
+ if(sport==='tennis'){if(/\bwta\b|women|feminin/.test(comp)||raw==='wta')return 'tennis_wta';if(/\batp\b|masculin/.test(comp)||raw==='atp')return 'tennis_atp';}
+ if(sport==='handball'&&/bundesliga|germany|allemagne/.test(comp))return 'handball_germany_bundesliga';
+ if(sport==='hockey'&&(/\bnhl\b/.test(comp)||raw==='nhl'))return 'icehockey_nhl';
+ if(sport==='baseball'&&(/\bmlb\b|major league baseball/.test(comp)||raw==='mlb'))return 'baseball_mlb';
+ if(sport==='nfl'){if(/ncaa|college|ncaaf/.test(comp))return 'americanfootball_ncaaf';if(/\bnfl\b/.test(comp)||raw==='nfl')return 'americanfootball_nfl';}
+ if(sport==='basketball'){if(/\bwnba\b/.test(comp)||raw==='wnba')return 'basketball_wnba';if(/ncaa|college|ncaab/.test(comp))return 'basketball_ncaab';if(/\bnba\b/.test(comp)||raw==='nba')return 'basketball_nba';if(/euroleague|euroligue/.test(comp))return 'basketball_euroleague';}
+ if(sport==='rugby'){if(/\bnrl\b/.test(comp))return 'rugbyleague_nrl';if(/premiership/.test(comp))return 'rugbyunion_premiership';if(/six nations|6 nations/.test(comp))return 'rugbyunion_six_nations';if(/champions cup/.test(comp))return 'rugbyunion_champions_cup';}
+ if(sport==='football'){
+  if(/premier league|english premier|eng 1/.test(comp))return 'soccer_epl';
+  if(/\bligue 1\b|fra 1/.test(comp))return 'soccer_france_ligue1';
+  if(/\bligue 2\b|fra 2/.test(comp))return 'soccer_france_ligue_two';
+  if(/bundesliga|ger 1/.test(comp))return 'soccer_germany_bundesliga';
+  if(/serie a|ita 1/.test(comp))return 'soccer_italy_serie_a';
+  if(/la liga|esp 1/.test(comp))return 'soccer_spain_la_liga';
+  if(/champions league|uefa champions/.test(comp))return 'soccer_uefa_champions_league';
+  if(/major league soccer|\bmls\b|usa 1/.test(comp))return 'soccer_usa_mls';
  }
- return'';
+ // Identified discipline, unverified competition. Keep trackable without assigning a false score feed.
+ return ({football:'football_unclassified',basketball:'basketball_unclassified',baseball:'baseball_unclassified',nfl:'americanfootball_unclassified',hockey:'hockey_unclassified',rugby:'rugby_unclassified',boxing:'boxing_boxing',mma:'mma_mixed_martial_arts',tennis:'tennis_unclassified',volleyball:'volleyball_unclassified',handball:'handball_unclassified',cricket:'cricket_unclassified',aussierules:'aussierules_unclassified',golf:'golf_unclassified',darts:'darts_unclassified'})[sport]||'';
 }
 function betproPoissonFollowMatchRecord(f){
  const start=Date.parse(f.start_time||'');if(!Number.isFinite(start))return null;
