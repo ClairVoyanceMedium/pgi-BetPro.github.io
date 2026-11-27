@@ -6554,7 +6554,7 @@ function betproPoissonModelValid(f,d){
 }
 function betproPoissonModelLabel(d){
  const sport=d?.sport;
- if(sport==='football'||d?.model_type==='poisson')return 'Modèle Poisson (buts)';
+ if(d?.model_type==='poisson'||(sport==='football'&&!d?.model_type))return 'Méthode Poisson';
  if(sport==='hockey'||sport==='baseball'||d?.model_type==='count')return 'Modèle de comptage (Poisson / binomiale négative)';
  if(['basketball','nfl','rugby'].includes(sport)||d?.model_type==='normal')return 'Modèle statistique normal (scores)';
  return 'Modèle statistique sportif';
@@ -6562,7 +6562,7 @@ function betproPoissonModelLabel(d){
 function betproPoissonProvenance(d,sport){
  if(!d?.model)return '';
  const name=betproPoissonModelLabel({...d,sport:d.sport||sport});
- return '<p class="betpro-poisson-note"><strong>Origine des probabilités et scores projetés : '+esc(name)+'</strong> · Calcul sur résultats historiques ESPN, indépendant des cotes bookmakers. Les cotes théoriques sont calculées par le modèle, non proposées par un bookmaker.</p>';
+ return '<p class="betpro-poisson-note"><strong>Technique utilisée ('+esc(name)+')</strong> · Calcul sur résultats historiques ESPN, indépendant des cotes bookmakers. Les cotes théoriques sont calculées par le modèle, non proposées par un bookmaker.</p>';
 }
 function betproPoissonOutsiderProvenance(signal){
  const badge=betproOutsiderBadge(signal);if(!badge)return '';
@@ -6577,7 +6577,7 @@ function betproPoissonModelResult(f,d){
  const market=c?.choice===pick.key&&Number.isFinite(odd)&&odd>1&&f.sport==='football'&&c.draw_included!==false;
  const compare=market?' · Cote bookmaker observée : '+odd.toLocaleString('fr-FR',{maximumFractionDigits:2}):'';
  return '<span class="betpro-poisson-fixture-signal">'+
- '<span class="betpro-poisson-fixture-signal-eyebrow">'+esc(betproPoissonModelLabel(d).toUpperCase())+'</span>'+
+ '<span class="betpro-poisson-fixture-signal-eyebrow">'+esc('Technique utilisée ('+betproPoissonModelLabel(d)+')')+'</span>'+
  '<strong class="betpro-poisson-fixture-signal-pick">'+esc(name)+'</strong>'+
  '<span class="betpro-poisson-fixture-signal-percent">'+pct+' %<small>Calcul du modèle ci-dessus · historique ESPN · non calibré</small></span>'+
  '<span class="betpro-poisson-fixture-signal-note">Historique ESPN : '+esc(String(d.home_matches))+' / '+esc(String(d.away_matches))+' matchs'+
@@ -7746,7 +7746,7 @@ async function runLiveModelUI(options={}){
   const caveats=(d.limitations||[]).slice(0,5);
   html+='<div class="betpro-poisson-warning"><strong>Fiabilité et limites du modèle</strong>'+
     '<ul>'+caveats.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul></div>';
-  html+='<p class="betpro-poisson-note">Méthode : '+esc(d.method||'Poisson, taux de buts historiques.')+'</p>';
+  html+='<p class="betpro-poisson-note">Technique utilisée (Méthode Poisson) · '+esc(d.method||'Poisson, taux de buts historiques.')+'</p>';
   if(source)html+='<div class="betpro-poisson-sources">'+source+'</div>';
   html+='<button class="btn bs betpro-poisson-chat" type="button" onclick="betproPoissonAskChat()">Demander l’analyse complémentaire au Chat Expert</button>';
   html+='</div>';res.innerHTML=html;
