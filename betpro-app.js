@@ -7212,7 +7212,7 @@ function betproPoissonAskFixtureChat(){
 function betproPoissonNoDirection(f,note){
  return '<div class="betpro-poisson-market-result is-limited"><div class="betpro-poisson-market-eyebrow">RENCONTRE SÉLECTIONNÉE · RECHERCHE COMPLÉMENTAIRE</div>'+
  '<div class="betpro-poisson-market-selection">'+esc(f.home)+' VS '+esc(f.away)+'</div>'+
- '<p>Le modèle Poisson ne possède pas assez de résultats vérifiés et aucun consensus récent de plusieurs bookmakers ne correspond à cette rencontre. Aucune issue ne peut être présentée sérieusement comme favorite.</p>'+
+ '<p>Aucune estimation sportive indépendante exploitable pour cette rencontre. Les cotes des bookmakers ne remplacent pas le modèle statistique.</p>'+
  (note?'<details class="betpro-poisson-model-issue"><summary>Détail du calcul incomplet</summary><p>'+esc(note)+'</p></details>':'')+
  '<button type="button" class="btn betpro-poisson-chat-action" onclick="betproPoissonAskFixtureChat()">Rechercher une direction avec le Chat Expert</button>'+
  '</div>';
