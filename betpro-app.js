@@ -6522,15 +6522,40 @@ function betproPoissonEvidenceStatus(s){
  const dict={'out':'Forfait / absent','questionable':'Incertain','doubtful':'Très incertain','probable':'Probable','day-to-day':'État réévalué quotidiennement','injured reserve':'Liste des blessés','suspended':'Suspendu'};
  return dict[String(s||'').toLowerCase()]||String(s||'');
 }
+function betproPoissonFormLabel(result){
+ return ({W:'Victoire',L:'Défaite',D:'Match nul',T:'Match nul'})[String(result||'').toUpperCase()]||'Résultat non identifié';
+}
+function betproPoissonFormRows(form){
+ return (Array.isArray(form)?form:[]).filter(x=>Array.isArray(x?.results)&&x.results.length).map(x=>{
+  const results=x.results.slice();
+  const dated=results.every(y=>Number.isFinite(Date.parse(y.date)));
+  if(dated)results.sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
+  return {team:String(x.team||'Équipe'),results,dated};
+ });
+}
+function betproPoissonFormSummary(results){
+ const counts={W:0,L:0,D:0,unknown:0};
+ for(const y of results){const r=String(y?.result||'').toUpperCase();if(r==='W'||r==='L')counts[r]++;else if(r==='D'||r==='T')counts.D++;else counts.unknown++;}
+ const parts=[];
+ if(counts.W)parts.push(counts.W+' victoire'+(counts.W>1?'s':''));
+ if(counts.L)parts.push(counts.L+' défaite'+(counts.L>1?'s':''));
+ if(counts.D)parts.push(counts.D+' match'+(counts.D>1?'s':'')+' nul'+(counts.D>1?'s':''));
+ if(counts.unknown)parts.push(counts.unknown+' résultat'+(counts.unknown>1?'s':'')+' non identifié'+(counts.unknown>1?'s':''));
+ return results.length+' match'+(results.length>1?'s':'')+' renseigné'+(results.length>1?'s':'')+' : '+parts.join(' · ');
+}
+function betproPoissonFormHtml(form){
+ const rows=betproPoissonFormRows(form);if(!rows.length)return '';
+ return '<span class="betpro-poisson-quick-fact betpro-poisson-form-panel"><strong>Forme récente des équipes</strong>'+rows.map(x=>'<span class="betpro-poisson-form-team"><span class="betpro-poisson-form-name">'+esc(x.team)+'</span><span class="betpro-poisson-form-summary">'+esc(betproPoissonFormSummary(x.results))+'</span><span class="betpro-poisson-form-results">'+x.results.map(y=>{const r=String(y.result||'').toUpperCase(),kind=r==='W'?'win':r==='L'?'loss':r==='D'||r==='T'?'draw':'unknown';return '<span class="betpro-poisson-form-result '+kind+'" title="'+esc([y.opponent,y.score,betproPoissonEvidenceDate(y.date)].filter(Boolean).join(' · '))+'">'+esc(betproPoissonFormLabel(r))+'</span>';}).join('')+'</span><span class="betpro-poisson-form-order">'+(x.dated?'Du plus récent au plus ancien':'Ordre fourni par ESPN')+'</span></span>').join('')+'</span>';
+}
 function betproPoissonEvidenceSections(f){
  const e=betproPoissonEvidenceRead(f),d=e?.facts;if(!e?.ok||!d)return[];
  const abs=(items)=>items.map(x=>x.team+' : '+x.player+' ('+betproPoissonEvidenceStatus(x.status)+' · '+betproPoissonEvidenceDate(x.date)+')');
- const labels={W:'V',L:'D',D:'N',T:'N'},stats={points:'pts',gamesPlayed:'matchs',wins:'victoires',losses:'défaites',ties:'nuls',rank:'rang'};
- const form=d.form.map(x=>x.team+' : '+x.results.map(y=>labels[y.result]||y.result).join(' – '));
+ const stats={points:'pts',gamesPlayed:'matchs',wins:'victoires',losses:'défaites',ties:'nuls',rank:'rang'};
+ const formRows=betproPoissonFormRows(d.form),form=formRows.map(x=>x.team+' : '+betproPoissonFormSummary(x.results));
  return [
   {label:'Blessures',brief:abs(d.injuries),detail:d.injuries.map((x,i)=>abs(d.injuries)[i]+(x.note?' · '+x.note:''))},
   {label:'Suspensions',brief:abs(d.suspensions),detail:d.suspensions.map((x,i)=>abs(d.suspensions)[i]+(x.note?' · '+x.note:''))},
-  {label:'Forme',brief:form,detail:d.form.map(x=>x.team+' : '+x.results.map(y=>(labels[y.result]||y.result)+' '+y.opponent+(y.score?' ('+y.score+')':'')+' · '+betproPoissonEvidenceDate(y.date)).join(' ; '))},
+  {label:'Forme récente',brief:form,formRows:d.form,detail:formRows.flatMap(x=>[x.team+' — '+betproPoissonFormSummary(x.results),...x.results.map(y=>betproPoissonFormLabel(y.result)+(y.opponent?' contre '+y.opponent:'')+(y.score?' ('+y.score+')':'')+(betproPoissonEvidenceDate(y.date)?' · '+betproPoissonEvidenceDate(y.date):''))])},
   {label:'Compositions',brief:d.lineups.map(x=>x.team+' : '+x.players.length+' titulaires indiqués'),detail:d.lineups.map(x=>x.team+' : '+x.players.join(', '))},
   {label:'Classement',brief:d.standings.map(x=>x.team+' : '+x.stats.map(y=>y.value+' '+(stats[y.name]||y.name)).join(' · ')),detail:d.standings.map(x=>x.team+' : '+x.stats.map(y=>y.value+' '+(stats[y.name]||y.name)).join(' · '))}
  ].filter(x=>x.brief.length);
@@ -6538,7 +6563,7 @@ function betproPoissonEvidenceSections(f){
 function betproPoissonFixtureQuickFacts(f){
  const rows=betproPoissonEvidenceSections(f);
  if(!rows.length)return '<span data-poisson-evidence-brief></span>';
- return '<span class="betpro-poisson-fixture-brief" data-poisson-evidence-brief>'+rows.slice(0,4).map(x=>'<span class="betpro-poisson-quick-fact"><strong>'+esc(x.label)+'</strong> <span>'+esc(x.brief.slice(0,2).join(' · ')+(x.brief.length>2?' · +'+(x.brief.length-2):''))+'</span></span>').join('')+'</span>';
+ return '<span class="betpro-poisson-fixture-brief" data-poisson-evidence-brief>'+rows.slice(0,4).map(x=>x.formRows?betproPoissonFormHtml(x.formRows):'<span class="betpro-poisson-quick-fact"><strong>'+esc(x.label)+'</strong> <span>'+esc(x.brief.slice(0,2).join(' · ')+(x.brief.length>2?' · +'+(x.brief.length-2):''))+'</span></span>').join('')+'</span>';
 }
 function betproPoissonFixtureFacts(f){
  const e=betproPoissonEvidenceRead(f),rows=betproPoissonEvidenceSections(f);
