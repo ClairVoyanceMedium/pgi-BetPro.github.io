@@ -3962,6 +3962,11 @@ a{color:var(--neon);text-decoration:none}
       <div style="height:6px;background:rgba(255,255,255,.06);border-radius:9px;overflow:hidden;margin-top:5px"><div id="maturity-pmu-bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--neon),var(--pu));transition:width .5s"></div></div>
     </div>
     <div id="maturity-decision" style="font:10px var(--mo);color:var(--am);line-height:1.5;margin-top:10px">Aucune carte n’est fiable pour l’instant.</div>
+    <details style="margin-top:10px;border:1px solid rgba(167,139,250,.28);border-radius:8px;padding:8px;background:rgba(167,139,250,.035)">
+      <summary style="cursor:pointer;color:#b8a4ff;font:800 11px var(--mo)">Avancement et recommandations Benter</summary>
+      <div id="benter-maturity-progress" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:7px;margin-top:8px;font:10px var(--mo);color:var(--mu)">Chargement du diagnostic…</div>
+      <div style="font:9px var(--mo);color:var(--mu);margin-top:7px">Les seuils de volume ne mesurent ni la probabilité de gain ni la rentabilité.</div>
+    </details>
     <div id="maturity-storage" style="font:9px var(--mo);color:var(--dm);line-height:1.5;margin-top:5px">R2 : vérification de la mémoire multi-années…</div>
     <div id="maturity-summary" style="font:11px var(--mo);line-height:1.65;margin-top:12px;white-space:pre-wrap"></div>
     <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--neon)">Détail des contrôles et des quotas</summary><div id="maturity-details" style="font:11px var(--mo);line-height:1.65;margin-top:12px;color:var(--tx)"></div></details>
@@ -5197,7 +5202,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261127-benter-status-v283"></script>
+<script defer src="./betpro-app.js?v=20261127-benter-progress-v284"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
