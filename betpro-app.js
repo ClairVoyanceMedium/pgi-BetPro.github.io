@@ -10512,7 +10512,7 @@ ${blocks}`}]
 
     // Vitesse constante sur les écrans 60/90/120 Hz, sans mesure de mise en page
     // forcée toutes les deux secondes dans la boucle d'animation.
-    const TICKER_SPEED_PX_PER_SECOND=20;
+    const TICKER_SPEED_PX_PER_SECOND=18;
     let tickerScrollHeight=inner.scrollHeight;
     const tickerViewHeight=tickerBox?.clientHeight||270;
     if(typeof ResizeObserver!=='undefined'){
