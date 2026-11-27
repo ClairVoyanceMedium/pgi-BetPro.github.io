@@ -5008,8 +5008,8 @@ function betproClassicCard(match,idx){
   const tier=strong?'dir-play':'dir-watch';
   const color=strong?'var(--gr)':'var(--am)';
   const verdict=highMarketProbability?'FAVORI À FORTE PROBABILITÉ':strongConsensus?'CONSENSUS BOOKMAKERS FORT':verified?'TENDANCE DES BOOKMAKERS':archived?'ANCIENNES COTES DE MARCHÉ':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
-  const headValue=highMarketProbability?Math.round(Number(c.probability)*100)+' %':verified&&consistency!==null?consistency+'/100':archived?'ARCHIVE':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
-  const headCaption=highMarketProbability?'probabilité de marché':verified&&consistency!==null?'cohérence des cotes':archived?'cote ancienne':oneSource?'cote isolée':'statut';
+  const headValue=verified?(consistency!==null?consistency+'/100':'—'):archived?'ARCHIVE':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
+  const headCaption=verified?'cohérence des cotes':archived?'cote ancienne':oneSource?'cote isolée':'statut';
   const fav=hasMarket?String(quote.favorite||''):'',prob=hasMarket?betproClassicPct(quote.probability):'';
   const price=verified?(Number(marketValue?.best_price)>1?Number(marketValue.best_price):Number(c.median_market_odds||0)):Number(ind.market_odds||0);
   const priceDisplay=Number.isFinite(price)&&price>1?price.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}):null;
