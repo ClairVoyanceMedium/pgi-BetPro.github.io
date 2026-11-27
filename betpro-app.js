@@ -3765,7 +3765,7 @@ function betproFixtureTitle(home,away,sport,separator='vs',poisson=false){
 }
 
 function renderManualMatchResult(result,inputCtx){
- const name=betproFixtureTitle(inputCtx?.home,inputCtx?.away,result?.sport||inputCtx?.sport,'-');
+ const name=betproFixtureTitle(inputCtx?.home,inputCtx?.away,'','-');
  if(!result?.found)return '<div class="card betpro-manual-result-card"><div class="betpro-manual-result-title">'+name+'</div>'+
   '<div class="betpro-manual-result-sub">'+esc(result?.reason||'Aucune sélection disponible dans les cotes consultées.')+'</div>'+betproExpertCardButton(betproExpertCardData(inputCtx,'Analyse manuelle'))+'</div>';
  const date=result.start_time?manualFormatDate(result.start_time):'Date non confirmée';
@@ -6619,10 +6619,10 @@ function betproPoissonFixtureQuickFacts(f){
 }
 function betproPoissonFixtureFacts(f){
  const e=betproPoissonEvidenceRead(f),rows=betproPoissonEvidenceSections(f);
- let link='';try{const u=new URL(e?.source_url||'');if(u.protocol==='https:'&&u.hostname==='site.api.espn.com'&&!u.username&&!u.password)link='<div class="betpro-poisson-fixture-sources">Source : <a href="'+esc(u.href)+'" target="_blank" rel="noopener noreferrer">ESPN · fiche de rencontre</a> · '+esc(betproPoissonFixtureDate(e.checked_at))+'</div>';}catch(_){}
+
  const details=rows.map(x=>'<div class="betpro-poisson-fixture-fact"><strong>'+esc(x.label)+'</strong><span>'+x.detail.map(y=>esc(y)).join('<br>')+'</span></div>').join('');
  const message=rows.length?'Les informations non publiées ne sont pas affichées. Les absences et compositions peuvent évoluer.':e?.ok?'La fiche de cette rencontre ne publie pas de données détaillées exploitables.':e?'Aucune fiche détaillée fiable disponible pour cette rencontre.':'Les données publiées seront chargées automatiquement si la source couvre cette rencontre.';
- return '<div class="betpro-poisson-fixture-facts" data-poisson-evidence-detail>'+details+'<p class="betpro-poisson-facts-disclaimer">'+esc(message)+'</p>'+link+'</div>';
+ return '<div class="betpro-poisson-fixture-facts" data-poisson-evidence-detail>'+details+'<p class="betpro-poisson-facts-disclaimer">'+esc(message)+'</p></div>';
 }
 /* Couche de faits commune : même source vérifiée, même cache et même budget que Poisson.
    Aucune incidence sur les probabilités, les filtres de pari ou la collecte. */
@@ -6667,7 +6667,7 @@ function betproSharedEvidencePaint(el,f){
   el.innerHTML='<div class="betpro-ticker-form-summary">'+compactSummary+'</div>'+content;
   return;
  }
- const src='<small>Source ESPN · fiche contrôlée le '+esc(betproPoissonFixtureDate(data.checked_at))+' · <a href="'+esc(data.source_url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Consulter la source</a></small>';
+ const src='<small>Source ESPN · fiche contrôlée le '+esc(betproPoissonFixtureDate(data.checked_at))+'</small>';
  const details=rows.filter(x=>!x.formRows).map(x=>'<div class="betpro-shared-fact"><strong>'+esc(x.label)+'</strong>'+x.detail.map(y=>'<span>'+esc(y)+'</span>').join('')+'</div>').join('');
  const coverage=['injuries','suspensions','lineups','standings'].map((k,i)=>data.facts[k].length?'':(['Blessures','Suspensions','Compositions','Classement'][i]+' non publiés ou non confirmés')).filter(Boolean);
  el.innerHTML=title+(form.length?betproPoissonFormHtml(form):'<small>Forme récente non publiée dans la fiche vérifiée.</small>')+src+'<details class="betpro-shared-evidence-details" onclick="event.stopPropagation()"><summary>Statistiques et informations disponibles</summary>'+details+(coverage.length?'<small>'+esc(coverage.join(' · '))+'. Une absence d’information ne prouve pas une absence de blessure.</small>':'')+'</details>';
@@ -7800,11 +7800,7 @@ function betproPoissonMultisportRender(d,ctx,res){
  const sport=sportNames[d.sport]||String(d.sport||'Sport');
  const box=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+
   (hint?'<small>'+esc(hint)+'</small>':'')+'</div>';
- const sources=(d.source_urls||[]).slice(0,4).map(u=>{
-  try{const url=new URL(u);return url.protocol==='https:'&&url.hostname==='site.api.espn.com'?
-   '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">ESPN '+esc(url.pathname.split('/').slice(-4).join(' / '))+'</a>':'';}
-  catch(_){return'';}
- }).filter(Boolean).join(' ');
+
  let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>'+esc('Analyse statistique avancée · '+sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
    '<p class="betpro-poisson-match">'+betproFixtureTitle(home,away,d.sport||ctx.sport,'vs',true)+' <button type="button" class="betpro-poisson-copy-match" onclick="betproPoissonCopyMatch(this)" title="Copier les deux équipes" aria-label="Copier le nom de la rencontre"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></button></p>';
  if(!m){
@@ -7846,7 +7842,6 @@ function betproPoissonMultisportRender(d,ctx,res){
  if((d.limitations||[]).length)html+='<div class="betpro-poisson-warning"><strong>Limites de fiabilité</strong><ul>'+
   d.limitations.slice(0,6).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
  if(d.method)html+='<p class="betpro-poisson-note">'+esc(d.method)+'</p>';
- if(sources)html+='<div class="betpro-poisson-sources">'+sources+'</div>';
  html+='</div>';res.innerHTML=html;
 }
 
@@ -7891,17 +7886,13 @@ async function runLiveModelUI(options={}){
   const number=n=>n!==null&&n!==undefined&&Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:2}):'–';
   const datum=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+
    (hint?'<small>'+esc(hint)+'</small>':'')+'</div>';
-  const source=(d.source_urls||[]).slice(0,4).map(u=>{
-   try{const url=new URL(u);return url.protocol==='https:'&&url.hostname==='site.api.espn.com'?
-    '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">ESPN : historique vérifiable</a>':'';}
-   catch(_){return'';}
-  }).filter(Boolean).join(' ');
+
   if(!m){
    res.innerHTML='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>Données insuffisantes</span></div>'+
     '<div class="betpro-poisson-warning">'+esc(d.explanation||'Historique récent non disponible : calcul personnalisé impossible.')+'</div>'+
     '<p class="betpro-poisson-note">Match : '+esc(home)+' / '+esc(away)+'. Le modèle ne remplace pas les données manquantes par des taux inventés.</p>'+
     '<p class="betpro-poisson-note">'+esc('Rencontres utilisables : domicile '+(d.history?.home_matches??0)+' / extérieur '+(d.history?.away_matches??0))+'.</p>'+
-    (source?'<div class="betpro-poisson-sources">'+source+'</div>':'')+'</div>';
+    '</div>';
    return;
   }
   const outcome=m.outcomes||{},totals=m.totals||{},next=m.next_goal||{};
@@ -7940,7 +7931,6 @@ async function runLiveModelUI(options={}){
   html+='<div class="betpro-poisson-warning"><strong>Fiabilité et limites du modèle</strong>'+
     '<ul>'+caveats.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul></div>';
   html+='<p class="betpro-poisson-note">Technique utilisée (Méthode Poisson) · '+esc(d.method||'Poisson, taux de buts historiques.')+'</p>';
-  if(source)html+='<div class="betpro-poisson-sources">'+source+'</div>';
   html+='<button class="btn bs betpro-poisson-chat" type="button" onclick="betproPoissonAskChat()">Demander l’analyse complémentaire au Chat Expert</button>';
   html+='</div>';res.innerHTML=html;
  }catch(e){
