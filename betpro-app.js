@@ -9544,12 +9544,20 @@ function betproTickerEditorialDiversity(items,limit){
  return selected;
 }
 
+function betproTickerVerifiedFavorite(item,now=Date.now()){
+ const c=item?.market_consensus,start=Date.parse(item?.event_start_at||''),observed=Date.parse(c?.last_odds_at||'');
+ return !!(item?.is_match&&c?.status==='ok'&&Number(c.bookmakers)>=2&&['home','away','draw'].includes(c.choice)&&c.favorite&&Number(c.probability)>0&&Number(c.probability)<1&&Number.isFinite(start)&&start>now+120000&&Number.isFinite(observed)&&observed<=now+30000&&observed<start&&now-observed<=(start-now<=86400000?21600000:86400000));
+}
+function betproTickerFavoritePriority(a,b,now=Date.now()){
+ return Number(betproTickerVerifiedFavorite(b,now))-Number(betproTickerVerifiedFavorite(a,now))||(Date.parse(a.event_start_at)||0)-(Date.parse(b.event_start_at)||0);
+}
 function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
   // Augmente la couverture sans évincer les vrais articles de presse.
   const groups = new Map(),seen=new Set();
   const all=[...(sportItems||[]),...(turfItems||[])];
   const editorial=[...all.filter(x=>x?.editorial_extra===true),...betproTickerReadExpandedNews(),...betproTickerReadDirectNews()];
-  for(const item of all.filter(x=>x?.editorial_extra!==true)) {
+  const now=Date.now();
+  for(const item of all.filter(x=>x?.editorial_extra!==true).sort((a,b)=>Number(betproTickerVerifiedFavorite(b,now))-Number(betproTickerVerifiedFavorite(a,now)))) {
     if(item?.is_status)continue;const title=String(item?.title||'').trim();if(!title||tickerTechnicalNotice(title))continue;
     const category=tickerCategory(item.sport),fp=(category+'|'+title).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g,' ').trim();
     if(seen.has(fp))continue;seen.add(fp);
@@ -9565,7 +9573,7 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
     if(group.matches.length){
       // Rencontres toujours prioritaires, mais les nouvelles en français restent visibles.
       // Maximum 8 rencontres et 2 actualités par sport, sans remplacer les affiches.
-      const matches=group.matches.slice(0,8), articles=betproTickerEditorialDiversity(group.articles,4);
+      const matches=group.matches.slice().sort((a,b)=>betproTickerFavoritePriority(a,b,now)).slice(0,8), articles=betproTickerEditorialDiversity(group.articles,4);
       entries=[...matches.slice(0,3),...articles.slice(0,1),
         ...matches.slice(3),...articles.slice(1)];
     }else entries=betproTickerEditorialDiversity(group.articles,4);
@@ -9582,8 +9590,8 @@ function buildBalancedTickerItems(sportItems, turfItems, maxItems = 120) {
   const available=x=>!used.has(tickerStableIdentity(x))&&!titles.has(tickerCategory(x.sport)+'|'+tickerArticleNameKey(x.title));
   const add=x=>{if(!available(x))return;used.add(tickerStableIdentity(x));titles.add(tickerCategory(x.sport)+'|'+tickerArticleNameKey(x.title));extras.push(x);};
   const football=groups.get('soccer');
-  if(football){football.matches.filter(available).slice(0,4).forEach(add);betproTickerEditorialDiversity(football.articles.filter(x=>available(x)&&tickerHasFrenchArticleTitle(x)),4).forEach(add);}
-  for(const category of order){if(category==='soccer'||category==='turf')continue;const group=groups.get(category);if(group)betproTickerEditorialDiversity(group.articles.filter(x=>available(x)&&tickerHasFrenchArticleTitle(x)),1).forEach(add);}
+  if(football){football.matches.filter(available).sort((a,b)=>betproTickerFavoritePriority(a,b,now)).slice(0,4).forEach(add);betproTickerEditorialDiversity(football.articles.filter(x=>available(x)&&tickerHasFrenchArticleTitle(x)),4).forEach(add);}
+  for(const category of order){if(category==='soccer'||category==='turf')continue;const group=groups.get(category);if(group){group.matches.filter(x=>available(x)&&betproTickerVerifiedFavorite(x,now)).slice(0,2).forEach(add);betproTickerEditorialDiversity(group.articles.filter(x=>available(x)&&tickerHasFrenchArticleTitle(x)),1).forEach(add);}}
   const result=[];let at=0;for(let i=0;i<balanced.length;i++){result.push(balanced[i]);if(i%3===1&&at<extras.length)result.push(extras[at++]);}return betproTickerAppendEditorial(result.concat(extras.slice(at)),editorial);
 }
 
@@ -10173,7 +10181,8 @@ async function getSportTickerArticles(){
   try{
     const data=await api('/api/ticker?sports='+enc(sports),'GET',null,{timeoutMs:14000});
     const incoming=Array.isArray(data?.items)?data.items:[];
-    const matches=betproTickerFutureMatches(incoming.filter(x=>x?.is_match));
+    const localById=new Map(local.map(x=>[String(x.event_id),x]));
+    const matches=betproTickerFutureMatches(incoming.filter(x=>x?.is_match)).map(x=>{const prev=localById.get(String(x.event_id));if(!prev||!betproTickerVerifiedFavorite(prev)||betproTickerVerifiedFavorite(x)||x.market_consensus?.status==='unavailable')return x;const same=String(x.sport_key||x.sport)===String(prev.sport_key||prev.sport)&&tickerArticleNameKey(x.home_name)===tickerArticleNameKey(prev.home_name)&&tickerArticleNameKey(x.away_name)===tickerArticleNameKey(prev.away_name)&&Date.parse(x.event_start_at)===Date.parse(prev.event_start_at);return same?{...x,market_consensus:prev.market_consensus}:x;});
     const unique=new Set(matches.map(x=>String(x.event_id)));
     const restored=local.filter(x=>!unique.has(String(x.event_id)));
     const combined=[...matches,...restored].sort((a,b)=>Date.parse(a.event_start_at)-Date.parse(b.event_start_at));
@@ -10196,7 +10205,7 @@ function tickerMatchMarketHtml(art){
   if(!art?.is_match || art._turfRaceId || tickerCategory(art.sport)==='turf')return '';
   const m=art.market_consensus;
   // Un match reste visible sans consensus; seuls les favoris étayés sont affichés.
-  if(!m || m.status!=='ok' || Number(m.bookmakers)<2 || !Number.isFinite(Number(m.probability)) || Number(m.probability)<=0 || Number(m.probability)>1) return '';
+  if(!betproTickerVerifiedFavorite(art))return '';
   const pct=value=>Number.isFinite(Number(value))?(Math.round(Number(value)*1000)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %':'—';
   const books=Math.max(0,Number(m.bookmakers)||0);
   const providerNames=Array.isArray(m.providers)?m.providers.filter(Boolean).slice(0,4).join(', '):'';
