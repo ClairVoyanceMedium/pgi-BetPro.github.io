@@ -3755,13 +3755,37 @@ async function doCSVAnalyze(){
 }
 
 // Shared fixture headings: venue roles only, never predictions or result colours.
-function betproFixtureTitle(home,away,sport,separator='vs',poisson=false){
- const key=betproPoissonFixtureSport(sport)||betproPoissonFixtureSport(String(sport||'').replace(/\//g,'_'));
- const individual=['tennis','boxing','mma','golf','darts'].includes(key);
- const collective=['football','basketball','baseball','nfl','hockey','rugby','volleyball','handball','cricket','aussierules'].includes(key);
+function betproFixtureTeamHtml(name,role,poisson=false){
  const cls=poisson?'betpro-poisson-team-name ':'';
- const team=(name,role)=>'<strong class="'+cls+'betpro-fixture-team'+(role?' betpro-fixture-'+role:'')+'"'+(role==='home'?' title="Domicile"':role==='away'?' title="Extérieur"':role==='individual'?' title="Participant"':'')+'>'+esc(name||'?')+'</strong>';
- return team(home,individual?'individual':collective?'home':'')+' <span class="betpro-fixture-separator">'+esc(separator)+'</span> '+team(away,individual?'individual':collective?'away':'');
+ const valid=['home','away','individual'].includes(role)?role:'';
+ return '<strong class="'+cls+'betpro-fixture-team'+(valid?' betpro-fixture-'+valid:'')+'"'+(valid==='home'?' title="Domicile"':valid==='away'?' title="Extérieur"':valid==='individual'?' title="Participant"':'')+'>'+esc(name||'?')+'</strong>';
+}
+function betproFixtureTeamRole(name,fixture){
+ const key=betproPoissonFixtureSport(fixture?.sport||fixture?.sport_key||fixture?._sport)||betproPoissonFixtureSport(String(fixture?.sport_source||fixture?.sport||'').replace(/\//g,'_'));
+ const n=betproPoissonNormalizeName(name),h=betproPoissonNormalizeName(fixture?.home||fixture?.home_name||fixture?.home_team),a=betproPoissonNormalizeName(fixture?.away||fixture?.away_name||fixture?.away_team);
+ if(!n||!h||!a||h===a||!(n===h||n===a))return '';
+ if(['tennis','boxing','mma','golf','darts'].includes(key))return 'individual';
+ if(!['football','basketball','baseball','nfl','hockey','rugby','volleyball','handball','cricket','aussierules'].includes(key))return '';
+ return n===h?'home':'away';
+}
+function betproFixtureTeamLabel(name,fixture){
+ const role=betproFixtureTeamRole(name,fixture);
+ return role?betproFixtureTeamHtml(name,role):esc(name||'');
+}
+function betproFixtureTitle(home,away,sport,separator='vs',poisson=false){
+ const f={home,away,sport};
+ return betproFixtureTeamHtml(home,betproFixtureTeamRole(home,f),poisson)+' <span class="betpro-fixture-separator">'+esc(separator)+'</span> '+betproFixtureTeamHtml(away,betproFixtureTeamRole(away,f),poisson);
+}
+function betproFixtureDetailLine(value,fixture){
+ const line=String(value||''),match=line.match(/^(.+?)(\s+:\s+|\s+—\s+)([\s\S]*)$/);
+ return match&&betproFixtureTeamRole(match[1],fixture)?betproFixtureTeamLabel(match[1],fixture)+esc(match[2]+match[3]):esc(line);
+}
+function betproHistoryMatchLabel(y,team,fixture){
+ const name=String(y?.match||'');
+ const parts=name.split(' - ');
+ if(y?.score_order==='home-away'&&parts.length===2&&parts.every(x=>x.trim())&&fixture?.sport)
+  return betproFixtureTitle(parts[0],parts[1],fixture.sport,'-');
+ return esc(name||team+' - '+(y?.opponent||''));
 }
 
 function renderManualMatchResult(result,inputCtx){
@@ -4297,7 +4321,7 @@ function betproLiveHeuristicFootball(m,stat){
   const available=rows.filter(([label,k])=>pairs[k][0]!=null&&pairs[k][1]!=null);
   const shotData=(pairs.shots_on_goal[0]!=null&&pairs.shots_on_goal[1]!=null)||(pairs.total_shots[0]!=null&&pairs.total_shots[1]!=null);
   const minute=betproLiveNum(m.minute),homeScore=betproLiveNum(m.score?.home),awayScore=betproLiveNum(m.score?.away);
-  const dataHtml='<div class="betpro-real-live-stathead"><span>'+esc(m.home)+'</span><span>STATISTIQUES LIVE</span><span>'+esc(m.away)+'</span></div>'+
+  const dataHtml='<div class="betpro-real-live-stathead"><span>'+betproFixtureTeamLabel(m.home,m)+'</span><span>STATISTIQUES LIVE</span><span>'+betproFixtureTeamLabel(m.away,m)+'</span></div>'+
     available.map(([label,k])=>betproLiveEvidence(label,...pairs[k],k==='ball_possession'?' %':'')).join('');
   const onlyData={html:dataHtml};
   if(!shotData||available.length<3||minute==null||minute<12||homeScore==null||awayScore==null||m.status==='P')return{
@@ -4364,7 +4388,7 @@ function betproLiveHeuristicOther(m,stat){
   ]:[];
   const observations=[];
   for(const [label,aliases] of keys){const a=betproLiveEspnMetric(home,aliases),b=betproLiveEspnMetric(away,aliases);if(a!=null&&b!=null)observations.push({label,a,b});}
-  const html='<div class="betpro-real-live-stathead"><span>'+esc(m.home)+'</span><span>STATISTIQUES LIVE</span><span>'+esc(m.away)+'</span></div>'+observations.map(o=>betproLiveEvidence(o.label,o.a,o.b)).join('');
+  const html='<div class="betpro-real-live-stathead"><span>'+betproFixtureTeamLabel(m.home,m)+'</span><span>STATISTIQUES LIVE</span><span>'+betproFixtureTeamLabel(m.away,m)+'</span></div>'+observations.map(o=>betproLiveEvidence(o.label,o.a,o.b)).join('');
   if(observations.length<3)return{html,abstain:true,reason:'L’API fournit le score et le chronomètre, mais pas assez de données de jeu indépendantes pour établir un pronostic professionnel. Aucun favori n’est fabriqué.'};
   const directions=observations.map(x=>({label:x.label,advantage:x.label==='Pertes de balle' || x.label==='Erreurs'?Math.sign(x.b-x.a):Math.sign(x.a-x.b)}));
   const balance=directions.reduce((n,x)=>n+x.advantage,0);
@@ -4475,7 +4499,7 @@ async function betproAnalyzeRealLive(key,button){
     const disclaimer='<div class="betpro-live-footnote">Analyse indicative à partir de statistiques observées. Les estimations ne sont pas calibrées sur un historique indépendant et ne remplacent pas des cotes live vérifiées. Aucune recommandation de mise automatique.</div>';
     if(a.abstain){el.innerHTML=`<div class="betpro-real-live-panel">${betproLiveSimpleTiming(m,a,d.fetched_at,stats)}${betproOutsiderBadge(outsider)}<strong>ANALYSE PROBABILISTE LIMITÉE</strong><p>${esc(a.reason)}</p>${a.html}${disclaimer}<small>Dernières statistiques : ${esc(date)}</small></div>`;return;}
     const pct=x=>(100*x).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %';
-    const probs=a.home!=null?`<div class="betpro-real-live-outcomes"><span>${esc(m.home)} : ${pct(a.home)}</span><span>Nul : ${pct(a.draw)}</span><span>${esc(m.away)} : ${pct(a.away)}</span></div>`:'';
+    const probs=a.home!=null?`<div class="betpro-real-live-outcomes"><span>${betproFixtureTeamLabel(m.home,m)} : ${pct(a.home)}</span><span>Nul : ${pct(a.draw)}</span><span>${betproFixtureTeamLabel(m.away,m)} : ${pct(a.away)}</span></div>`:'';
     el.innerHTML=`<div class="betpro-real-live-panel ${a.green?'betpro-real-live-strong':''}">${betproLiveSimpleTiming(m,a,d.fetched_at,stats)}<div class="betpro-real-live-verdict">${a.green?'SIGNAL STATISTIQUE FORT':'ANALYSE LIVE DÉTAILLÉE'}<strong>${esc(a.verdict)}</strong></div>
       ${a.predictedTop?`<p>Scénario dominant du modèle : ${esc(a.predictedTop)}. Ce chiffre est une simulation heuristique, pas une probabilité calibrée.</p>`:''}
       ${probs}${betproOutsiderBadge(outsider)}${a.html}
@@ -6562,14 +6586,14 @@ function betproPoissonFormSummary(results){
  if(counts.unknown)parts.push(counts.unknown+' résultat'+(counts.unknown>1?'s':'')+' non identifié'+(counts.unknown>1?'s':''));
  return results.length+'/10 matchs renseignés'+(parts.length?' : '+parts.join(' · '):'')+(results.length<10?' · historique partiel':'');
 }
-function betproPoissonFormHtml(form){
+function betproPoissonFormHtml(form,fixture=null){
  const rows=betproPoissonFormRows(form);if(!rows.length)return '';
- return '<span class="betpro-poisson-quick-fact betpro-poisson-form-panel"><strong>10 dernières rencontres par équipe</strong>'+rows.map(x=>'<span class="betpro-poisson-form-team"><span class="betpro-poisson-form-name">'+esc(x.team)+'</span><span class="betpro-poisson-form-summary">'+esc(betproPoissonFormSummary(x.results))+'</span><span class="betpro-form-scroll"><span class="betpro-poisson-form-results">'+x.results.map((y,i)=>{const r=String(y.result||'').toUpperCase(),kind=r==='W'?'win':r==='L'?'loss':r==='D'||r==='T'?'draw':'unknown';return '<span class="betpro-poisson-form-result '+kind+'">'+(i===x.results.length-1&&x.dated?'<strong class="betpro-form-latest">PLUS RÉCENT</strong>':'')+esc(betproPoissonFormLabel(r))+(y.date&&betproPoissonEvidenceDate(y.date)?'<small>'+esc(betproPoissonEvidenceDate(y.date))+'</small>':'')+(y.match||y.opponent?'<small class="betpro-form-match">'+esc(y.match||x.team+' - '+y.opponent)+'</small>':'')+(y.score?'<small>'+esc(y.score)+(y.score_order==='home-away'?' · dom./ext.':'')+'</small>':'')+'</span>';}).join('')+'</span></span><span class="betpro-poisson-form-order">'+(x.dated?'Ancien à gauche · récent à droite':'Ordre de la source · chronologie non confirmée')+'</span>'+'</span>').join('')+'</span>';
+ return '<span class="betpro-poisson-quick-fact betpro-poisson-form-panel"><strong>10 dernières rencontres par équipe</strong>'+rows.map(x=>'<span class="betpro-poisson-form-team"><span class="betpro-poisson-form-name">'+betproFixtureTeamLabel(x.team,fixture)+'</span><span class="betpro-poisson-form-summary">'+esc(betproPoissonFormSummary(x.results))+'</span><span class="betpro-form-scroll"><span class="betpro-poisson-form-results">'+x.results.map((y,i)=>{const r=String(y.result||'').toUpperCase(),kind=r==='W'?'win':r==='L'?'loss':r==='D'||r==='T'?'draw':'unknown';return '<span class="betpro-poisson-form-result '+kind+'">'+(i===x.results.length-1&&x.dated?'<strong class="betpro-form-latest">PLUS RÉCENT</strong>':'')+esc(betproPoissonFormLabel(r))+(y.date&&betproPoissonEvidenceDate(y.date)?'<small>'+esc(betproPoissonEvidenceDate(y.date))+'</small>':'')+(y.match||y.opponent?'<small class="betpro-form-match">'+betproHistoryMatchLabel(y,x.team,fixture)+'</small>':'')+(y.score?'<small>'+esc(y.score)+(y.score_order==='home-away'?' · dom./ext.':'')+'</small>':'')+'</span>';}).join('')+'</span></span><span class="betpro-poisson-form-order">'+(x.dated?'Ancien à gauche · récent à droite':'Ordre de la source · chronologie non confirmée')+'</span>'+'</span>').join('')+'</span>';
 }
 function betproCardRecentForm(raw){
  const form=raw?.recent_form??raw?.form;
  if(!Array.isArray(form)||!form.some(x=>Array.isArray(x?.results)))return '';
- return betproPoissonFormHtml(form);
+ return betproPoissonFormHtml(form,raw);
 }
 function betproHorseFormLabels(value,source){
  const raw=String(value||'').trim();if(!raw||raw==='—'||raw==='-')return [];
@@ -6615,12 +6639,12 @@ function betproPoissonEvidenceSections(f){
 function betproPoissonFixtureQuickFacts(f){
  const e=betproPoissonEvidenceRead(f),rows=betproPoissonEvidenceSections(f);
  if(!rows.length)return '<span data-poisson-evidence-brief class="betpro-shared-evidence"><small>'+(e?.ok?'Fiche ESPN consultée : aucune statistique détaillée publiée.':e?'Fiche ESPN indisponible : aucune statistique inventée.':'Forme et statistiques : chargement ciblé de la fiche ESPN…')+'</small></span>';
- return '<span class="betpro-poisson-fixture-brief" data-poisson-evidence-brief>'+rows.slice(0,4).map(x=>x.formRows?betproPoissonFormHtml(x.formRows):'<span class="betpro-poisson-quick-fact"><strong>'+esc(x.label)+'</strong> <span>'+esc(x.brief.slice(0,2).join(' · ')+(x.brief.length>2?' · +'+(x.brief.length-2):''))+'</span></span>').join('')+'</span>';
+ return '<span class="betpro-poisson-fixture-brief" data-poisson-evidence-brief>'+rows.slice(0,4).map(x=>x.formRows?betproPoissonFormHtml(x.formRows,f):'<span class="betpro-poisson-quick-fact"><strong>'+esc(x.label)+'</strong> <span>'+x.brief.slice(0,2).map(y=>betproFixtureDetailLine(y,f)).join(' · ')+(x.brief.length>2?' · +'+(x.brief.length-2):'')+'</span></span>').join('')+'</span>';
 }
 function betproPoissonFixtureFacts(f){
  const e=betproPoissonEvidenceRead(f),rows=betproPoissonEvidenceSections(f);
 
- const details=rows.map(x=>'<div class="betpro-poisson-fixture-fact"><strong>'+esc(x.label)+'</strong><span>'+x.detail.map(y=>esc(y)).join('<br>')+'</span></div>').join('');
+ const details=rows.map(x=>'<div class="betpro-poisson-fixture-fact"><strong>'+esc(x.label)+'</strong><span>'+x.detail.map(y=>betproFixtureDetailLine(y,f)).join('<br>')+'</span></div>').join('');
  const message=rows.length?'Les informations non publiées ne sont pas affichées. Les absences et compositions peuvent évoluer.':e?.ok?'La fiche de cette rencontre ne publie pas de données détaillées exploitables.':e?'Aucune fiche détaillée fiable disponible pour cette rencontre.':'Les données publiées seront chargées automatiquement si la source couvre cette rencontre.';
  return '<div class="betpro-poisson-fixture-facts" data-poisson-evidence-detail>'+details+'<p class="betpro-poisson-facts-disclaimer">'+esc(message)+'</p></div>';
 }
@@ -6662,15 +6686,15 @@ function betproSharedEvidencePaint(el,f){
   const forms=betproPoissonFormRows(form).filter(x=>x.results.length);
   if(!forms.length){el.innerHTML='';return;}
   const open=!!el.querySelector('details[open]');
-  const compactSummary=forms.map(x=>esc(x.team)+' : '+esc(betproPoissonFormSummary(x.results))).join('<br>');
-  const content='<details class="betpro-ticker-form"'+(open?' open':'')+' onclick="event.stopPropagation()"><summary>Forme récente · détails</summary><div class="betpro-ticker-form-content">'+betproPoissonFormHtml(form)+'</div></details>';
+  const compactSummary=forms.map(x=>betproFixtureTeamLabel(x.team,f)+' : '+esc(betproPoissonFormSummary(x.results))).join('<br>');
+  const content='<details class="betpro-ticker-form"'+(open?' open':'')+' onclick="event.stopPropagation()"><summary>Forme récente · détails</summary><div class="betpro-ticker-form-content">'+betproPoissonFormHtml(form,f)+'</div></details>';
   el.innerHTML='<div class="betpro-ticker-form-summary">'+compactSummary+'</div>'+content;
   return;
  }
  const src='<small>Source ESPN · fiche contrôlée le '+esc(betproPoissonFixtureDate(data.checked_at))+'</small>';
- const details=rows.filter(x=>!x.formRows).map(x=>'<div class="betpro-shared-fact"><strong>'+esc(x.label)+'</strong>'+x.detail.map(y=>'<span>'+esc(y)+'</span>').join('')+'</div>').join('');
+ const details=rows.filter(x=>!x.formRows).map(x=>'<div class="betpro-shared-fact"><strong>'+esc(x.label)+'</strong>'+x.detail.map(y=>'<span>'+betproFixtureDetailLine(y,f)+'</span>').join('')+'</div>').join('');
  const coverage=['injuries','suspensions','lineups','standings'].map((k,i)=>data.facts[k].length?'':(['Blessures','Suspensions','Compositions','Classement'][i]+' non publiés ou non confirmés')).filter(Boolean);
- el.innerHTML=title+(form.length?betproPoissonFormHtml(form):'<small>Forme récente non publiée dans la fiche vérifiée.</small>')+src+'<details class="betpro-shared-evidence-details" onclick="event.stopPropagation()"><summary>Statistiques et informations disponibles</summary>'+details+(coverage.length?'<small>'+esc(coverage.join(' · '))+'. Une absence d’information ne prouve pas une absence de blessure.</small>':'')+'</details>';
+ el.innerHTML=title+(form.length?betproPoissonFormHtml(form,f):'<small>Forme récente non publiée dans la fiche vérifiée.</small>')+src+'<details class="betpro-shared-evidence-details" onclick="event.stopPropagation()"><summary>Statistiques et informations disponibles</summary>'+details+(coverage.length?'<small>'+esc(coverage.join(' · '))+'. Une absence d’information ne prouve pas une absence de blessure.</small>':'')+'</details>';
 }
 function betproSharedEvidenceEnqueue(el){
  const f=betproSharedEvidenceDecode(el);if(!f||!el.isConnected||!el.getClientRects().length)return;
@@ -7798,7 +7822,7 @@ function betproPoissonMultisportRender(d,ctx,res){
  const sportNames={basketball:'Basketball',baseball:'Baseball',nfl:'Football américain',hockey:'Hockey',rugby:'Rugby',
    tennis:'Tennis',mma:'MMA',volleyball:'Volleyball',handball:'Handball'};
  const sport=sportNames[d.sport]||String(d.sport||'Sport');
- const box=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+
+ const box=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+betproFixtureTeamLabel(label,{home,away,sport:d.sport||ctx.sport})+'</span><strong>'+esc(value)+'</strong>'+
   (hint?'<small>'+esc(hint)+'</small>':'')+'</div>';
 
  let html='<div class="betpro-poisson-panel"><div class="betpro-poisson-head"><strong>'+esc('Analyse statistique avancée · '+sport)+'</strong><span>'+esc(d.quality||'Recherche ESPN')+'</span></div>'+
@@ -7884,7 +7908,7 @@ async function runLiveModelUI(options={}){
   const names=[d.history?.home_name||home,d.history?.away_name||away],m=d.model;
   const percent=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:1})+' %':'–';
   const number=n=>n!==null&&n!==undefined&&Number.isFinite(Number(n))?Number(n).toLocaleString('fr-FR',{maximumFractionDigits:2}):'–';
-  const datum=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong>'+
+  const datum=(label,value,hint='')=>'<div class="betpro-poisson-metric"><span>'+betproFixtureTeamLabel(label,{home:names[0],away:names[1],sport:'football'})+'</span><strong>'+esc(value)+'</strong>'+
    (hint?'<small>'+esc(hint)+'</small>':'')+'</div>';
 
   if(!m){
