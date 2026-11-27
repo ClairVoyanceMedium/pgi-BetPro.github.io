@@ -3940,6 +3940,11 @@ a{color:var(--neon);text-decoration:none}
         <div id="maturity-checked" style="font:9px var(--mo);color:var(--dm);margin-top:3px">Contrôle D1, R2 et modèles…</div>
       </div>
       <div id="maturity-health" style="font:800 11px var(--mo);padding:5px 9px;border:1px solid var(--bd);border-radius:6px;color:var(--dm)">VÉRIFICATION</div>
+      <div aria-label="État des stratégies Benter par famille" style="flex:1 0 100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;min-width:0;margin-top:1px">
+        <div style="padding:5px 7px;border:1px solid var(--bd);border-radius:6px;background:rgba(0,0,0,.12);min-width:0"><div style="font:9px var(--mo);color:var(--mu)">BENTER MULTISPORT</div><div id="benter-family-SPORT" aria-live="polite" style="font:800 9px var(--mo);color:var(--mu);margin-top:3px;overflow-wrap:anywhere">ÉTAT NON VÉRIFIÉ</div></div>
+        <div style="padding:5px 7px;border:1px solid var(--bd);border-radius:6px;background:rgba(0,0,0,.12);min-width:0"><div style="font:9px var(--mo);color:var(--mu)">BENTER PMU FRANCE</div><div id="benter-family-PMU" aria-live="polite" style="font:800 9px var(--mo);color:var(--mu);margin-top:3px;overflow-wrap:anywhere">ÉTAT NON VÉRIFIÉ</div></div>
+        <div style="padding:5px 7px;border:1px solid var(--bd);border-radius:6px;background:rgba(0,0,0,.12);min-width:0"><div style="font:9px var(--mo);color:var(--mu)">HONG KONG · HKJC</div><div id="benter-family-HKJC" aria-live="polite" style="font:800 9px var(--mo);color:var(--mu);margin-top:3px;overflow-wrap:anywhere">ÉTAT NON VÉRIFIÉ</div></div>
+      </div>
     </summary>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:7px;margin-top:11px">
       <div style="padding:8px;border:1px solid var(--bd);border-radius:7px;background:rgba(0,0,0,.16)"><div class="maturity-metric-label" style="font:8px var(--mo);color:var(--neon)">ÉVÉNEMENTS</div><div id="maturity-events" class="maturity-metric-value" style="font:800 16px var(--hd);color:var(--tx);margin-top:3px">—</div></div>
@@ -5192,7 +5197,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261127-expert-cards-v282"></script>
+<script defer src="./betpro-app.js?v=20261127-benter-status-v283"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
