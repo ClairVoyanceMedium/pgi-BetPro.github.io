@@ -4332,9 +4332,9 @@ a{color:var(--neon);text-decoration:none}
       <div class="betpro-poisson-smart-field">
         <label for="betpro-poisson-percent-quality">Fiabilité du pourcentage</label>
         <select id="betpro-poisson-percent-quality" onchange="betproPoissonFilterFixtures()" aria-controls="betpro-poisson-fixtures">
-          <option value="verified" selected>2+ bookmakers vérifiés</option>
-          <option value="single">Inclure 1 bookmaker</option>
-          <option value="historical">Inclure les anciennes cotes</option>
+          <option value="verified" selected>Historique suffisant pour le filtre</option>
+          <option value="all_models">Inclure les échantillons limités</option>
+          <option value="model_only">Modèles calculés uniquement</option>
         </select>
       </div>
       <div class="betpro-poisson-smart-field">
@@ -4345,11 +4345,12 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div id="betpro-poisson-search-feedback" class="betpro-poisson-smart-feedback" role="status" aria-live="polite">Affichage des rencontres disponibles</div>
     <button id="betpro-poisson-outsider-more" class="btn bs betpro-poisson-outsider-more" type="button" hidden onclick="betproPoissonOutsiderSearch(true)">Examiner les prochaines rencontres</button>
-    <p class="betpro-poisson-smart-note">Recherche parmi les rencontres chargées. Le seuil porte sur le marché en mode normal et sur la probabilité sportive disponible en mode Outsiders. Le contrôle strict s’effectue par lots ; seules les cartes retenues apparaissent.</p>
+    <button id="betpro-poisson-model-more" class="btn bs betpro-poisson-outsider-more" type="button" hidden onclick="betproPoissonModelBatch(true)">Calculer les prochaines rencontres</button>
+    <p class="betpro-poisson-smart-note">Le seuil porte sur le modèle sportif indépendant, jamais sur les anciennes cotes. Les calculs sont effectués par lots sur les historiques disponibles.</p>
   </div>
   <div class="card betpro-poisson-choice" aria-label="Choisir une rencontre à analyser">
     <div class="ct betpro-poisson-choice-title">RENCONTRES À ANALYSER</div>
-    <p class="betpro-poisson-choice-intro">Repérez les rencontres avec une direction de marché, puis sélectionnez le match qui vous intéresse. Les statistiques et la direction s'affichent sous votre sélection.</p>
+    <p class="betpro-poisson-choice-intro">Les probabilités sont calculées à partir des résultats sportifs vérifiés, lorsque le modèle est applicable. Les cotes restent un indicateur séparé.</p>
     <div class="betpro-poisson-source-tabs" role="group" aria-label="Période des rencontres">
       <button type="button" id="betpro-poisson-tab-upcoming" class="betpro-poisson-source-btn is-active" onclick="betproPoissonLoadFixtures('upcoming')">Matchs à venir · 48 h</button>
       <button type="button" id="betpro-poisson-tab-live" class="betpro-poisson-source-btn" onclick="betproPoissonLoadFixtures('live')">Matchs en direct</button>
@@ -5191,7 +5192,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261127-poisson-evidence-v277"></script>
+<script defer src="./betpro-app.js?v=20261127-independent-poisson-v278"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
