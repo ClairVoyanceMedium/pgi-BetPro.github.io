@@ -6079,12 +6079,27 @@ function ttsSpeak(text,replayId,automatic=false){
  });
  return true;
 }
-function ttsToggleAuto(){
- if(!ttsSupported()&&!(window.AudioContext||window.webkitAudioContext)){ttsStatus('Aucune lecture audio disponible.');return;}
- TTS.enabled=!TTS.enabled;
+let betproChatVoiceDraftStarted=false;
+function ttsSetAutoEnabled(enabled){
+ TTS.enabled=!!enabled;
  const button=document.getElementById('tts-main-btn'),label=document.getElementById('tts-main-lbl');
  if(button){button.classList.toggle('on',TTS.enabled);button.setAttribute('aria-pressed',String(TTS.enabled));}
  if(label)label.textContent=TTS.enabled?'Voix ON':'Voix OFF';
+}
+function betproChatTypedVoice(input){
+ if(!String(input?.value||'').trim()){betproChatVoiceDraftStarted=false;return;}
+ if(betproChatVoiceDraftStarted)return;
+ betproChatVoiceDraftStarted=true;
+ if(TTS.enabled)return;
+ if(!ttsSupported()){ttsStatus('Voix française native indisponible sur cet appareil.');return;}
+ ttsSetAutoEnabled(true);
+ ttsUnlockWebAudio();
+ try{window.speechSynthesis.resume();}catch(_){}
+ ttsStatus('Lecture automatique activée pour les réponses.');
+}
+function ttsToggleAuto(){
+ if(!ttsSupported()&&!(window.AudioContext||window.webkitAudioContext)){ttsStatus('Aucune lecture audio disponible.');return;}
+ ttsSetAutoEnabled(!TTS.enabled);
  if(TTS.enabled)ttsSpeak('Lecture automatique activée. Vous pouvez aussi utiliser le bouton Écouter sous les réponses.',null,false);
  else{ttsStop(true);ttsStatus('Lecture automatique désactivée.');}
 }
@@ -6155,7 +6170,7 @@ function appendMsg(role,msgContent,meta){
   const replayHtml=role==='bot'?`<div class="betpro-tts-controls"><button type="button" class="betpro-tts-play" id="tts-r-${msgId}" aria-pressed="false" aria-label="Écouter cette réponse" onclick="ttsReplay(${msgId})">▶ Écouter</button></div>`:'';
   div.innerHTML=`<div class="msg-ico ${role==='bot'?'msg-ico-bp':''}">${ico}</div><div style="flex:1;min-width:0"><div class="msg-bub" id="tts-msg-${msgId}" >${formatted}</div>${meta?`<div class="chat-meta">${esc(meta)}</div>`:''} ${replayHtml}</div>`;
   wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
-  if(role==='bot'&&TTS.enabled&&msgContent.length>2){setTimeout(()=>ttsSpeak(msgContent,'tts-r-'+msgId,true),80);}
+  if(role==='bot'&&TTS.enabled&&msgContent.length>2){setTimeout(()=>{if(TTS.enabled)ttsSpeak(msgContent,'tts-r-'+msgId,true);},80);}
 }
 
 
@@ -6363,8 +6378,8 @@ async function sendChat(cardContext){
  const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
  const q=input?.value.trim();if(!q||btn?.disabled)return;
  if(CHAT_MIC.active)chatMicStop();
- if(TTS.enabled&&ttsSupported())try{speechSynthesis.resume();}catch(_){}
- chatHistory.push({role:'user',content:q});appendMsg('user',q);input.value='';
+ if(TTS.enabled&&ttsSupported()){ttsUnlockWebAudio();try{speechSynthesis.resume();}catch(_){}}
+ chatHistory.push({role:'user',content:q});appendMsg('user',q);input.value='';betproChatVoiceDraftStarted=false;
  if(betproChatOnlySources(q)&&BETPRO_CHAT_LAST_RESEARCH?.sources?.length){
   const reply='Voici les sources utilisées pour ma réponse précédente.';
   chatHistory.push({role:'assistant',content:reply});
