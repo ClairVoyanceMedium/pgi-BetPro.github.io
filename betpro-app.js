@@ -6578,17 +6578,46 @@ function betproPoissonFixtureSignal(f){
  const message=!supported?'Modèle adapté non disponible':d?'Historique vérifié insuffisant':'Calcul statistique à effectuer';
  return '<span class="betpro-poisson-fixture-signal is-action"><span class="betpro-poisson-fixture-signal-eyebrow">ANALYSE SPORTIVE INDÉPENDANTE</span><strong class="betpro-poisson-fixture-signal-pick">'+esc(message)+'</strong></span>';
 }
+// Rank only actual independent model estimates. A large sample is not proof of calibration.
+function betproPoissonModelRank(a,b){
+ const x=betproPoissonModelRead(a),y=betproPoissonModelRead(b);
+ const px=betproPoissonModelPick(x),py=betproPoissonModelPick(y);
+ if(!!px!==!!py)return px?-1:1;
+ if(px&&py){
+  const qx=x.quality==='standard'?1:0,qy=y.quality==='standard'?1:0;
+  if(qx!==qy)return qy-qx;
+  if(py.p!==px.p)return py.p-px.p;
+  const nx=Math.min(Number(x.home_effective)||0,Number(x.away_effective)||0),ny=Math.min(Number(y.home_effective)||0,Number(y.away_effective)||0);
+  if(nx!==ny)return ny-nx;
+ }
+ return (Date.parse(a.start_time)||0)-(Date.parse(b.start_time)||0);
+}
+function betproPoissonModelProgress(){
+ const query=document.getElementById('betpro-poisson-filter')?.value||'',sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
+ const rows=betproPoissonPicker.fixtures.filter(f=>(sport==='all'||sport===f.sport)&&betproPoissonSearchMatches(f,query)&&betproPoissonModelSupported(f));
+ const calculated=rows.filter(f=>betproPoissonModelRead(f)?.ok).length;
+ const checked=rows.filter(f=>betproPoissonModelRead(f)).length;
+ const pending=rows.length-checked;
+ const status=document.getElementById('betpro-poisson-model-progress');
+ if(status){status.hidden=betproPoissonPicker.mode==='live'||betproPoissonOutsiderEnabled();status.textContent=rows.length?calculated+' modèle(s) calculé(s) · '+(checked-calculated)+' sans données suffisantes · '+pending+' à examiner. Classement automatique par qualité d’historique puis probabilité.':'Aucune rencontre couverte par le modèle avant-match dans cette liste.';}
+}
 function betproPoissonModelUpdate(f){
  const container=document.getElementById('betpro-poisson-fixtures');if(!container)return;
  if(Number(document.getElementById('betpro-poisson-min-percent')?.value||0)>0||document.getElementById('betpro-poisson-percent-quality')?.value==='model_only'){betproPoissonRenderFixtures();return;}
- for(const el of container.querySelectorAll('[data-poisson-evidence-index]')){
+ const elements=[...container.querySelectorAll('[data-poisson-evidence-index]')];
+ for(const el of elements){
   const current=betproPoissonPicker.fixtures[Number(el.dataset.poissonEvidenceIndex)];if(!current||betproPoissonEvidenceKey(current)!==betproPoissonEvidenceKey(f))continue;
   const signal=el.querySelector('[data-poisson-model-signal]');if(signal)signal.innerHTML=betproPoissonFixtureSignal(current);
   const btn=el.querySelector('.betpro-poisson-card-follow'),card=betproPoissonFollowCard(current);
   if(btn&&card?.id)btn.dataset.betproFollowId=card.id;
   else if(btn)delete btn.dataset.betproFollowId;
  }
- betproFollowPaint();
+ // Reorder existing nodes rather than rebuilding: open details and actions are preserved.
+ if(betproPoissonPicker.mode==='upcoming'&&!betproPoissonOutsiderEnabled()){
+  const ordered=elements.slice().sort((x,y)=>betproPoissonModelRank(betproPoissonPicker.fixtures[Number(x.dataset.poissonEvidenceIndex)],betproPoissonPicker.fixtures[Number(y.dataset.poissonEvidenceIndex)]));
+  for(let i=0;i<ordered.length;i++){const node=ordered[i],at=container.children[i];if(at!==node)container.insertBefore(node,at||null);}
+ }
+ betproFollowPaint();betproPoissonModelProgress();
 }
 function betproPoissonRequestModel(f){
  const key=betproPoissonEvidenceKey(f),hit=betproPoissonModelRead(f);
@@ -6608,12 +6637,12 @@ function betproPoissonRequestModel(f){
 function betproPoissonModelPump(){
  if(betproPoissonModelTimer){clearTimeout(betproPoissonModelTimer);betproPoissonModelTimer=null;}
  const now=Date.now();while(betproPoissonModelTimes.length&&now-betproPoissonModelTimes[0]>=60000)betproPoissonModelTimes.shift();
- if(document.hidden)return;
+ if(document.hidden||!document.getElementById('s-chat')?.classList.contains('on'))return;
  while(betproPoissonModelInflight.size<1&&betproPoissonModelQueue.size&&betproPoissonModelTimes.length<6){
   const [key,f]=betproPoissonModelQueue.entries().next().value;betproPoissonModelQueue.delete(key);
   if(!betproPoissonModelSupported(f)||betproPoissonModelRead(f)||betproPoissonModelInflight.has(key))continue;
   if(!betproPoissonPicker.fixtures.some(x=>betproPoissonEvidenceKey(x)===key))continue;
-  betproPoissonModelTimes.push(Date.now());void betproPoissonRequestModel(f).then(()=>betproPoissonModelUpdate(f));
+  betproPoissonModelTimes.push(Date.now());void betproPoissonRequestModel(f).then(result=>{if(result?.reason==='busy'&&!betproPoissonModelRead(f)){betproPoissonModelQueue.set(key,f);if(!betproPoissonModelTimer)betproPoissonModelTimer=setTimeout(betproPoissonModelPump,10000);}betproPoissonModelUpdate(f);});
  }
  if(betproPoissonModelQueue.size&&betproPoissonModelTimes.length>=6)betproPoissonModelTimer=setTimeout(betproPoissonModelPump,Math.max(500,60000-(Date.now()-betproPoissonModelTimes[0])+100));
 }
@@ -6624,13 +6653,23 @@ function betproPoissonModelEnqueue(f){
 }
 function betproPoissonModelBatch(force=false){
  const query=document.getElementById('betpro-poisson-filter')?.value||'',sport=document.getElementById('betpro-poisson-sport-filter')?.value||'all';
- const rows=betproPoissonPicker.fixtures.filter(f=>(sport==='all'||sport===f.sport)&&betproPoissonSearchMatches(f,query)&&betproPoissonModelSupported(f));
- const pending=rows.filter(f=>!betproPoissonModelRead(f)&&!betproPoissonModelInflight.has(betproPoissonEvidenceKey(f))&&!betproPoissonModelQueue.has(betproPoissonEvidenceKey(f)));
+ const scope=[betproPoissonPicker.seq,sport,query,betproPoissonOutsiderEnabled()].join('|');
  const control=document.getElementById('betpro-poisson-model-more');
- if(control){control.hidden=betproPoissonOutsiderEnabled()||!pending.length;control.textContent='Calculer les prochaines rencontres';}
- const scope=[betproPoissonPicker.seq,sport,query,document.getElementById('betpro-poisson-min-percent')?.value||'',document.getElementById('betpro-poisson-percent-quality')?.value||''].join('|');
- if(force||betproPoissonModelScope!==scope){betproPoissonModelScope=scope;for(const f of pending.slice(0,6))betproPoissonModelEnqueue(f);}
+ if(control)control.hidden=true;
+ if(betproPoissonOutsiderEnabled()||betproPoissonPicker.mode!=='upcoming'){betproPoissonModelQueue.clear();betproPoissonModelScope='';betproPoissonModelProgress();return;}
+ const rows=betproPoissonPicker.fixtures.filter(f=>(sport==='all'||sport===f.sport)&&betproPoissonSearchMatches(f,query)&&betproPoissonModelSupported(f));
+ if(force||betproPoissonModelScope!==scope){
+  betproPoissonModelScope=scope;betproPoissonModelQueue.clear();
+ }
+ // Queue every admissible loaded fixture, even if the probability filter hides it.
+ // Earlier start times first, with one active calculation and six starts per minute.
+ for(const f of rows.slice().sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time))){
+  const key=betproPoissonEvidenceKey(f);
+  if(!betproPoissonModelRead(f)&&!betproPoissonModelInflight.has(key)&&!betproPoissonModelQueue.has(key))betproPoissonModelQueue.set(key,f);
+ }
+ betproPoissonModelProgress();betproPoissonModelPump();
 }
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&document.getElementById('s-chat')?.classList.contains('on'))betproPoissonModelPump();});
 function betproPoissonObserveModels(container){
  if(betproPoissonModelObserver)betproPoissonModelObserver.disconnect();
  if('IntersectionObserver' in window)betproPoissonModelObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){const f=betproPoissonPicker.fixtures[Number(entry.target.dataset.poissonEvidenceIndex)];if(f)betproPoissonModelEnqueue(f);}}, {rootMargin:'100px'});
@@ -6785,6 +6824,7 @@ function betproPoissonRenderFixtures(){
  const outsiderOnly=betproPoissonOutsiderEnabled();
  const baseRows=sportRows.filter(({f})=>betproPoissonSearchMatches(f,query));
  const rows=baseRows.filter(({f})=>outsiderOnly?(betproOutsiderIsQualified(betproPoissonOutsiderEntry(f)?.signal)&&(minimum<=0||(betproPoissonOutsiderEntry(f)?.signal?.winProbability??-1)>=minimum)):((minimum<=0&&quality!=='model_only')||((betproPoissonDisplayedPercent(f,quality)??-1)>=minimum)));
+ if(!outsiderOnly&&p.mode==='upcoming')rows.sort((a,b)=>betproPoissonModelRank(a.f,b.f));
  const feedback=document.getElementById('betpro-poisson-search-feedback');
  if(feedback){
   const active=Boolean(query.trim())||minimum>0||sport!=='all';

@@ -4345,8 +4345,8 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <div id="betpro-poisson-search-feedback" class="betpro-poisson-smart-feedback" role="status" aria-live="polite">Affichage des rencontres disponibles</div>
     <button id="betpro-poisson-outsider-more" class="btn bs betpro-poisson-outsider-more" type="button" hidden onclick="betproPoissonOutsiderSearch(true)">Examiner les prochaines rencontres</button>
-    <button id="betpro-poisson-model-more" class="btn bs betpro-poisson-outsider-more" type="button" hidden onclick="betproPoissonModelBatch(true)">Calculer les prochaines rencontres</button>
-    <p class="betpro-poisson-smart-note">Le seuil porte sur le modèle sportif indépendant, jamais sur les anciennes cotes. Les calculs sont effectués par lots sur les historiques disponibles.</p>
+    <div id="betpro-poisson-model-progress" class="betpro-poisson-smart-feedback" role="status" aria-live="polite"></div>
+    <p class="betpro-poisson-smart-note">Classement automatique : historiques suffisamment fournis en priorité, puis probabilités décroissantes. Toutes les rencontres admissibles chargées sont analysées progressivement. Une probabilité élevée ne démontre pas une rentabilité.</p>
   </div>
   <div class="card betpro-poisson-choice" aria-label="Choisir une rencontre à analyser">
     <div class="ct betpro-poisson-choice-title">RENCONTRES À ANALYSER</div>
@@ -5192,7 +5192,7 @@ wrangler deploy</pre>
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261127-independent-poisson-v278"></script>
+<script defer src="./betpro-app.js?v=20261127-auto-rank-v279"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
