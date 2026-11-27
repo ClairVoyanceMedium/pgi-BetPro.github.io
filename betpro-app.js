@@ -10864,11 +10864,55 @@ function betproRenderBenterFamilyStates(data,unavailable=false){
     const valid=!unavailable&&!data?.diagnostic_stale&&row&&row.active_models!=null&&Number.isInteger(Number(row.active_models))&&Number(row.active_models)>=0;
     const count=valid?Number(row.active_models):null;
     el.textContent=count===null?'ÉTAT NON VÉRIFIÉ':count>0?'STRATÉGIE ACTIVE · '+count:'EN APPRENTISSAGE';
-    el.style.color=count===null?'var(--mu)':count>0?'#39ff14':'var(--am)';
+    el.style.color=count===null?'var(--mu)':count>0?'#39ff14':'#b8a4ff';
     el.title=count===null?'Diagnostic absent ou périmé ; aucun état déduit.':count>0?'Au moins un '+(key==='HKJC'?'segment de calibration':'modèle')+' validé. Les autres segments et les cartes restent soumis à leurs propres filtres.':'Aucun modèle actif dans cette famille au dernier diagnostic.';
   }
 }
 
+
+
+/* Avancement mesuré : données du diagnostic existant, aucun appel supplémentaire. */
+function betproRenderBenterProgress(data){
+  const root=document.getElementById('benter-maturity-progress');
+  if(!root)return;
+  root.replaceChildren();
+  const add=(parent,tag,value,style)=>{const el=document.createElement(tag);el.textContent=value;if(style)Object.assign(el.style,style);parent.appendChild(el);return el;};
+  const textStyle={font:'10px var(--mo)',color:'var(--mu)',lineHeight:'1.55'};
+  if(!data||data.diagnostic_stale){add(root,'div','Avancement non vérifié : diagnostic indisponible ou périmé.',textStyle);return;}
+  const nf=new Intl.NumberFormat('fr-FR'),number=v=>v!=null&&v!==''&&Number.isFinite(Number(v))&&Number(v)>=0?Number(v):null;
+  const n=v=>number(v)==null?'non mesuré':nf.format(number(v));
+  const section=(name,key)=>{
+    const box=add(root,'div','',{border:'1px solid var(--bd)',borderRadius:'7px',padding:'8px',minWidth:'0',background:'rgba(0,0,0,.12)'});
+    add(box,'div',name,{font:'800 10px var(--mo)',color:'#8edbff',marginBottom:'5px'});
+    const row=(data.models_by_family||[]).find(x=>x.family===key);
+    return {box,active:number(row?.active_models)};
+  };
+  const metric=(box,label,value,target,color)=>{
+    const v=number(value),t=number(target);
+    add(box,'div',label+' : '+n(v)+(t>0?' / '+n(t):''),textStyle);
+    if(v===null||!(t>0))return;
+    const track=add(box,'div','',{height:'5px',borderRadius:'6px',background:'rgba(128,128,128,.18)',margin:'3px 0 6px',overflow:'hidden'});
+    add(track,'div','',{height:'100%',borderRadius:'6px',width:Math.min(100,v/t*100)+'%',background:color});
+  };
+  const advice=(box,active,waiting)=>add(box,'div',active===null?'État non vérifié.':active>0?'Au moins un modèle actif : utiliser seulement les segments validés, sous réserve des filtres des cartes.':waiting,{font:'10px var(--mo)',color:active>0?'#39ff14':'#b8a4ff',lineHeight:'1.5',marginTop:'6px'});
+  const sport=section('MULTISPORT','SPORT'),lead=data.benter?.leading_model;
+  if(lead){
+    add(sport.box,'div','Segment le plus volumineux : '+String(lead.sport||'?')+' / '+String(lead.market||'?'),textStyle);
+    metric(sport.box,'Événements assimilés',lead.sample_size,300,'#39d8ff');
+    metric(sport.box,'Événements de validation',lead.validation_size,60,'#a78bfa');
+    metric(sport.box,'Jours de validation',lead.validation_days,14,'#5aa6ff');
+  }else add(sport.box,'div','Seuils détaillés indisponibles.',textStyle);
+  advice(sport.box,sport.active,lead&&number(lead.sample_size)>=300&&number(lead.validation_size)>=60&&number(lead.validation_days)>=14?'Seuils de volume du segment affiché atteints : attendre la supériorité statistique requise.':'Poursuivre la collecte et la validation chronologique.');
+  const pmu=section('PMU FRANCE','PMU');
+  metric(pmu.box,'Courses détaillées (volume, hors validation)',data.pmu?.detailed_races,data.pmu?.target_races,'#39d8ff');
+  add(pmu.box,'div','Validation du modèle : détail non fourni par ce diagnostic.',textStyle);
+  advice(pmu.box,pmu.active,'Poursuivre l’apprentissage ; le volume de courses ne suffit pas à activer le modèle.');
+  const hk=section('HONG KONG · HKJC','HKJC');
+  metric(hk.box,'Courses enregistrées',data.hkjc?.races,null,'#39d8ff');
+  metric(hk.box,'Courses avec résultats',data.hkjc?.resolved_races,null,'#a78bfa');
+  add(hk.box,'div','Validation : 14 journées distinctes par hippodrome requises ; avancement détaillé non fourni.',textStyle);
+  advice(hk.box,hk.active,'Poursuivre la collecte des réunions, cotes pré-course et résultats.');
+}
 
 let maturityLiveLoading=false,maturityLiveLastRequest=0;
 async function loadMaturityLiveCounters(){
@@ -10978,6 +11022,7 @@ async function loadProfessionalMaturity(){
     const s=await api('/api/maturity/status');if(!s?.ok||!s.health)throw new Error(s?.error||'Diagnostic incomplet');
     collectionDiagnostic=s;
     betproRenderBenterFamilyStates(s);
+    betproRenderBenterProgress(s);
     const eventRows=Array.isArray(s.collection?.events)?s.collection.events:[],eventCount=eventRows.reduce((n,r)=>n+Number(r.events||0),0),health=Number(s.health.score),status=String(s.health.status||'INDISPONIBLE'),pmuRaces=Number(s.pmu?.detailed_races||0),target=Math.max(1,Number(s.pmu?.target_races||500)),percent=Math.min(100,Math.round(pmuRaces*100/target)),r2=s.r2||{};
     const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
     set('maturity-checked','État : '+(s.checked_at?new Date(s.checked_at).toLocaleString('fr-FR'):'date inconnue')+' · compteurs : '+(s.volume_checked_at?new Date(s.volume_checked_at).toLocaleString('fr-FR'):'date du contrôle')+'.');
@@ -11003,6 +11048,7 @@ async function loadProfessionalMaturity(){
     const button=document.getElementById('maturity-export');if(button)button.disabled=false;
   }catch(e){
     betproRenderBenterFamilyStates(null,true);
+    betproRenderBenterProgress(null);
     const badge=document.getElementById('maturity-health');if(badge){badge.textContent='CONTRÔLE INDISPONIBLE';badge.style.color='var(--re)';}
     const details=document.getElementById('maturity-details');if(details){details.textContent='Erreur de diagnostic : '+String(e?.message||e).slice(0,240);details.style.whiteSpace='pre-wrap';}
     const checked=document.getElementById('maturity-checked');if(checked)checked.textContent=collectionDiagnostic?'Actualisation impossible. Dernier état : '+new Date(collectionDiagnostic.checked_at).toLocaleString('fr-FR')+' · compteurs : '+new Date(collectionDiagnostic.volume_checked_at||collectionDiagnostic.checked_at).toLocaleString('fr-FR')+'.':'Actualisation impossible. Aucun diagnostic reçu.';
