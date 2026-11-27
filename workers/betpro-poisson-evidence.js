@@ -12,7 +12,44 @@ function bpEvidenceFeed(q){
  if(permitted.has(raw)&&/^(soccer|basketball|football|hockey|baseball|rugby|rugby-league)\/[a-z0-9.-]+$/.test(raw))return raw;
  return betproFollowFeedsForSport(sport).find(f=>/^(soccer|basketball|football|hockey|baseball|rugby|rugby-league)\/[a-z0-9.-]+$/.test(f))||null;
 }
-function bpEvidenceExtract(data,home,away,start){
+/* BetPro form history v292: completed fixtures only, exact ESPN team identity. */
+function bpEvidenceHistoryRows(events,teamId,cutoff){
+ const rows=new Map();
+ for(const ev of Array.isArray(events)?events:[]){
+  const c=ev?.competitions?.[0],st=c?.status?.type||ev?.status?.type||{},at=Date.parse(c?.date||ev?.date||'');
+  if(st.completed!==true||!Number.isFinite(at)||at>=cutoff||at<cutoff-730*86400000||/cancel|abandon|postpon|suspend|forfeit/i.test(String(st.name||'')+' '+String(st.description||'')))continue;
+  const players=c?.competitors||[];if(players.length!==2)continue;
+  const h=players.find(x=>x.homeAway==='home'),a=players.find(x=>x.homeAway==='away');
+  if(!h?.team?.id||!a?.team?.id||!h.team.id||String(h.team.id)===String(a.team.id))continue;
+  const isH=String(h.team.id)===teamId,isA=String(a.team.id)===teamId;if(isH===isA)continue;
+  const hs=bpPNum(h.score),as=bpPNum(a.score),team=isH?h:a,opp=isH?a:h;
+  if(!Number.isInteger(hs)||!Number.isInteger(as)||hs<0||as<0||hs>400||as>400)continue;
+  const hn=bpEvidenceTeam(h),an=bpEvidenceTeam(a),opponent=bpEvidenceTeam(opp);
+  if(!hn||!an||!opponent)continue;
+  const result=team.winner===true&&opp.winner!==true?'W':opp.winner===true&&team.winner!==true?'L':team.winner===true&&opp.winner===true?null:hs===as?'D':(isH?hs>as:as>hs)?'W':'L';
+  if(!result)continue;
+  const id=String(ev.id||c.id||'');if(!id)continue;
+  rows.set(id,{id,date:new Date(at).toISOString(),result,opponent,match:hn+' - '+an,score:hs+' - '+as,score_order:'home-away'});
+ }
+ return [...rows.values()].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)).slice(0,10);
+}
+async function bpEvidenceEnrichForm(data,facts,base,start){
+ const teams=(data?.header?.competitions?.[0]?.competitors||[]).filter(x=>/^\d{1,15}$/.test(String(x?.team?.id||''))&&bpEvidenceTeam(x));
+ const cutoff=Math.min(Date.now(),start),year=new Date(cutoff).getUTCFullYear();
+ const form=await Promise.all(teams.map(async t=>{
+  const id=String(t.team.id),team=bpEvidenceTeam(t),root=base+'/teams/'+encodeURIComponent(id)+'/schedule',events=[],urls=[];
+  const load=async url=>{try{const d=await betproChatExternal(url,{ttl:25*60000,maxBytes:2300000});if(Array.isArray(d?.events)){events.push(...d.events);urls.push(url);}}catch(_){}};
+  await load(root);
+  let rows=bpEvidenceHistoryRows(events,id,cutoff);
+  if(rows.length<10){await load(root+'?season='+(year-1));rows=bpEvidenceHistoryRows(events,id,cutoff);}
+  const fallback=facts.form.find(x=>bpEvidenceName(x.team,team))?.results||[];
+  // Keep the summary fallback only if the schedule is empty; never combine differently oriented scores or duplicate matches.
+  if(!rows.length&&fallback.length)return{team,results:fallback.filter(x=>x.opponent).slice(0,10),coverage:'summary'};
+  return{team,results:rows,source_urls:urls,coverage:'schedule'};
+ }));
+ if(form.length)facts.form=form;
+ return facts;
+}function bpEvidenceExtract(data,home,away,start){
  const header=data?.header?.competitions?.[0],at=Date.parse(header?.date||data?.header?.competitions?.[0]?.startDate||'');
  if(!bpEvidencePair(header?.competitors,home,away)||!Number.isFinite(at)||Math.abs(at-start)>3*3600000)return null;
  const names=header.competitors.map(bpEvidenceTeam),inMatch=n=>names.some(x=>bpEvidenceName(x,n));
@@ -74,6 +111,7 @@ async function bpPoissonEvidence(q){
    }
   }
   const facts=data?bpEvidenceExtract(data,home,away,start):null;
+  if(facts)await bpEvidenceEnrichForm(data,facts,base,start);
   const result=facts?{ok:true,source:'ESPN',source_url:base+'/summary?event='+id,checked_at:new Date().toISOString(),facts}: {ok:false,reason:'unavailable'};
   if(bpEvidenceCache.size>=120)bpEvidenceCache.delete(bpEvidenceCache.keys().next().value);
   bpEvidenceCache.set(key,{value:result,until:Date.now()+(facts?10:3)*60000});return result;
