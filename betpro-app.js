@@ -6704,15 +6704,15 @@ function betproSharedEvidencePaint(el,f){
  const data=betproPoissonEvidenceRead(f);
  if(!data)return;
  const title='<strong>Forme et statistiques sportives</strong>',compact=el.classList.contains('betpro-ticker-evidence');
- if(!betproEvidenceIsVerified(data)){el.innerHTML=compact?'':'<small>Statistiques non confirmées.</small>';return;}
+ if(!betproEvidenceIsVerified(data)){if(compact)tickerPaintCompactEvidence(el,'');else el.innerHTML='<small>Statistiques non confirmées.</small>';return;}
  const rows=betproPoissonEvidenceSections(f),form=data.facts.form;
  if(compact){
   const forms=betproPoissonFormRows(form).filter(x=>x.results.length);
-  if(!forms.length){el.innerHTML='';return;}
-  const open=!!el.querySelector('details[open]');
+  if(!forms.length){tickerPaintCompactEvidence(el,'');return;}
+  const open=false;
   const compactSummary=forms.map(x=>betproFixtureTeamLabel(x.team,f)+' : '+esc(betproPoissonFormSummary(x.results))).join('<br>');
   const content='<details class="betpro-ticker-form"'+(open?' open':'')+' onclick="event.stopPropagation()"><summary>Forme récente · détails</summary><div class="betpro-ticker-form-content">'+betproPoissonFormHtml(form,f)+'</div></details>';
-  el.innerHTML='<div class="betpro-ticker-form-summary">'+compactSummary+'</div>'+content;
+  tickerPaintCompactEvidence(el,'<div class="betpro-ticker-form-summary">'+compactSummary+'</div>'+content);
   return;
  }
  const src='<small>Source ESPN · fiche contrôlée le '+esc(betproPoissonFixtureDate(data.checked_at))+'</small>';
@@ -9649,6 +9649,44 @@ let tickerLoadSequence = 0;
 // Évite les redessins inutiles et les retours intempestifs au début des actualités.
 let tickerRenderedMarkup = null;
 let tickerResizeObserver = null;
+let tickerRenderPending=null,tickerRenderTimer=null,tickerRenderStarted=0;
+function tickerQueueCommit(){
+ if(tickerRenderTimer)clearTimeout(tickerRenderTimer);
+ const elapsed=Date.now()-tickerRenderStarted;
+ tickerRenderTimer=setTimeout(()=>{
+  tickerRenderTimer=null;
+  if(!tickerRenderPending)return;
+  const box=document.getElementById('news-ticker-scroll-box');
+  if(tickerScrollState.userScrolling||box?._betproFormOpen){tickerRenderStarted=Date.now();tickerQueueCommit();return;}
+  const args=tickerRenderPending;tickerRenderPending=null;tickerRenderStarted=0;
+  betproTickerRenderNow(...args);
+ },Math.max(100,Math.min(900,2500-elapsed)));
+}
+function betproTickerRender(news,sportPayload,loadSequence,persistSnapshot=false){
+ if(loadSequence!==tickerLoadSequence)return;
+ const inner=document.getElementById('news-ticker-inner');
+ if(!inner?.querySelector('.ticker-item')){
+  if(tickerRenderTimer)clearTimeout(tickerRenderTimer);
+  tickerRenderPending=null;tickerRenderTimer=null;tickerRenderStarted=0;
+  return betproTickerRenderNow(news,sportPayload,loadSequence,persistSnapshot);
+ }
+ tickerRenderPending=[news,sportPayload,loadSequence,persistSnapshot];
+ if(!tickerRenderStarted)tickerRenderStarted=Date.now();
+ tickerQueueCommit();
+}
+// Preserve the same item and offset across asynchronous compact-form changes.
+// Both copies must have identical heights at the loop boundary.
+function tickerPaintCompactEvidence(el,html){
+ const box=el.closest('#news-ticker-scroll-box'),inner=document.getElementById('news-ticker-inner');
+ if(!box||!inner){if(el.innerHTML!==html)el.innerHTML=html;return;}
+ const key=el.dataset.betproEvidence;
+ const slots=key?[...box.querySelectorAll('.betpro-ticker-evidence[data-betpro-evidence]')].filter(x=>x.dataset.betproEvidence===key):[el];
+ if(slots.some(x=>x.querySelector('details[open]')))return;
+ const changed=slots.filter(x=>x.innerHTML!==html);if(!changed.length)return;
+ const previous=tickerRememberPosition(box,inner);
+ for(const slot of changed)slot.innerHTML=html;
+ if(previous){tickerScrollState.position=tickerRestorePosition(box,inner,previous);tickerScrollState.lastFrame=0;}
+}
 function tickerStableIdentity(item){
   const sport=tickerCategory(item?.sport);
   const raw=item?.event_id ?? item?._turfRaceId ?? item?.link ??
@@ -9657,29 +9695,30 @@ function tickerStableIdentity(item){
 }
 function tickerRememberPosition(box,inner){
   if(!box||!inner||!inner.querySelector('.ticker-item'))return null;
-  const height=inner.scrollHeight;
+  const clone=document.getElementById('news-ticker-clone'),height=clone?clone.offsetTop-inner.offsetTop:inner.offsetHeight;
   if(!(height>0))return null;
-  const position=Math.max(0,box.scrollTop),relative=position%height;
-  let anchor=null;
-  for(const item of inner.children){
-    if(item.classList.contains('ticker-item') && item.offsetTop+item.offsetHeight>relative){
-      anchor=item;break;
-    }
+  const position=Math.max(0,box.scrollTop),second=position>=height,copy=second&&clone?clone:inner,relative=position%height;
+  const top=copy.getBoundingClientRect().top;
+  let anchor=null,offset=0;
+  for(const item of copy.children){
+    if(!item.classList.contains('ticker-item'))continue;
+    const rect=item.getBoundingClientRect(),start=rect.top-top;
+    if(start+rect.height>relative){anchor=item;offset=relative-start;break;}
   }
-  return{position,height,clone:position>=height,
-    identity:anchor?.dataset.tickerKey||null,
-    offset:anchor?relative-anchor.offsetTop:0};
+  return{position,height,clone:second,identity:anchor?.dataset.tickerKey||null,offset};
 }
 function tickerRestorePosition(box,inner,previous){
   if(!box||!inner)return 0;
   if(!previous){box.scrollTop=0;return 0;}
-  const height=inner.scrollHeight;
+  const clone=document.getElementById('news-ticker-clone'),height=clone?clone.offsetTop-inner.offsetTop:inner.offsetHeight;
   if(!(height>0)){box.scrollTop=0;return 0;}
   let relative=(previous.position%previous.height)*(height/previous.height);
   if(previous.identity){
+    const top=inner.getBoundingClientRect().top;
     for(const item of inner.children){
       if(item.dataset.tickerKey===previous.identity){
-        relative=item.offsetTop+Math.max(0,Math.min(previous.offset,item.offsetHeight-1));
+        const rect=item.getBoundingClientRect();
+        relative=rect.top-top+Math.max(0,Math.min(previous.offset,rect.height-1));
         break;
       }
     }
@@ -10349,7 +10388,7 @@ function betproTickerSaveFastSnapshot(items){
     if(payload.length<=450000)localStorage.setItem(BETPRO_TICKER_FAST_SNAPSHOT_KEY,payload);
   }catch(_){}
 }
-function betproTickerRender(news,sportPayload,loadSequence,persistSnapshot=false){
+function betproTickerRenderNow(news,sportPayload,loadSequence,persistSnapshot=false){
   if(loadSequence!==tickerLoadSequence)return;
   try{
     const inner = document.getElementById('news-ticker-inner');
@@ -10535,8 +10574,17 @@ ${blocks}`}]
     if(tickerAnimFrame)cancelAnimationFrame(tickerAnimFrame);
     tickerAnimFrame=null;
     if(tickerResizeObserver){tickerResizeObserver.disconnect();tickerResizeObserver=null;}
+    const hydrated=new Map();
+    for(const slot of inner.querySelectorAll('.betpro-ticker-evidence[data-betpro-evidence]')){
+      if(slot.innerHTML&&!slot.querySelector('details[open]'))hydrated.set(slot.dataset.betproEvidence,slot.innerHTML);
+    }
     inner.innerHTML=html;
     if(clone)clone.innerHTML=html;
+    for(const slot of tickerList?.querySelectorAll('.betpro-ticker-evidence[data-betpro-evidence]')||[]){
+      const value=hydrated.get(slot.dataset.betproEvidence);
+      const f=betproSharedEvidenceDecode(slot);
+      if(value&&f&&betproEvidenceIsVerified(betproPoissonEvidenceRead(f)))slot.innerHTML=value;
+    }
     if(tickerBox)tickerBox._betproFormOpen=false;
     tickerRenderedMarkup=html;
     if(tickerList)tickerList.classList.remove('auto-scroll');
@@ -10546,21 +10594,24 @@ ${blocks}`}]
     // Vitesse constante sur les écrans 60/90/120 Hz, sans mesure de mise en page
     // forcée toutes les deux secondes dans la boucle d'animation.
     const TICKER_SPEED_PX_PER_SECOND=18;
-    let tickerScrollHeight=inner.scrollHeight;
-    const tickerViewHeight=tickerBox?.clientHeight||270;
+    const measureLoop=()=>clone?clone.offsetTop-inner.offsetTop:inner.offsetHeight;
+    let tickerScrollHeight=measureLoop(),tickerViewHeight=tickerBox?.clientHeight||270;
     if(typeof ResizeObserver!=='undefined'){
-      tickerResizeObserver=new ResizeObserver(entries=>{
-        const height=entries[0]?.contentRect?.height;
+      tickerResizeObserver=new ResizeObserver(()=>{
+        const height=measureLoop();
         if(Number.isFinite(height)&&height>0)tickerScrollHeight=height;
+        tickerViewHeight=tickerBox?.clientHeight||270;
       });
       tickerResizeObserver.observe(inner);
+      if(clone)tickerResizeObserver.observe(clone);
+      if(tickerBox)tickerResizeObserver.observe(tickerBox);
     }
 
     function tickerAnimate(frameTime){
       const previousFrame=tickerScrollState.lastFrame||frameTime;
       const elapsedMs=Math.min(64,Math.max(0,frameTime-previousFrame));
       tickerScrollState.lastFrame=frameTime;
-      if(!document.hidden&&!tickerPaused&&!tickerScrollState.userScrolling&&tickerBox&&!tickerBox._betproFormOpen&&tickerScrollHeight>tickerViewHeight){
+      if(tickerHomeVisible()&&!tickerPaused&&!tickerScrollState.userScrolling&&tickerBox&&!tickerBox._betproFormOpen&&tickerScrollHeight>tickerViewHeight){
         tickerScrollState.position+=TICKER_SPEED_PX_PER_SECOND*(elapsedMs/1000);
         if(tickerScrollState.position>=tickerScrollHeight)tickerScrollState.position%=tickerScrollHeight;
         tickerBox.scrollTop=tickerScrollState.position;
@@ -10639,12 +10690,12 @@ async function loadTicker(){
   if(tickerRefreshPending)return tickerRefreshPending;
   const loadSequence=++tickerLoadSequence;
   const saved=betproTickerReadFastSnapshot();
-  if(saved.length)betproTickerRender(saved,{meta:{degraded:true}},loadSequence);
+  if(saved.length){if(!document.getElementById('news-ticker-inner')?.querySelector('.ticker-item'))betproTickerRender(saved,{meta:{degraded:true}},loadSequence);}
   else{
     const localMatches=betproTickerFutureMatches(betproTickerReadLocal(BETPRO_TICKER_FIXTURES_STORE));
     const localTurf=betproTickerReadLocal(BETPRO_TICKER_TURF_STORE).filter(x=>Number.isFinite(Date.parse(x.published||''))&&Date.parse(x.published)>Date.now()-300000);
     const immediate=buildBalancedTickerItems([...localMatches,...betproTickerReadGlobalNews(),...betproTickerReadPsgNews(),...betproTickerReadSportFrNews(),...betproTickerReadLEquipeNews(),...betproTickerReadGoogleMultisportNews(),...betproTickerReadEditorialNews()],localTurf);
-    if(immediate.length)betproTickerRender(immediate,{meta:{degraded:true}},loadSequence);
+    if(immediate.length){if(!document.getElementById('news-ticker-inner')?.querySelector('.ticker-item'))betproTickerRender(immediate,{meta:{degraded:true}},loadSequence);}
     else renderTickerSafetyFallback('Connexion aux flux en cours…');
   }
   const task=(async()=>{
