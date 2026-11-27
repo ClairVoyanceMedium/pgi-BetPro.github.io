@@ -5007,19 +5007,19 @@ function betproClassicCard(match,idx){
   const strong=highMarketProbability||strongConsensus;
   const tier=strong?'dir-play':'dir-watch';
   const color=strong?'var(--gr)':'var(--am)';
-  const verdict=highMarketProbability?'FAVORI À FORTE PROBABILITÉ':strongConsensus?'CONSENSUS BOOKMAKERS FORT':verified?'TENDANCE DES BOOKMAKERS':archived?'ANCIENNES COTES DE MARCHÉ':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
+  const verdict=highMarketProbability?'FAVORI NET':strongConsensus?'ACCORD FORT DES BOOKMAKERS':verified?'TENDANCE DES BOOKMAKERS':archived?'ANCIENNES COTES DE MARCHÉ':oneSource?'INDICATION DE MARCHÉ':isLive?'RENCONTRE EN DIRECT':'RENCONTRE À SUIVRE';
   const headValue=verified?(consistency!==null?consistency+'/100':'—'):archived?'ARCHIVE':oneSource?'1 source':isLive?'LIVE':'PROGRAMMÉ';
-  const headCaption=verified?'cohérence des cotes':archived?'cote ancienne':oneSource?'cote isolée':'statut';
+  const headCaption=verified?'indice de cohérence':archived?'cote ancienne':oneSource?'cote isolée':'statut';
   const fav=hasMarket?String(quote.favorite||''):'',prob=hasMarket?betproClassicPct(quote.probability):'';
   const price=verified?(Number(marketValue?.best_price)>1?Number(marketValue.best_price):Number(c.median_market_odds||0)):Number(ind.market_odds||0);
   const priceDisplay=Number.isFinite(price)&&price>1?price.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}):null;
   const quoteRows=Array.isArray(match.bookmaker_quotes)?match.bookmaker_quotes.filter(v=>Number(v.odds)>1).slice(0,8):[];
   const n=verified?Number(c.bookmakers||0):(oneSource||archived)?Number(ind.source_count||1):0;
   const marketType=(c.draw_included||quote?.draw_probability!=null||/^(soccer_|handball_)/.test(sport))?'1X2':'Gagnant';
-  const bettingLabel=verified?'Favori estimé par le marché':archived?'Probabilité déduite d’anciennes cotes, non actualisée':oneSource?'Tendance d’un bookmaker':scoreKnown?'Score en direct':'Rencontre enregistrée';
+  const bettingLabel=verified?'Source : consensus des bookmakers':archived?'Probabilité déduite d’anciennes cotes, non actualisée':oneSource?'Tendance d’un bookmaker':scoreKnown?'Score en direct':'Rencontre enregistrée';
   const chosenLabel=hasMarket?fav:scoreKnown?`${score.home??'–'} – ${score.away??'–'}`:'Match à venir';
   const oddsBlock=priceDisplay?`<span class="dir-odds">@ ${priceDisplay}</span>`:'';
-  const pBlock=hasMarket?`<span class="dir-prob" style="color:#cdd9e8">${archived?'Prob. historique estimée':'Probabilité de marché'} : ${prob}</span>`:'';
+  const pBlock=hasMarket?`<span class="dir-prob" style="color:#cdd9e8">${archived?'Prob. historique estimée':'Probabilité selon les cotes'} : ${prob}</span>`:'';
   const evBlock=positiveValue&&marketValue?`<span class="dir-ev pos">EV théorique +${esc(Number(marketValue.estimated_ev_pct).toLocaleString('fr-FR',{maximumFractionDigits:1}))} %</span>`:'';
   const details=verified?
    `Consensus de ${n} bookmaker(s) indépendants. Accord sur le favori : ${Number(c.agreement)||0}/${n}. Les probabilités proviennent des cotes corrigées de la marge, pas du modèle Benter.`:
@@ -5037,9 +5037,9 @@ function betproClassicCard(match,idx){
   </div>`:'';
   const verifiedStats=verified?`<div style="margin-bottom:8px">
     <div style="font-size:10px;color:var(--mu);margin-bottom:5px">Indicateurs issus des cotes (pas des statistiques des équipes ni d’une validation Benter).</div>
-    ${consistency!=null?ssRow('Cohérence des cotes /100',consistency):'<small>Cohérence non mesurée</small>'}
+    ${consistency!=null?ssRow('Indice de cohérence /100',consistency):'<small>Cohérence non mesurée</small>'}
     ${n>0&&c.agreement!=null&&Number.isFinite(Number(c.agreement))?ssRow('Accord des opérateurs (%)',Math.round(100*Number(c.agreement)/n)):'<small>Accord non mesuré</small>'}
-    ${c.probability!=null&&Number.isFinite(Number(c.probability))?ssRow('Probabilité de marché (%)',Math.round(Number(c.probability)*100)):'<small>Probabilité non mesurée</small>'}
+    ${c.probability!=null&&Number.isFinite(Number(c.probability))?ssRow('Probabilité selon les cotes (%)',Math.round(Number(c.probability)*100)):'<small>Probabilité non mesurée</small>'}
   </div>`:'';
   const realScore=scoreKnown?`<span class="bdg blv" style="font-weight:800">Score ${esc(String(score.home??'–'))} : ${esc(String(score.away??'–'))}</span>`:'';
   const footnote=highMarketProbability?'Vert = probabilité de marché élevée (≥75 %), pas une garantie de rendement. Vérifier la cote chez le bookmaker.':verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':archived?'Ancienne cote, indicative seulement, susceptible d’avoir changé.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
@@ -5053,7 +5053,7 @@ function betproClassicCard(match,idx){
       <span class="bdg bsr">${esc(start)}</span>${isLive?'<span class="bdg blv">EN DIRECT</span>':''}${isLive&&liveMinute?`<span class="bdg blv" style="font-weight:800">${esc(liveMinute)}</span>`:''}${realScore}</div>
       <div class="dir-sel"><span class="dir-sel-name">${esc(chosenLabel)}</span>${oddsBlock}${pBlock}${evBlock}</div>
       <div style="font:500 10px var(--mo);color:#cbd6e9;margin-top:5px">${bettingLabel}</div>
-      ${betproExpertCardButton(betproExpertCardData(match,'Scan Classique / calendrier',{selection:hasMarket?fav:'',odds:price>1?price:null,probability:hasMarket?'Probabilité de marché '+prob:''}))}
+      ${betproExpertCardButton(betproExpertCardData(match,'Scan Classique / calendrier',{selection:hasMarket?fav:'',odds:price>1?price:null,probability:hasMarket?'Probabilité selon les cotes '+prob:''}))}
     </div>
     <div class="dir-detail"><div style="background:linear-gradient(135deg,rgba(245,158,11,.02),rgba(0,212,255,.03));border:1px solid ${strong?'rgba(0,255,157,.12)':'rgba(245,158,11,.2)'};border-radius:6px;padding:12px;margin-bottom:10px">
       <div style="font-size:9px;color:#b7c5df;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:var(--mo);font-weight:700">Pourquoi cette tendance ?</div>
