@@ -3756,9 +3756,9 @@ async function doCSVAnalyze(){
 function renderManualMatchResult(result,inputCtx){
  const name=esc((inputCtx?.home||'?')+' - '+(inputCtx?.away||'?'));
  if(!result?.found)return '<div class="card betpro-manual-result-card"><div class="betpro-manual-result-title">'+name+'</div>'+
-  '<div class="betpro-manual-result-sub">'+esc(result?.reason||'Aucune sélection disponible dans les cotes consultées.')+'</div></div>';
+  '<div class="betpro-manual-result-sub">'+esc(result?.reason||'Aucune sélection disponible dans les cotes consultées.')+'</div>'+betproExpertCardButton(betproExpertCardData(inputCtx,'Analyse manuelle'))+'</div>';
  const date=result.start_time?manualFormatDate(result.start_time):'Date non confirmée';
- const heading='<div class="betpro-manual-result-title">'+esc(result.home)+' contre '+esc(result.away)+'</div>'+
+ const heading='<div class="betpro-manual-result-title">'+esc(result.home)+' contre '+esc(result.away)+'</div>'+betproExpertCardButton(betproExpertCardData(result,'Analyse manuelle'))+
   '<div class="betpro-manual-result-sub">'+esc(date)+' · '+esc(result.competition||result.sport||'Compétition non indiquée')+'</div>';
  const rated=result.opportunities.map(o=>({o,res:computeDirection(o,{mode:'standard',bankroll:200,riskProfile:'conservateur'})}))
   .filter(x=>x.res.shouldDisplay&&x.res.direction==='play')
@@ -4151,6 +4151,7 @@ function betproLiveCard(m){
       <div class="betpro-real-live-score">${tennisScore||(hasScore?`${esc(String(score.home))} <span>:</span> ${esc(String(score.away))}`:sport.startsWith('tennis_')?'Jeux non transmis par ESPN':'Score non communiqué')}</div>
       <div class="betpro-real-live-sub">${m.source==='api-football'?'Minute officielle : '+esc(lbl):'Période et chronomètre officiels : '+esc(lbl)}${cards.length?' · Cartons : '+esc(cards.join(' ; ')):''}</div>
       <div class="betpro-real-live-actions"><button type="button" class="btn bp" onclick="betproAnalyzeRealLive('${esc(key)}', this)">Analyser ce match en direct</button><span>Analyse fondée sur les statistiques, pas seulement sur le score</span></div>
+      ${betproExpertCardButton(betproExpertCardData(m,'Match en direct',{competition:betproCompetitionWithCountry(m)}))}
       <div class="betpro-outsider-auto-slot" style="font-size:10px;color:var(--mu);margin:7px 0" aria-live="polite"></div>
       <div class="betpro-real-live-analysis" id="betpro-live-analysis-${esc(id)}-${esc(sport)}"></div>
     </div>
@@ -4979,7 +4980,7 @@ function betproClassicCard(match,idx){
   const realScore=scoreKnown?`<span class="bdg blv" style="font-weight:800">Score ${esc(String(score.home??'–'))} : ${esc(String(score.away??'–'))}</span>`:'';
   const footnote=highMarketProbability?'Vert = probabilité de marché élevée (≥75 %), pas une garantie de rendement. Vérifier la cote chez le bookmaker.':verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':archived?'Ancienne cote, indicative seulement, susceptible d’avoir changé.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
   return `<div class="dir-card ${tier}" data-engine="classic" data-sport-key="${esc(sport)}" data-tier="${strong?'strong':'moderate'}" role="button" tabindex="0" aria-expanded="false"
-      onclick="betproClassicToggleCard(this,event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();betproClassicToggleCard(this,event)}">
+      onclick="betproClassicToggleCard(this,event)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();betproClassicToggleCard(this,event)}">
     <div class="dir-banner"><span style="font-size:10px;font-weight:700">${verdict}</span>
       <span style="margin-left:auto;font-family:var(--mo);font-size:15px;font-weight:700;color:${color}">${headValue}</span>
       <span style="font-family:var(--mo);font-size:9px;color:${color};opacity:.75;margin-left:4px">${headCaption}</span></div>
@@ -4988,6 +4989,7 @@ function betproClassicCard(match,idx){
       <span class="bdg bsr">${esc(start)}</span>${isLive?'<span class="bdg blv">EN DIRECT</span>':''}${isLive&&liveMinute?`<span class="bdg blv" style="font-weight:800">${esc(liveMinute)}</span>`:''}${realScore}</div>
       <div class="dir-sel"><span class="dir-sel-name">${esc(chosenLabel)}</span>${oddsBlock}${pBlock}${evBlock}</div>
       <div style="font:500 10px var(--mo);color:#cbd6e9;margin-top:5px">${bettingLabel}</div>
+      ${betproExpertCardButton(betproExpertCardData(match,'Scan Classique / calendrier',{selection:hasMarket?fav:'',odds:price>1?price:null,probability:hasMarket?'Probabilité de marché '+prob:''}))}
     </div>
     <div class="dir-detail"><div style="background:linear-gradient(135deg,rgba(245,158,11,.02),rgba(0,212,255,.03));border:1px solid ${strong?'rgba(0,255,157,.12)':'rgba(245,158,11,.2)'};border-radius:6px;padding:12px;margin-bottom:10px">
       <div style="font-size:9px;color:#b7c5df;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:var(--mo);font-weight:700">Pourquoi cette tendance ?</div>
@@ -5209,7 +5211,7 @@ function betproResultRow(row,mode='history'){
     +clean(row.competition||row.sport||'Sport')+selected+clean(quote)+proof+'</div>'
     +'<div style="font-size:9px;color:var(--dm);margin-top:4px">'+clean(date)
     +' · '+(mode==='scan'?'Scan '+clean(row.engine)+' : '+betproResultDate(row.at):'Enregistré : '+betproResultDate(row.detected))+'</div>'
-    +'</div>';
+    +betproExpertCardButton(betproExpertCardData(row,'Résultats et historique',{date:row.start,selection:row.selection,probability:'Statut enregistré : '+label}))+'</div>';
 }
 function betproResultSection(title,rows,empty,mode='history'){
   return '<div class="card betpro-results-section"><div class="ct">'+title+'</div>'
@@ -6317,7 +6319,46 @@ function betproExpertContextFromResearch(research){
   '. Ces donnees priment sur ta memoire. Ne pas inventer les blessures, les cotes ou les probabilites; separer prediction et faits. Confirmer le calendrier sur une source officielle avant toute mise.';
 }
 
-async function sendChat(){
+
+const BETPRO_EXPERT_CARD_INSTRUCTIONS='Recherche approfondie et récente : vérifie la date, la compétition, les données officielles, les blessures, forfaits et suspensions, les compositions confirmées ou probables, les cinq derniers matchs, le classement, confrontations, domicile/extérieur, fatigue, calendrier, conditions et statistiques spécifiques au sport. Pour une course hippique : partants, non-partants, forme, jockey/driver, entraîneur, équipement, piste, terrain, corde, distance, poids et cotes; privilégie PMU/France Galop/LeTROT ou HKJC selon le lieu. Recherche aussi les discussions publiques récentes pertinentes (Reddit, forums spécialisés et communautés de supporters); cite le fil exact, son URL et sa date, sépare témoignages et rumeurs des faits confirmés. Ne déclare pas de forum consulté si inaccessible. Recoupe toute affirmation importante avec une source officielle ou plusieurs sources indépendantes; indique clairement les éléments indisponibles. Vérifie les cotes et leur date, distingue probabilités de marché, estimations indépendantes et scores de confiance. Analyse les arguments favorables et défavorables, les risques et les outsiders crédibles; conclus par une direction prudente ou une abstention si les preuves sont insuffisantes. Pas de pourcentage inventé ni de gain garanti. Cite les liens et dates des sources réellement consultées.';
+function betproExpertCardData(raw,origin,extra={}){
+ const r=raw||{},x={origin,...extra};
+ x.home=x.home||r.home_team||r.home_name||r.home||'';x.away=x.away||r.away_team||r.away_name||r.away||'';
+ x.sport=x.sport||r.sport||r._sport||r.sport_key||'';x.competition=x.competition||r.competition||r.sport_title||r.league||'';
+ x.date=x.date||r.start_time||r.startTime||r.start_at||r.event_start_at||r.commence_time||r.race_time||r.start||r.time||'';
+ x.match=x.match||r.match||'';x.selection=x.selection||r.selection||'';x.odds=x.odds??r.odds;
+ if(r.score&&typeof r.score==='object'){x.score_home=r.score.home;x.score_away=r.score.away;}
+ if(typeof r.score==='string')x.score=r.score;
+ if(r.minute!=null)x.minute=r.minute;
+ return x;
+}
+function betproExpertRaceData(r,origin,selection=''){
+ return betproExpertCardData(r,origin,{sport:'hippisme',match:[r.hippodrome||r.racecourse_name||r.racecourse_code,r.reunion,r.race_number!=null?'Course '+r.race_number:'',r.race_name].filter(Boolean).join(' · '),competition:origin,selection:selection||[r.horse_number!=null?'n°'+r.horse_number:'',r.horse_name||r.name].filter(Boolean).join(' '),race_id:r.race_id,date:r.race_time||r.start_time||r.date||r.time});
+}
+function betproExpertCardButton(x){
+ if(!x||(!(x.home&&x.away)&&!x.match))return '';
+ const payload=encodeURIComponent(JSON.stringify(x));
+ return '<button type="button" class="btn bs betpro-card-expert" style="display:block;width:100%;margin-top:9px;white-space:normal;line-height:1.4" data-expert-card="'+esc(payload)+'" onclick="event.stopPropagation();betproExpertOpenCard(this)">Analyser avec le Chat Expert</button>';
+}
+function betproExpertOpenCard(button){
+ try{betproExpertRunCard(JSON.parse(decodeURIComponent(button.dataset.expertCard)));}catch(e){toast('Contexte de la rencontre indisponible','err');}
+}
+function betproExpertRunCard(x){
+ const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
+ if(!input||!btn)return;
+ if(btn.disabled){toast('Une recherche Chat Expert est déjà en cours.','err');return;}
+ const match=x.home&&x.away?x.home+' contre '+x.away:x.match;
+ const parts=[x.origin&&'Rubrique : '+x.origin,x.sport&&'Sport : '+x.sport,x.competition&&'Compétition : '+x.competition,x.date&&'Date/heure : '+x.date,x.race_id&&'Identifiant course : '+x.race_id,x.selection&&'Sélection affichée : '+x.selection,x.odds!=null&&'Cote affichée : '+x.odds,x.probability&&'Indicateur affiché : '+x.probability,x.score&&'Score affiché : '+x.score,x.score_home!=null&&x.score_away!=null&&'Score affiché : '+x.score_home+'-'+x.score_away,x.minute!=null&&'Période affichée : '+x.minute].filter(Boolean);
+ const ctx={};for(const k of ['home','away','competition','score_home','score_away','minute'])if(x[k]!=null&&x[k]!=='')ctx[k]=x[k];
+ const sport=betproPoissonFixtureSport(x.sport||'');if(sport)ctx.sport=sport;
+ if(x.date)ctx.start_time=x.date;
+ if(!document.getElementById('s-chat')?.classList.contains('on'))go('chat');
+ input.value='Analyse exclusivement cette rencontre : '+match+'. '+parts.join(' | ')+'. Les données de la carte sont des indications à recontrôler, pas des faits acquis. '+BETPRO_EXPERT_CARD_INSTRUCTIONS;
+ document.querySelector('#betpro-expert-title')?.scrollIntoView({behavior:'smooth',block:'start'});
+ input.focus({preventScroll:true});void sendChat(ctx);
+}
+
+async function sendChat(cardContext){
  const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
  const q=input?.value.trim();if(!q||btn?.disabled)return;
  if(CHAT_MIC.active)chatMicStop();
@@ -6336,7 +6377,7 @@ async function sendChat(){
  typing.innerHTML='<div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div class="msg-bub" style="color:var(--dm)">Recherche sportive multi-sources en cours…</div>';
  wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;
  try{
-  const ctx=getCtx()||{};
+  const ctx=cardContext&&typeof cardContext==='object'?cardContext:(getCtx()||{});
   const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},{timeoutMs:45000,noCache:true});
   typing.remove();
   const answer=String(d?.response||'Recherche indisponible : aucune donnée vérifiée retournée.');
@@ -6693,13 +6734,7 @@ function betproPoissonObserveModels(container){
  betproPoissonModelBatch();
 }
 function betproPoissonResearchFixture(index){
- const f=betproPoissonPicker.fixtures[index],input=document.getElementById('chat-input');
- if(!f||!input)return;
- input.value='Recherche sportive approfondie et sourcée sur '+f.home+' contre '+f.away+
-  ' ('+betproPoissonSportLabel(f.sport)+', '+(f.competition||'compétition non précisée')+
-  ', '+betproPoissonFixtureDate(f.start_time)+'). Vérifie les blessures de chaque équipe et les joueurs forfaits ou incertains, suspensions, compositions, cinq derniers matchs, classement, confrontations, fatigue, actualités, et cotes des bookmakers avec date et sources. Distingue les faits confirmés des rumeurs et précise les données introuvables. Termine par une direction prudente fondée uniquement sur les données vérifiées, sans inventer de probabilités.';
- document.querySelector('#betpro-expert-title')?.scrollIntoView({behavior:'smooth',block:'start'});
- sendChat();
+ const f=betproPoissonPicker.fixtures[index];if(f)betproExpertRunCard(betproExpertCardData(f,'Analyse Poisson'));
 }
 // Filtrage local des rencontres chargées ; aucun pourcentage n'est inventé.
 function betproPoissonSearchMatches(f,query){
@@ -6882,9 +6917,9 @@ function betproPoissonRenderFixtures(){
       (f.sport==='football'?'<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;draw&#39;,this)">Match nul</button>':'')+
       '<button type="button" onclick="betproPoissonChooseFollow('+i+',&#39;away&#39;,this)">'+esc(f.away)+'</button>'+
      '</div><small>Le suivi enregistre une issue choisie, pas un résultat supposé.</small></div>':'')+
+   betproExpertCardButton(betproExpertCardData(f,'Analyse Poisson'))+
    '<details class="betpro-poisson-fixture-extra"><summary>Blessures, absences, forme, statistiques et sources</summary>'+
     betproPoissonFixtureFacts(f)+
-    '<button class="betpro-poisson-fixture-research" type="button" onclick="betproPoissonResearchFixture('+i+')">Rechercher les blessures et les informations récentes avec le Chat Expert</button>'+
    '</details>'+
   '</article>';
  }).join('');
@@ -7257,13 +7292,7 @@ async function betproPoissonRecoverMarket(f){
  return entries.events.find(x=>betproPoissonSameFixture(x,f)&&(betproPoissonTrustMarket(x,true)||betproPoissonTrustMarket(x,false)))||null;
 }
 function betproPoissonAskFixtureChat(){
- const f=betproPoissonPicker.selected;if(!f)return;
- const input=document.getElementById('chat-input');if(!input)return;
- input.value='Analyse la rencontre '+f.home+' contre '+f.away+' ('+betproPoissonSportLabel(f.sport)+', '+f.competition+
-  ', '+betproPoissonFixtureDate(f.start_time)+'). Recherche des sources sportives récentes sur la forme, les blessures, les compositions, les statistiques et les cotes disponibles. '+
-  'Donne une direction clairement identifiée uniquement si des éléments vérifiables la soutiennent, avec les sources et les incertitudes. Ne crée aucun pourcentage fictif.';
- document.querySelector('#betpro-expert-title')?.scrollIntoView({behavior:'smooth',block:'start'});
- sendChat();
+ const f=betproPoissonPicker.selected;if(f)betproExpertRunCard(betproExpertCardData(f,'Analyse Poisson'));
 }
 function betproPoissonNoDirection(f,note){
  return '<div class="betpro-poisson-market-result is-limited"><div class="betpro-poisson-market-eyebrow">RENCONTRE SÉLECTIONNÉE · RECHERCHE COMPLÉMENTAIRE</div>'+
@@ -7762,19 +7791,8 @@ async function runLiveModelUI(options={}){
 }
 function betproPoissonAskChat(){
  const d=betproPoissonLastAnalysis;if(!d?.model)return;
- const o=d.model.outcomes||{},h=d.history||{},sport=String(d.sport||'football');
- const names={football:'football',basketball:'basketball',baseball:'baseball MLB',nfl:'football américain NFL',
-   hockey:'hockey NHL',rugby:'rugby'};
- const analysis='Analyse cette rencontre de '+(names[sport]||sport)+' en croisant les dernières informations sportives confirmées : '+
-  String(d.match.home)+' contre '+String(d.match.away)+
-  ', score '+String(d.match.score_home)+'-'+String(d.match.score_away)+
-  ', période '+String(d.match.minute)+'. Le modèle statistique '+String(d.model.distribution||'Poisson')+
-  ' estime la probabilité domicile à '+String(o.home_win)+' % et extérieur à '+String(o.away_win)+' %'+
-  (o.draw!=null?', nul à '+String(o.draw)+' %':'')+
-  '. Historique ESPN : '+String(h.home_matches)+' et '+String(h.away_matches)+
-  ' matchs. Recherche blessures, composition officielle ou probable, statistiques et contexte récent. '+
-  'Vérifie les sources, explique les limites et ne présente pas ces probabilités comme des certitudes.';
- const input=document.getElementById('chat-input');if(input){input.value=analysis;input.focus();sendChat();}
+ const m=d.match||{},o=d.model.outcomes||{},h=d.history||{};
+ betproExpertRunCard(betproExpertCardData(m,'Analyse Poisson',{home:m.home||h.home_name,away:m.away||h.away_name,sport:d.sport||'football',competition:h.league,date:betproPoissonPicker.selected?.start_time,score_home:m.score_home,score_away:m.score_away,minute:m.minute,probability:'Modèle '+(d.model.distribution||'statistique')+' : domicile '+o.home_win+' %, extérieur '+o.away_win+' %'+(o.draw!=null?', nul '+o.draw+' %':'')+'; historique ESPN '+h.home_matches+' / '+h.away_matches+' matchs'}));
 }
 
 // ═══════════════════════════════════════════════
@@ -7865,7 +7883,7 @@ async function doStrategy(){
     html+='<p style="'+soft+'">Probabilité prudente implicite du marché : '+pct(b.conservative_probability)+
        '. Ce calcul n’est pas une probabilité de victoire validée.</p>';
     html+=valueProBookmakers(b.bookmaker_comparison);
-    html+='</details></div>';
+    html+='</details>'+betproExpertCardButton(betproExpertCardData(b,'Value Bet Pro / stratégie'))+'</div>';
    }
    if(d?.bankroll_summary){
     html+='<div class="card" style="padding:13px;margin-bottom:11px;font-size:11px;line-height:1.7">';
@@ -9043,7 +9061,7 @@ async function lossAutoSearch(forcedOdds){
       +bookieLinkHtml()
       +(isEligible&&!existingPending?'<button class="btn bp" onclick="lossPrepareTicket('+recIndex+')">J’ai misé : suivre ce pari</button>':
          existingPending?'<span style="font-size:10px;color:var(--am)">Ce match est déjà en attente</span>':'')
-      +'</div></div>';
+      +betproExpertCardButton(betproExpertCardData(o,'Analyse de stratégie',{selection:select}))+'</div></div>';
   });
   html+='<div class="warn" style="margin-top:10px">Vérifiez à nouveau les cotes et la disponibilité du marché chez le bookmaker avant toute décision. Aucune stratégie ne garantit de récupérer une perte. Les probabilités peuvent être mal calibrées, les cotes varier et plusieurs paris perdre simultanément. La meilleure décision reste parfois de ne pas miser. Une perte passée ne crée aucun avantage statistique sur les prochains matchs.</div>';
   if(scanVersion===lossScanVersion&&cnt&&cnt.isConnected)cnt.innerHTML=html;
@@ -11217,6 +11235,7 @@ function renderDirectionCard(o, i, containerId) {
       ${renderProfessionalEvidence(o.card_evidence)}
       ${betproOutsiderBadge(betproOutsiderModel(o,res))}
       ${stakeNote}
+      ${betproExpertCardButton(betproExpertCardData(o,containerId==='upc'?'Matchs à venir':'Scan Benter / analyse BetPro',{selection:selDisplay,probability:'Probabilité dérivée des cotes '+modelProb+' %; confiance globale '+displayConf+' %'}))}
     </div>
 
     <div class="dir-detail" style="padding:0 14px 12px;display:none">
@@ -12548,7 +12567,7 @@ async function hkjcLoad(silent=false){
 }
 function hkjcRenderRaces(races,el){
   if(!races.length){el.innerHTML='<div class="empty"><div class="empty-i">🐎</div><div class="empty-t">Aucune réunion '+esc(hkjcTrack)+' chargée pour aujourd’hui</div><div style="font-size:10px;color:var(--dm);margin-top:5px">La collecte incrémentale conservera les prochaines réunions disponibles.</div></div>';return;}
-  el.innerHTML=races.map(r=>'<div class="live-card" onclick="hkjcShowRace(\''+esc(r.race_id)+'\')" style="cursor:pointer"><div class="lc-head"><div style="flex:1"><div class="lc-teams">'+esc(r.racecourse_name||r.racecourse_code)+' — Course '+esc(r.race_number)+'</div><div class="lc-meta"><span class="bdg bsp">'+hkjcDateTime(r.race_time)+'</span><span class="bdg">'+esc(r.surface||'surface inconnue')+'</span><span class="bdg">'+esc(r.distance||'—')+' m</span><span class="bdg bgo">'+Number(r.field_size||0)+' partants · '+Number(r.paid_places||0)+' places</span></div><div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(r.going||'going non disponible')+' · '+esc(r.class||'classe non disponible')+'</div></div></div></div>').join('');
+  el.innerHTML=races.map(r=>'<div class="live-card" onclick="hkjcShowRace(\''+esc(r.race_id)+'\')" style="cursor:pointer"><div class="lc-head"><div style="flex:1"><div class="lc-teams">'+esc(r.racecourse_name||r.racecourse_code)+' — Course '+esc(r.race_number)+'</div><div class="lc-meta"><span class="bdg bsp">'+hkjcDateTime(r.race_time)+'</span><span class="bdg">'+esc(r.surface||'surface inconnue')+'</span><span class="bdg">'+esc(r.distance||'—')+' m</span><span class="bdg bgo">'+Number(r.field_size||0)+' partants · '+Number(r.paid_places||0)+' places</span></div><div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(r.going||'going non disponible')+' · '+esc(r.class||'classe non disponible')+'</div>'+betproExpertCardButton(betproExpertRaceData(r,'HKJC Hong Kong'))+'</div></div></div>').join('');
 }
 async function hkjcShowRace(raceId){try{const d=await api('/api/hkjc/race?race_id='+enc(raceId));if(!d.ok)throw new Error(d.error||'Course introuvable');const list=(d.runners||[]).map(h=>'n°'+esc(h.horse_number)+' '+esc(h.horse_name)+' · corde '+esc(h.draw??'—')+' · '+esc(h.jockey_name||'jockey inconnu')).join('\n');alert((d.race.racecourse_name||d.race.racecourse_code)+' — Course '+d.race.race_number+'\n'+d.race.field_size+' partants, '+d.race.paid_places+' places rémunérées\n\n'+list);}catch(e){toast('HKJC : '+e.message,'err');}}
 function hkjcMetric(label,value){return'<div style="background:var(--bg2);border:1px solid var(--bd);padding:8px;border-radius:6px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase">'+label+'</div><div style="font-family:var(--mo);font-weight:700;margin-top:3px">'+value+'</div></div>';}
@@ -12557,7 +12576,7 @@ function hkjcRenderCards(cards,el){
   const horseSignals=cards.filter(c=>betproOutsiderHorseHKJC(c));
   el.setAttribute('data-betpro-outsiders',String(horseSignals.length));
   el.innerHTML=cards.map(c=>{const bet=c.decision==='BET',strong=pgiIsStrongHkjcSignal(c),globalConfidence=pgiHkjcGlobalConfidence(c),value=bet?'AVANTAGE RENTABLE VALIDÉ':Number(c.edge)>0?'AVANTAGE TROP FAIBLE':'AUCUN AVANTAGE',color=bet?'var(--gr)':Number(c.edge)>0?'var(--go)':'var(--re)',label=c.market==='WIN'?'PROBABILITÉ GAGNANT':'PROBABILITÉ PLACÉ';let reasons=[];try{reasons=JSON.parse(c.reasons||'[]');}catch(_){}
-    return '<div class="card'+(strong?' pgi-signal-tres-fort':'')+'" style="border-left:3px solid '+color+';margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><div class="ct" style="margin:0;border:0;padding:0">'+esc(c.racecourse_code)+' R'+esc(c.race_number)+' · n°'+esc(c.horse_number)+' '+esc(c.horse_name)+'</div><div style="font-size:10px;color:var(--dm);margin-top:4px">'+hkjcDateTime(c.race_time)+' · '+Number(c.field_size||0)+' partants · '+Number(c.paid_places||0)+' places rémunérées</div></div><span class="bdg" style="background:'+color+'22;color:'+color+'">'+(bet?'À JOUER':'NE PAS JOUER')+'</span></div><div class="fg" style="grid-template-columns:repeat(4,minmax(110px,1fr));margin-top:12px">'+hkjcMetric('Cote',hkjcNum(c.odds,2))+hkjcMetric('Probabilité modèle',hkjcPct(c.model_probability))+hkjcMetric('Probabilité marché',hkjcPct(c.market_probability))+hkjcMetric(label,hkjcPct(c.calibrated_probability))+hkjcMetric('Cote juste',hkjcNum(c.fair_odds,2))+hkjcMetric('Avantage sur le marché',hkjcPct(c.edge))+hkjcMetric('Valeur attendue',hkjcPct(c.expected_value))+hkjcMetric('Niveau de confiance',esc(pgiConfidenceFr(c.confidence)))+'</div><div style="margin-top:10px"><span class="bdg" style="background:'+color+'22;color:'+color+'">'+value+'</span><span style="margin-left:7px">'+pgiGlobalConfidenceBadge(globalConfidence)+'</span><span style="font-size:9px;color:var(--dm);margin-left:7px">Qualité des données '+hkjcPct(c.data_quality_score)+'</span></div>'+(reasons.length?'<div style="font-size:9px;color:var(--dm);margin-top:7px">Motifs de prudence : '+reasons.map(esc).join(' · ')+'</div>':'')+'<div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(c.place_rules||'')+'</div>'+betproOutsiderBadge(betproOutsiderHorseHKJC(c))+'</div>';
+    return '<div class="card'+(strong?' pgi-signal-tres-fort':'')+'" style="border-left:3px solid '+color+';margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><div class="ct" style="margin:0;border:0;padding:0">'+esc(c.racecourse_code)+' R'+esc(c.race_number)+' · n°'+esc(c.horse_number)+' '+esc(c.horse_name)+'</div><div style="font-size:10px;color:var(--dm);margin-top:4px">'+hkjcDateTime(c.race_time)+' · '+Number(c.field_size||0)+' partants · '+Number(c.paid_places||0)+' places rémunérées</div></div><span class="bdg" style="background:'+color+'22;color:'+color+'">'+(bet?'À JOUER':'NE PAS JOUER')+'</span></div><div class="fg" style="grid-template-columns:repeat(4,minmax(110px,1fr));margin-top:12px">'+hkjcMetric('Cote',hkjcNum(c.odds,2))+hkjcMetric('Probabilité modèle',hkjcPct(c.model_probability))+hkjcMetric('Probabilité marché',hkjcPct(c.market_probability))+hkjcMetric(label,hkjcPct(c.calibrated_probability))+hkjcMetric('Cote juste',hkjcNum(c.fair_odds,2))+hkjcMetric('Avantage sur le marché',hkjcPct(c.edge))+hkjcMetric('Valeur attendue',hkjcPct(c.expected_value))+hkjcMetric('Niveau de confiance',esc(pgiConfidenceFr(c.confidence)))+'</div><div style="margin-top:10px"><span class="bdg" style="background:'+color+'22;color:'+color+'">'+value+'</span><span style="margin-left:7px">'+pgiGlobalConfidenceBadge(globalConfidence)+'</span><span style="font-size:9px;color:var(--dm);margin-left:7px">Qualité des données '+hkjcPct(c.data_quality_score)+'</span></div>'+(reasons.length?'<div style="font-size:9px;color:var(--dm);margin-top:7px">Motifs de prudence : '+reasons.map(esc).join(' · ')+'</div>':'')+'<div style="font-size:9px;color:var(--dm);margin-top:5px">'+esc(c.place_rules||'')+'</div>'+betproOutsiderBadge(betproOutsiderHorseHKJC(c))+betproExpertCardButton(betproExpertRaceData(c,'HKJC Hong Kong'))+'</div>';
   }).join('');
 }
 
@@ -12702,6 +12721,7 @@ function turfRenderRaceCard(r) {
         ${r.runners_count?`<span class="bdg bmk">${r.runners_count} partants</span>`:''}
         <span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Qualité des données : ${r.data_quality_score}%</span>
       </div>
+      ${betproExpertCardButton(betproExpertRaceData(r,'PMU France'))}
     </div>
   </div>`;
 }
@@ -12756,6 +12776,7 @@ function turfRenderRaceDetail(d) {
       <span class="bdg bsr">${paidPlaces} place(s) payée(s)</span>
       <span class="bdg" style="background:rgba(78,106,138,.15);color:var(--mu)">Qualité des données : ${d.data_quality_score}%</span>
     </div>
+    ${betproExpertCardButton(betproExpertRaceData(d,'PMU France'))}
     ${outsiderPMU.length?'<div class="betpro-outsider-horse-list">'+outsiderPMU.map(betproOutsiderBadge).join('')+'</div>':''}
     <div style="overflow-x:auto">
       <table class="tracker-table" id="turf-runners-table"><thead><tr><th>N°</th><th>Cheval</th><th>Jockey/Driver</th><th>Entraîneur</th><th>Musique</th><th>Cote</th></tr></thead>
@@ -12973,6 +12994,7 @@ async function turfRunRecoveryScan() {
         </div>
         <div style="padding:8px 12px;border-top:1px solid var(--bd)">
           <button class="btn bs" style="font-size:10px" onclick="turfSelectRace('${esc(o.race_id)}')">Voir la course</button>
+          ${betproExpertCardButton(betproExpertRaceData(o,'PMU France',String(o.name||o.horse||'')))}
         </div>
       </div>`;
     });
