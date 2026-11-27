@@ -6335,7 +6335,7 @@ function betproExpertContextFromResearch(research){
 }
 
 
-const BETPRO_EXPERT_CARD_INSTRUCTIONS='Recherche approfondie et récente : vérifie la date, la compétition, les données officielles, les blessures, forfaits et suspensions, les compositions confirmées ou probables, les cinq derniers matchs (résultats en toutes lettres, dates et adversaires, du plus récent au plus ancien si vérifiable), le classement, confrontations, domicile/extérieur, fatigue, calendrier, conditions et statistiques spécifiques au sport. Pour une course hippique : partants, non-partants, forme hippique (places et incidents explicites, course la plus récente en premier si vérifiable), jockey/driver, entraîneur, équipement, piste, terrain, corde, distance, poids et cotes; privilégie PMU/France Galop/LeTROT ou HKJC selon le lieu. Recherche aussi les discussions publiques récentes pertinentes (Reddit, forums spécialisés et communautés de supporters); cite le fil exact, son URL et sa date, sépare témoignages et rumeurs des faits confirmés. Ne déclare pas de forum consulté si inaccessible. Recoupe toute affirmation importante avec une source officielle ou plusieurs sources indépendantes; indique clairement les éléments indisponibles. Vérifie les cotes et leur date, distingue probabilités de marché, estimations indépendantes et scores de confiance. Analyse les arguments favorables et défavorables, les risques et les outsiders crédibles; conclus par une direction prudente ou une abstention si les preuves sont insuffisantes. Pas de pourcentage inventé ni de gain garanti. Cite les liens et dates des sources réellement consultées.';
+const BETPRO_EXPERT_CARD_INSTRUCTIONS='Recherche approfondie et récente : vérifie la date, la compétition, les données officielles, les blessures, forfaits et suspensions, les compositions confirmées ou probables, les cinq derniers matchs (résultats en toutes lettres, dates et adversaires, du plus ancien au plus récent, dernier résultat à droite et clairement identifié si vérifiable), le classement, confrontations, domicile/extérieur, fatigue, calendrier, conditions et statistiques spécifiques au sport. Pour une course hippique : partants, non-partants, forme hippique (places et incidents explicites, du plus ancien au plus récent, dernière course à droite et clairement identifiée si vérifiable), jockey/driver, entraîneur, équipement, piste, terrain, corde, distance, poids et cotes; privilégie PMU/France Galop/LeTROT ou HKJC selon le lieu. Recherche aussi les discussions publiques récentes pertinentes (Reddit, forums spécialisés et communautés de supporters); cite le fil exact, son URL et sa date, sépare témoignages et rumeurs des faits confirmés. Ne déclare pas de forum consulté si inaccessible. Recoupe toute affirmation importante avec une source officielle ou plusieurs sources indépendantes; indique clairement les éléments indisponibles. Vérifie les cotes et leur date, distingue probabilités de marché, estimations indépendantes et scores de confiance. Analyse les arguments favorables et défavorables, les risques et les outsiders crédibles; conclus par une direction prudente ou une abstention si les preuves sont insuffisantes. Pas de pourcentage inventé ni de gain garanti. Cite les liens et dates des sources réellement consultées.';
 function betproExpertCardData(raw,origin,extra={}){
  const r=raw||{},x={origin,...extra};
  x.home=x.home||r.home_team||r.home_name||r.home||'';x.away=x.away||r.away_team||r.away_name||r.away||'';
@@ -6530,7 +6530,7 @@ function betproPoissonFormRows(form){
  return (Array.isArray(form)?form:[]).filter(x=>Array.isArray(x?.results)&&x.results.length).map(x=>{
   const results=x.results.slice();
   const dated=results.every(y=>Number.isFinite(Date.parse(y.date)));
-  if(dated)results.sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
+  if(dated)results.sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
   return {team:String(x.team||'Équipe'),results,dated};
  });
 }
@@ -6546,7 +6546,7 @@ function betproPoissonFormSummary(results){
 }
 function betproPoissonFormHtml(form){
  const rows=betproPoissonFormRows(form);if(!rows.length)return '';
- return '<span class="betpro-poisson-quick-fact betpro-poisson-form-panel"><strong>Forme récente des équipes</strong>'+rows.map(x=>'<span class="betpro-poisson-form-team"><span class="betpro-poisson-form-name">'+esc(x.team)+'</span><span class="betpro-poisson-form-summary">'+esc(betproPoissonFormSummary(x.results))+'</span><span class="betpro-poisson-form-results">'+x.results.map((y,i)=>{const r=String(y.result||'').toUpperCase(),kind=r==='W'?'win':r==='L'?'loss':r==='D'||r==='T'?'draw':'unknown';return '<span class="betpro-poisson-form-result '+kind+'">'+(i===0&&x.dated?'<strong class="betpro-form-latest">PLUS RÉCENT</strong>':'')+esc(betproPoissonFormLabel(r))+(y.date&&betproPoissonEvidenceDate(y.date)?'<small>'+esc(betproPoissonEvidenceDate(y.date))+'</small>':'')+(y.opponent?'<small>'+esc(y.opponent)+(y.score?' · '+esc(y.score):'')+'</small>':'')+'</span>';}).join('')+'</span><span class="betpro-poisson-form-order">'+(x.dated?'Du plus récent au plus ancien':'Ordre de la source · chronologie non confirmée')+'</span></span>').join('')+'</span>';
+ return '<span class="betpro-poisson-quick-fact betpro-poisson-form-panel"><strong>Forme récente des équipes</strong>'+rows.map(x=>'<span class="betpro-poisson-form-team"><span class="betpro-poisson-form-name">'+esc(x.team)+'</span><span class="betpro-poisson-form-summary">'+esc(betproPoissonFormSummary(x.results))+'</span><span class="betpro-form-scroll"><span class="betpro-poisson-form-results">'+x.results.map((y,i)=>{const r=String(y.result||'').toUpperCase(),kind=r==='W'?'win':r==='L'?'loss':r==='D'||r==='T'?'draw':'unknown';return '<span class="betpro-poisson-form-result '+kind+'">'+(i===x.results.length-1&&x.dated?'<strong class="betpro-form-latest">PLUS RÉCENT</strong>':'')+esc(betproPoissonFormLabel(r))+(y.date&&betproPoissonEvidenceDate(y.date)?'<small>'+esc(betproPoissonEvidenceDate(y.date))+'</small>':'')+(y.opponent?'<small>'+esc(y.opponent)+(y.score?' · '+esc(y.score):'')+'</small>':'')+'</span>';}).join('')+'</span></span><span class="betpro-poisson-form-order">'+(x.dated?'Ancien à gauche · récent à droite':'Ordre de la source · chronologie non confirmée')+'</span></span>').join('')+'</span>';
 }
 function betproCardRecentForm(raw){
  const form=raw?.recent_form??raw?.form;
@@ -6564,7 +6564,7 @@ function betproHorseFormLabels(value,source){
   tokens=raw.split(/\s*\/\s*/);
   if(!tokens.every(t=>/^(?:\d{1,2}|DNF|DISQ|DQ|PU|UR|F|TNP)$/i.test(t)))return [];
  }
- return tokens.map(token=>{
+ return tokens.slice().reverse().map(token=>{
   const code=source==='PMU'?token.slice(0,-1).toUpperCase():token.toUpperCase();
   const rank=/^\d+$/.test(code)?Number(code):null;
   const labels={D:'Disqualifié',A:'Arrêté',T:'Tombé',DNF:'Course non terminée',DISQ:'Disqualifié',DQ:'Disqualifié',PU:'Arrêté',UR:'Jockey désarçonné',F:'Tombé'};
@@ -6574,12 +6574,12 @@ function betproHorseFormLabels(value,source){
 function betproHorseFormText(value,source){
  const rows=betproHorseFormLabels(value,source);
  if(!rows.length)return value?'Forme brute : '+String(value)+' (ordre non confirmé)':'Forme non renseignée';
- return 'Plus récent : '+rows[0].label+(rows.length>1?' · Puis : '+rows.slice(1).map(x=>x.label).join(' → '):'');
+ return 'Ancien → récent : '+rows.map((x,i)=>x.label+(i===rows.length-1?' (PLUS RÉCENT)':'')).join(' → ');
 }
 function betproHorseFormHtml(value,source){
  const rows=betproHorseFormLabels(value,source);
  if(!rows.length)return '<span>'+esc(betproHorseFormText(value,source))+'</span>';
- return '<div class="betpro-horse-form"><div class="betpro-poisson-form-order">Du plus récent au plus ancien</div><div class="betpro-poisson-form-results">'+rows.map((r,i)=>'<span class="betpro-poisson-form-result '+r.kind+'">'+(i===0?'<strong class="betpro-form-latest">PLUS RÉCENT</strong>':'')+esc(r.label)+'</span>').join('')+'</div></div>';
+ return '<div class="betpro-horse-form"><div class="betpro-poisson-form-order">Ancien à gauche · récent à droite</div><div class="betpro-form-scroll"><div class="betpro-poisson-form-results">'+rows.map((r,i)=>'<span class="betpro-poisson-form-result '+r.kind+'">'+(i===rows.length-1?'<strong class="betpro-form-latest">PLUS RÉCENT</strong>':'')+esc(r.label)+'</span>').join('')+'</div></div></div>';
 }
 function betproPoissonEvidenceSections(f){
  const e=betproPoissonEvidenceRead(f),d=e?.facts;if(!e?.ok||!d)return[];
@@ -6589,7 +6589,7 @@ function betproPoissonEvidenceSections(f){
  return [
   {label:'Blessures',brief:abs(d.injuries),detail:d.injuries.map((x,i)=>abs(d.injuries)[i]+(x.note?' · '+x.note:''))},
   {label:'Suspensions',brief:abs(d.suspensions),detail:d.suspensions.map((x,i)=>abs(d.suspensions)[i]+(x.note?' · '+x.note:''))},
-  {label:'Forme récente',brief:form,formRows:d.form,detail:formRows.flatMap(x=>[x.team+' — '+betproPoissonFormSummary(x.results),...x.results.map(y=>betproPoissonFormLabel(y.result)+(y.opponent?' contre '+y.opponent:'')+(y.score?' ('+y.score+')':'')+(betproPoissonEvidenceDate(y.date)?' · '+betproPoissonEvidenceDate(y.date):''))])},
+  {label:'Forme récente',brief:form,formRows:d.form,detail:formRows.flatMap(x=>[x.team+' — '+betproPoissonFormSummary(x.results),...x.results.map((y,i)=>(x.dated&&i===x.results.length-1?'PLUS RÉCENT : ':'')+betproPoissonFormLabel(y.result)+(y.opponent?' contre '+y.opponent:'')+(y.score?' ('+y.score+')':'')+(betproPoissonEvidenceDate(y.date)?' · '+betproPoissonEvidenceDate(y.date):''))])},
   {label:'Compositions',brief:d.lineups.map(x=>x.team+' : '+x.players.length+' titulaires indiqués'),detail:d.lineups.map(x=>x.team+' : '+x.players.join(', '))},
   {label:'Classement',brief:d.standings.map(x=>x.team+' : '+x.stats.map(y=>y.value+' '+(stats[y.name]||y.name)).join(' · ')),detail:d.standings.map(x=>x.team+' : '+x.stats.map(y=>y.value+' '+(stats[y.name]||y.name)).join(' · '))}
  ].filter(x=>x.brief.length);
