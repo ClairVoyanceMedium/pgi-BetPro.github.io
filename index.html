@@ -4474,7 +4474,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
     <label class="betpro-expert-input-label" for="chat-input">Saisir ou dicter votre question</label>
     <div class="chat-input-wrap">
-      <textarea id="chat-input" placeholder="Ex. : Quel est le prochain match de Liverpool ? Quelle composition pour le PSG ? Qui est blessé ?" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px'" style="resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
+      <textarea id="chat-input" placeholder="Ex. : Quel est le prochain match de Liverpool ? Quelle composition pour le PSG ? Qui est blessé ?" onkeydown="chatKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(200,this.scrollHeight)+'px';betproChatTypedVoice(this)" style="resize:none;min-height:44px;max-height:200px;overflow-y:auto"></textarea>
       <button class="chat-mic-btn" id="chat-mic-btn" type="button" onclick="chatMicToggle()" title="Dicter une question" aria-label="Dicter une question" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>
       </button>
@@ -5095,7 +5095,7 @@ a{color:var(--neon);text-decoration:none}
     <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
       <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Chat Expert et analyse manuelle</summary>
       <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Approfondit une rencontre ou une course : forme, contexte, absences, compositions, cotes et sources disponibles. Le chat peut rechercher des avis communautaires, en les distinguant des faits confirmés.</div>
-      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Une analyse textuelle ou un avis de forum ne constitue pas un calcul probabiliste validé. Les informations indisponibles doivent rester signalées.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Une analyse textuelle ou un avis de forum ne constitue pas un calcul probabiliste validé. Les informations indisponibles doivent rester signalées. Dans le Chat Expert, la saisie d’une nouvelle question active automatiquement la lecture vocale des réponses, sans ouvrir le microphone. Le bouton Voix permet de la désactiver.</div>
     </details>
     <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
       <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Historique, calibration et performances</summary>
@@ -5266,7 +5266,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261127-benter-market-proof-v285"></script>
+<script defer src="./betpro-app.js?v=20261127-chat-auto-voice-v286"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
