@@ -3865,6 +3865,9 @@ function getLiveAllLeagues() {
 const BETPRO_LIVE_STATUSES = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']);
 let betproLiveRequestSequence = 0;
 let betproLiveFixtureSnapshots = new Map();
+const betproManualLiveActive=new Set();
+let betproManualLiveRefresh=null;
+const betproManualLiveResults=new Map();
 
 // TOP LIVE : recherche volontaire des signaux live les mieux documentes.
 // Aucune probabilite de gain financier n'est deduite du score ou des seules cotes.
@@ -4185,10 +4188,10 @@ function betproLiveCard(m){
       <div class="betpro-real-live-meta"><span>Rencontre n° ${esc(id)}</span>${m.round?`<span>${esc(m.round)}</span>`:''}<span>Source : ${esc(source)}</span></div>
       <div class="betpro-real-live-score">${tennisScore||(hasScore?`${esc(String(score.home))} <span>:</span> ${esc(String(score.away))}`:sport.startsWith('tennis_')?'Jeux non transmis par ESPN':'Score non communiqué')}</div>
       <div class="betpro-real-live-sub">${m.source==='api-football'?'Minute officielle : '+esc(lbl):'Période et chronomètre officiels : '+esc(lbl)}${cards.length?' · Cartons : '+esc(cards.join(' ; ')):''}</div>
-      <div class="betpro-real-live-actions"><button type="button" class="btn bp" onclick="betproAnalyzeRealLive('${esc(key)}', this)">Analyser ce match en direct</button><span>Analyse fondée sur les statistiques, pas seulement sur le score</span></div>
+      <div class="betpro-real-live-actions"><button type="button" class="btn bp betpro-live-analyze-btn" onclick="betproAnalyzeRealLive('${esc(key)}', this)">Analyser ce match en direct</button><span>Analyse fondée sur les statistiques, pas seulement sur le score</span></div>
+      <div class="betpro-real-live-analysis" role="region" aria-live="polite" id="betpro-live-analysis-${esc(id)}-${esc(sport)}"></div>
       ${betproExpertCardButton(betproExpertCardData(m,'Match en direct',{competition:betproCompetitionWithCountry(m)}))}
       <div class="betpro-outsider-auto-slot" style="font-size:10px;color:var(--mu);margin:7px 0" aria-live="polite"></div>
-      <div class="betpro-real-live-analysis" id="betpro-live-analysis-${esc(id)}-${esc(sport)}"></div>
     </div>
   </div>`;
 }
@@ -4255,7 +4258,7 @@ async function betproOutsiderAutoScan(containerId,matches,seq){
 async function betproLoadRealLive(containerId){
   const cnt=document.getElementById(containerId);if(!cnt)return;
   const seq=++betproLiveRequestSequence;
-  cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Lecture des scores officiellement confirmés en direct…</p></div>';
+  if(!cnt.querySelector('.betpro-real-live-grid'))cnt.innerHTML='<div class="ls"><div class="sp"></div><p>Lecture des scores officiellement confirmés en direct…</p></div>';
   try{
     const d=await api('/api/live','GET',null,{timeoutMs:20000});
     if(seq!==betproLiveRequestSequence)return;
@@ -4266,7 +4269,10 @@ async function betproLoadRealLive(containerId){
       const sA=betproLiveSportName(a.sport),sB=betproLiveSportName(b.sport);
       return sA.localeCompare(sB,'fr')||String(a.competition||'').localeCompare(String(b.competition||''),'fr')||Number(b.minute||0)-Number(a.minute||0);
     });
-    betproLiveFixtureSnapshots=new Map(matches.map(m=>[m.source+':'+m.sport+':'+m.fixture_id,{...m,_loadedAt:Date.now()}]));
+    const loaded=Date.parse(d.fetched_at||'');
+    const stamp=Number.isFinite(loaded)&&loaded<=Date.now()+30000?loaded:0;
+    if(betproManualLiveActive.size)return;
+    betproLiveFixtureSnapshots=new Map(matches.map(m=>[m.source+':'+m.sport+':'+m.fixture_id,{...m,_loadedAt:stamp}]));
     const fetchDate=betproClassicDate(d.fetched_at||new Date().toISOString());
     const warnings=(Array.isArray(d.source_warnings)?d.source_warnings:[]);
     const serverNote=d.cached?' · données réutilisées pendant leur courte durée de validité':'';
@@ -4274,6 +4280,7 @@ async function betproLoadRealLive(containerId){
     const warningNote=warnings.length?`<div class="info" style="font-size:10px">Certaines sources sont momentanément indisponibles : ${esc(warnings.slice(0,3).join(' ; '))}. Aucun match non confirmé n'a été ajouté.</div>`:'';
     const empty=`<div class="empty"><div class="empty-t">Aucun match actuellement confirmé en direct par les sources consultées.</div><div class="empty-s">Les rencontres programmées restent uniquement dans la rubrique « Matchs à venir ». Réactualisez le Live pour un nouveau relevé.</div></div>`;
     cnt.innerHTML=liveTitle+warningNote+(matches.length?'<div class="betpro-outsider-scan-summary" hidden style="display:none!important" aria-hidden="true"></div><div class="betpro-real-live-grid">'+matches.map(betproLiveCard).join('')+'</div>':empty);
+    for(const card of cnt.querySelectorAll('.betpro-real-live-card')){const old=betproManualLiveResults.get(card.dataset.liveKey);if(!old)continue;const panel=card.querySelector('.betpro-real-live-analysis'),button=card.querySelector('.betpro-live-analyze-btn');if(panel){panel.innerHTML=old.html;const notice=document.createElement('small');notice.className='betpro-live-footnote';notice.textContent='Dernière analyse conservée · actualisez pour un nouveau relevé.';panel.prepend(notice);}if(button)button.textContent='Actualiser l’analyse de ce match';}
     BETPRO_OUTSIDER_LIVE_ANALYSIS.clear();
     if(matches.length){betproLivePageAttachActions(containerId,matches,'live');void betproOutsiderAutoScan(containerId,matches,seq);}
     if(betproTopLiveEnabled&&containerId===betproTopLiveContainerId())betproTopLiveApply(containerId);
@@ -4291,10 +4298,11 @@ function betproLiveStatsForMatch(match, response){
   let home=arr.find(x=>match.home_id!=null&&String(x.team_id)===String(match.home_id));
   let away=arr.find(x=>match.away_id!=null&&String(x.team_id)===String(match.away_id));
   // ESPN official team id can be missing in a fixture; compare exact display names, never assume order.
-  const clean=s=>String(s||'').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g,'').trim();
+  const clean=s=>betproPoissonNormalizeName(s);
   if(!home)home=arr.find(x=>clean(x.team_name)===clean(match.home));
   if(!away)away=arr.find(x=>clean(x.team_name)===clean(match.away));
-  return home&&away&&home!==away?{home:home.stats||{},away:away.stats||{}}:null;
+  const normalize=stats=>{const out={...(stats||{})};if(match.sport!=='soccer')return out;const aliases={shotsontarget:'shots_on_goal',shotsongoal:'shots_on_goal',totalshots:'total_shots',shotsinsidebox:'shots_insidebox',expectedgoals:'expected_goals',xg:'expected_goals',possessionpct:'ball_possession',possession:'ball_possession',ballpossession:'ball_possession',woncorners:'corner_kicks',cornerkicks:'corner_kicks',corners:'corner_kicks',redcards:'red_cards',yellowcards:'yellow_cards'};for(const [k,v] of Object.entries(stats||{})){const target=aliases[k.toLowerCase().replace(/[^a-z0-9]/g,'')];if(target&&out[target]==null)out[target]=v;}return out;};
+  return home&&away&&home!==away?{home:normalize(home.stats),away:normalize(away.stats)}:null;
 }
 function betproLiveStat(stats,key){
   const value=betproLiveNum(stats?.[key]);
@@ -4479,16 +4487,32 @@ function betproLiveSimpleTiming(m,analysis,statsFetchedAt,stat){
   </div>`;
 }
 async function betproAnalyzeRealLive(key,button){
-  const m=betproLiveFixtureSnapshots.get(key);
-  if(!m){toast('Rencontre non disponible : actualisez le direct.','err');return;}
-  const el=document.getElementById('betpro-live-analysis-'+m.fixture_id+'-'+m.sport);
-  if(!el)return;
-  if(Date.now()-m._loadedAt>150000){el.innerHTML='<div class="warn">Le score n’est plus assez récent. Actualisez le Live avant de lancer une nouvelle analyse.</div>';return;}
-  button.disabled=true;button.textContent='Analyse statistique en cours…';
-  el.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des statistiques officielles…</p></div>';
+  let m=betproLiveFixtureSnapshots.get(key);
+  const card=button?.closest('.betpro-real-live-card'),el=card?.querySelector('.betpro-real-live-analysis');
+  if(!el){toast('Carte indisponible : actualisez le direct.','err');return;}
+  if(betproManualLiveActive.has(key))return;
+  betproManualLiveActive.add(key);
+  button.disabled=true;button.textContent='Actualisation du match…';
+  el.setAttribute('aria-busy','true');
+  el.innerHTML='<div class="ls"><div class="sp"></div><p>Vérification du score et du chronomètre…</p></div>';
   try{
+    if(!betproManualLiveRefresh)betproManualLiveRefresh=api('/api/live','GET',null,{timeoutMs:20000,noCache:true}).finally(()=>{betproManualLiveRefresh=null;});
+    const feed=await betproManualLiveRefresh;
+    const at=Date.parse(feed?.fetched_at||'');
+    if(!feed?.ok||!Array.isArray(feed.live_matches)||!Number.isFinite(at)||at>Date.now()+30000||Date.now()-at>150000)throw Error('Relevé des scores indisponible ou trop ancien');
+    const latest=feed.live_matches.find(x=>[x.source,x.sport,x.fixture_id].join(':')===key&&betproLiveIsActive(x));
+    if(!latest)throw Error('Ce match n’est plus confirmé en direct');
+    if(m&&(betproPoissonNormalizeName(m.home)!==betproPoissonNormalizeName(latest.home)||betproPoissonNormalizeName(m.away)!==betproPoissonNormalizeName(latest.away)))throw Error('Identité du match non confirmée');
+    m={...latest,_loadedAt:at};betproLiveFixtureSnapshots.set(key,m);
+    const score=card.querySelector('.betpro-real-live-score'),clock=card.querySelector('.betpro-real-live-clock'),sub=card.querySelector('.betpro-real-live-sub');
+    const label=betproLiveTimeLabel(m);
+    if(score)score.innerHTML=(String(m.sport).startsWith('tennis_')?betproLiveTennisScoreHtml(m):'')||(m.score?.home!=null&&m.score?.away!=null?esc(String(m.score.home))+' <span>:</span> '+esc(String(m.score.away)):'Score non communiqué');
+    if(clock)clock.textContent=label;
+    if(sub)sub.textContent=(m.source==='api-football'?'Minute officielle : ':'Période et chronomètre officiels : ')+label;
+    button.textContent='Analyse statistique en cours…';
+    el.innerHTML='<div class="ls"><div class="sp"></div><p>Chargement des statistiques officielles…</p></div>';
     const query=new URLSearchParams({source:m.source,fixture:String(m.fixture_id),sport:m.sport});
-    const d=await betproOutsiderLiveData(m);
+    const d=await api('/api/live/analysis?'+query.toString(),'GET',null,{noCache:true,timeoutMs:18000});
     if(!d?.ok)throw Error(d?.error||'Statistiques non disponibles');
     const stats=betproLiveStatsForMatch(m,d);
     if(!stats){el.innerHTML='<div class="info">Identité des équipes, rencontre, source ou fraîcheur des statistiques non confirmée. Aucune prédiction non vérifiée.</div>';return;}
@@ -4507,7 +4531,7 @@ async function betproAnalyzeRealLive(key,button){
       <div class="betpro-real-live-method">Méthode : ${esc(a.method)}</div>
       ${disclaimer}<small>Statistiques reçues : ${esc(date)}</small></div>`;
   }catch(err){el.innerHTML='<div class="warn">Analyse indisponible : '+esc(err.message||String(err))+'. Aucun pronostic n’est extrapolé du seul score.</div>';}
-  finally{button.disabled=false;button.textContent='Actualiser l’analyse de ce match';}
+  finally{betproManualLiveActive.delete(key);el.removeAttribute('aria-busy');button.disabled=false;button.textContent='Actualiser l’analyse de ce match';if(el.isConnected){const stamp=document.createElement('small');stamp.className='betpro-live-footnote';stamp.textContent='Vérification effectuée à '+new Date().toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',second:'2-digit'});el.prepend(stamp);if(betproManualLiveResults.size>=100)betproManualLiveResults.delete(betproManualLiveResults.keys().next().value);betproManualLiveResults.set(key,{html:el.innerHTML,at:Date.now()});}}
 }
 
 async function loadLiveBenter(){return betproLoadRealLive('live-cnt');}
@@ -11291,7 +11315,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Actualisation du DIRECT uniquement si l'onglet Live est ouvert et visible.
   // Ne change ni le ticker des rencontres à venir ni les scans Classique/Benter.
   setInterval(() => {
-    if (!document.hidden && document.getElementById('s-live')?.classList.contains('on')) {
+    if (!document.hidden && !betproManualLiveActive.size && document.getElementById('s-live')?.classList.contains('on')) {
       loadLive().catch(e => console.warn('Rafraîchissement Live indisponible', e?.message || e));
     }
   }, 90 * 1000);
