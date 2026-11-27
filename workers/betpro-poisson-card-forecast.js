@@ -48,7 +48,7 @@ async function bpPoissonCardForecast(env,q){
   return {ok:true,version:'poisson-card-v1',sport,home:target.home.displayName,away:target.away.displayName,start:new Date(target.start).toISOString(),
    model_type:sport==='football'?'poisson':sport==='hockey'||sport==='baseball'?'count':'normal',
    outcomes:out,fair_odds:{home:out.home_win>0?Math.round(10000/out.home_win)/100:null,away:out.away_win>0?Math.round(10000/out.away_win)/100:null,draw:out.draw>0?Math.round(10000/out.draw)/100:null},
-   expected_final:m.expected_final,quality,home_matches:hist.home_matches,away_matches:hist.away_matches,
+   expected_final:m.expected_final,model:m,league:feed,quality,home_matches:hist.home_matches,away_matches:hist.away_matches,
    home_effective:hist.home_effective,away_effective:hist.away_effective,source_urls:[target.url,...hist.source_urls].slice(0,5),checked_at:isoNow(),calibrated:false};
  })().catch(()=>({ok:false,reason:'unavailable'})).then(result=>{if(bpForecastMemo.size>=160)bpForecastMemo.delete(bpForecastMemo.keys().next().value);bpForecastMemo.set(key,{value:result,until:Math.min(start-120000,Date.now()+(result.ok?15:3)*60000)});return result;}).finally(()=>bpForecastPending.delete(key));
  bpForecastPending.set(key,task);return task;
