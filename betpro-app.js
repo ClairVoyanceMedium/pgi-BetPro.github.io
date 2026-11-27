@@ -10854,6 +10854,22 @@ async function initStatusBadges() {
 
 let maturityLoading=false,collectionDiagnostic=null;
 
+/* Statuts Benter par famille, lecture seule du diagnostic existant. */
+function betproRenderBenterFamilyStates(data,unavailable=false){
+  const families=Array.isArray(data?.models_by_family)?data.models_by_family:[];
+  for(const key of ['SPORT','PMU','HKJC']){
+    const el=document.getElementById('benter-family-'+key);
+    if(!el)continue;
+    const row=families.find(x=>x.family===key);
+    const valid=!unavailable&&!data?.diagnostic_stale&&row&&row.active_models!=null&&Number.isInteger(Number(row.active_models))&&Number(row.active_models)>=0;
+    const count=valid?Number(row.active_models):null;
+    el.textContent=count===null?'ÉTAT NON VÉRIFIÉ':count>0?'STRATÉGIE ACTIVE · '+count:'EN APPRENTISSAGE';
+    el.style.color=count===null?'var(--mu)':count>0?'#39ff14':'var(--am)';
+    el.title=count===null?'Diagnostic absent ou périmé ; aucun état déduit.':count>0?'Au moins un '+(key==='HKJC'?'segment de calibration':'modèle')+' validé. Les autres segments et les cartes restent soumis à leurs propres filtres.':'Aucun modèle actif dans cette famille au dernier diagnostic.';
+  }
+}
+
+
 let maturityLiveLoading=false,maturityLiveLastRequest=0;
 async function loadMaturityLiveCounters(){
   if(maturityLiveLoading||document.hidden||!document.getElementById('s-dash')?.classList.contains('on'))return;
@@ -10961,6 +10977,7 @@ async function loadProfessionalMaturity(){
   try{
     const s=await api('/api/maturity/status');if(!s?.ok||!s.health)throw new Error(s?.error||'Diagnostic incomplet');
     collectionDiagnostic=s;
+    betproRenderBenterFamilyStates(s);
     const eventRows=Array.isArray(s.collection?.events)?s.collection.events:[],eventCount=eventRows.reduce((n,r)=>n+Number(r.events||0),0),health=Number(s.health.score),status=String(s.health.status||'INDISPONIBLE'),pmuRaces=Number(s.pmu?.detailed_races||0),target=Math.max(1,Number(s.pmu?.target_races||500)),percent=Math.min(100,Math.round(pmuRaces*100/target)),r2=s.r2||{};
     const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
     set('maturity-checked','État : '+(s.checked_at?new Date(s.checked_at).toLocaleString('fr-FR'):'date inconnue')+' · compteurs : '+(s.volume_checked_at?new Date(s.volume_checked_at).toLocaleString('fr-FR'):'date du contrôle')+'.');
@@ -10985,6 +11002,7 @@ async function loadProfessionalMaturity(){
     const details=document.getElementById('maturity-details');if(details){details.textContent=collectionDiagnosticText(s);details.style.whiteSpace='pre-wrap';}
     const button=document.getElementById('maturity-export');if(button)button.disabled=false;
   }catch(e){
+    betproRenderBenterFamilyStates(null,true);
     const badge=document.getElementById('maturity-health');if(badge){badge.textContent='CONTRÔLE INDISPONIBLE';badge.style.color='var(--re)';}
     const details=document.getElementById('maturity-details');if(details){details.textContent='Erreur de diagnostic : '+String(e?.message||e).slice(0,240);details.style.whiteSpace='pre-wrap';}
     const checked=document.getElementById('maturity-checked');if(checked)checked.textContent=collectionDiagnostic?'Actualisation impossible. Dernier état : '+new Date(collectionDiagnostic.checked_at).toLocaleString('fr-FR')+' · compteurs : '+new Date(collectionDiagnostic.volume_checked_at||collectionDiagnostic.checked_at).toLocaleString('fr-FR')+'.':'Actualisation impossible. Aucun diagnostic reçu.';
