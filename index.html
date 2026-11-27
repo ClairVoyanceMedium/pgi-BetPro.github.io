@@ -3465,6 +3465,21 @@ a{color:var(--neon);text-decoration:none}
 #s-chat .betpro-poisson-form-result.loss{color:#ff9a9f;background:rgba(255,86,106,.10);border-color:rgba(255,86,106,.30)}
 #s-chat .betpro-poisson-form-result.draw{color:#ffd47d;background:rgba(255,190,74,.10);border-color:rgba(255,190,74,.30)}
 #s-chat .betpro-poisson-form-order{font-size:10px;color:var(--mu);font-weight:400}
+/* Forme récente commune à toutes les cartes qui possèdent un historique structuré. */
+.betpro-poisson-form-panel{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;min-width:0;width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf2);margin-top:8px}
+.betpro-poisson-form-team{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid var(--bd);min-width:0}
+.betpro-poisson-form-name{font-weight:800;color:var(--tx);overflow-wrap:anywhere}
+.betpro-poisson-form-summary{color:var(--tx);font-size:12px;line-height:1.45}
+.betpro-poisson-form-results{display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start}
+.betpro-poisson-form-result{display:inline-flex!important;flex-direction:column;gap:3px;max-width:100%;overflow-wrap:anywhere;padding:5px 7px;border-radius:5px;border:1px solid var(--bd);font-size:11px;font-weight:700;line-height:1.4}
+.betpro-poisson-form-result.win{color:#72e8a7;background:rgba(31,209,132,.10);border-color:rgba(31,209,132,.30)}
+.betpro-poisson-form-result.loss{color:#ff9a9f;background:rgba(255,86,106,.10);border-color:rgba(255,86,106,.30)}
+.betpro-poisson-form-result.draw{color:#ffd47d;background:rgba(255,190,74,.10);border-color:rgba(255,190,74,.30)}
+.betpro-poisson-form-result small{font-size:10px;font-weight:400;color:var(--tx)}
+.betpro-poisson-form-order{font-size:10px;color:var(--mu);font-weight:400;margin:3px 0}
+.betpro-form-latest,#s-chat .betpro-form-latest{font-size:9px;color:#8edbff;font-weight:800;letter-spacing:.025em}
+.betpro-horse-form{min-width:180px;max-width:320px}
+
 
 @media(max-width:430px){
  #s-chat .betpro-poisson-fixture-brief{grid-template-columns:1fr}
@@ -5057,7 +5072,7 @@ a{color:var(--neon);text-decoration:none}
     <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
       <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Analyse Poisson et modèles statistiques sportifs</summary>
       <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Estime la distribution des scores à partir des résultats historiques. Pour le football, Poisson permet de calculer les probabilités de victoire, de nul et de défaite. Selon le sport, BetPro utilise aussi des modèles de comptage ou des modèles normaux de scores.</div>
-      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> La technique réellement utilisée doit être indiquée ; une probabilité provenant uniquement des cotes n’est pas une estimation Poisson. La forme récente présente séparément les résultats disponibles de chaque équipe, en toutes lettres, avec le bilan des matchs renseignés et l’ordre chronologique si les dates sont disponibles.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> La technique réellement utilisée doit être indiquée ; une probabilité provenant uniquement des cotes n’est pas une estimation Poisson. La forme récente présente séparément les résultats disponibles de chaque équipe, en toutes lettres, avec le bilan des matchs renseignés et l’ordre chronologique si les dates sont disponibles. Cette présentation est commune aux cartes disposant d’une forme structurée : la date, l’adversaire et le score sont visibles lorsqu’ils sont fournis, et le résultat le plus récent est identifié lorsque la chronologie est vérifiée. Pour le PMU et le HKJC, les classements et incidents connus sont traduits en toutes lettres, dans l’ordre officiel des performances ; les codes inconnus sont conservés sans interprétation. Aucun historique n’est inventé.</div>
     </details>
     <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
       <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Analyse en direct et matchs à venir</summary>
@@ -5277,7 +5292,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261127-clear-form-v287"></script>
+<script defer src="./betpro-app.js?v=20261127-recent-form-v288"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
