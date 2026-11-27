@@ -3479,6 +3479,15 @@ a{color:var(--neon);text-decoration:none}
 .betpro-poisson-form-order{font-size:10px;color:var(--mu);font-weight:400;margin:3px 0}
 .betpro-form-latest,#s-chat .betpro-form-latest{font-size:9px;color:#8edbff;font-weight:800;letter-spacing:.025em}
 .betpro-horse-form{min-width:180px;max-width:320px}
+.betpro-shared-evidence{display:flex;flex-direction:column;gap:6px;min-width:0;width:100%;box-sizing:border-box;margin:8px 0;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--sf2);font-size:11px;color:var(--mu);line-height:1.55;overflow-wrap:anywhere}
+.betpro-shared-evidence>strong{color:var(--tx);font-size:12px}
+.betpro-shared-evidence small{font-size:10px;color:var(--mu);line-height:1.5}
+.betpro-shared-evidence a{color:var(--neon);text-decoration:underline}
+.betpro-shared-evidence-details{border-top:1px solid var(--bd);padding-top:6px}
+.betpro-shared-evidence-details summary{cursor:pointer;color:var(--tx);font-weight:700}
+.betpro-shared-fact{display:flex;flex-direction:column;gap:3px;margin:6px 0;padding:6px;border:1px solid var(--bd);border-radius:5px}
+.betpro-shared-fact>strong{color:#8edbff}
+
 /* Chronologie commune : le dernier résultat est à droite, visible en priorité sur mobile. */
 .betpro-form-scroll,#s-chat .betpro-form-scroll{display:block;direction:rtl;overflow-x:auto;max-width:100%;min-width:0;padding:2px 0 5px}
 .betpro-form-scroll .betpro-poisson-form-results,#s-chat .betpro-form-scroll .betpro-poisson-form-results{direction:ltr;display:flex;flex-wrap:nowrap;width:max-content;min-width:100%;justify-content:flex-end;box-sizing:border-box;align-items:stretch}
@@ -5078,7 +5087,7 @@ a{color:var(--neon);text-decoration:none}
     <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
       <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Analyse Poisson et modèles statistiques sportifs</summary>
       <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Estime la distribution des scores à partir des résultats historiques. Pour le football, Poisson permet de calculer les probabilités de victoire, de nul et de défaite. Selon le sport, BetPro utilise aussi des modèles de comptage ou des modèles normaux de scores.</div>
-      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> La technique réellement utilisée doit être indiquée ; une probabilité provenant uniquement des cotes n’est pas une estimation Poisson. La forme récente présente séparément les résultats disponibles de chaque équipe, en toutes lettres, avec le bilan des matchs renseignés et l’ordre chronologique si les dates sont disponibles. Cette présentation est commune aux cartes disposant d’une forme structurée : la date, l’adversaire et le score sont visibles lorsqu’ils sont fournis, et le résultat le plus récent est identifié lorsque la chronologie est vérifiée. Règle commune : les résultats sont affichés du plus ancien à gauche au plus récent à droite, avec une indication explicite du dernier résultat lorsque l’ordre est confirmé. Les séries PMU et HKJC, publiées du plus récent au plus ancien, sont inversées uniquement pour l’affichage ; les classements et incidents connus sont traduits en toutes lettres. Les codes inconnus sont conservés sans interprétation. Sur mobile, la série défile horizontalement et le résultat le plus récent est visible en priorité. Une chronologie non confirmée est signalée. Aucun historique n’est inventé.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> La technique réellement utilisée doit être indiquée ; une probabilité provenant uniquement des cotes n’est pas une estimation Poisson. La forme récente présente séparément les résultats disponibles de chaque équipe, en toutes lettres, avec le bilan des matchs renseignés et l’ordre chronologique si les dates sont disponibles. Cette présentation est commune aux cartes disposant d’une forme structurée : la date, l’adversaire et le score sont visibles lorsqu’ils sont fournis, et le résultat le plus récent est identifié lorsque la chronologie est vérifiée. Règle commune : les résultats sont affichés du plus ancien à gauche au plus récent à droite, avec une indication explicite du dernier résultat lorsque l’ordre est confirmé. Les séries PMU et HKJC, publiées du plus récent au plus ancien, sont inversées uniquement pour l’affichage ; les classements et incidents connus sont traduits en toutes lettres. Les codes inconnus sont conservés sans interprétation. Sur mobile, la série défile horizontalement et le résultat le plus récent est visible en priorité. Une chronologie non confirmée est signalée. Aucun historique n’est inventé. Les cartes de scan, de calendrier, d’analyse manuelle, de stratégie et de suivi qui disposent d’une rencontre sportive identifiable utilisent également le contrôle ciblé de la fiche ESPN : équipes et date rapprochées par le serveur, résultats antérieurs au départ, source consultable et contrôle horodaté. Le chargement est limité aux cartes visibles ou proches de l’écran, avec cache commun et plafond de requêtes partagé. Les sports ou rencontres non couverts sont explicitement signalés. Les indicateurs issus des cotes sont distingués des statistiques sportives ; les statistiques live doivent correspondre à la rencontre, au fournisseur et au sport, avoir moins de 150 secondes et respecter les valeurs admissibles. Les informations manquantes ne valent pas zéro.</div>
     </details>
     <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
       <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Analyse en direct et matchs à venir</summary>
@@ -5298,7 +5307,7 @@ a{color:var(--neon);text-decoration:none}
     </div>
   </div>
 </div>
-<script defer src="./betpro-app.js?v=20261127-chronology-right-v289"></script>
+<script defer src="./betpro-app.js?v=20261127-shared-evidence-v290"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
