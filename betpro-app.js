@@ -6552,26 +6552,42 @@ function betproPoissonModelValid(f,d){
   equal(d.home,f.home)&&equal(d.away,f.away)&&Math.abs(Date.parse(d.start)-Date.parse(f.start_time))<=3*3600000&&
   Number(d.home_matches)>=5&&Number(d.away_matches)>=5&&Array.isArray(d.source_urls)&&d.source_urls.length&&!!d.model&&!!betproPoissonModelPick(d);
 }
-function betproPoissonModelLabel(d){return d.model_type==='poisson'?'Modèle Poisson · buts':d.model_type==='count'?'Modèle de comptage adapté':'Modèle statistique adapté aux scores';}
+function betproPoissonModelLabel(d){
+ const sport=d?.sport;
+ if(sport==='football'||d?.model_type==='poisson')return 'Modèle Poisson (buts)';
+ if(sport==='hockey'||sport==='baseball'||d?.model_type==='count')return 'Modèle de comptage (Poisson / binomiale négative)';
+ if(['basketball','nfl','rugby'].includes(sport)||d?.model_type==='normal')return 'Modèle statistique normal (scores)';
+ return 'Modèle statistique sportif';
+}
+function betproPoissonProvenance(d,sport){
+ if(!d?.model)return '';
+ const name=betproPoissonModelLabel({...d,sport:d.sport||sport});
+ return '<p class="betpro-poisson-note"><strong>Origine des probabilités et scores projetés : '+esc(name)+'</strong> · Calcul sur résultats historiques ESPN, indépendant des cotes bookmakers. Les cotes théoriques sont calculées par le modèle, non proposées par un bookmaker.</p>';
+}
+function betproPoissonOutsiderProvenance(signal){
+ const badge=betproOutsiderBadge(signal);if(!badge)return '';
+ const label=signal.category==='independent'?'Outsider : modèle sportif sur historique ESPN, comparé aux cotes bookmakers':signal.category==='direct'?'Outsider : tendance statistique du direct, distincte du modèle Poisson':signal.category==='marché'||signal.category==='modèle'?'Outsider : données de marché / bookmakers, pas une probabilité Poisson':'Outsider : '+(signal.probabilityLabel||'source indiquée dans le signal');
+ return '<div><p class="betpro-poisson-note"><strong>'+esc(label)+'</strong></p>'+badge+'</div>';
+}
 function betproPoissonModelResult(f,d){
  const pick=betproPoissonModelPick(d);if(!pick)return '';
  const name=pick.key==='draw'?'Match nul':'Victoire de '+(pick.key==='home'?f.home:f.away);
  const pct=pick.p.toLocaleString('fr-FR',{maximumFractionDigits:1}),fair=d.fair_odds?.[pick.key];
  const c=betproPoissonTrustMarket(f,true)||betproPoissonTrustMarket(f,false),odd=Number(c?.median_market_odds||c?.market_odds);
  const market=c?.choice===pick.key&&Number.isFinite(odd)&&odd>1&&f.sport==='football'&&c.draw_included!==false;
- const compare=market?' · Cote observée : '+odd.toLocaleString('fr-FR',{maximumFractionDigits:2}):'';
+ const compare=market?' · Cote bookmaker observée : '+odd.toLocaleString('fr-FR',{maximumFractionDigits:2}):'';
  return '<span class="betpro-poisson-fixture-signal">'+
  '<span class="betpro-poisson-fixture-signal-eyebrow">'+esc(betproPoissonModelLabel(d).toUpperCase())+'</span>'+
  '<strong class="betpro-poisson-fixture-signal-pick">'+esc(name)+'</strong>'+
- '<span class="betpro-poisson-fixture-signal-percent">'+pct+' %<small>Estimation sportive indépendante · non calibrée</small></span>'+
+ '<span class="betpro-poisson-fixture-signal-percent">'+pct+' %<small>Calcul du modèle ci-dessus · historique ESPN · non calibré</small></span>'+
  '<span class="betpro-poisson-fixture-signal-note">Historique ESPN : '+esc(String(d.home_matches))+' / '+esc(String(d.away_matches))+' matchs'+
- (d.quality==='limited'?' · échantillon limité':'')+(Number.isFinite(fair)&&fair>1?' · Cote théorique : '+fair.toLocaleString('fr-FR',{maximumFractionDigits:2}):'')+esc(compare)+'</span></span>';
+ (d.quality==='limited'?' · échantillon limité':'')+(Number.isFinite(fair)&&fair>1?' · Cote calculée par le modèle : '+fair.toLocaleString('fr-FR',{maximumFractionDigits:2}):'')+esc(compare)+'</span></span>';
 }
 function betproPoissonFixtureSignal(f){
  if(f.mode==='live'){
   const sh=f.score?.home,sa=f.score?.away,score=sh!=null&&sa!=null?esc(String(sh))+' - '+esc(String(sa)):'Score indisponible';
   const minute=f.minute!=null&&Number.isFinite(Number(f.minute))?' · '+esc(String(f.minute))+'e minute':'';
-  return '<span class="betpro-poisson-fixture-signal is-live"><span class="betpro-poisson-fixture-signal-eyebrow">ANALYSE EN DIRECT</span><strong class="betpro-poisson-fixture-signal-pick">Analyser le direct</strong><span class="betpro-poisson-fixture-signal-percent">'+score+'<small>Score fournisseur'+minute+'</small></span></span>';
+  return '<span class="betpro-poisson-fixture-signal is-live"><span class="betpro-poisson-fixture-signal-eyebrow">ANALYSE EN DIRECT</span><strong class="betpro-poisson-fixture-signal-pick">Analyser le direct</strong><span class="betpro-poisson-fixture-signal-percent">'+score+'<small>Score observé : '+esc(f.provider==='api-football'?'API-Football':f.provider==='espn'?'ESPN':f.source||'fournisseur sportif')+minute+' · pas une projection</small></span></span>';
  }
  const d=betproPoissonModelRead(f);if(d?.ok)return betproPoissonModelResult(f,d);
  const supported=betproPoissonModelSupported(f);
@@ -6854,7 +6870,7 @@ function betproPoissonRenderFixtures(){
     '<span data-poisson-model-signal>'+betproPoissonFixtureSignal(f)+'</span>'+
     betproPoissonFixtureQuickFacts(f)+
     '<span class="betpro-poisson-open-label">'+(f.mode==='live'?'ANALYSER LE DIRECT':'ANALYSER LA RENCONTRE')+'</span>'+
-   '</button>'+betproOutsiderBadge(betproPoissonOutsiderEntry(f)?.signal||(f.mode==='upcoming'?betproOutsiderMarket(f):null))+
+   '</button>'+betproPoissonOutsiderProvenance(betproPoissonOutsiderEntry(f)?.signal||(f.mode==='upcoming'?betproOutsiderMarket(f):null))+
    '<button type="button" class="betpro-poisson-card-copy" onclick="betproPoissonCopyFixture('+i+',this)" title="Copier les participants" aria-label="Copier le nom de la rencontre">'+copyIcon+'</button>'+
    '<div class="betpro-poisson-fixture-actions">'+
     '<button type="button" class="betpro-follow-btn betpro-poisson-card-follow'+(wasFollowed?' is-followed':'')+'"'+(followId?' data-betpro-follow-id="'+esc(followId)+'"':'')+
@@ -7568,10 +7584,10 @@ function betproPoissonPrimaryDirection({sport,home,away,outcomes,fairOdds,minute
  return '<section class="betpro-poisson-primary" aria-label="Direction privilégiée de l’analyse Poisson">'+
   '<div class="betpro-poisson-primary-eyebrow">DIRECTION PRIORITAIRE DU MODÈLE</div>'+
   '<div class="betpro-poisson-primary-main"><div class="betpro-poisson-primary-choice">'+
-   '<span class="betpro-poisson-primary-label">Sélection à rechercher chez le bookmaker</span>'+
+   '<span class="betpro-poisson-primary-label">Issue privilégiée par le modèle sportif</span>'+
    '<strong class="betpro-poisson-primary-selection">'+esc(readable)+'</strong>'+
    '<span class="betpro-poisson-primary-market">'+esc(labelMarket)+'</span>'+
-  '</div><div class="betpro-poisson-primary-figure"><strong>'+pct(first.p)+' %</strong><span>Probabilité estimée</span></div></div>'+
+  '</div><div class="betpro-poisson-primary-figure"><strong>'+pct(first.p)+' %</strong><span>Probabilité calculée par le modèle</span></div></div>'+
   '<div class="betpro-poisson-primary-status">'+esc(signal)+'</div>'+
   '<div class="betpro-poisson-primary-details">'+
    '<div><span>Cote théorique du modèle</span><strong>'+esc(displayedOdds)+'</strong></div>'+
@@ -7605,6 +7621,7 @@ function betproPoissonMultisportRender(d,ctx,res){
   const out=m.outcomes||{},rank=[{label:home,p:out.home_win},{label:away,p:out.away_win}];
   if(out.draw!=null)rank.push({label:'Match nul',p:out.draw});
   rank.sort((x,y)=>Number(y.p)-Number(x.p));
+  html+=betproPoissonProvenance(d,d.sport);
   html+=betproPoissonPrimaryDirection({sport:d.sport,home,away,outcomes:out,fairOdds:m.fair_odds,minute:d.match?.minute??ctx.minute,liveVerified:d.live_verified});
   const unit=d.sport==='baseball'?'manche(s)':'minute(s)';
   const scoreUnit=d.sport==='hockey'?'buts':d.sport==='baseball'?'runs':'points';
@@ -7621,7 +7638,7 @@ function betproPoissonMultisportRender(d,ctx,res){
    box('Moins de '+num(m.reference_line)+' '+scoreUnit,pct(m.under_reference),'Chance de rester sous ce total')+
    box('Égalité avant prolongation',pct(m.regulation_outcomes?.tie),'À la fin du temps réglementaire')+'</div>';
   html+='<div class="betpro-poisson-bottom"><div><h4>Projection du match</h4>'+
-   '<p>Score moyen prévu (dom. / ext.) : <strong>'+num(m.expected_final?.home)+' / '+num(m.expected_final?.away)+'</strong></p>'+
+   '<p>Score moyen projeté par le modèle (pas résultat réel) : <strong>'+num(m.expected_final?.home)+' / '+num(m.expected_final?.away)+'</strong></p>'+
    '<p>'+esc(scoreUnit.charAt(0).toUpperCase()+scoreUnit.slice(1))+' restant à marquer (estimation) : <strong>'+num(m.additional_goals?.home)+' / '+num(m.additional_goals?.away)+'</strong></p>'+
    '<p>Type de calcul : <strong>'+esc(d.sport==='hockey'?'Modèle de comptage des buts : Poisson ou binomiale négative selon la dispersion':(m.distribution||'Statistique'))+'</strong> (projection, pas score exact)</p>'+
    (m.top_scores?.length?'<p>Scores les plus probables : '+m.top_scores.map(x=>esc(x.score)+' ('+pct(x.pct)+')').join(' · ')+'</p>':'')+
@@ -7702,9 +7719,10 @@ async function runLiveModelUI(options={}){
   html+='<div class="betpro-poisson-head"><strong>Analyse Poisson avancée</strong><span>'+esc(d.quality||'Historique consulté')+'</span></div>';
   html+='<p class="betpro-poisson-match"><strong class="betpro-poisson-team-name">'+esc(names[0])+'</strong> <span>vs</span> <strong class="betpro-poisson-team-name">'+esc(names[1])+'</strong> <button type="button" class="betpro-poisson-copy-match" onclick="betproPoissonCopyMatch(this)" title="Copier les deux équipes" aria-label="Copier le nom de la rencontre"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></button></p>';
   html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score et minute confirmés par ESPN en direct':'Score et minute fournis manuellement, sans confirmation du direct')+'</p>'; 
-  html+='<p class="betpro-poisson-note">Score de référence : '+esc((d.match?.score_home??score_home)+' - '+(d.match?.score_away??score_away))+
+  html+='<p class="betpro-poisson-note">'+(d.live_verified?'Score réel et minute vérifiés : ESPN. ':Number(d.match?.minute??minute)===0?'Score initial de calcul (hypothèse avant-match). ':'Score saisi / non vérifié. ')+'Score de référence : '+esc((d.match?.score_home??score_home)+' - '+(d.match?.score_away??score_away))+
    ' · Minute : '+esc(String(d.match?.minute??minute))+
    ' · Football, 90 minutes réglementaires</p>';
+  html+=betproPoissonProvenance(d,'football');
   html+=betproPoissonPrimaryDirection({sport:'football',home:names[0],away:names[1],outcomes:outcome,fairOdds:fair,minute:d.match?.minute??minute,liveVerified:d.live_verified});
   html+='<div class="betpro-poisson-grid">'+
     datum(names[0],percent(outcome.home_win),'Victoire domicile')+
@@ -7718,8 +7736,8 @@ async function runLiveModelUI(options={}){
   if(m.over_reference!=null)html+='<div class="betpro-poisson-grid">'+datum('Plus de '+number(m.reference_line)+' buts',percent(m.over_reference),'Ligne saisie, modèle Poisson')+datum('Moins de '+number(m.reference_line)+' buts',percent(m.under_reference),'Total final, score inclus')+'</div>';
   html+='<div class="betpro-poisson-bottom"><div><h4>Projection calculée</h4><p>Buts supplémentaires attendus : <strong>'+
    number(m.additional_goals?.home)+' / '+number(m.additional_goals?.away)+'</strong></p>'+
-   '<p>Score moyen projeté : <strong>'+number(m.expected_final?.home)+' / '+number(m.expected_final?.away)+'</strong></p>'+
-   '<p>Trois scores les plus probables : '+(m.top_scores||[]).map(x=>esc(x.score)+' ('+percent(x.pct)+')').join(' · ')+'</p></div>'+
+   '<p>Score moyen projeté par Poisson (estimation, pas résultat réel) : <strong>'+number(m.expected_final?.home)+' / '+number(m.expected_final?.away)+'</strong></p>'+
+   '<p>Scores possibles calculés par Poisson : '+(m.top_scores||[]).map(x=>esc(x.score)+' ('+percent(x.pct)+')').join(' · ')+'</p></div>'+
    '<div><h4>Évaluation probabiliste</h4>'+
    '<p>Rappel de l’issue dominante : <strong>'+esc(best[0]?.label||'Indéterminée')+' ('+percent(best[0]?.value)+')</strong></p>'+
    '<p>Échantillon : <strong>'+esc(String(d.history?.home_matches??'–'))+' / '+esc(String(d.history?.away_matches??'–'))+' matchs</strong></p>'+
