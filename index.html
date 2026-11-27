@@ -3827,6 +3827,7 @@ a{color:var(--neon);text-decoration:none}
     <div class="ni"    data-s="chat"      onclick="go('chat')"    ><span class="ni-i">&#128172;</span>Analyse Poisson / Chat Expert</div>
     <div class="ni"    data-s="manual"    onclick="go('manual')"  ><span class="ni-i">&#127919;</span>Analyse manuelle</div>
     <div class="ni"    data-s="perf"      onclick="go('perf')"   ><span class="ni-i">&#128200;</span>Performances</div>
+    <div class="ni"    data-s="install"   onclick="go('install')" ><span class="ni-i">&#128214;</span>Guide des stratégies</div>
     <div style="padding:9px 18px 3px;margin-top:4px;border-top:1px solid var(--bd);font:700 9px/1.35 var(--mo);letter-spacing:.065em;color:var(--neon);text-transform:uppercase">Espace personnel et paramètres</div>
     <div class="ni"    data-s="notes"     onclick="go('notes')"   ><span class="ni-i">&#128221;</span>Mes Notes <span id="notes-badge" style="margin-left:auto;background:#ff7043;color:#fff;border-radius:10px;font-size:9px;padding:1px 6px;font-family:var(--mo);font-weight:700;display:none">0</span></div>
     <div style="display:flex;align-items:center;margin-top:4px;gap:2px">
@@ -3839,7 +3840,6 @@ a{color:var(--neon);text-decoration:none}
     <div id="bookie-extra-links" aria-label="Mes cinq liens personnalisables"></div>
     </details>
     <div class="ni"    data-s="settings"  onclick="go('settings')"><span class="ni-i">&#9881;</span>Paramètres</div>
-    <div class="ni"    data-s="install"   onclick="go('install')" ><span class="ni-i">&#128214;</span>Installation</div>
   </div>
   <div class="sbf" id="qfoot"><div style="color:var(--dm);font-size:10px;font-family:var(--mo)">Quotas — chargement…</div></div>
 </nav>
@@ -5023,36 +5023,93 @@ a{color:var(--neon);text-decoration:none}
   <div class="card" id="sysstatus"><div class="ct">Quotas API</div><div class="ls"><div class="sp"></div></div></div>
 </section>
 
-<!-- ═══════════════ INSTALLATION ═══════════════ -->
+<!-- ═══════════════ GUIDE DES STRATÉGIES ═══════════════ -->
 <section class="sec" id="s-install">
-  <div class="ph"><div class="pt">&#128214; Installation</div><div class="ps">Mise en place en 15 minutes.</div></div>
-  <div class="card"><div class="ct">Secrets Cloudflare — toutes les variables</div>
-    <pre>wrangler secret put AUTH_PASSWORD
-wrangler secret put ODDS_API_KEY
-wrangler secret put ODDS_API_KEY_2
-wrangler secret put ODDS_API_KEY_3
-wrangler secret put ODDS_API_KEY_4
-wrangler secret put ODDS_API_KEY_5
-wrangler secret put ODDS_API_KEY_6
-wrangler secret put AI_PROVIDER
-wrangler secret put AI_API_KEY
-wrangler secret put AI_MODEL
-wrangler secret put API_FOOTBALL_KEY
-wrangler secret put RESEND_API_KEY
-wrangler secret put EMAIL_TO
-wrangler secret put EMAIL_FROM</pre>
+  <div class="ph"><div class="pt">&#128214; Guide des stratégies</div><div class="ps">Comprendre les méthodes, les calculs, les critères de validation et leurs limites.</div></div>
+  <div class="card" style="border-color:rgba(0,212,255,.25)">
+    <div class="ct">Comment lire BetPro</div>
+    <p style="font-size:12px;color:var(--mu);line-height:1.7;margin:0">Les probabilités de marché, les estimations indépendantes et les modèles validés sont trois notions distinctes. Un modèle actif n’est validé que sur son périmètre. Aucun pari n’est garanti. Le statut réel des modèles est affiché dans le tableau de bord.</p>
+    <button type="button" class="btn bs" style="margin-top:10px" onclick="go('dash')">Voir l’avancement Benter</button>
   </div>
-  <div class="card"><div class="ct">Variables PMU / Turf (toutes optionnelles — aucune clé requise)</div>
-    <pre>wrangler secret put TURF_SOURCE_URL_1
-wrangler secret put TURF_SOURCE_URL_2
-wrangler secret put TURF_CACHE_TTL
-wrangler secret put TURF_ALLOW_MANUAL_MODE</pre>
+  <div class="card" style="padding:14px">
+    <div class="ct" style="color:var(--neon)">Moteurs sportifs</div>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">William Benter — modèle combiné</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Combinaison d’une probabilité issue d’un modèle fondamental et d’une probabilité du marché, avec un poids appris sur les résultats historiques. L’activation est indépendante pour chaque sport et marché.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Au moins 300 événements, 60 validations et 14 jours de validation ; amélioration du Log Loss supérieure à 0,5 % et Brier Score au plus 1 % moins bon que le marché. Avant activation, aucune supériorité Benter n’est validée.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Scan Classique — consensus bookmakers</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Compare les probabilités implicites des cotes et la concordance entre opérateurs. Il identifie des tendances de marché et des favoris, en distinguant les cotes vérifiées, isolées ou historiques.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Un consensus fort ne démontre ni une probabilité indépendante ni un avantage prédictif sur les bookmakers.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Analyse Poisson et modèles statistiques sportifs</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Estime la distribution des scores à partir des résultats historiques. Pour le football, Poisson permet de calculer les probabilités de victoire, de nul et de défaite. Selon le sport, BetPro utilise aussi des modèles de comptage ou des modèles normaux de scores.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> La technique réellement utilisée doit être indiquée ; une probabilité provenant uniquement des cotes n’est pas une estimation Poisson.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Analyse en direct et matchs à venir</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Les scans examinent les rencontres et les marchés disponibles, selon leur statut, leur horaire, les cotes et les données de contexte. Les signaux live tiennent compte des informations effectivement reçues.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Données manquantes ou anciennes : ne pas confondre une tendance indicative avec un modèle validé. Le Scan Live Benter ne signifie pas que tous les modèles Benter sont actifs.</div>
+    </details>
   </div>
-  <div class="card"><div class="ct">Déployer</div>
-    <pre>npm install -g wrangler
-wrangler login
-wrangler kv:namespace create BETTING_KV
-wrangler deploy</pre>
+  <div class="card" style="padding:14px">
+    <div class="ct" style="color:var(--neon)">Sélection et risque</div>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Value Betting Pro — valeur attendue</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Compare une probabilité estimée p à une cote décimale c. L’espérance nette théorique par unité est p × c − 1. Une valeur positive indique un avantage estimé, pas un résultat certain.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> L’estimation dépend de la qualité de p et de la disponibilité de la cote. Les critères de qualité, de fiabilité et d’admissibilité peuvent rejeter une carte.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Outsiders qui pourraient surprendre</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Recherche des concurrents moins favoris dont les signaux statistiques, de marché ou de direct peuvent différer des attentes. Le système distingue la provenance du signal et adapte les critères aux sports et aux courses hippiques.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Une cote élevée ou une alerte outsider n’est pas une preuve de valeur. Les signaux de marché ne sont pas assimilés à une probabilité indépendante.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Critère de Kelly fractionnaire</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Méthode mathématique de dimensionnement des mises à partir d’une probabilité estimée et d’une cote. BetPro applique des fractions et des plafonds selon les règles de risque.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Une probabilité surestimée peut entraîner une perte importante. Les limites de mise ne garantissent pas la protection du capital.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Se refaire intelligemment — suivi des pertes</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Suit les pertes, gains, mises en attente et capital disponible. La calculatrice distingue le montant théorique de compensation, qui suppose une victoire, des limites de risque.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Aucune récupération n’est garantie. Augmenter ses mises pour compenser une perte accroît le risque ; interrompre la session reste une option.</div>
+    </details>
+  </div>
+  <div class="card" style="padding:14px">
+    <div class="ct" style="color:var(--neon)">Hippisme</div>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">PMU France — Benter hippique</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Associe les données des partants, leurs performances et les cotes pré-course au marché hippique. Les résultats servent à évaluer le modèle sur des courses ultérieures.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Le modèle d’ensemble PMU exige 500 courses assimilées et 100 validations, une amélioration du Log Loss supérieure à 0,5 % et un Brier Score au plus 1 % moins bon que le marché. Les dividendes après course ne remplacent pas les cotes pré-course. Le simple placé exige des cotes réelles disponibles.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Hong Kong HKJC — calibration indépendante</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Analyse distincte pour Sha Tin et Happy Valley, séparant WIN (gagnant) et PLACE (placé). Les probabilités sont calibrées par tranche et comparées au marché sur des données antérieures au départ.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Au niveau hippodrome/marché : au moins 250 observations, 60 validations, 14 journées distinctes et amélioration d’au moins 0,5 % sur Brier et Log Loss. Chaque tranche doit aussi satisfaire ses propres seuils ; aucune activation globale automatique.</div>
+    </details>
+  </div>
+  <div class="card" style="padding:14px">
+    <div class="ct" style="color:var(--neon)">Analyse et évaluation</div>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Chat Expert et analyse manuelle</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Approfondit une rencontre ou une course : forme, contexte, absences, compositions, cotes et sources disponibles. Le chat peut rechercher des avis communautaires, en les distinguant des faits confirmés.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Une analyse textuelle ou un avis de forum ne constitue pas un calcul probabiliste validé. Les informations indisponibles doivent rester signalées.</div>
+    </details>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Historique, calibration et performances</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> Enregistre les cartes et leurs résultats, mesure les performances et ajuste les estimations selon les données disponibles. Le Log Loss et le Brier Score mesurent la qualité probabiliste (plus bas = meilleur). Le CLV compare la cote enregistrée à la cote de clôture ; le ROI mesure le rendement sur les mises.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Les résultats virtuels, importés et issus de backtests doivent être distingués des paris réels. Une supériorité statistique n’implique pas automatiquement une rentabilité.</div>
+    </details>
+  </div>
+  <div class="card" style="padding:14px">
+    <div class="ct" style="color:var(--neon)">Autres méthodes</div>
+    <details style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px;background:rgba(0,0,0,.12)">
+      <summary style="cursor:pointer;font:700 13px/1.5 var(--hd);color:var(--tx);overflow-wrap:anywhere">Blackjack Directionnel — stratégie de base et Hi-Lo</summary>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:9px"><strong style="color:#8edbff">Principe :</strong> La stratégie de base repose sur la main du joueur, la carte visible du croupier et les règles de la table. Le comptage Hi-Lo suit la composition des cartes observées.</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--mu);margin-top:7px"><strong style="color:#b8a4ff">Validation et limites :</strong> Cette aide statistique ne garantit aucun avantage ; le mélange des cartes, les règles et les données incomplètes peuvent rendre le comptage inutilisable.</div>
+    </details>
   </div>
 </section>
 
