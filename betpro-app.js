@@ -6350,7 +6350,7 @@ function betproExpertRunCard(x){
  const match=x.home&&x.away?x.home+' contre '+x.away:x.match;
  const parts=[x.origin&&'Rubrique : '+x.origin,x.sport&&'Sport : '+x.sport,x.competition&&'Compétition : '+x.competition,x.date&&'Date/heure : '+x.date,x.race_id&&'Identifiant course : '+x.race_id,x.selection&&'Sélection affichée : '+x.selection,x.odds!=null&&'Cote affichée : '+x.odds,x.probability&&'Indicateur affiché : '+x.probability,x.score&&'Score affiché : '+x.score,x.score_home!=null&&x.score_away!=null&&'Score affiché : '+x.score_home+'-'+x.score_away,x.minute!=null&&'Période affichée : '+x.minute].filter(Boolean);
  const ctx={};for(const k of ['home','away','competition','score_home','score_away','minute'])if(x[k]!=null&&x[k]!=='')ctx[k]=x[k];
- const sport=betproPoissonFixtureSport(x.sport||'');if(sport)ctx.sport=sport;
+ const sport=betproPoissonFixtureSport(x.sport||'');if(sport)ctx.sport=sport;else if(x.sport)ctx.sport=x.sport;
  if(x.date)ctx.start_time=x.date;
  if(!document.getElementById('s-chat')?.classList.contains('on'))go('chat');
  input.value='Analyse exclusivement cette rencontre : '+match+'. '+parts.join(' | ')+'. Les données de la carte sont des indications à recontrôler, pas des faits acquis. '+BETPRO_EXPERT_CARD_INSTRUCTIONS;
@@ -7902,7 +7902,7 @@ async function doStrategy(){
        ' · Relevé : '+esc(fmt(w.observed_at))+'</div>';
     html+='<div style="'+soft+'">'+esc(w.reason||'À réexaminer lors d’un nouveau relevé')+'</div>';
     html+='<details style="margin-top:8px"><summary style="font-size:11px;cursor:pointer;color:var(--neon)">Détails bookmakers</summary>'+
-       valueProBookmakers(w.bookmaker_comparison)+'</details></div>';
+       valueProBookmakers(w.bookmaker_comparison)+'</details>'+betproExpertCardButton(betproExpertCardData(w,'Value Bet Pro / surveillance'))+'</div>';
    }
   }
   if(rejected.length){
@@ -10288,6 +10288,7 @@ ${blocks}`}]
           ${dateStr?`<div class="ticker-meta">${art.is_match?'Rencontre le':'Publié le'} ${esc(dateStr)} (Paris)</div>`:''}
           ${marketLine}
           ${newsInsight}
+          ${art.is_match?betproExpertCardButton(betproExpertCardData(art,'Accueil · rencontres',{match:displayTitle})):''}
           ${frenchArticle?`<div class="ticker-read-links"><a class="ticker-read-primary" href="${esc(frenchArticle)}" target="_blank" rel="noopener noreferrer">${nativeFrench?'Lire l’article en français':'Lire la traduction française'}</a>${nativeFrench?'':`<a class="ticker-read-original" href="${esc(originalArticle)}" target="_blank" rel="noopener noreferrer" title="Voir l’article original">Article original</a>`}</div>`:''}
           ${art._turfRaceId?`<div class="ticker-meta" style="color:#a8efc0">Voir la course PMU dans BetPro</div>`:''}
         </div>
