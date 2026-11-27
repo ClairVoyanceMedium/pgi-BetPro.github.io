@@ -6352,8 +6352,9 @@ function betproExpertRunCard(x){
  const ctx={};for(const k of ['home','away','competition','score_home','score_away','minute'])if(x[k]!=null&&x[k]!=='')ctx[k]=x[k];
  const sport=betproPoissonFixtureSport(x.sport||'');if(sport)ctx.sport=sport;else if(x.sport)ctx.sport=x.sport;
  if(x.date)ctx.start_time=x.date;
+ ctx.card_research=true;if(x.match)ctx.match=x.match;if(x.race_id)ctx.race_id=x.race_id;if(x.selection)ctx.selection=x.selection;
  if(!document.getElementById('s-chat')?.classList.contains('on'))go('chat');
- input.value='Analyse exclusivement cette rencontre : '+match+'. '+parts.join(' | ')+'. Les données de la carte sont des indications à recontrôler, pas des faits acquis. '+BETPRO_EXPERT_CARD_INSTRUCTIONS;
+ input.value='Analyse détaillée exclusivement de cette rencontre : '+match+'. '+parts.join(' | ')+'. Les données de la carte sont des indications à recontrôler, pas des faits acquis. '+BETPRO_EXPERT_CARD_INSTRUCTIONS;
  document.querySelector('#betpro-expert-title')?.scrollIntoView({behavior:'smooth',block:'start'});
  input.focus({preventScroll:true});void sendChat(ctx);
 }
