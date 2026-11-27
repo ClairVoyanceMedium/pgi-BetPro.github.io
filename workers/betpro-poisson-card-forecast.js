@@ -4,8 +4,8 @@
 const bpForecastMemo=new Map(),bpForecastPending=new Map();
 async function bpForecastFixture(q,feed,start,home,away){
  const base='https://site.api.espn.com/apis/site/v2/sports/'+feed;
- const getTarget=(c,id)=>{
-  const at=Date.parse(c?.date||c?.startDate||''),st=c?.status?.type||{};
+ const getTarget=(c,id,event=null)=>{
+  const at=Date.parse(c?.date||c?.startDate||event?.date||''),st=c?.status?.type||event?.status?.type||{};
   if(!Number.isFinite(at)||Math.abs(at-start)>3*3600000||at<=Date.now()+120000||st.completed===true||st.state!=='pre')return null;
   const h=c?.competitors?.find(x=>x.homeAway==='home'),a=c?.competitors?.find(x=>x.homeAway==='away');
   if(!h?.team?.id||!a?.team?.id||String(h.team.id)===String(a.team.id)||!bpEvidenceName(bpEvidenceTeam(h),home)||!bpEvidenceName(bpEvidenceTeam(a),away))return null;
@@ -19,7 +19,7 @@ async function bpForecastFixture(q,feed,start,home,away){
  const dates=[...new Set([day.year+day.month+day.day,new Date(start).toISOString().slice(0,10).replace(/-/g,'')])];
  for(const date of dates){
   try{const url=base+'/scoreboard?dates='+date+'&limit=500',d=await betproChatExternal(url,{ttl:5*60000,maxBytes:2000000});
-   const matches=(d.events||[]).map(e=>{const c=e.competitions?.[0];return getTarget(c,e.id);}).filter(Boolean);
+   const matches=(d.events||[]).map(e=>{const c=e.competitions?.[0];return getTarget(c,e.id,e);}).filter(Boolean);
    if(matches.length===1)return {...matches[0],url};if(matches.length>1)return null;
   }catch(_){}
  }
@@ -37,7 +37,7 @@ async function bpPoissonCardForecast(env,q){
  const task=(async()=>{
   const target=await bpForecastFixture(q,feed,start,home,away);if(!target)return {ok:false,reason:'fixture'};
   const hist=sport==='football'?await bpPHistory(env,home,away,q.competition,{feed,home:target.home,away:target.away}):await bpMHistory({spec,home:target.home,away:target.away});
-  if(!hist?.ok)return {ok:false,reason:'history',home_matches:hist?.home_matches||0,away_matches:hist?.away_matches||0};
+  if(!hist?.ok)return {ok:false,reason:Array.isArray(hist?.source_urls)&&hist.source_urls.length?'history':'unavailable',home_matches:hist?.home_matches||0,away_matches:hist?.away_matches||0};
   if(Date.now()>=target.start-120000)return {ok:false,reason:'started'};
   if(!Array.isArray(hist.source_urls)||!hist.source_urls.length||hist.home_matches<5||hist.away_matches<5||hist.home_effective<2||hist.away_effective<2)return {ok:false,reason:'history'};
   const m=sport==='football'?bpPModel(hist,0,0,0):bpMForecast(hist,0,0,0,null);
@@ -50,6 +50,6 @@ async function bpPoissonCardForecast(env,q){
    outcomes:out,fair_odds:{home:out.home_win>0?Math.round(10000/out.home_win)/100:null,away:out.away_win>0?Math.round(10000/out.away_win)/100:null,draw:out.draw>0?Math.round(10000/out.draw)/100:null},
    expected_final:m.expected_final,model:m,league:feed,quality,home_matches:hist.home_matches,away_matches:hist.away_matches,
    home_effective:hist.home_effective,away_effective:hist.away_effective,source_urls:[target.url,...hist.source_urls].slice(0,5),checked_at:isoNow(),calibrated:false};
- })().catch(()=>({ok:false,reason:'unavailable'})).then(result=>{if(bpForecastMemo.size>=160)bpForecastMemo.delete(bpForecastMemo.keys().next().value);bpForecastMemo.set(key,{value:result,until:Math.min(start-120000,Date.now()+(result.ok?15:3)*60000)});return result;}).finally(()=>bpForecastPending.delete(key));
+ })().catch(()=>({ok:false,reason:'unavailable'})).then(result=>{if(bpForecastMemo.size>=160)bpForecastMemo.delete(bpForecastMemo.keys().next().value);bpForecastMemo.set(key,{value:result,until:Math.min(start-120000,Date.now()+(result.ok?15:result.reason==='unavailable'?0.25:3)*60000)});return result;}).finally(()=>bpForecastPending.delete(key));
  bpForecastPending.set(key,task);return task;
 }
