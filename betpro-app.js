@@ -10865,6 +10865,8 @@ function betproRenderBenterFamilyStates(data,unavailable=false){
     const count=valid?Number(row.active_models):null;
     el.textContent=count===null?'ÉTAT NON VÉRIFIÉ':count>0?'STRATÉGIE ACTIVE · '+count:'EN APPRENTISSAGE';
     el.style.color=count===null?'var(--mu)':count>0?'#39ff14':'#b8a4ff';
+    const proof=document.getElementById('benter-proof-'+key);
+    if(proof){proof.textContent=count===null?'Comparaison non vérifiée':count>0?(key==='SPORT'?'SUPÉRIEUR AUX BOOKMAKERS':'SUPÉRIEUR AU MARCHÉ HIPPIQUE')+' · segments validés':'Supériorité non validée';proof.style.color=count>0?'#39ff14':'var(--mu)';proof.title='Supériorité prédictive hors échantillon selon les seuils du modèle ; ni garantie de gain ni preuve de rentabilité.';}
     el.title=count===null?'Diagnostic absent ou périmé ; aucun état déduit.':count>0?'Au moins un '+(key==='HKJC'?'segment de calibration':'modèle')+' validé. Les autres segments et les cartes restent soumis à leurs propres filtres.':'Aucun modèle actif dans cette famille au dernier diagnostic.';
   }
 }
@@ -10885,7 +10887,10 @@ function betproRenderBenterProgress(data){
     const box=add(root,'div','',{border:'1px solid var(--bd)',borderRadius:'7px',padding:'8px',minWidth:'0',background:'rgba(0,0,0,.12)'});
     add(box,'div',name,{font:'800 10px var(--mo)',color:'#8edbff',marginBottom:'5px'});
     const row=(data.models_by_family||[]).find(x=>x.family===key);
-    return {box,active:number(row?.active_models)};
+    const active=number(row?.active_models);
+    add(box,'div',active===null?'Comparaison au marché non vérifiée':active>0?(key==='SPORT'?'SUPÉRIEUR AUX BOOKMAKERS':'SUPÉRIEUR AU MARCHÉ HIPPIQUE')+' — '+n(active)+' segment(s) validé(s)':'SUPÉRIORITÉ NON VALIDÉE',{font:'800 10px var(--mo)',color:active>0?'#39ff14':'#b8a4ff',lineHeight:'1.5',marginBottom:'5px'});
+    if(active>0)add(box,'div','Supériorité prédictive hors échantillon selon les critères du modèle. Ne concerne que les segments actifs ; rentabilité non garantie.',textStyle);
+    return {box,active};
   };
   const metric=(box,label,value,target,color)=>{
     const v=number(value),t=number(target);
