@@ -4973,9 +4973,10 @@ function betproClassicCard(match,idx){
      ${quoteRows.map((v,k)=>`<div class="om-bm-row"><span style="flex:1;color:#dce8fa">${esc(v.bookmaker)}</span><span style="font-family:var(--mo);font-weight:700;color:${k===0?'var(--gr)':'#d0d9ec'}">${Number(v.odds).toFixed(2)}</span>${k===0?'<span style="background:rgba(0,255,157,.15);color:var(--gr);border-radius:3px;font-size:9px;font-family:var(--mo);padding:1px 5px;font-weight:700">BEST</span>':''}</div>`).join('')}
   </div>`:'';
   const verifiedStats=verified?`<div style="margin-bottom:8px">
-    ${ssRow('Indice de cohérence',consistency??0)}
-    ${ssRow('Accord bookmakers',n?Math.round(100*(Number(c.agreement||0)/n)):0)}
-    ${ssRow('Probabilité du favori',Math.round(Number(c.probability||0)*100))}
+    <div style="font-size:10px;color:var(--mu);margin-bottom:5px">Indicateurs issus des cotes (pas des statistiques des équipes ni d’une validation Benter).</div>
+    ${consistency!=null?ssRow('Cohérence des cotes /100',consistency):'<small>Cohérence non mesurée</small>'}
+    ${n>0&&c.agreement!=null&&Number.isFinite(Number(c.agreement))?ssRow('Accord des opérateurs (%)',Math.round(100*Number(c.agreement)/n)):'<small>Accord non mesuré</small>'}
+    ${c.probability!=null&&Number.isFinite(Number(c.probability))?ssRow('Probabilité de marché (%)',Math.round(Number(c.probability)*100)):'<small>Probabilité non mesurée</small>'}
   </div>`:'';
   const realScore=scoreKnown?`<span class="bdg blv" style="font-weight:800">Score ${esc(String(score.home??'–'))} : ${esc(String(score.away??'–'))}</span>`:'';
   const footnote=highMarketProbability?'Vert = probabilité de marché élevée (≥75 %), pas une garantie de rendement. Vérifier la cote chez le bookmaker.':verified?'Consensus de marché indicatif, non validé par Benter. Aucun gain garanti.':archived?'Ancienne cote, indicative seulement, susceptible d’avoir changé.':oneSource?'Une seule source : indication exploratoire, pas une validation indépendante.':'Les cotes manquantes ne sont jamais inventées.';
@@ -6339,9 +6340,10 @@ const BETPRO_EXPERT_CARD_INSTRUCTIONS='Recherche approfondie et récente : véri
 function betproExpertCardData(raw,origin,extra={}){
  const r=raw||{},x={origin,...extra};
  x.home=x.home||r.home_team||r.home_name||r.home||'';x.away=x.away||r.away_team||r.away_name||r.away||'';
- x.sport=x.sport||r.sport||r._sport||r.sport_key||'';x.competition=x.competition||r.competition||r.sport_title||r.league||'';
- x.date=x.date||r.start_time||r.startTime||r.start_at||r.event_start_at||r.commence_time||r.race_time||r.start||r.time||'';
- if(Array.isArray(r.recent_form??r.form)&& (r.recent_form??r.form).some(v=>Array.isArray(v?.results)))x.recent_form=r.recent_form??r.form;
+ x.sport=x.sport||r.sport_key||r._sport||r.sport||'';x.competition=x.competition||r.competition||r.sport_title||r.league||'';
+ x.sport_source=r.sport_source||r.espn_feed||r.feed||r.sport_key||r._sport||r.sport||'';
+ x.event_id=String(r.source==='espn'?(r.fixture_id||r.event_id||r.id||''):(r.espn_id||r.espn_event_id||r.id||''));
+ x.date=x.date||r.start_time||r.startTime||r.start_at||r.event_start_at||r.commence_time||r.kickoff||r.race_time||r.start||r.time||'';
  x.match=x.match||r.match||'';x.selection=x.selection||r.selection||'';x.odds=x.odds??r.odds;
  if(r.score&&typeof r.score==='object'){x.score_home=r.score.home;x.score_away=r.score.away;}
  if(typeof r.score==='string')x.score=r.score;
@@ -6354,7 +6356,7 @@ function betproExpertRaceData(r,origin,selection=''){
 function betproExpertCardButton(x){
  if(!x||(!(x.home&&x.away)&&!x.match))return '';
  const payload=encodeURIComponent(JSON.stringify(x));
- return (x.recent_form?betproCardRecentForm(x):'')+'<button type="button" class="btn bs betpro-card-expert" style="display:block;width:100%;margin-top:9px;white-space:normal;line-height:1.4" data-expert-card="'+esc(payload)+'" onclick="event.stopPropagation();betproExpertOpenCard(this)">Analyser avec le Chat Expert</button>';
+ return betproSharedEvidenceSlot(x)+'<button type="button" class="btn bs betpro-card-expert" style="display:block;width:100%;margin-top:9px;white-space:normal;line-height:1.4" data-expert-card="'+esc(payload)+'" onclick="event.stopPropagation();betproExpertOpenCard(this)">Analyser avec le Chat Expert</button>';
 }
 function betproExpertOpenCard(button){
  try{betproExpertRunCard(JSON.parse(decodeURIComponent(button.dataset.expertCard)));}catch(e){toast('Contexte de la rencontre indisponible','err');}
@@ -6606,7 +6608,66 @@ function betproPoissonFixtureFacts(f){
  const message=rows.length?'Les informations non publiées ne sont pas affichées. Les absences et compositions peuvent évoluer.':e?.ok?'La fiche de cette rencontre ne publie pas de données détaillées exploitables.':e?'Aucune fiche détaillée fiable disponible pour cette rencontre.':'Les données publiées seront chargées automatiquement si la source couvre cette rencontre.';
  return '<div class="betpro-poisson-fixture-facts" data-poisson-evidence-detail>'+details+'<p class="betpro-poisson-facts-disclaimer">'+esc(message)+'</p>'+link+'</div>';
 }
+/* Couche de faits commune : même source vérifiée, même cache et même budget que Poisson.
+   Aucune incidence sur les probabilités, les filtres de pari ou la collecte. */
+let betproSharedEvidenceObserver=null,betproSharedEvidenceMutation=null;
+function betproSharedEvidenceFixture(x){
+ if(!x||!x.home||!x.away||x.origin==='Analyse Poisson'||x.sport==='hippisme')return null;
+ const at=Date.parse(x.date||'');
+ const sport=betproPoissonFixtureSport(x.sport||x.sport_source);
+ const f={home:String(x.home),away:String(x.away),sport,competition:String(x.competition||''),sport_source:String(x.sport_source||x.sport||''),start_time:Number.isFinite(at)?new Date(at).toISOString():'',id:String(x.event_id||'')};
+ if(!sport||!f.start_time||Math.abs(at-Date.now())>4*86400000)return null;
+ const key=betproPoissonFollowSportKey(f);
+ if(!/^(soccer_|basketball_|americanfootball_|icehockey_|baseball_|rugbyunion_|rugbyleague_)/.test(key)&&!/^(soccer|basketball|football|hockey|baseball|rugby|rugby-league)\/[a-z0-9.-]+$/.test(f.sport_source))return null;
+ if(/unclassified|outright|champion(?:ship)?_winner/.test(key))return null;
+ return f;
+}
+function betproSharedEvidenceSlot(x){
+ if(!x?.home||!x?.away||x.origin==='Analyse Poisson'||x.sport==='hippisme')return '';
+ const f=betproSharedEvidenceFixture(x);
+ if(!f)return '<div class="betpro-shared-evidence"><strong>Forme et statistiques sportives</strong><small>Fiche ESPN non couverte ou rencontre insuffisamment identifiée. Aucun historique déduit.</small></div>';
+ return '<div class="betpro-shared-evidence" data-betpro-evidence="'+esc(encodeURIComponent(JSON.stringify(f)))+'"><strong>Forme et statistiques sportives</strong><small>Chargement à l’affichage de la carte…</small></div>';
+}
+function betproSharedEvidenceDecode(el){try{return JSON.parse(decodeURIComponent(el.dataset.betproEvidence));}catch(_){return null;}}
+function betproEvidenceIsVerified(data){
+ if(data?.ok!==true||data.source!=='ESPN'||!['injuries','suspensions','lineups','form','standings'].every(k=>Array.isArray(data.facts?.[k])))return false;
+ const at=Date.parse(data.checked_at||'');
+ if(!Number.isFinite(at)||at>Date.now()+60000||Date.now()-at>12*60000)return false;
+ try{const u=new URL(data.source_url);return u.protocol==='https:'&&u.hostname==='site.api.espn.com'&&!u.username&&!u.password&&u.pathname.endsWith('/summary')&&/^\d{5,12}$/.test(u.searchParams.get('event')||'');}catch(_){return false;}
+}
+function betproSharedEvidencePaint(el,f){
+ const data=betproPoissonEvidenceRead(f);
+ if(!data)return;
+ const title='<strong>Forme et statistiques sportives</strong>';
+ if(!betproEvidenceIsVerified(data)){el.innerHTML=title+'<small>Fiche de rencontre indisponible ou contrôle expiré. Aucune statistique inventée.</small>';return;}
+ const rows=betproPoissonEvidenceSections(f),form=data.facts.form;
+ const src='<small>Source ESPN · fiche contrôlée le '+esc(betproPoissonFixtureDate(data.checked_at))+' · <a href="'+esc(data.source_url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Consulter la source</a></small>';
+ const details=rows.filter(x=>!x.formRows).map(x=>'<div class="betpro-shared-fact"><strong>'+esc(x.label)+'</strong>'+x.detail.map(y=>'<span>'+esc(y)+'</span>').join('')+'</div>').join('');
+ const coverage=['injuries','suspensions','lineups','standings'].map((k,i)=>data.facts[k].length?'':(['Blessures','Suspensions','Compositions','Classement'][i]+' non publiés ou non confirmés')).filter(Boolean);
+ el.innerHTML=title+(form.length?betproPoissonFormHtml(form):'<small>Forme récente non publiée dans la fiche vérifiée.</small>')+src+'<details class="betpro-shared-evidence-details" onclick="event.stopPropagation()"><summary>Statistiques et informations disponibles</summary>'+details+(coverage.length?'<small>'+esc(coverage.join(' · '))+'. Une absence d’information ne prouve pas une absence de blessure.</small>':'')+'</details>';
+}
+function betproSharedEvidenceEnqueue(el){
+ const f=betproSharedEvidenceDecode(el);if(!f||!el.isConnected||!el.getClientRects().length)return;
+ const cached=betproPoissonEvidenceRead(f);if(cached){betproSharedEvidencePaint(el,f);return;}
+ const key=betproPoissonEvidenceKey(f);
+ if(betproPoissonEvidenceInflight.has(key)||betproPoissonEvidenceQueue.has(key))return;
+ betproPoissonEvidenceQueue.set(key,{f,el,shared:true});betproPoissonEvidencePump();
+}
+function betproSharedEvidenceRegister(root){
+ if(!root||root.nodeType!==1)return;
+ const slots=[...(root.matches?.('[data-betpro-evidence]')?[root]:[]),...(root.querySelectorAll?.('[data-betpro-evidence]')||[])];
+ for(const el of slots){if(betproSharedEvidenceObserver)betproSharedEvidenceObserver.observe(el);else if(el.getBoundingClientRect().top<window.innerHeight+100)betproSharedEvidenceEnqueue(el);}
+}
+function betproSharedEvidenceInit(){
+ if(betproSharedEvidenceMutation)return;
+ if('IntersectionObserver' in window)betproSharedEvidenceObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting)betproSharedEvidenceEnqueue(entry.target);},{rootMargin:'100px'});
+ betproSharedEvidenceMutation=new MutationObserver(records=>{for(const rec of records)for(const el of rec.addedNodes)betproSharedEvidenceRegister(el);});
+ const main=document.querySelector('main')||document.body;betproSharedEvidenceMutation.observe(main,{childList:true,subtree:true});betproSharedEvidenceRegister(main);
+ const refresh=()=>{if(document.hidden)return;for(const el of main.querySelectorAll('[data-betpro-evidence]')){const rect=el.getBoundingClientRect();if(rect.width&&rect.height&&rect.bottom>=0&&rect.top<=window.innerHeight+100)betproSharedEvidenceEnqueue(el);}};
+ setInterval(refresh,10*60000);document.addEventListener('visibilitychange',refresh);
+}
 function betproPoissonEvidenceUpdate(f){
+ for(const el of document.querySelectorAll('[data-betpro-evidence]')){const current=betproSharedEvidenceDecode(el);if(current&&betproPoissonEvidenceKey(current)===betproPoissonEvidenceKey(f))betproSharedEvidencePaint(el,current);}
  const container=document.getElementById('betpro-poisson-fixtures');if(!container)return;
  for(const el of container.querySelectorAll('[data-poisson-evidence-index]')){
   const current=betproPoissonPicker.fixtures[Number(el.dataset.poissonEvidenceIndex)];if(!current||betproPoissonEvidenceKey(current)!==betproPoissonEvidenceKey(f))continue;
@@ -6624,8 +6685,8 @@ function betproPoissonEvidencePump(){
   const params=new URLSearchParams({home:f.home,away:f.away,start:f.start_time,sport:betproPoissonFollowSportKey(f),feed:String(f.sport_source||''),id:String(f.id||'')});
   betproPoissonEvidenceTimes.push(Date.now());
   const request=api('/api/poisson/evidence?'+params.toString(),'GET',null,{timeoutMs:22000,noCache:true}).then(data=>{
-   const valid=data?.ok===true&&data.source==='ESPN'&&['injuries','suspensions','lineups','form','standings'].every(k=>Array.isArray(data.facts?.[k]));
-   if(data?.reason==='busy'){return;}
+   const valid=betproEvidenceIsVerified(data);
+   if(data?.reason==='busy'){betproPoissonEvidenceCache.set(key,{value:{ok:false},until:Date.now()+60000});betproPoissonEvidenceUpdate(f);return;}
    if(betproPoissonEvidenceCache.size>=200)betproPoissonEvidenceCache.delete(betproPoissonEvidenceCache.keys().next().value);
    betproPoissonEvidenceCache.set(key,{value:valid?data:{ok:false},until:Date.now()+(valid?10:3)*60000});
    betproPoissonEvidenceUpdate(f);
@@ -6641,7 +6702,7 @@ function betproPoissonEvidenceEnqueue(el){
 }
 function betproPoissonObserveEvidence(container){
  if(betproPoissonEvidenceObserver)betproPoissonEvidenceObserver.disconnect();
- betproPoissonEvidenceQueue.clear();
+ for(const [key,job] of betproPoissonEvidenceQueue)if(!job.shared)betproPoissonEvidenceQueue.delete(key);
  if('IntersectionObserver' in window)betproPoissonEvidenceObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting)betproPoissonEvidenceEnqueue(entry.target);},{rootMargin:'150px'});
  for(const el of container.querySelectorAll('[data-poisson-evidence-index]')){
   if(betproPoissonEvidenceObserver)betproPoissonEvidenceObserver.observe(el);
@@ -11166,6 +11227,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initQuickQuestions();
   loadQuotas();
   ttsInit();
+  betproSharedEvidenceInit();
   loadTicker();
   // Actualisation du DIRECT uniquement si l'onglet Live est ouvert et visible.
   // Ne change ni le ticker des rencontres à venir ni les scans Classique/Benter.
