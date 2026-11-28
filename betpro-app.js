@@ -6424,29 +6424,29 @@ function betproExpertCardButton(x){
  return betproSharedEvidenceSlot(x)+'<button type="button" class="btn bs betpro-card-expert" style="display:block;width:100%;margin-top:9px;white-space:normal;line-height:1.4" data-expert-card="'+esc(payload)+'" onclick="event.stopPropagation();betproExpertOpenCard(this)">Analyser avec le Chat Expert</button>';
 }
 function betproExpertOpenCard(button){
- try{betproExpertRunCard(JSON.parse(decodeURIComponent(button.dataset.expertCard)));}catch(e){toast('Contexte de la rencontre indisponible','err');}
+ try{const x=JSON.parse(decodeURIComponent(button.dataset.expertCard));betproExpertRunCard(x);}catch(e){console.error('Chat Expert card',e);toast('Impossible d’ouvrir cette rencontre dans le Chat Expert.','err');}
 }
 function betproExpertRunCard(x){
  const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
- if(!input||!btn)return;
- if(btn.disabled){toast('Une recherche Chat Expert est déjà en cours.','err');return;}
+ if(!input||!btn){toast('Chat Expert indisponible : recharge la page.','err');return;}
+ if(btn.disabled){if(!document.getElementById('s-chat')?.classList.contains('on'))go('chat');document.getElementById('chat-wrap')?.scrollIntoView({block:'end'});toast('Une recherche Chat Expert est déjà en cours.','err');return;}
  const match=x.home&&x.away?x.home+' contre '+x.away:x.match;
  const parts=[x.origin&&'Rubrique : '+x.origin,x.sport&&'Sport : '+x.sport,x.competition&&'Compétition : '+x.competition,x.date&&'Date/heure : '+x.date,x.race_id&&'Identifiant course : '+x.race_id,x.selection&&'Sélection affichée : '+x.selection,x.odds!=null&&'Cote affichée : '+x.odds,x.probability&&'Indicateur affiché : '+x.probability,x.score&&'Score affiché : '+x.score,x.score_home!=null&&x.score_away!=null&&'Score affiché : '+x.score_home+'-'+x.score_away,x.minute!=null&&'Période affichée : '+x.minute].filter(Boolean);
  const ctx={};for(const k of ['home','away','competition','score_home','score_away','minute'])if(x[k]!=null&&x[k]!=='')ctx[k]=x[k];
  const sport=betproPoissonFixtureSport(x.sport||'');if(sport)ctx.sport=sport;else if(x.sport)ctx.sport=x.sport;
  if(x.date)ctx.start_time=x.date;
+ if(x.sport_source)ctx.sport_source=x.sport_source;if(x.event_id)ctx.event_id=x.event_id;if(x.origin)ctx.origin=x.origin;
  ctx.card_research=true;if(x.match)ctx.match=x.match;if(x.race_id)ctx.race_id=x.race_id;if(x.selection)ctx.selection=x.selection;
  if(!document.getElementById('s-chat')?.classList.contains('on'))go('chat');
- input.value='Analyse détaillée exclusivement de cette rencontre : '+match+'. '+parts.join(' | ')+'. Les données de la carte sont des indications à recontrôler, pas des faits acquis. '+BETPRO_EXPERT_CARD_INSTRUCTIONS;
- document.querySelector('#betpro-expert-title')?.scrollIntoView({behavior:'smooth',block:'start'});
- input.focus({preventScroll:true});void sendChat(ctx);
+ input.value='Analyse détaillée de '+match+'. '+parts.join(' | ')+'. Vérifie la rencontre, la forme récente, les absences, les cotes, les actualités et les forums pertinents. Donne les arguments pour et contre, les limites et les sources réellement consultées.';
+ void sendChat(ctx);
 }
 
 async function sendChat(cardContext){
  const input=document.getElementById('chat-input'),btn=document.getElementById('chat-btn');
- const q=input?.value.trim();if(!q||btn?.disabled)return;
- if(CHAT_MIC.active)chatMicStop();
- if(TTS.enabled&&ttsSupported()){ttsUnlockWebAudio();try{speechSynthesis.resume();}catch(_){}}
+ const wrap=document.getElementById('chat-wrap');
+ const q=input?.value.trim();if(!q||!btn||!wrap||btn.disabled)return;
+ try{if(CHAT_MIC.active)chatMicStop();if(TTS.enabled&&ttsSupported()){ttsUnlockWebAudio();speechSynthesis.resume();}}catch(e){console.warn('Chat audio unavailable',e);}
  chatHistory.push({role:'user',content:q});appendMsg('user',q);input.value='';betproChatVoiceDraftStarted=false;
  if(betproChatOnlySources(q)&&BETPRO_CHAT_LAST_RESEARCH?.sources?.length){
   const reply='Voici les sources utilisées pour ma réponse précédente.';
@@ -6456,13 +6456,15 @@ async function sendChat(cardContext){
   return;
  }
  btn.disabled=true;btn.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>';
- const wrap=document.getElementById('chat-wrap'),typing=document.createElement('div');
+ const typing=document.createElement('div');
  typing.className='msg bot';typing.id='typing';
  typing.innerHTML='<div class="msg-ico msg-ico-bp">'+BETPRO_CHAT_BOT_ICON+'</div><div class="msg-bub" style="color:var(--dm)">Recherche sportive multi-sources en cours…</div>';
  wrap.appendChild(typing);wrap.scrollTop=wrap.scrollHeight;
+ if(cardContext?.card_research)typing.scrollIntoView({behavior:'auto',block:'end'});
  try{
   const ctx=cardContext&&typeof cardContext==='object'?cardContext:(getCtx()||{});
-  const d=await api('/api/chat','POST',{messages:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},{timeoutMs:45000,noCache:true});
+  const d=await api('/api/chat','POST',{messages:ctx.card_research?[{role:'user',content:q}]:chatHistory.slice(-10),context:ctx,research_mode:'deep',require_fresh_data:true,include_forums:true},{timeoutMs:90000,noCache:true});
+  if(d?.ok===false||!String(d?.response||'').trim())throw Error(d?.error||'Aucune réponse retournée par le serveur');
   typing.remove();
   const answer=String(d?.response||'Recherche indisponible : aucune donnée vérifiée retournée.');
   chatHistory.push({role:'assistant',content:answer});
@@ -6470,8 +6472,8 @@ async function sendChat(cardContext){
   BETPRO_CHAT_LAST_RESEARCH=d||null;
   // Afficher l'annexe de sources uniquement quand elle a ete demandee.
   if(betproChatWantsSources(q))betproChatShowResearchSources(d||{});
- }catch(e){typing.remove();appendMsg('bot','La recherche sportive n’a pas abouti : '+(e?.message||'erreur réseau')+'. Aucun résultat n’a été inventé.');}
- finally{btn.disabled=false;btn.innerHTML='▶';}
+ }catch(e){typing.remove();appendMsg('bot','La recherche sportive n’a pas abouti : '+(e?.message||'erreur réseau')+'. Aucun résultat n’a été inventé. Tu peux relancer cette demande.');if(!input.value){input.value=q;input.style.height='auto';input.style.height=Math.min(200,input.scrollHeight)+'px';} }
+ finally{typing.remove();btn.disabled=false;btn.innerHTML='▶';}
 }
 
 async function loadAIStatus(){const box=document.getElementById('ai-status-box');if(!box)return;try{const d=await api('/api/ai-info');box.innerHTML=d.configured?`<div class="ok-box">✅ IA opérationnelle — <span class="provider-badge pb-${d.provider}">${d.provider} · ${d.model}</span></div>`:`<div class="warn">⚠️ IA non configurée — exécutez <code>wrangler secret put AI_PROVIDER</code></div>`;const badge=document.getElementById('ai-badge');if(badge&&d.configured){badge.className='provider-badge pb-'+d.provider;badge.textContent='⚡ '+d.provider+' · '+d.model;}}catch(_){}}
